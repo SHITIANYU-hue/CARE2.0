@@ -7,15 +7,31 @@ import hashlib
 import json
 import math
 import random
+import urllib.request
+import zipfile
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from statistics import mean, pstdev
 from typing import Any, Callable, Literal
+from xml.etree import ElementTree as ET
 
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_RUNS = ROOT / "outputs" / "runs"
 OUTPUT_TABLES = ROOT / "outputs" / "tables"
+RAW_DATA = ROOT / "data" / "raw"
+XLSX_NS = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
+RELS_NS = "{http://schemas.openxmlformats.org/package/2006/relationships}"
+PUBLIC_DATA_URLS = {
+    "dreher_doyle_buchwald_hartwig.xlsx": (
+        "https://raw.githubusercontent.com/rxn4chemistry/rxn_yields/master/"
+        "data/Buchwald-Hartwig/Dreher_and_Doyle_input_data.xlsx"
+    ),
+    "perera_suzuki_miyaura.xlsx": (
+        "https://raw.githubusercontent.com/rxn4chemistry/rxn_yields/master/"
+        "data/Suzuki-Miyaura/aap9112_Data_File_S1.xlsx"
+    ),
+}
 
 SkillFamily = Literal["ranker", "constraint", "exploration", "data_analysis", "fallback"]
 Mode = Literal["incumbent", "gate_v1", "gate_v2"]
@@ -138,6 +154,99 @@ def stable_noise(*parts: object, scale: float = 2.0) -> float:
 
 def clamp_score(value: float) -> float:
     return round(max(0.0, min(100.0, value)), 4)
+
+
+def stable_fraction(*parts: object) -> float:
+    text = "|".join(str(p) for p in parts)
+    digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    return int(digest[:8], 16) / 0xFFFFFFFF
+
+
+def ensure_public_data_file(filename: str) -> Path:
+    RAW_DATA.mkdir(parents=True, exist_ok=True)
+    path = RAW_DATA / filename
+    if path.exists():
+        return path
+    url = PUBLIC_DATA_URLS[filename]
+    print(f"downloading {filename} from {url}")
+    urllib.request.urlretrieve(url, path)
+    return path
+
+
+def excel_col_index(cell_ref: str) -> int:
+    col = 0
+    for ch in cell_ref:
+        if not ch.isalpha():
+            break
+        col = col * 26 + ord(ch.upper()) - ord("A") + 1
+    return col - 1
+
+
+def parse_xlsx_value(cell: ET.Element, shared_strings: list[str]) -> Any:
+    cell_type = cell.attrib.get("t")
+    if cell_type == "inlineStr":
+        text_node = cell.find(f"{XLSX_NS}is/{XLSX_NS}t")
+        return "" if text_node is None or text_node.text is None else text_node.text
+    value_node = cell.find(f"{XLSX_NS}v")
+    if value_node is None or value_node.text is None:
+        return None
+    raw = value_node.text
+    if cell_type == "s":
+        return shared_strings[int(raw)]
+    try:
+        value = float(raw)
+    except ValueError:
+        return raw
+    return int(value) if value.is_integer() else value
+
+
+def read_xlsx_rows(path: Path, sheet_name: str) -> list[list[Any]]:
+    with zipfile.ZipFile(path) as zf:
+        shared_strings: list[str] = []
+        if "xl/sharedStrings.xml" in zf.namelist():
+            root = ET.fromstring(zf.read("xl/sharedStrings.xml"))
+            for item in root.findall(f"{XLSX_NS}si"):
+                texts = [node.text or "" for node in item.iter(f"{XLSX_NS}t")]
+                shared_strings.append("".join(texts))
+
+        workbook = ET.fromstring(zf.read("xl/workbook.xml"))
+        rels = ET.fromstring(zf.read("xl/_rels/workbook.xml.rels"))
+        rel_by_id = {rel.attrib["Id"]: rel.attrib["Target"] for rel in rels.findall(f"{RELS_NS}Relationship")}
+        sheet_target = None
+        for sheet in workbook.findall(f"{XLSX_NS}sheets/{XLSX_NS}sheet"):
+            if sheet.attrib.get("name") == sheet_name:
+                rel_id = sheet.attrib["{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id"]
+                sheet_target = rel_by_id[rel_id]
+                break
+        if sheet_target is None:
+            raise ValueError(f"Sheet not found: {sheet_name} in {path}")
+
+        sheet_path = "xl/" + sheet_target.lstrip("/")
+        root = ET.fromstring(zf.read(sheet_path))
+        rows: list[list[Any]] = []
+        for row_node in root.findall(f".//{XLSX_NS}row"):
+            values: list[Any] = []
+            for cell in row_node.findall(f"{XLSX_NS}c"):
+                idx = excel_col_index(cell.attrib["r"])
+                while len(values) <= idx:
+                    values.append(None)
+                values[idx] = parse_xlsx_value(cell, shared_strings)
+            rows.append(values)
+        return rows
+
+
+def rows_to_dicts(rows: list[list[Any]]) -> list[dict[str, Any]]:
+    header = [str(value).strip() if value is not None else "" for value in rows[0]]
+    out = []
+    for row in rows[1:]:
+        item = {name: row[idx] if idx < len(row) else None for idx, name in enumerate(header) if name}
+        out.append(item)
+    return out
+
+
+def label_map(values: list[Any], prefix: str) -> dict[str, str]:
+    ordered = sorted({str(value) for value in values if value is not None})
+    return {value: f"{prefix}{idx:02d}" for idx, value in enumerate(ordered)}
 
 
 def synthetic_suzuki_adapter() -> DatasetAdapter:
@@ -316,10 +425,112 @@ def synthetic_materials_adapter() -> DatasetAdapter:
     )
 
 
+def real_buchwald_hartwig_adapter() -> DatasetAdapter:
+    path = ensure_public_data_file("dreher_doyle_buchwald_hartwig.xlsx")
+    records = rows_to_dicts(read_xlsx_rows(path, "FullCV_01"))
+    ligand_labels = label_map([r["Ligand"] for r in records], "L")
+    additive_labels = label_map([r["Additive"] for r in records], "A")
+    base_labels = label_map([r["Base"] for r in records], "B")
+    aryl_labels = label_map([r["Aryl halide"] for r in records], "H")
+    pool: list[Candidate] = []
+    for idx, row in enumerate(records):
+        output = row.get("Output")
+        if output is None:
+            continue
+        ligand = ligand_labels[str(row["Ligand"])]
+        additive = additive_labels[str(row["Additive"])]
+        base = base_labels[str(row["Base"])]
+        aryl = aryl_labels[str(row["Aryl halide"])]
+        pool.append(
+            Candidate(
+                candidate_id=f"bh_{idx:04d}_{ligand}_{additive}_{base}_{aryl}",
+                group=ligand,
+                x1=stable_fraction(additive),
+                x2=stable_fraction(base),
+                x3=stable_fraction(aryl),
+                objective_value=clamp_score(float(output)),
+                metadata={
+                    "ligand": ligand,
+                    "additive": additive,
+                    "base": base,
+                    "aryl_halide": aryl,
+                    "yield_value": clamp_score(float(output)),
+                    "source_row": idx + 2,
+                },
+            )
+        )
+    return DatasetAdapter(
+        dataset_id="real_buchwald_hartwig",
+        title="Dreher-Doyle Buchwald-Hartwig HTE replay",
+        objective="maximize_yield",
+        decision_columns=("ligand", "additive", "base", "aryl_halide"),
+        hidden_target="yield_value",
+        group_column="ligand",
+        preferred_groups=(),
+        failure_note="No fixed preferred ligand prior is encoded; the policy may only use revealed observations.",
+        candidates=tuple(pool),
+    )
+
+
+def real_suzuki_miyaura_adapter() -> DatasetAdapter:
+    path = ensure_public_data_file("perera_suzuki_miyaura.xlsx")
+    records = rows_to_dicts(read_xlsx_rows(path, "Sheet1"))
+    ligand_labels = label_map([r["Ligand_Short_Hand"] for r in records], "L")
+    catalyst_labels = label_map([r["Catalyst_1_Short_Hand"] for r in records], "C")
+    reagent_labels = label_map([r["Reagent_1_Short_Hand"] for r in records], "R")
+    solvent_labels = label_map([r["Solvent_1_Short_Hand"] for r in records], "S")
+    reactant_labels = label_map([r["Reactant_1_Short_Hand"] for r in records], "Q")
+    boronic_labels = label_map([r["Reactant_2_Name"] for r in records], "BA")
+    pool: list[Candidate] = []
+    for idx, row in enumerate(records):
+        output = row.get("Product_Yield_PCT_Area_UV")
+        if output is None:
+            continue
+        ligand = ligand_labels[str(row["Ligand_Short_Hand"])]
+        catalyst = catalyst_labels[str(row["Catalyst_1_Short_Hand"])]
+        reagent = reagent_labels[str(row["Reagent_1_Short_Hand"])]
+        solvent = solvent_labels[str(row["Solvent_1_Short_Hand"])]
+        reactant = reactant_labels[str(row["Reactant_1_Short_Hand"])]
+        boronic = boronic_labels[str(row["Reactant_2_Name"])]
+        pool.append(
+            Candidate(
+                candidate_id=f"sm_{idx:04d}_{reactant}_{boronic}_{catalyst}_{ligand}_{reagent}_{solvent}",
+                group=ligand,
+                x1=stable_fraction(catalyst),
+                x2=stable_fraction(reagent),
+                x3=stable_fraction(solvent),
+                objective_value=clamp_score(float(output)),
+                metadata={
+                    "reactant_1": reactant,
+                    "reactant_2": boronic,
+                    "catalyst": catalyst,
+                    "ligand": ligand,
+                    "reagent": reagent,
+                    "solvent": solvent,
+                    "yield_value": clamp_score(float(output)),
+                    "source_row": idx + 2,
+                },
+            )
+        )
+    return DatasetAdapter(
+        dataset_id="real_suzuki_miyaura",
+        title="Perera Suzuki-Miyaura HTE replay",
+        objective="maximize_yield",
+        decision_columns=("reactant_1", "reactant_2", "catalyst", "ligand", "reagent", "solvent"),
+        hidden_target="yield_value",
+        group_column="ligand",
+        preferred_groups=(),
+        failure_note="No fixed preferred ligand prior is encoded; the policy may only use revealed observations.",
+        candidates=tuple(pool),
+    )
+
+
 DATASET_BUILDERS: dict[str, Callable[[], DatasetAdapter]] = {
     "synthetic_suzuki_i": synthetic_suzuki_adapter,
     "synthetic_chemlex_i": synthetic_chemlex_adapter,
     "synthetic_materials_i": synthetic_materials_adapter,
+    "real_buchwald_hartwig": real_buchwald_hartwig_adapter,
+    "real_suzuki_miyaura": real_suzuki_miyaura_adapter,
 }
 
 
@@ -381,18 +592,24 @@ def make_skills(adapter: DatasetAdapter) -> list[SkillCard]:
 
 def make_hypothesis(adapter: DatasetAdapter) -> HypothesisEntry:
     preferred = ", ".join(adapter.preferred_groups)
+    if preferred:
+        claim = f"Groups {preferred} tend to produce higher objective values under suitable conditions."
+        evidence_summary = "Initialized from dataset prior; no reveal evidence yet."
+    else:
+        claim = f"No fixed preferred {adapter.group_column} prior is encoded for this dataset."
+        evidence_summary = "Initialized without a target-specific prior; updates only use revealed observations."
     return HypothesisEntry(
         hypothesis_id=f"{adapter.dataset_id}_preferred_group_hypothesis",
         status="active",
         scope="group_preference",
         trigger={"dataset": adapter.dataset_id, "condition": "observed_count >= 4"},
         target_spec={"group_column": adapter.group_column, "group_values": list(adapter.preferred_groups)},
-        claim=f"Groups {preferred} tend to produce higher objective values under suitable conditions.",
+        claim=claim,
         confidence=0.5,
         support_count=0,
         alpha=1.0,
         beta=1.0,
-        evidence_summary="Initialized from dataset prior; no reveal evidence yet.",
+        evidence_summary=evidence_summary,
         known_failure_modes=[adapter.failure_note],
         created_round=0,
         last_updated_round=0,

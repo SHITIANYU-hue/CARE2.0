@@ -6,6 +6,8 @@ Current status:
 
 - Uses synthetic finite candidate pools for Suzuki-style reaction optimization,
   ChemLex-style acid-amine optimization, and materials formulation optimization.
+- Includes public real HTE adapters for Dreher-Doyle Buchwald-Hartwig and
+  Perera Suzuki-Miyaura data from `rxn4chemistry/rxn_yields`.
 - Implements the CARE 2.0 minimum loop:
   `TaskSpec -> SkillCard -> HypothesisEntry -> GateCertificate -> AuditLog -> Metrics`.
 - Does not claim to reproduce CARE 1.0 paper numbers. It is a smoke test for the experiment interface while the original CARE 1.0 repo / public candidate tables are being confirmed.
@@ -16,6 +18,8 @@ Run:
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset synthetic_suzuki_i --seeds 30 --rounds 10
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset synthetic_chemlex_i --seeds 30 --rounds 10
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset synthetic_materials_i --seeds 30 --rounds 10
+python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_buchwald_hartwig --seeds 30 --rounds 10
+python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_suzuki_miyaura --seeds 30 --rounds 10
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset all --seeds 30 --rounds 10
 ```
 
@@ -26,6 +30,8 @@ Outputs:
 - `outputs/runs/<dataset_id>_audit_seed0.jsonl`
 - `outputs/runs/<dataset_id>_knowledge_seed0.json`
 
-The current adapters are intentionally synthetic. They let us test whether the
-same CARE gate and audit protocol behaves consistently across task shapes before
-plugging in release-safe real candidate tables.
+The synthetic adapters let us test whether the same CARE gate and audit protocol
+behaves consistently across task shapes. The real HTE adapters download public
+Excel files into `data/raw/`, which is ignored by git. For the real adapters, no
+fixed high-performing group prior is encoded; the replay policy only uses
+revealed observations plus generic diversity/risk checks.

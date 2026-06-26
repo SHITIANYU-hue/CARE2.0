@@ -7,15 +7,15 @@ Scientific Experimentation**.
 Current contents:
 
 - `experiments/care_replay/`: a lightweight finite-pool replay harness for
-  testing CARE-style incumbent/challenger/gate loops across multiple synthetic
-  dataset adapters.
+  testing CARE-style incumbent/challenger/gate loops across synthetic adapters
+  and public HTE datasets.
 - `knowledge_base/`: a small SQLite + FTS knowledge-base prototype for CARE 2.0
   task, dataset, mechanism, and skill cards, with optional vector indexing.
 
-The current replay experiments are synthetic smoke tests. They are meant to
-validate the software interface and audit flow, not to reproduce the CARE paper
-numbers. Reproducing paper results requires the original benchmark candidate
-tables.
+The current replay experiments are smoke tests. Synthetic adapters validate the
+interface and audit flow; public HTE adapters let the same loop run on real
+measured yields. Reproducing CARE paper numbers still requires the original
+benchmark candidate tables and matched evaluation setup.
 
 ## Quick Start
 
