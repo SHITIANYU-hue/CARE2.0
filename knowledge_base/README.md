@@ -2,7 +2,8 @@
 
 This directory contains a small, auditable knowledge-base prototype for CARE
 2.0. The first version uses JSON cards as source data, SQLite as the local
-storage layer, and SQLite FTS5 for text search.
+storage layer, SQLite FTS5 for text search, and optional vector indexes for
+embedding search.
 
 The public seed file intentionally contains only public, release-safe cards.
 Internal chat logs, private notes, and generated SQLite databases are not
@@ -28,6 +29,27 @@ python3 knowledge_base/query_kb.py gate --limit 5
 python3 knowledge_base/query_kb.py --type dataset
 python3 knowledge_base/query_kb.py "Suzuki ChemLex"
 ```
+
+## Embeddings
+
+Build a local development vector index without any API call:
+
+```bash
+python3 knowledge_base/build_embeddings.py --provider hashed
+python3 knowledge_base/query_embeddings.py "reaction optimization dataset" --limit 5
+```
+
+Use an OpenAI-compatible embedding endpoint:
+
+```bash
+export CARE_OPENAI_API_KEY="..."
+export CARE_OPENAI_BASE_URL="https://your-endpoint/v1"
+export CARE_EMBEDDING_MODEL="your-embedding-model"
+python3 knowledge_base/build_embeddings.py --provider openai
+```
+
+The API key is never stored in the repository. A chat-only model endpoint is not
+enough for this path; the endpoint must support `/v1/embeddings`.
 
 ## Card Model
 

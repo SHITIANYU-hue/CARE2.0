@@ -10,7 +10,7 @@ import random
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from statistics import mean, pstdev
-from typing import Any, Literal
+from typing import Any, Callable, Literal
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -18,16 +18,31 @@ OUTPUT_RUNS = ROOT / "outputs" / "runs"
 OUTPUT_TABLES = ROOT / "outputs" / "tables"
 
 SkillFamily = Literal["ranker", "constraint", "exploration", "data_analysis", "fallback"]
+Mode = Literal["incumbent", "gate_v1", "gate_v2"]
 
 
 @dataclass(frozen=True)
 class Candidate:
     candidate_id: str
-    ligand_identity: str
-    residence_time: float
-    temperature: float
-    catalyst_loading: float
-    yield_value: float
+    group: str
+    x1: float
+    x2: float
+    x3: float
+    objective_value: float
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class DatasetAdapter:
+    dataset_id: str
+    title: str
+    objective: str
+    decision_columns: tuple[str, ...]
+    hidden_target: str
+    group_column: str
+    preferred_groups: tuple[str, ...]
+    failure_note: str
+    candidates: tuple[Candidate, ...]
 
 
 @dataclass(frozen=True)
@@ -100,6 +115,7 @@ class GateCertificate:
 
 @dataclass(frozen=True)
 class AuditEntry:
+    dataset_id: str
     seed: int
     round_index: int
     public_observed_count: int
@@ -108,7 +124,7 @@ class AuditEntry:
     selected_candidate: str
     selected_by: str
     gate: GateCertificate
-    revealed_yield: float
+    revealed_value: float
     best_so_far: float
     hypothesis_snapshot: dict[str, Any]
 
@@ -120,20 +136,16 @@ def stable_noise(*parts: object, scale: float = 2.0) -> float:
     return (value - 0.5) * 2.0 * scale
 
 
-def synthetic_suzuki_pool() -> list[Candidate]:
+def clamp_score(value: float) -> float:
+    return round(max(0.0, min(100.0, value)), 4)
+
+
+def synthetic_suzuki_adapter() -> DatasetAdapter:
     ligands = [f"L{i}" for i in range(7)]
     residence_times = [30.0, 60.0, 90.0, 120.0]
     temperatures = [50.0, 70.0, 90.0, 110.0]
     loadings = [0.5, 1.0, 2.0, 4.0]
-    ligand_base = {
-        "L0": 42.0,
-        "L1": 48.0,
-        "L2": 76.0,
-        "L3": 62.0,
-        "L4": 58.0,
-        "L5": 72.0,
-        "L6": 55.0,
-    }
+    ligand_base = {"L0": 42.0, "L1": 48.0, "L2": 76.0, "L3": 62.0, "L4": 58.0, "L5": 72.0, "L6": 55.0}
     ligand_temp_opt = {"L0": 70.0, "L1": 70.0, "L2": 90.0, "L3": 90.0, "L4": 70.0, "L5": 110.0, "L6": 90.0}
     pool: list[Candidate] = []
     for ligand in ligands:
@@ -144,131 +156,279 @@ def synthetic_suzuki_pool() -> list[Candidate]:
                     time_effect = -0.0018 * (time - 90.0) ** 2 + 5.0
                     loading_effect = 4.0 * math.log1p(loading) - 1.1 * loading
                     interaction = 4.0 if ligand in {"L2", "L5"} and temp >= 90.0 and time >= 90.0 else 0.0
-                    low_temp_low_loading_penalty = -10.0 if temp <= 50.0 and loading <= 0.5 else 0.0
-                    y = (
+                    penalty = -10.0 if temp <= 50.0 and loading <= 0.5 else 0.0
+                    y = clamp_score(
                         ligand_base[ligand]
                         + temp_effect
                         + time_effect
                         + loading_effect
                         + interaction
-                        + low_temp_low_loading_penalty
+                        + penalty
                         + stable_noise(ligand, time, temp, loading, scale=2.3)
                     )
-                    y = max(0.0, min(100.0, y))
                     cid = f"{ligand}_T{int(temp)}_R{int(time)}_C{str(loading).replace('.', 'p')}"
-                    pool.append(Candidate(cid, ligand, time, temp, loading, round(y, 4)))
-    return pool
-
-
-def make_task(pool: list[Candidate], initial_observations: int, reveal_budget: int) -> TaskSpec:
-    return TaskSpec(
+                    pool.append(
+                        Candidate(
+                            candidate_id=cid,
+                            group=ligand,
+                            x1=temp / 110.0,
+                            x2=time / 120.0,
+                            x3=math.log1p(loading) / math.log1p(4.0),
+                            objective_value=y,
+                            metadata={
+                                "ligand_identity": ligand,
+                                "temperature": temp,
+                                "residence_time": time,
+                                "catalyst_loading": loading,
+                                "yield_value": y,
+                            },
+                        )
+                    )
+    return DatasetAdapter(
         dataset_id="synthetic_suzuki_i",
+        title="Synthetic Suzuki finite-pool replay",
         objective="maximize_yield",
         decision_columns=("ligand_identity", "residence_time", "temperature", "catalyst_loading"),
         hidden_target="yield_value",
-        initial_observations=initial_observations,
-        reveal_budget=reveal_budget,
-        oracle_value=max(c.yield_value for c in pool),
+        group_column="ligand_identity",
+        preferred_groups=("L2", "L5"),
+        failure_note="Low temperature and low catalyst loading can erase the ligand advantage.",
+        candidates=tuple(pool),
     )
 
 
-def make_skills() -> list[SkillCard]:
+def synthetic_chemlex_adapter() -> DatasetAdapter:
+    acids = [f"A{i}" for i in range(6)]
+    amines = [f"N{i}" for i in range(6)]
+    solvent_polarities = [0.2, 0.5, 0.8]
+    base_equivalents = [0.5, 1.0, 1.5, 2.0]
+    temperatures = [25.0, 50.0, 75.0, 100.0]
+    acid_base = {"A0": 40.0, "A1": 47.0, "A2": 68.0, "A3": 55.0, "A4": 72.0, "A5": 63.0}
+    amine_base = {"N0": 0.0, "N1": 8.0, "N2": -4.0, "N3": 11.0, "N4": 5.0, "N5": -2.0}
+    pair_bonus = {("A2", "N3"): 10.0, ("A4", "N1"): 8.0, ("A5", "N4"): 6.0}
+    pool: list[Candidate] = []
+    for acid in acids:
+        for amine in amines:
+            group = f"{acid}-{amine}"
+            for polarity in solvent_polarities:
+                for base_eq in base_equivalents:
+                    for temp in temperatures:
+                        polarity_opt = 0.8 if acid in {"A2", "A4"} else 0.5
+                        temp_opt = 75.0 if amine in {"N1", "N3", "N4"} else 50.0
+                        solvent_effect = -22.0 * (polarity - polarity_opt) ** 2 + 4.0
+                        base_effect = -4.0 * (base_eq - 1.5) ** 2 + 5.0
+                        temp_effect = -0.006 * (temp - temp_opt) ** 2 + 4.0
+                        y = clamp_score(
+                            acid_base[acid]
+                            + amine_base[amine]
+                            + pair_bonus.get((acid, amine), 0.0)
+                            + solvent_effect
+                            + base_effect
+                            + temp_effect
+                            + stable_noise(acid, amine, polarity, base_eq, temp, scale=2.8)
+                        )
+                        cid = f"{acid}_{amine}_S{int(polarity * 10)}_B{str(base_eq).replace('.', 'p')}_T{int(temp)}"
+                        pool.append(
+                            Candidate(
+                                candidate_id=cid,
+                                group=group,
+                                x1=polarity,
+                                x2=base_eq / 2.0,
+                                x3=temp / 100.0,
+                                objective_value=y,
+                                metadata={
+                                    "acid": acid,
+                                    "amine": amine,
+                                    "solvent_polarity": polarity,
+                                    "base_equivalents": base_eq,
+                                    "temperature": temp,
+                                    "yield_value": y,
+                                },
+                            )
+                        )
+    return DatasetAdapter(
+        dataset_id="synthetic_chemlex_i",
+        title="Synthetic ChemLex-style acid-amine replay",
+        objective="maximize_yield",
+        decision_columns=("acid", "amine", "solvent_polarity", "base_equivalents", "temperature"),
+        hidden_target="yield_value",
+        group_column="acid_amine_pair",
+        preferred_groups=("A2-N3", "A4-N1", "A5-N4"),
+        failure_note="Matched acid-amine pairs still depend on solvent polarity and base equivalents.",
+        candidates=tuple(pool),
+    )
+
+
+def synthetic_materials_adapter() -> DatasetAdapter:
+    dopants = [f"D{i}" for i in range(7)]
+    ratios = [0.10, 0.20, 0.35, 0.50]
+    anneal_temps = [300.0, 450.0, 600.0, 750.0]
+    dwell_times = [10.0, 30.0, 60.0]
+    dopant_base = {"D0": 38.0, "D1": 54.0, "D2": 76.0, "D3": 58.0, "D4": 73.0, "D5": 49.0, "D6": 61.0}
+    temp_opt = {"D0": 450.0, "D1": 450.0, "D2": 600.0, "D3": 600.0, "D4": 750.0, "D5": 450.0, "D6": 600.0}
+    pool: list[Candidate] = []
+    for dopant in dopants:
+        for ratio in ratios:
+            for temp in anneal_temps:
+                for dwell in dwell_times:
+                    ratio_effect = -90.0 * (ratio - 0.35) ** 2 + 5.0
+                    temp_effect = -0.00016 * (temp - temp_opt[dopant]) ** 2 + 6.0
+                    dwell_effect = 4.5 * math.log1p(dwell / 10.0) - 0.045 * dwell
+                    interaction = 5.0 if dopant in {"D2", "D4"} and ratio >= 0.20 and temp >= 600.0 else 0.0
+                    overcook_penalty = -8.0 if temp >= 750.0 and dwell >= 60.0 else 0.0
+                    score = clamp_score(
+                        dopant_base[dopant]
+                        + ratio_effect
+                        + temp_effect
+                        + dwell_effect
+                        + interaction
+                        + overcook_penalty
+                        + stable_noise(dopant, ratio, temp, dwell, scale=2.5)
+                    )
+                    cid = f"{dopant}_R{int(ratio * 100)}_T{int(temp)}_D{int(dwell)}"
+                    pool.append(
+                        Candidate(
+                            candidate_id=cid,
+                            group=dopant,
+                            x1=ratio / 0.50,
+                            x2=temp / 750.0,
+                            x3=dwell / 60.0,
+                            objective_value=score,
+                            metadata={
+                                "dopant": dopant,
+                                "dopant_ratio": ratio,
+                                "anneal_temperature": temp,
+                                "dwell_time": dwell,
+                                "stability_score": score,
+                            },
+                        )
+                    )
+    return DatasetAdapter(
+        dataset_id="synthetic_materials_i",
+        title="Synthetic materials formulation replay",
+        objective="maximize_stability_score",
+        decision_columns=("dopant", "dopant_ratio", "anneal_temperature", "dwell_time"),
+        hidden_target="stability_score",
+        group_column="dopant",
+        preferred_groups=("D2", "D4"),
+        failure_note="Preferred dopants are sensitive to annealing temperature and long dwell overcooking.",
+        candidates=tuple(pool),
+    )
+
+
+DATASET_BUILDERS: dict[str, Callable[[], DatasetAdapter]] = {
+    "synthetic_suzuki_i": synthetic_suzuki_adapter,
+    "synthetic_chemlex_i": synthetic_chemlex_adapter,
+    "synthetic_materials_i": synthetic_materials_adapter,
+}
+
+
+def make_task(adapter: DatasetAdapter, initial_observations: int, reveal_budget: int) -> TaskSpec:
+    return TaskSpec(
+        dataset_id=adapter.dataset_id,
+        objective=adapter.objective,
+        decision_columns=adapter.decision_columns,
+        hidden_target=adapter.hidden_target,
+        initial_observations=initial_observations,
+        reveal_budget=reveal_budget,
+        oracle_value=max(c.objective_value for c in adapter.candidates),
+    )
+
+
+def make_skills(adapter: DatasetAdapter) -> list[SkillCard]:
     return [
         SkillCard(
-            skill_id="suzuki_ligand_prior",
+            skill_id="group_prior",
             version="1.0.0",
             family="ranker",
-            scope="Add bounded prior bonus to literature-preferred Suzuki ligands.",
+            scope=f"Add bounded prior bonus to preferred {adapter.group_column} groups.",
             trigger_rules=({"field": "round_index", "operator": ">=", "value": 0},),
-            bounded_parameters={"preferred_ligands": {"value": ["L2", "L5"]}, "prior_bonus_cap": {"value": 0.10}},
+            bounded_parameters={"preferred_groups": {"value": list(adapter.preferred_groups)}, "prior_bonus_cap": {"value": 0.10}},
             certificate_schema={"required": ["applied_bonuses", "max_abs_adjustment"]},
             required_checks=("static", "sandbox", "full_pool", "row_order"),
             prohibited_behaviors=("access_hidden_outcomes", "directly_select_candidate_id", "modify_observed_data"),
-            provenance={"source": "CARE 2.0 skill specification", "dataset": "synthetic_suzuki_i"},
-            rationale="Convert an unstable natural-language ligand prior into bounded full-pool score adjustments.",
+            provenance={"source": "CARE 2.0 skill specification", "dataset": adapter.dataset_id},
+            rationale="Convert a dataset-level scientific prior into bounded full-pool score adjustments.",
         ),
         SkillCard(
-            skill_id="suzuki_ligand_risk_penalty",
+            skill_id="group_risk_penalty",
             version="1.0.0",
             family="constraint",
-            scope="Penalize ligand groups that repeatedly underperform in public observations.",
+            scope=f"Penalize {adapter.group_column} groups that repeatedly underperform in public observations.",
             trigger_rules=({"field": "observed_count", "operator": ">=", "value": 5},),
             bounded_parameters={"penalty_cap": {"value": -0.12}, "min_support": {"value": 2}},
-            certificate_schema={"required": ["penalized_ligands", "max_abs_adjustment"]},
+            certificate_schema={"required": ["penalized_groups", "max_abs_adjustment"]},
             required_checks=("static", "sandbox", "full_pool", "row_order"),
             prohibited_behaviors=("block_candidate_permanently", "access_hidden_outcomes"),
-            provenance={"source": "CARE 2.0 skill specification", "dataset": "synthetic_suzuki_i"},
+            provenance={"source": "CARE 2.0 skill specification", "dataset": adapter.dataset_id},
             rationale="Use public repeated failures as bounded risk evidence without permanently blocking candidates.",
         ),
         SkillCard(
-            skill_id="suzuki_ligand_diversity_explorer",
+            skill_id="group_diversity_explorer",
             version="1.0.0",
             family="exploration",
-            scope="Add a small bounded bonus to unseen ligand groups.",
+            scope=f"Add a small bounded bonus to unseen {adapter.group_column} groups.",
             trigger_rules=({"field": "observed_count", "operator": ">=", "value": 5},),
-            bounded_parameters={"unseen_ligand_bonus_cap": {"value": 0.05}},
-            certificate_schema={"required": ["unseen_ligands", "max_abs_adjustment"]},
+            bounded_parameters={"unseen_group_bonus_cap": {"value": 0.05}},
+            certificate_schema={"required": ["unseen_groups", "max_abs_adjustment"]},
             required_checks=("static", "sandbox", "full_pool", "row_order"),
             prohibited_behaviors=("access_hidden_outcomes", "directly_select_candidate_id"),
-            provenance={"source": "CARE 2.0 skill specification", "dataset": "synthetic_suzuki_i"},
+            provenance={"source": "CARE 2.0 skill specification", "dataset": adapter.dataset_id},
             rationale="Encourage controlled exploration of public feature groups not yet covered by observations.",
         ),
     ]
 
 
-def make_hypothesis() -> HypothesisEntry:
+def make_hypothesis(adapter: DatasetAdapter) -> HypothesisEntry:
+    preferred = ", ".join(adapter.preferred_groups)
     return HypothesisEntry(
-        hypothesis_id="suzuki_L2_L5_high_yield_preference",
+        hypothesis_id=f"{adapter.dataset_id}_preferred_group_hypothesis",
         status="active",
         scope="group_preference",
-        trigger={"dataset": "synthetic_suzuki_i", "condition": "observed_count >= 4"},
-        target_spec={"group_column": "ligand_identity", "group_values": ["L2", "L5"]},
-        claim="Ligands L2 and L5 tend to produce higher Suzuki yields under suitable temperature and residence time.",
+        trigger={"dataset": adapter.dataset_id, "condition": "observed_count >= 4"},
+        target_spec={"group_column": adapter.group_column, "group_values": list(adapter.preferred_groups)},
+        claim=f"Groups {preferred} tend to produce higher objective values under suitable conditions.",
         confidence=0.5,
         support_count=0,
         alpha=1.0,
         beta=1.0,
-        evidence_summary="Initialized from prior; no synthetic reveal evidence yet.",
-        known_failure_modes=["Low temperature and low catalyst loading can erase the ligand advantage."],
+        evidence_summary="Initialized from dataset prior; no reveal evidence yet.",
+        known_failure_modes=[adapter.failure_note],
         created_round=0,
         last_updated_round=0,
     )
 
 
 def observed_mean(observed: list[Candidate]) -> float:
-    return mean(c.yield_value for c in observed) if observed else 50.0
+    return mean(c.objective_value for c in observed) if observed else 50.0
 
 
-def ligand_stats(observed: list[Candidate]) -> dict[str, tuple[int, float]]:
-    by_lig: dict[str, list[float]] = {}
+def group_stats(observed: list[Candidate]) -> dict[str, tuple[int, float]]:
+    by_group: dict[str, list[float]] = {}
     for c in observed:
-        by_lig.setdefault(c.ligand_identity, []).append(c.yield_value)
-    return {lig: (len(vals), mean(vals)) for lig, vals in by_lig.items()}
+        by_group.setdefault(c.group, []).append(c.objective_value)
+    return {group: (len(vals), mean(vals)) for group, vals in by_group.items()}
 
 
-def public_incumbent_scores(pool: list[Candidate], observed_ids: set[str], observed: list[Candidate]) -> dict[str, float]:
-    stats = ligand_stats(observed)
+def public_incumbent_scores(pool: tuple[Candidate, ...], observed_ids: set[str], observed: list[Candidate]) -> dict[str, float]:
+    stats = group_stats(observed)
     global_mean = observed_mean(observed)
     scores: dict[str, float] = {}
     for c in pool:
         if c.candidate_id in observed_ids:
             continue
-        count, lig_mean = stats.get(c.ligand_identity, (0, global_mean))
+        count, group_mean = stats.get(c.group, (0, global_mean))
         uncertainty = 12.0 / math.sqrt(count + 1.0)
-        public_condition_prior = (
-            0.035 * (c.temperature / 110.0)
-            + 0.020 * (c.residence_time / 120.0)
-            + 0.015 * math.log1p(c.catalyst_loading)
-        )
-        estimated = (lig_mean + uncertainty) / 100.0 + public_condition_prior
+        public_condition_prior = 0.035 * c.x1 + 0.020 * c.x2 + 0.015 * c.x3
+        estimated = (group_mean + uncertainty) / 100.0 + public_condition_prior
         scores[c.candidate_id] = estimated
     return scores
 
 
 def trigger_satisfied(rule: dict[str, Any], round_index: int, observed: list[Candidate]) -> bool:
-    field = rule["field"]
+    field_name = rule["field"]
     value = rule["value"]
-    actual = round_index if field == "round_index" else len(observed)
+    actual = round_index if field_name == "round_index" else len(observed)
     op = rule["operator"]
     if op == ">=":
         return actual >= value
@@ -278,7 +438,7 @@ def trigger_satisfied(rule: dict[str, Any], round_index: int, observed: list[Can
 
 
 def skill_adjustments(
-    pool: list[Candidate],
+    pool: tuple[Candidate, ...],
     observed_ids: set[str],
     observed: list[Candidate],
     skills: list[SkillCard],
@@ -286,39 +446,38 @@ def skill_adjustments(
 ) -> tuple[dict[str, float], dict[str, Any]]:
     adjustments = {c.candidate_id: 0.0 for c in pool if c.candidate_id not in observed_ids}
     cert: dict[str, Any] = {"skills": {}, "max_abs_adjustment": 0.0}
-    stats = ligand_stats(observed)
+    stats = group_stats(observed)
     global_mean = observed_mean(observed)
-    seen_ligands = {c.ligand_identity for c in observed}
+    seen_groups = {c.group for c in observed}
     for skill in skills:
         if not all(trigger_satisfied(rule, round_index, observed) for rule in skill.trigger_rules):
             cert["skills"][skill.skill_id] = {"active": False, "reason": "trigger_not_satisfied"}
             continue
-        if skill.skill_id == "suzuki_ligand_prior":
-            preferred = set(skill.bounded_parameters["preferred_ligands"]["value"])
+        if skill.skill_id == "group_prior":
+            preferred = set(skill.bounded_parameters["preferred_groups"]["value"])
             cap = float(skill.bounded_parameters["prior_bonus_cap"]["value"])
             applied = {}
             for c in pool:
-                if c.candidate_id not in adjustments or c.ligand_identity not in preferred:
+                if c.candidate_id not in adjustments or c.group not in preferred:
                     continue
-                bonus = cap
-                adjustments[c.candidate_id] += bonus
-                applied[c.candidate_id] = bonus
+                adjustments[c.candidate_id] += cap
+                applied[c.candidate_id] = cap
             cert["skills"][skill.skill_id] = {"active": True, "applied_count": len(applied), "cap": cap}
-        elif skill.skill_id == "suzuki_ligand_risk_penalty":
+        elif skill.skill_id == "group_risk_penalty":
             cap = float(skill.bounded_parameters["penalty_cap"]["value"])
             min_support = int(skill.bounded_parameters["min_support"]["value"])
-            risky = {lig for lig, (count, lig_mean) in stats.items() if count >= min_support and lig_mean < global_mean - 8.0}
+            risky = {group for group, (count, group_mean) in stats.items() if count >= min_support and group_mean < global_mean - 8.0}
             for c in pool:
-                if c.candidate_id in adjustments and c.ligand_identity in risky:
+                if c.candidate_id in adjustments and c.group in risky:
                     adjustments[c.candidate_id] += cap
-            cert["skills"][skill.skill_id] = {"active": True, "penalized_ligands": sorted(risky), "cap": cap}
-        elif skill.skill_id == "suzuki_ligand_diversity_explorer":
-            cap = float(skill.bounded_parameters["unseen_ligand_bonus_cap"]["value"])
-            unseen = sorted({c.ligand_identity for c in pool} - seen_ligands)
+            cert["skills"][skill.skill_id] = {"active": True, "penalized_groups": sorted(risky), "cap": cap}
+        elif skill.skill_id == "group_diversity_explorer":
+            cap = float(skill.bounded_parameters["unseen_group_bonus_cap"]["value"])
+            unseen = sorted({c.group for c in pool} - seen_groups)
             for c in pool:
-                if c.candidate_id in adjustments and c.ligand_identity in unseen:
+                if c.candidate_id in adjustments and c.group in unseen:
                     adjustments[c.candidate_id] += cap
-            cert["skills"][skill.skill_id] = {"active": True, "unseen_ligands": unseen, "cap": cap}
+            cert["skills"][skill.skill_id] = {"active": True, "unseen_groups": unseen, "cap": cap}
     max_abs = max((abs(v) for v in adjustments.values()), default=0.0)
     cert["max_abs_adjustment"] = round(max_abs, 6)
     return adjustments, cert
@@ -329,7 +488,7 @@ def top_candidate(scores: dict[str, float]) -> str:
 
 
 def row_order_stability_check(
-    pool: list[Candidate],
+    pool: tuple[Candidate, ...],
     observed_ids: set[str],
     observed: list[Candidate],
     skills: list[SkillCard],
@@ -338,7 +497,7 @@ def row_order_stability_check(
 ) -> bool:
     shuffled = list(pool)
     random.Random(1000 + round_index + len(observed)).shuffle(shuffled)
-    shuffled_adjustments, _ = skill_adjustments(shuffled, observed_ids, observed, skills, round_index)
+    shuffled_adjustments, _ = skill_adjustments(tuple(shuffled), observed_ids, observed, skills, round_index)
     return all(abs(reference_adjustments[k] - shuffled_adjustments[k]) < 1e-12 for k in reference_adjustments)
 
 
@@ -386,37 +545,39 @@ def gate_decision(
     )
 
 
-def update_hypothesis_from_reveal(h: HypothesisEntry, selected: Candidate, observed: list[Candidate], round_index: int) -> None:
-    if selected.ligand_identity not in {"L2", "L5"}:
+def update_hypothesis_from_reveal(
+    h: HypothesisEntry,
+    selected: Candidate,
+    observed: list[Candidate],
+    round_index: int,
+    preferred_groups: tuple[str, ...],
+) -> None:
+    if selected.group not in preferred_groups:
         return
     public_mean_before = observed_mean(observed)
-    supports = selected.yield_value >= public_mean_before
+    supports = selected.objective_value >= public_mean_before
     h.update(
         supports=supports,
         round_index=round_index,
         evidence_summary=(
-            f"Round {round_index}: {selected.candidate_id} yielded {selected.yield_value:.2f}; "
+            f"Round {round_index}: {selected.candidate_id} revealed {selected.objective_value:.2f}; "
             f"public mean before reveal was {public_mean_before:.2f}; supports={supports}."
         ),
     )
 
 
-def run_policy(
-    pool: list[Candidate],
-    task: TaskSpec,
-    seed: int,
-    mode: Literal["incumbent", "gate_v1", "gate_v2"],
-) -> tuple[dict[str, Any], list[AuditEntry], HypothesisEntry]:
+def run_policy(adapter: DatasetAdapter, task: TaskSpec, seed: int, mode: Mode) -> tuple[dict[str, Any], list[AuditEntry], HypothesisEntry]:
     rng = random.Random(seed)
+    pool = adapter.candidates
     by_id = {c.candidate_id: c for c in pool}
     shuffled = list(pool)
     rng.shuffle(shuffled)
     observed = shuffled[: task.initial_observations]
     observed_ids = {c.candidate_id for c in observed}
-    skills = make_skills()
-    hypothesis = make_hypothesis()
+    skills = make_skills(adapter)
+    hypothesis = make_hypothesis(adapter)
     audit: list[AuditEntry] = []
-    top10 = {c.candidate_id for c in sorted(pool, key=lambda x: x.yield_value, reverse=True)[:10]}
+    top10 = {c.candidate_id for c in sorted(pool, key=lambda x: x.objective_value, reverse=True)[:10]}
     best_trace: list[float] = []
     intervention_count = 0
     bad_interventions = 0
@@ -447,20 +608,21 @@ def run_policy(
             gate = gate_decision(mode, base_scores, adjusted_scores, adjustments, row_order_stable, active_skill_ids)
             if gate.authorized:
                 intervention_count += 1
-                if by_id[gate.challenger_candidate].yield_value < by_id[gate.incumbent_candidate].yield_value:
+                if by_id[gate.challenger_candidate].objective_value < by_id[gate.incumbent_candidate].objective_value:
                     bad_interventions += 1
-            elif by_id[gate.challenger_candidate].yield_value > by_id[gate.incumbent_candidate].yield_value:
+            elif by_id[gate.challenger_candidate].objective_value > by_id[gate.incumbent_candidate].objective_value:
                 rejected_good_challengers += 1
 
         selected = by_id[gate.selected_candidate]
-        update_hypothesis_from_reveal(hypothesis, selected, observed, round_index)
+        update_hypothesis_from_reveal(hypothesis, selected, observed, round_index, adapter.preferred_groups)
         observed.append(selected)
         observed_ids.add(selected.candidate_id)
         selected_top10 = selected_top10 or selected.candidate_id in top10
-        best_so_far = max(c.yield_value for c in observed)
+        best_so_far = max(c.objective_value for c in observed)
         best_trace.append(best_so_far)
         audit.append(
             AuditEntry(
+                dataset_id=adapter.dataset_id,
                 seed=seed,
                 round_index=round_index,
                 public_observed_count=len(observed) - 1,
@@ -469,13 +631,14 @@ def run_policy(
                 selected_candidate=selected.candidate_id,
                 selected_by="gate_authorized_challenger" if gate.authorized else "incumbent",
                 gate=gate,
-                revealed_yield=selected.yield_value,
+                revealed_value=selected.objective_value,
                 best_so_far=best_so_far,
                 hypothesis_snapshot=asdict(hypothesis),
             )
         )
-    final_best = max(c.yield_value for c in observed)
+    final_best = max(c.objective_value for c in observed)
     metrics = {
+        "dataset": adapter.dataset_id,
         "mode": mode,
         "seed": seed,
         "final_best": round(final_best, 4),
@@ -518,57 +681,84 @@ def aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
     return out
 
 
-def write_outputs(rows: list[dict[str, Any]], summary: dict[str, Any], audit_seed0: list[AuditEntry], hypothesis_seed0: HypothesisEntry) -> None:
+def write_outputs(
+    dataset_id: str,
+    rows: list[dict[str, Any]],
+    summary: dict[str, Any],
+    audit_seed0: list[AuditEntry],
+    hypothesis_seed0: HypothesisEntry,
+) -> None:
     OUTPUT_RUNS.mkdir(parents=True, exist_ok=True)
     OUTPUT_TABLES.mkdir(parents=True, exist_ok=True)
-    metrics_path = OUTPUT_TABLES / "synthetic_suzuki_metrics.csv"
+    metrics_path = OUTPUT_TABLES / f"{dataset_id}_metrics.csv"
     with metrics_path.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
         writer.writeheader()
         writer.writerows(rows)
-    (OUTPUT_RUNS / "synthetic_suzuki_summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    with (OUTPUT_RUNS / "synthetic_suzuki_audit_seed0.jsonl").open("w", encoding="utf-8") as f:
+    (OUTPUT_RUNS / f"{dataset_id}_summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    with (OUTPUT_RUNS / f"{dataset_id}_audit_seed0.jsonl").open("w", encoding="utf-8") as f:
         for entry in audit_seed0:
             f.write(json.dumps(asdict(entry), ensure_ascii=False) + "\n")
-    (OUTPUT_RUNS / "synthetic_suzuki_knowledge_seed0.json").write_text(
+    (OUTPUT_RUNS / f"{dataset_id}_knowledge_seed0.json").write_text(
         json.dumps(asdict(hypothesis_seed0), ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Run a CARE 2.0 synthetic Suzuki replay smoke test.")
-    parser.add_argument("--seeds", type=int, default=30)
-    parser.add_argument("--rounds", type=int, default=10)
-    parser.add_argument("--initial", type=int, default=5)
-    args = parser.parse_args()
-
-    pool = synthetic_suzuki_pool()
-    task = make_task(pool, args.initial, args.rounds)
+def run_dataset(adapter: DatasetAdapter, seeds: int, rounds: int, initial: int) -> dict[str, Any]:
+    task = make_task(adapter, initial, rounds)
     rows: list[dict[str, Any]] = []
     seed0_audit: list[AuditEntry] = []
-    seed0_hypothesis = make_hypothesis()
+    seed0_hypothesis = make_hypothesis(adapter)
     for mode in ("incumbent", "gate_v1", "gate_v2"):
-        for seed in range(args.seeds):
-            metrics, audit, hypothesis = run_policy(pool, task, seed, mode)  # type: ignore[arg-type]
+        for seed in range(seeds):
+            metrics, audit, hypothesis = run_policy(adapter, task, seed, mode)  # type: ignore[arg-type]
             rows.append(metrics)
             if seed == 0 and mode == "gate_v2":
                 seed0_audit = audit
                 seed0_hypothesis = hypothesis
     summary = {
-        "experiment": "synthetic_suzuki_skill_knowledge_replay",
+        "experiment": "care_multi_dataset_skill_knowledge_replay",
         "disclaimer": "Synthetic smoke test; not a CARE 1.0 paper reproduction.",
+        "dataset": {
+            "dataset_id": adapter.dataset_id,
+            "title": adapter.title,
+            "group_column": adapter.group_column,
+            "preferred_groups": list(adapter.preferred_groups),
+        },
         "task": asdict(task),
-        "candidate_count": len(pool),
-        "seeds": args.seeds,
-        "rounds": args.rounds,
-        "initial_observations": args.initial,
+        "candidate_count": len(adapter.candidates),
+        "seeds": seeds,
+        "rounds": rounds,
+        "initial_observations": initial,
         "aggregate": aggregate(rows),
     }
-    write_outputs(rows, summary, seed0_audit, seed0_hypothesis)
-    print(json.dumps(summary, ensure_ascii=False, indent=2))
+    write_outputs(adapter.dataset_id, rows, summary, seed0_audit, seed0_hypothesis)
+    return summary
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Run CARE 2.0 synthetic finite-pool replay smoke tests.")
+    parser.add_argument("--dataset", default="synthetic_suzuki_i", choices=[*DATASET_BUILDERS.keys(), "all"])
+    parser.add_argument("--seeds", type=int, default=30)
+    parser.add_argument("--rounds", type=int, default=10)
+    parser.add_argument("--initial", type=int, default=5)
+    args = parser.parse_args()
+
+    dataset_ids = list(DATASET_BUILDERS) if args.dataset == "all" else [args.dataset]
+    summaries = [run_dataset(DATASET_BUILDERS[dataset_id](), args.seeds, args.rounds, args.initial) for dataset_id in dataset_ids]
+    if len(summaries) == 1:
+        print(json.dumps(summaries[0], ensure_ascii=False, indent=2))
+    else:
+        combined = {
+            "experiment": "care_multi_dataset_skill_knowledge_replay",
+            "disclaimer": "Synthetic smoke test; not a CARE 1.0 paper reproduction.",
+            "datasets": [summary["dataset"]["dataset_id"] for summary in summaries],
+            "summaries": summaries,
+        }
+        (OUTPUT_RUNS / "all_datasets_summary.json").write_text(json.dumps(combined, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps(combined, ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":
     main()
-

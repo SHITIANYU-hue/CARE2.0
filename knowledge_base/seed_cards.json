@@ -37,7 +37,7 @@
     "content": "The task setting covers reaction condition optimization with candidates such as ligand, catalyst, solvent, temperature, and substrate combinations. Objectives may include yield, selectivity, conversion, or cost-adjusted score.",
     "tags": ["HTE", "sequential decision", "finite pool", "reaction optimization"],
     "source_ids": ["paper.care"],
-    "related_ids": ["dataset.minerva-olympus-suzuki", "dataset.chemlex-acid-amine"],
+    "related_ids": ["dataset.minerva-olympus-suzuki", "dataset.chemlex-acid-amine", "dataset.synthetic-chemlex", "dataset.synthetic-materials"],
     "status": "active",
     "priority": "P0",
     "confidence": "high",
@@ -73,6 +73,36 @@
     "confidence": "medium",
     "evidence_boundary": "public",
     "updated_at": "2026-06-25"
+  },
+  {
+    "id": "dataset.synthetic-chemlex",
+    "type": "dataset",
+    "title": "Synthetic ChemLex-style acid-amine replay",
+    "summary": "A synthetic acid-amine finite-pool task used to test whether the same CARE replay loop works beyond Suzuki-style candidates.",
+    "content": "The adapter creates acid, amine, solvent polarity, base equivalent, and temperature combinations with hidden yield values. It is a smoke-test dataset only; it should be replaced with release-safe real ChemLex candidate tables for paper-level reproduction.",
+    "tags": ["dataset", "synthetic", "ChemLex", "acid-amine", "replay"],
+    "source_ids": ["paper.care"],
+    "related_ids": ["task.hte-optimization", "mechanism.public-evidence-gate"],
+    "status": "active",
+    "priority": "P1",
+    "confidence": "high",
+    "evidence_boundary": "public",
+    "updated_at": "2026-06-26"
+  },
+  {
+    "id": "dataset.synthetic-materials",
+    "type": "dataset",
+    "title": "Synthetic materials formulation replay",
+    "summary": "A synthetic materials optimization task for testing CARE-style gated decisions outside reaction yield optimization.",
+    "content": "The adapter creates dopant, composition ratio, annealing temperature, and dwell time combinations with a hidden stability score. It is intended to exercise the same audit and gate code on a materials-like objective before real release-safe materials data is connected.",
+    "tags": ["dataset", "synthetic", "materials", "formulation", "replay"],
+    "source_ids": ["paper.care"],
+    "related_ids": ["task.hte-optimization", "mechanism.public-evidence-gate"],
+    "status": "active",
+    "priority": "P1",
+    "confidence": "high",
+    "evidence_boundary": "public",
+    "updated_at": "2026-06-26"
   },
   {
     "id": "mechanism.public-evidence-gate",
@@ -120,6 +150,21 @@
     "updated_at": "2026-06-25"
   },
   {
+    "id": "mechanism.embedding-retrieval",
+    "type": "mechanism",
+    "title": "Embedding retrieval over CARE cards",
+    "summary": "A vector search layer over structured CARE knowledge cards.",
+    "content": "The prototype embeds each card using title, summary, content, tags, source ids, and related ids. The local hashed provider is for development; production use should call an OpenAI-compatible /v1/embeddings endpoint and store model metadata with each vector.",
+    "tags": ["embedding", "RAG", "retrieval", "knowledge base"],
+    "source_ids": ["mechanism.skill-card"],
+    "related_ids": ["task.hte-optimization", "mechanism.public-evidence-gate"],
+    "status": "active",
+    "priority": "P1",
+    "confidence": "medium",
+    "evidence_boundary": "public",
+    "updated_at": "2026-06-26"
+  },
+  {
     "id": "skill.ligand-prior",
     "type": "skill",
     "title": "Ligand prior skill",
@@ -148,5 +193,20 @@
     "confidence": "high",
     "evidence_boundary": "public",
     "updated_at": "2026-06-25"
+  },
+  {
+    "id": "action.connect-embedding-endpoint",
+    "type": "action",
+    "title": "Connect a real embedding endpoint",
+    "summary": "Use an OpenAI-compatible embedding model to build semantic retrieval over CARE cards.",
+    "content": "Set CARE_OPENAI_API_KEY, CARE_OPENAI_BASE_URL, and CARE_EMBEDDING_MODEL, then run build_embeddings.py with --provider openai. A chat-only model endpoint is not enough; the service must expose /v1/embeddings.",
+    "tags": ["next step", "embedding", "API", "RAG"],
+    "source_ids": ["mechanism.embedding-retrieval"],
+    "related_ids": ["mechanism.embedding-retrieval", "task.hte-optimization"],
+    "status": "active",
+    "priority": "P1",
+    "confidence": "high",
+    "evidence_boundary": "public",
+    "updated_at": "2026-06-26"
   }
 ]

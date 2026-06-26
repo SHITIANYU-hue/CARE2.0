@@ -40,3 +40,7 @@ and an FTS5 search index from those cards.
 The SQLite database includes a `cards_fts` FTS5 table. For vector retrieval, use
 `title + summary + content + tags` as the chunk text and keep `type`,
 `priority`, `status`, and `evidence_boundary` as metadata.
+
+`build_embeddings.py` writes a JSONL vector index under
+`knowledge_base/embeddings/`. The default `hashed` provider is only for local
+development. Use `--provider openai` when a real embedding endpoint is available.
