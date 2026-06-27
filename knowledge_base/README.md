@@ -54,3 +54,8 @@ enough for this path; the endpoint must support `/v1/embeddings`.
 ## Card Model
 
 See `schema.md` for the card fields and supported card types.
+
+## Source Notes
+
+- `source_notes/awesome_resources.md`: public awesome-list review for chemistry,
+  molecular discovery, materials-aware LLMs, and EDA-style verification loops.

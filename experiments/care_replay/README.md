@@ -34,4 +34,6 @@ The synthetic adapters let us test whether the same CARE gate and audit protocol
 behaves consistently across task shapes. The real HTE adapters download public
 Excel files into `data/raw/`, which is ignored by git. For the real adapters, no
 fixed high-performing group prior is encoded; the replay policy only uses
-revealed observations plus generic diversity/risk checks.
+revealed observations. The current public observation model uses smoothed means
+over all revealed decision factors, and the gate only applies bounded
+factor-evidence adjustments when public observations support them.

@@ -547,19 +547,24 @@ def make_task(adapter: DatasetAdapter, initial_observations: int, reveal_budget:
 
 
 def make_skills(adapter: DatasetAdapter) -> list[SkillCard]:
-    return [
+    skills: list[SkillCard] = [
         SkillCard(
-            skill_id="group_prior",
+            skill_id="factor_evidence_ranker",
             version="1.0.0",
-            family="ranker",
-            scope=f"Add bounded prior bonus to preferred {adapter.group_column} groups.",
-            trigger_rules=({"field": "round_index", "operator": ">=", "value": 0},),
-            bounded_parameters={"preferred_groups": {"value": list(adapter.preferred_groups)}, "prior_bonus_cap": {"value": 0.10}},
-            certificate_schema={"required": ["applied_bonuses", "max_abs_adjustment"]},
+            family="data_analysis",
+            scope="Add bounded adjustments from public factor-level outcome evidence.",
+            trigger_rules=({"field": "observed_count", "operator": ">=", "value": 8},),
+            bounded_parameters={
+                "bonus_cap": {"value": 0.06},
+                "penalty_cap": {"value": -0.04},
+                "min_support": {"value": 2},
+                "effect_threshold": {"value": 6.0},
+            },
+            certificate_schema={"required": ["scored_candidates", "max_abs_adjustment"]},
             required_checks=("static", "sandbox", "full_pool", "row_order"),
             prohibited_behaviors=("access_hidden_outcomes", "directly_select_candidate_id", "modify_observed_data"),
-            provenance={"source": "CARE 2.0 skill specification", "dataset": adapter.dataset_id},
-            rationale="Convert a dataset-level scientific prior into bounded full-pool score adjustments.",
+            provenance={"source": "CARE 2.0 public observation model", "dataset": adapter.dataset_id},
+            rationale="Use only revealed outcomes to reward condition factors that repeatedly overperform public baseline.",
         ),
         SkillCard(
             skill_id="group_risk_penalty",
@@ -574,20 +579,40 @@ def make_skills(adapter: DatasetAdapter) -> list[SkillCard]:
             provenance={"source": "CARE 2.0 skill specification", "dataset": adapter.dataset_id},
             rationale="Use public repeated failures as bounded risk evidence without permanently blocking candidates.",
         ),
-        SkillCard(
-            skill_id="group_diversity_explorer",
-            version="1.0.0",
-            family="exploration",
-            scope=f"Add a small bounded bonus to unseen {adapter.group_column} groups.",
-            trigger_rules=({"field": "observed_count", "operator": ">=", "value": 5},),
-            bounded_parameters={"unseen_group_bonus_cap": {"value": 0.05}},
-            certificate_schema={"required": ["unseen_groups", "max_abs_adjustment"]},
-            required_checks=("static", "sandbox", "full_pool", "row_order"),
-            prohibited_behaviors=("access_hidden_outcomes", "directly_select_candidate_id"),
-            provenance={"source": "CARE 2.0 skill specification", "dataset": adapter.dataset_id},
-            rationale="Encourage controlled exploration of public feature groups not yet covered by observations.",
-        ),
     ]
+    if adapter.preferred_groups:
+        skills.insert(
+            0,
+            SkillCard(
+                skill_id="group_prior",
+                version="1.0.0",
+                family="ranker",
+                scope=f"Add bounded prior bonus to preferred {adapter.group_column} groups.",
+                trigger_rules=({"field": "round_index", "operator": ">=", "value": 0},),
+                bounded_parameters={"preferred_groups": {"value": list(adapter.preferred_groups)}, "prior_bonus_cap": {"value": 0.10}},
+                certificate_schema={"required": ["applied_bonuses", "max_abs_adjustment"]},
+                required_checks=("static", "sandbox", "full_pool", "row_order"),
+                prohibited_behaviors=("access_hidden_outcomes", "directly_select_candidate_id", "modify_observed_data"),
+                provenance={"source": "CARE 2.0 skill specification", "dataset": adapter.dataset_id},
+                rationale="Convert a dataset-level scientific prior into bounded full-pool score adjustments.",
+            ),
+        )
+        skills.append(
+            SkillCard(
+                skill_id="group_diversity_explorer",
+                version="1.0.0",
+                family="exploration",
+                scope=f"Add a small bounded bonus to unseen {adapter.group_column} groups.",
+                trigger_rules=({"field": "observed_count", "operator": ">=", "value": 5},),
+                bounded_parameters={"unseen_group_bonus_cap": {"value": 0.05}},
+                certificate_schema={"required": ["unseen_groups", "max_abs_adjustment"]},
+                required_checks=("static", "sandbox", "full_pool", "row_order"),
+                prohibited_behaviors=("access_hidden_outcomes", "directly_select_candidate_id"),
+                provenance={"source": "CARE 2.0 skill specification", "dataset": adapter.dataset_id},
+                rationale="Encourage controlled exploration of public feature groups not yet covered by observations.",
+            )
+        )
+    return skills
 
 
 def make_hypothesis(adapter: DatasetAdapter) -> HypothesisEntry:
@@ -627,17 +652,49 @@ def group_stats(observed: list[Candidate]) -> dict[str, tuple[int, float]]:
     return {group: (len(vals), mean(vals)) for group, vals in by_group.items()}
 
 
-def public_incumbent_scores(pool: tuple[Candidate, ...], observed_ids: set[str], observed: list[Candidate]) -> dict[str, float]:
-    stats = group_stats(observed)
+def factor_values(candidate: Candidate, decision_columns: tuple[str, ...]) -> tuple[tuple[str, str], ...]:
+    values: list[tuple[str, str]] = []
+    for col in decision_columns:
+        if col in candidate.metadata:
+            values.append((col, str(candidate.metadata[col])))
+    return tuple(values)
+
+
+def factor_stats(observed: list[Candidate], decision_columns: tuple[str, ...]) -> dict[tuple[str, str], tuple[int, float]]:
+    by_factor: dict[tuple[str, str], list[float]] = {}
+    for c in observed:
+        for key in factor_values(c, decision_columns):
+            by_factor.setdefault(key, []).append(c.objective_value)
+    return {key: (len(vals), mean(vals)) for key, vals in by_factor.items()}
+
+
+def smoothed_mean(count: int, value_mean: float, global_mean: float, prior_weight: float = 2.0) -> float:
+    return (count * value_mean + prior_weight * global_mean) / (count + prior_weight)
+
+
+def public_incumbent_scores(
+    adapter: DatasetAdapter,
+    observed_ids: set[str],
+    observed: list[Candidate],
+) -> dict[str, float]:
+    group_summary = group_stats(observed)
+    factor_summary = factor_stats(observed, adapter.decision_columns)
     global_mean = observed_mean(observed)
     scores: dict[str, float] = {}
-    for c in pool:
+    for c in adapter.candidates:
         if c.candidate_id in observed_ids:
             continue
-        count, group_mean = stats.get(c.group, (0, global_mean))
-        uncertainty = 12.0 / math.sqrt(count + 1.0)
+        group_count, group_mean = group_summary.get(c.group, (0, global_mean))
+        estimates = [smoothed_mean(group_count, group_mean, global_mean, prior_weight=3.0)]
+        support_counts = [group_count]
+        for key in factor_values(c, adapter.decision_columns):
+            count, value_mean = factor_summary.get(key, (0, global_mean))
+            estimates.append(smoothed_mean(count, value_mean, global_mean, prior_weight=2.0))
+            support_counts.append(count)
+        public_mean_estimate = mean(estimates)
+        uncertainty = 8.0 / math.sqrt(max(support_counts) + 1.0)
         public_condition_prior = 0.035 * c.x1 + 0.020 * c.x2 + 0.015 * c.x3
-        estimated = (group_mean + uncertainty) / 100.0 + public_condition_prior
+        estimated = (public_mean_estimate + uncertainty) / 100.0 + public_condition_prior
         scores[c.candidate_id] = estimated
     return scores
 
@@ -655,6 +712,7 @@ def trigger_satisfied(rule: dict[str, Any], round_index: int, observed: list[Can
 
 
 def skill_adjustments(
+    adapter: DatasetAdapter,
     pool: tuple[Candidate, ...],
     observed_ids: set[str],
     observed: list[Candidate],
@@ -664,6 +722,7 @@ def skill_adjustments(
     adjustments = {c.candidate_id: 0.0 for c in pool if c.candidate_id not in observed_ids}
     cert: dict[str, Any] = {"skills": {}, "max_abs_adjustment": 0.0}
     stats = group_stats(observed)
+    factor_summary = factor_stats(observed, adapter.decision_columns)
     global_mean = observed_mean(observed)
     seen_groups = {c.group for c in observed}
     for skill in skills:
@@ -680,6 +739,42 @@ def skill_adjustments(
                 adjustments[c.candidate_id] += cap
                 applied[c.candidate_id] = cap
             cert["skills"][skill.skill_id] = {"active": True, "applied_count": len(applied), "cap": cap}
+        elif skill.skill_id == "factor_evidence_ranker":
+            bonus_cap = float(skill.bounded_parameters["bonus_cap"]["value"])
+            penalty_cap = float(skill.bounded_parameters["penalty_cap"]["value"])
+            min_support = int(skill.bounded_parameters["min_support"]["value"])
+            threshold = float(skill.bounded_parameters["effect_threshold"]["value"])
+            scored = 0
+            positive = 0
+            negative = 0
+            for c in pool:
+                if c.candidate_id not in adjustments:
+                    continue
+                signals: list[float] = []
+                for key in factor_values(c, adapter.decision_columns):
+                    count, value_mean = factor_summary.get(key, (0, global_mean))
+                    if count < min_support:
+                        continue
+                    effect = smoothed_mean(count, value_mean, global_mean) - global_mean
+                    if abs(effect) < threshold:
+                        continue
+                    signals.append(effect / 100.0)
+                if not signals:
+                    continue
+                delta = mean(signals)
+                bounded = max(penalty_cap, min(bonus_cap, delta))
+                adjustments[c.candidate_id] += bounded
+                scored += 1
+                positive += int(bounded > 0)
+                negative += int(bounded < 0)
+            cert["skills"][skill.skill_id] = {
+                "active": True,
+                "scored_candidates": scored,
+                "positive_adjustments": positive,
+                "negative_adjustments": negative,
+                "bonus_cap": bonus_cap,
+                "penalty_cap": penalty_cap,
+            }
         elif skill.skill_id == "group_risk_penalty":
             cap = float(skill.bounded_parameters["penalty_cap"]["value"])
             min_support = int(skill.bounded_parameters["min_support"]["value"])
@@ -705,6 +800,7 @@ def top_candidate(scores: dict[str, float]) -> str:
 
 
 def row_order_stability_check(
+    adapter: DatasetAdapter,
     pool: tuple[Candidate, ...],
     observed_ids: set[str],
     observed: list[Candidate],
@@ -714,7 +810,7 @@ def row_order_stability_check(
 ) -> bool:
     shuffled = list(pool)
     random.Random(1000 + round_index + len(observed)).shuffle(shuffled)
-    shuffled_adjustments, _ = skill_adjustments(tuple(shuffled), observed_ids, observed, skills, round_index)
+    shuffled_adjustments, _ = skill_adjustments(adapter, tuple(shuffled), observed_ids, observed, skills, round_index)
     return all(abs(reference_adjustments[k] - shuffled_adjustments[k]) < 1e-12 for k in reference_adjustments)
 
 
@@ -802,7 +898,7 @@ def run_policy(adapter: DatasetAdapter, task: TaskSpec, seed: int, mode: Mode) -
     selected_top10 = False
 
     for round_index in range(task.reveal_budget):
-        base_scores = public_incumbent_scores(pool, observed_ids, observed)
+        base_scores = public_incumbent_scores(adapter, observed_ids, observed)
         if mode == "incumbent":
             incumbent = top_candidate(base_scores)
             gate = GateCertificate(
@@ -818,9 +914,9 @@ def run_policy(adapter: DatasetAdapter, task: TaskSpec, seed: int, mode: Mode) -
                 reason="baseline_incumbent_only",
             )
         else:
-            adjustments, skill_cert = skill_adjustments(pool, observed_ids, observed, skills, round_index)
+            adjustments, skill_cert = skill_adjustments(adapter, pool, observed_ids, observed, skills, round_index)
             adjusted_scores = {cid: base_scores[cid] + adjustments.get(cid, 0.0) for cid in base_scores}
-            row_order_stable = row_order_stability_check(pool, observed_ids, observed, skills, round_index, adjustments)
+            row_order_stable = row_order_stability_check(adapter, pool, observed_ids, observed, skills, round_index, adjustments)
             active_skill_ids = tuple(k for k, v in skill_cert["skills"].items() if v.get("active"))
             gate = gate_decision(mode, base_scores, adjusted_scores, adjustments, row_order_stable, active_skill_ids)
             if gate.authorized:
