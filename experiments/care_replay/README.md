@@ -8,6 +8,7 @@ Current status:
   ChemLex-style acid-amine optimization, and materials formulation optimization.
 - Includes public real HTE adapters for Dreher-Doyle Buchwald-Hartwig and
   Perera Suzuki-Miyaura data from `rxn4chemistry/rxn_yields`.
+- Includes a MoleculeNet ESOL adapter for molecular property finite-pool replay.
 - Implements the CARE 2.0 minimum loop:
   `TaskSpec -> SkillCard -> HypothesisEntry -> GateCertificate -> AuditLog -> Metrics`.
 - Does not claim to reproduce CARE 1.0 paper numbers. It is a smoke test for the experiment interface while the original CARE 1.0 repo / public candidate tables are being confirmed.
@@ -20,6 +21,7 @@ python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset synthe
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset synthetic_materials_i --seeds 30 --rounds 10
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_buchwald_hartwig --seeds 30 --rounds 10
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_suzuki_miyaura --seeds 30 --rounds 10
+python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_moleculenet_esol --seeds 30 --rounds 10
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset all --seeds 30 --rounds 10
 ```
 
@@ -37,3 +39,6 @@ fixed high-performing group prior is encoded; the replay policy only uses
 revealed observations. The current public observation model uses smoothed means
 over all revealed decision factors, and the gate only applies bounded
 factor-evidence adjustments when public observations support them.
+
+The MoleculeNet ESOL adapter is not a reaction dataset. It frames measured
+solubility as a finite-pool molecular property search task.

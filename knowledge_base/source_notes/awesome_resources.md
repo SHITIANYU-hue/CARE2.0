@@ -56,7 +56,7 @@ Candidate datasets to evaluate next:
 
 - Dockstring: practical finite-pool virtual-screening objective.
 - MoleculeNet: property-prediction datasets that can be reframed as finite-pool
-  optimization.
+  optimization. ESOL/Delaney is now connected as `real_moleculenet_esol`.
 - QM9: molecular property search with clean tabular targets.
 - ChEMBL/PubChem/ZINC: too large for immediate replay; better as retrieval or
   pretraining corpora unless downsampled.
@@ -95,11 +95,12 @@ Candidate use:
 ## Practical Priority
 
 1. Keep the connected real HTE datasets as the first real replay baseline.
-2. Add a Dockstring or MoleculeNet-style finite-pool adapter for molecular
-   discovery.
-3. Add QM9 or a Matbench/materials property dataset for cross-domain materials
+2. Use the connected MoleculeNet ESOL adapter as the first molecular property
+   replay baseline.
+3. Add Dockstring for discovery-style docking optimization.
+4. Add QM9 or a Matbench/materials property dataset for cross-domain materials
    search.
-4. Use Open Reaction Database as a knowledge source first; only use it as replay
+5. Use Open Reaction Database as a knowledge source first; only use it as replay
    data after selecting a clean measured-yield subset.
-5. Add papers/projects from the materials and molecular discovery lists as
+6. Add papers/projects from the materials and molecular discovery lists as
    knowledge cards for retrieval and skill generation.

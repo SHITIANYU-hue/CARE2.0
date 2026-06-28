@@ -31,6 +31,7 @@ PUBLIC_DATA_URLS = {
         "https://raw.githubusercontent.com/rxn4chemistry/rxn_yields/master/"
         "data/Suzuki-Miyaura/aap9112_Data_File_S1.xlsx"
     ),
+    "moleculenet_esol_delaney.csv": "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/delaney-processed.csv",
 }
 
 SkillFamily = Literal["ranker", "constraint", "exploration", "data_analysis", "fallback"]
@@ -173,6 +174,11 @@ def ensure_public_data_file(filename: str) -> Path:
     return path
 
 
+def read_csv_dicts(path: Path) -> list[dict[str, str]]:
+    with path.open(newline="", encoding="utf-8") as f:
+        return list(csv.DictReader(f))
+
+
 def excel_col_index(cell_ref: str) -> int:
     col = 0
     for ch in cell_ref:
@@ -247,6 +253,15 @@ def rows_to_dicts(rows: list[list[Any]]) -> list[dict[str, Any]]:
 def label_map(values: list[Any], prefix: str) -> dict[str, str]:
     ordered = sorted({str(value) for value in values if value is not None})
     return {value: f"{prefix}{idx:02d}" for idx, value in enumerate(ordered)}
+
+
+def numeric_bin(value: float, edges: tuple[float, ...], labels: tuple[str, ...]) -> str:
+    if len(labels) != len(edges) + 1:
+        raise ValueError("numeric_bin expects one more label than edge")
+    for edge, label in zip(edges, labels):
+        if value <= edge:
+            return label
+    return labels[-1]
 
 
 def synthetic_suzuki_adapter() -> DatasetAdapter:
@@ -525,12 +540,80 @@ def real_suzuki_miyaura_adapter() -> DatasetAdapter:
     )
 
 
+def real_moleculenet_esol_adapter() -> DatasetAdapter:
+    path = ensure_public_data_file("moleculenet_esol_delaney.csv")
+    records = read_csv_dicts(path)
+    pool: list[Candidate] = []
+    for idx, row in enumerate(records):
+        measured_log_s = float(row["measured log solubility in mols per litre"])
+        predicted_log_s = float(row["ESOL predicted log solubility in mols per litre"])
+        molecular_weight = float(row["Molecular Weight"])
+        hbond_donors = int(float(row["Number of H-Bond Donors"]))
+        rings = int(float(row["Number of Rings"]))
+        rotatable_bonds = int(float(row["Number of Rotatable Bonds"]))
+        polar_surface_area = float(row["Polar Surface Area"])
+        smiles = row["smiles"].strip()
+
+        mw_bin = numeric_bin(molecular_weight, (150.0, 300.0, 450.0), ("mw_low", "mw_mid", "mw_high", "mw_very_high"))
+        donor_bin = numeric_bin(float(hbond_donors), (0.0, 2.0, 5.0), ("donor_none", "donor_low", "donor_mid", "donor_high"))
+        ring_bin = numeric_bin(float(rings), (0.0, 2.0, 4.0), ("rings_none", "rings_low", "rings_mid", "rings_high"))
+        rotatable_bin = numeric_bin(float(rotatable_bonds), (1.0, 4.0, 8.0), ("rot_low", "rot_mid", "rot_high", "rot_very_high"))
+        psa_bin = numeric_bin(polar_surface_area, (25.0, 75.0, 125.0), ("psa_low", "psa_mid", "psa_high", "psa_very_high"))
+        smiles_len_bin = numeric_bin(float(len(smiles)), (20.0, 45.0, 80.0), ("smiles_short", "smiles_mid", "smiles_long", "smiles_very_long"))
+
+        # Fixed logS range avoids using dataset min/max as hidden target information.
+        normalized_solubility = clamp_score((measured_log_s + 12.0) / 14.0 * 100.0)
+        pool.append(
+            Candidate(
+                candidate_id=f"esol_{idx:04d}",
+                group=mw_bin,
+                x1=max(0.0, min(1.0, molecular_weight / 700.0)),
+                x2=max(0.0, min(1.0, polar_surface_area / 250.0)),
+                x3=max(0.0, min(1.0, len(smiles) / 120.0)),
+                objective_value=normalized_solubility,
+                metadata={
+                    "compound_id": row["Compound ID"],
+                    "smiles": smiles,
+                    "molecular_weight_bin": mw_bin,
+                    "hbond_donor_bin": donor_bin,
+                    "ring_bin": ring_bin,
+                    "rotatable_bond_bin": rotatable_bin,
+                    "polar_surface_area_bin": psa_bin,
+                    "smiles_length_bin": smiles_len_bin,
+                    "esol_predicted_log_solubility": round(predicted_log_s, 4),
+                    "measured_log_solubility": round(measured_log_s, 4),
+                    "normalized_solubility_score": normalized_solubility,
+                    "source_row": idx + 2,
+                },
+            )
+        )
+    return DatasetAdapter(
+        dataset_id="real_moleculenet_esol",
+        title="MoleculeNet ESOL Delaney solubility replay",
+        objective="maximize_normalized_solubility",
+        decision_columns=(
+            "molecular_weight_bin",
+            "hbond_donor_bin",
+            "ring_bin",
+            "rotatable_bond_bin",
+            "polar_surface_area_bin",
+            "smiles_length_bin",
+        ),
+        hidden_target="normalized_solubility_score",
+        group_column="molecular_weight_bin",
+        preferred_groups=(),
+        failure_note="This is molecular property replay, not wet-lab reaction optimization; no fixed preferred molecular bin prior is encoded.",
+        candidates=tuple(pool),
+    )
+
+
 DATASET_BUILDERS: dict[str, Callable[[], DatasetAdapter]] = {
     "synthetic_suzuki_i": synthetic_suzuki_adapter,
     "synthetic_chemlex_i": synthetic_chemlex_adapter,
     "synthetic_materials_i": synthetic_materials_adapter,
     "real_buchwald_hartwig": real_buchwald_hartwig_adapter,
     "real_suzuki_miyaura": real_suzuki_miyaura_adapter,
+    "real_moleculenet_esol": real_moleculenet_esol_adapter,
 }
 
 

@@ -8,14 +8,14 @@ Current contents:
 
 - `experiments/care_replay/`: a lightweight finite-pool replay harness for
   testing CARE-style incumbent/challenger/gate loops across synthetic adapters
-  and public HTE datasets.
+  and public HTE / molecular property datasets.
 - `knowledge_base/`: a small SQLite + FTS knowledge-base prototype for CARE 2.0
   task, dataset, mechanism, and skill cards, with optional vector indexing.
 
 The current replay experiments are smoke tests. Synthetic adapters validate the
-interface and audit flow; public HTE adapters let the same loop run on real
-measured yields. Reproducing CARE paper numbers still requires the original
-benchmark candidate tables and matched evaluation setup.
+interface and audit flow; public adapters let the same loop run on real measured
+yields and molecular property targets. Reproducing CARE paper numbers still
+requires the original benchmark candidate tables and matched evaluation setup.
 
 ## Quick Start
 
