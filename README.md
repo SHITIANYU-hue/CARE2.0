@@ -11,6 +11,8 @@ Current contents:
   and public HTE / molecular property datasets.
 - `knowledge_base/`: a small SQLite + FTS knowledge-base prototype for CARE 2.0
   task, dataset, mechanism, and skill cards, with optional vector indexing.
+- `overview.md`: a narrative overview of the current replay experiments,
+  datasets, results, and next steps.
 
 The current replay experiments are smoke tests. Synthetic adapters validate the
 interface and audit flow; public adapters let the same loop run on real measured
