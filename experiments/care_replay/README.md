@@ -12,6 +12,8 @@ Current status:
 - Implements the CARE 2.0 minimum loop:
   `TaskSpec -> SkillCard -> HypothesisEntry -> GateCertificate -> AuditLog -> Metrics`.
 - Does not claim to reproduce CARE 1.0 paper numbers. It is a smoke test for the experiment interface while the original CARE 1.0 repo / public candidate tables are being confirmed.
+- Tracks upcoming dataset intake requirements in `datasets/intake.md`,
+  including Kimi-Lex and Materials Project blockers.
 
 Run:
 

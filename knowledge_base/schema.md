@@ -9,7 +9,7 @@ and an FTS5 search index from those cards.
 | Field | Type | Description |
 | --- | --- | --- |
 | `id` | string | Stable card ID, preferably `<type>.<slug>` |
-| `type` | string | Card type: `source`, `task`, `dataset`, `paper`, `mechanism`, `skill`, `decision`, `open_question`, or `action` |
+| `type` | string | Card type: `source`, `task`, `dataset`, `paper`, `mechanism`, `skill`, `decision`, `hypothesis`, `transfer`, `experiment_result`, `run_log`, `dataset_request`, `review`, `open_question`, or `action` |
 | `title` | string | Human-readable title |
 | `summary` | string | Short 1-3 sentence summary |
 | `content` | string | Longer description |
@@ -32,6 +32,17 @@ and an FTS5 search index from those cards.
   audit mechanism.
 - `skill`: a reusable scientific decision skill.
 - `decision`: an accepted design decision or constraint.
+- `hypothesis`: a testable claim with scope, evidence, confidence, and failure
+  modes.
+- `transfer`: a cross-task or cross-domain transfer relation, such as
+  BH-to-Suzuki factor-evidence transfer.
+- `experiment_result`: an aggregate result snapshot for one replay run or
+  benchmark sweep.
+- `run_log`: a pointer to raw outputs, audit traces, knowledge snapshots, and
+  reproducibility artifacts.
+- `dataset_request`: a dataset that needs a link, schema, license decision, API
+  key, or release boundary before implementation.
+- `review`: a code, knowledge-base, experiment, or ablation review item.
 - `open_question`: an unresolved scientific, data, or engineering question.
 - `action`: a concrete next step.
 

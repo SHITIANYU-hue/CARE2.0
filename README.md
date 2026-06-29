@@ -11,6 +11,7 @@ Current contents:
   and public HTE / molecular property datasets.
 - `knowledge_base/`: a small SQLite + FTS knowledge-base prototype for CARE 2.0
   task, dataset, mechanism, and skill cards, with optional vector indexing.
+- `task_tracker/`: current project tasks, owners, blockers, and next actions.
 - `overview.md`: a narrative overview of the current replay experiments,
   datasets, results, and next steps.
 
@@ -18,6 +19,42 @@ The current replay experiments are smoke tests. Synthetic adapters validate the
 interface and audit flow; public adapters let the same loop run on real measured
 yields and molecular property targets. Reproducing CARE paper numbers still
 requires the original benchmark candidate tables and matched evaluation setup.
+
+## Branches
+
+- `carry1.0`: stable snapshot of the current public replay harness and outputs.
+- `carry2.0`: active branch for dataset expansion, transfer experiments,
+  knowledge-base card extensions, and project task tracking.
+
+## Current Project Priorities
+
+The latest project sync focuses on three workstreams:
+
+1. **Dataset expansion and experiments**
+   - Add Kimi-Lex once the download link and schema are available.
+   - Add a Materials Project pathway once access/API requirements are confirmed.
+   - Keep public, release-safe replay datasets separate from private/internal
+     data.
+2. **Code and documentation**
+   - Keep README, `overview.md`, and replay outputs aligned with the latest run.
+   - Preserve full raw data, metrics, summaries, and per-seed audit logs under
+     `experiments/care_replay/`.
+3. **Knowledge base and collaboration**
+   - Extend card types for experiment results, run logs, transfer hypotheses,
+     dataset requests, and reviews.
+   - Track dataset blockers, experiment ideas, and review ownership in
+     `task_tracker/`.
+
+## Current Experiment Outputs
+
+The latest tracked replay output is in:
+
+- `experiments/care_replay/results/2026-06-28-doc-guided-sweep/`
+- `experiments/care_replay/outputs/`
+- `experiments/care_replay/data/raw/`
+
+The full output set includes six adapters, 30 seeds, 10 reveal rounds, per-mode
+metrics, raw public data files, 540 audit logs, and 540 knowledge snapshots.
 
 ## Quick Start
 
