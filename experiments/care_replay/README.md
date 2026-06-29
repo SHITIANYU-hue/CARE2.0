@@ -32,6 +32,11 @@ Outputs:
 - `outputs/runs/<dataset_id>_audit_seed0.jsonl`
 - `outputs/runs/<dataset_id>_knowledge_seed0.json`
 
+Tracked result snapshots:
+
+- `results/2026-06-28-doc-guided-sweep/`: aggregate summaries and metric tables
+  for a six-adapter sweep guided by the CARE 2.0 / AI4Science notes.
+
 The synthetic adapters let us test whether the same CARE gate and audit protocol
 behaves consistently across task shapes. The real HTE adapters download public
 Excel files into `data/raw/`, which is ignored by git. For the real adapters, no
