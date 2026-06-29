@@ -29,8 +29,11 @@ Outputs:
 
 - `outputs/tables/<dataset_id>_metrics.csv`
 - `outputs/runs/<dataset_id>_summary.json`
-- `outputs/runs/<dataset_id>_audit_seed0.jsonl`
-- `outputs/runs/<dataset_id>_knowledge_seed0.json`
+- `outputs/runs/<dataset_id>_audit_<mode>_seed<seed>.jsonl`
+- `outputs/runs/<dataset_id>_knowledge_<mode>_seed<seed>.json`
+- `outputs/runs/<dataset_id>_audit_seed0.jsonl` and
+  `outputs/runs/<dataset_id>_knowledge_seed0.json` as short compatibility
+  handles for `gate_v2` seed 0.
 
 Tracked result snapshots:
 
@@ -39,7 +42,7 @@ Tracked result snapshots:
 
 The synthetic adapters let us test whether the same CARE gate and audit protocol
 behaves consistently across task shapes. The real HTE adapters download public
-Excel files into `data/raw/`, which is ignored by git. For the real adapters, no
+Excel files into `data/raw/`. For the real adapters, no
 fixed high-performing group prior is encoded; the replay policy only uses
 revealed observations. The current public observation model uses smoothed means
 over all revealed decision factors, and the gate only applies bounded

@@ -28,9 +28,10 @@ The sweep covers six adapters:
 | `real_suzuki_miyaura` | public real HTE | 5760 | Perera Suzuki-Miyaura yield replay; near-domain transfer probe |
 | `real_moleculenet_esol` | public real molecular property | 1128 | MoleculeNet ESOL finite-pool molecular property replay |
 
-Raw public data files downloaded by the script are not tracked in this folder.
-The generated audit logs are also not tracked here; only aggregate summaries and
-metrics tables are included.
+This snapshot folder contains aggregate summaries and metrics tables. The same
+commit also tracks the generated raw-data cache under `data/raw/` and the full
+generated run directory under `outputs/`, including per-mode, per-seed audit
+logs and knowledge snapshots.
 
 ## Aggregate Results
 
@@ -76,4 +77,5 @@ Interv.` are mean gate-authorized interventions and adverse interventions.
 - `runs/all_datasets_summary.json`: full aggregate JSON for all adapters.
 - `runs/*_summary.json`: per-dataset aggregate summaries.
 - `tables/*_metrics.csv`: per-dataset metric tables.
-
+- `../../data/raw/`: raw public data files downloaded by the adapters.
+- `../../outputs/`: generated outputs, including per-seed audit logs.

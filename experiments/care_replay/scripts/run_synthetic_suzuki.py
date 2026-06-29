@@ -1081,8 +1081,8 @@ def write_outputs(
     dataset_id: str,
     rows: list[dict[str, Any]],
     summary: dict[str, Any],
-    audit_seed0: list[AuditEntry],
-    hypothesis_seed0: HypothesisEntry,
+    audits: dict[tuple[str, int], list[AuditEntry]],
+    hypotheses: dict[tuple[str, int], HypothesisEntry],
 ) -> None:
     OUTPUT_RUNS.mkdir(parents=True, exist_ok=True)
     OUTPUT_TABLES.mkdir(parents=True, exist_ok=True)
@@ -1092,27 +1092,38 @@ def write_outputs(
         writer.writeheader()
         writer.writerows(rows)
     (OUTPUT_RUNS / f"{dataset_id}_summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    with (OUTPUT_RUNS / f"{dataset_id}_audit_seed0.jsonl").open("w", encoding="utf-8") as f:
-        for entry in audit_seed0:
-            f.write(json.dumps(asdict(entry), ensure_ascii=False) + "\n")
-    (OUTPUT_RUNS / f"{dataset_id}_knowledge_seed0.json").write_text(
-        json.dumps(asdict(hypothesis_seed0), ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
+    for (mode, seed), audit in sorted(audits.items()):
+        with (OUTPUT_RUNS / f"{dataset_id}_audit_{mode}_seed{seed}.jsonl").open("w", encoding="utf-8") as f:
+            for entry in audit:
+                f.write(json.dumps(asdict(entry), ensure_ascii=False) + "\n")
+    for (mode, seed), hypothesis in sorted(hypotheses.items()):
+        (OUTPUT_RUNS / f"{dataset_id}_knowledge_{mode}_seed{seed}.json").write_text(
+            json.dumps(asdict(hypothesis), ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+    # Keep the original seed-0 filenames as a short compatibility handle.
+    if ("gate_v2", 0) in audits:
+        with (OUTPUT_RUNS / f"{dataset_id}_audit_seed0.jsonl").open("w", encoding="utf-8") as f:
+            for entry in audits[("gate_v2", 0)]:
+                f.write(json.dumps(asdict(entry), ensure_ascii=False) + "\n")
+    if ("gate_v2", 0) in hypotheses:
+        (OUTPUT_RUNS / f"{dataset_id}_knowledge_seed0.json").write_text(
+            json.dumps(asdict(hypotheses[("gate_v2", 0)]), ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
 
 
 def run_dataset(adapter: DatasetAdapter, seeds: int, rounds: int, initial: int) -> dict[str, Any]:
     task = make_task(adapter, initial, rounds)
     rows: list[dict[str, Any]] = []
-    seed0_audit: list[AuditEntry] = []
-    seed0_hypothesis = make_hypothesis(adapter)
+    audits: dict[tuple[str, int], list[AuditEntry]] = {}
+    hypotheses: dict[tuple[str, int], HypothesisEntry] = {}
     for mode in ("incumbent", "gate_v1", "gate_v2"):
         for seed in range(seeds):
             metrics, audit, hypothesis = run_policy(adapter, task, seed, mode)  # type: ignore[arg-type]
             rows.append(metrics)
-            if seed == 0 and mode == "gate_v2":
-                seed0_audit = audit
-                seed0_hypothesis = hypothesis
+            audits[(mode, seed)] = audit
+            hypotheses[(mode, seed)] = hypothesis
     summary = {
         "experiment": "care_multi_dataset_skill_knowledge_replay",
         "disclaimer": "Synthetic smoke test; not a CARE 1.0 paper reproduction.",
@@ -1129,7 +1140,7 @@ def run_dataset(adapter: DatasetAdapter, seeds: int, rounds: int, initial: int) 
         "initial_observations": initial,
         "aggregate": aggregate(rows),
     }
-    write_outputs(adapter.dataset_id, rows, summary, seed0_audit, seed0_hypothesis)
+    write_outputs(adapter.dataset_id, rows, summary, audits, hypotheses)
     return summary
 
 
