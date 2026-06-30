@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import gzip
 import hashlib
 import json
 import math
@@ -32,10 +33,11 @@ PUBLIC_DATA_URLS = {
         "data/Suzuki-Miyaura/aap9112_Data_File_S1.xlsx"
     ),
     "moleculenet_esol_delaney.csv": "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/delaney-processed.csv",
+    "matbench_expt_gap.json.gz": "https://ml.materialsproject.org/projects/matbench_expt_gap.json.gz",
 }
 
 SkillFamily = Literal["ranker", "constraint", "exploration", "data_analysis", "fallback"]
-Mode = Literal["incumbent", "gate_v1", "gate_v2"]
+Mode = Literal["no_care_random", "incumbent", "no_gate", "gate_v1", "gate_v2"]
 
 
 @dataclass(frozen=True)
@@ -170,7 +172,9 @@ def ensure_public_data_file(filename: str) -> Path:
         return path
     url = PUBLIC_DATA_URLS[filename]
     print(f"downloading {filename} from {url}")
-    urllib.request.urlretrieve(url, path)
+    request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(request, timeout=120) as response:
+        path.write_bytes(response.read())
     return path
 
 
@@ -250,6 +254,12 @@ def rows_to_dicts(rows: list[list[Any]]) -> list[dict[str, Any]]:
     return out
 
 
+def read_matbench_json_gz(path: Path) -> list[dict[str, Any]]:
+    raw = json.loads(gzip.decompress(path.read_bytes()).decode("utf-8"))
+    columns = raw["columns"]
+    return [dict(zip(columns, row)) for row in raw["data"]]
+
+
 def label_map(values: list[Any], prefix: str) -> dict[str, str]:
     ordered = sorted({str(value) for value in values if value is not None})
     return {value: f"{prefix}{idx:02d}" for idx, value in enumerate(ordered)}
@@ -262,6 +272,242 @@ def numeric_bin(value: float, edges: tuple[float, ...], labels: tuple[str, ...])
         if value <= edge:
             return label
     return labels[-1]
+
+
+ELEMENT_Z = {
+    "H": 1,
+    "He": 2,
+    "Li": 3,
+    "Be": 4,
+    "B": 5,
+    "C": 6,
+    "N": 7,
+    "O": 8,
+    "F": 9,
+    "Ne": 10,
+    "Na": 11,
+    "Mg": 12,
+    "Al": 13,
+    "Si": 14,
+    "P": 15,
+    "S": 16,
+    "Cl": 17,
+    "Ar": 18,
+    "K": 19,
+    "Ca": 20,
+    "Sc": 21,
+    "Ti": 22,
+    "V": 23,
+    "Cr": 24,
+    "Mn": 25,
+    "Fe": 26,
+    "Co": 27,
+    "Ni": 28,
+    "Cu": 29,
+    "Zn": 30,
+    "Ga": 31,
+    "Ge": 32,
+    "As": 33,
+    "Se": 34,
+    "Br": 35,
+    "Kr": 36,
+    "Rb": 37,
+    "Sr": 38,
+    "Y": 39,
+    "Zr": 40,
+    "Nb": 41,
+    "Mo": 42,
+    "Tc": 43,
+    "Ru": 44,
+    "Rh": 45,
+    "Pd": 46,
+    "Ag": 47,
+    "Cd": 48,
+    "In": 49,
+    "Sn": 50,
+    "Sb": 51,
+    "Te": 52,
+    "I": 53,
+    "Xe": 54,
+    "Cs": 55,
+    "Ba": 56,
+    "La": 57,
+    "Ce": 58,
+    "Pr": 59,
+    "Nd": 60,
+    "Pm": 61,
+    "Sm": 62,
+    "Eu": 63,
+    "Gd": 64,
+    "Tb": 65,
+    "Dy": 66,
+    "Ho": 67,
+    "Er": 68,
+    "Tm": 69,
+    "Yb": 70,
+    "Lu": 71,
+    "Hf": 72,
+    "Ta": 73,
+    "W": 74,
+    "Re": 75,
+    "Os": 76,
+    "Ir": 77,
+    "Pt": 78,
+    "Au": 79,
+    "Hg": 80,
+    "Tl": 81,
+    "Pb": 82,
+    "Bi": 83,
+    "Po": 84,
+    "At": 85,
+    "Rn": 86,
+    "Fr": 87,
+    "Ra": 88,
+    "Ac": 89,
+    "Th": 90,
+    "Pa": 91,
+    "U": 92,
+    "Np": 93,
+    "Pu": 94,
+    "Am": 95,
+    "Cm": 96,
+    "Bk": 97,
+    "Cf": 98,
+    "Es": 99,
+    "Fm": 100,
+    "Md": 101,
+    "No": 102,
+    "Lr": 103,
+    "Rf": 104,
+    "Db": 105,
+    "Sg": 106,
+    "Bh": 107,
+    "Hs": 108,
+    "Mt": 109,
+    "Ds": 110,
+    "Rg": 111,
+    "Cn": 112,
+    "Nh": 113,
+    "Fl": 114,
+    "Mc": 115,
+    "Lv": 116,
+    "Ts": 117,
+    "Og": 118,
+}
+
+ALKALI = {"Li", "Na", "K", "Rb", "Cs", "Fr"}
+ALKALINE_EARTH = {"Be", "Mg", "Ca", "Sr", "Ba", "Ra"}
+TRANSITION_METALS = {
+    "Sc",
+    "Ti",
+    "V",
+    "Cr",
+    "Mn",
+    "Fe",
+    "Co",
+    "Ni",
+    "Cu",
+    "Zn",
+    "Y",
+    "Zr",
+    "Nb",
+    "Mo",
+    "Tc",
+    "Ru",
+    "Rh",
+    "Pd",
+    "Ag",
+    "Cd",
+    "Hf",
+    "Ta",
+    "W",
+    "Re",
+    "Os",
+    "Ir",
+    "Pt",
+    "Au",
+    "Hg",
+}
+LANTHANIDES = {"La", "Ce", "Pr", "Nd", "Pm", "Sm", "Eu", "Gd", "Tb", "Dy", "Ho", "Er", "Tm", "Yb", "Lu"}
+POST_TRANSITION = {"Al", "Ga", "In", "Sn", "Tl", "Pb", "Bi", "Po", "Nh", "Fl", "Mc", "Lv"}
+METALLOIDS = {"B", "Si", "Ge", "As", "Sb", "Te"}
+HALOGENS = {"F", "Cl", "Br", "I", "At", "Ts"}
+CHALCOGENS = {"O", "S", "Se", "Te", "Po"}
+PNICTOGENS = {"N", "P", "As", "Sb", "Bi"}
+
+
+def read_formula_number(formula: str, start: int) -> tuple[float, int]:
+    end = start
+    while end < len(formula) and (formula[end].isdigit() or formula[end] == "."):
+        end += 1
+    if end == start:
+        return 1.0, start
+    return float(formula[start:end]), end
+
+
+def parse_composition(formula: str) -> dict[str, float]:
+    stack: list[dict[str, float]] = [{}]
+    i = 0
+    while i < len(formula):
+        ch = formula[i]
+        if ch == "(":
+            stack.append({})
+            i += 1
+        elif ch == ")":
+            group = stack.pop()
+            multiplier, i = read_formula_number(formula, i + 1)
+            for element, count in group.items():
+                stack[-1][element] = stack[-1].get(element, 0.0) + count * multiplier
+        elif ch.isupper():
+            j = i + 1
+            if j < len(formula) and formula[j].islower():
+                j += 1
+            element = formula[i:j]
+            count, i = read_formula_number(formula, j)
+            stack[-1][element] = stack[-1].get(element, 0.0) + count
+        else:
+            i += 1
+    if len(stack) != 1:
+        raise ValueError(f"Unbalanced formula: {formula}")
+    return stack[0]
+
+
+def element_family(element: str) -> str:
+    if element in ALKALI:
+        return "alkali"
+    if element in ALKALINE_EARTH:
+        return "alkaline_earth"
+    if element in TRANSITION_METALS:
+        return "transition_metal"
+    if element in LANTHANIDES:
+        return "lanthanide"
+    if element in POST_TRANSITION:
+        return "post_transition"
+    if element in METALLOIDS:
+        return "metalloid"
+    if element in HALOGENS:
+        return "halogen"
+    if element in CHALCOGENS:
+        return "chalcogen"
+    if element in PNICTOGENS:
+        return "pnictogen"
+    if element in {"C", "H"}:
+        return "light_nonmetal"
+    return "other"
+
+
+def anion_family(elements: set[str]) -> str:
+    if "O" in elements:
+        return "oxide"
+    if elements & {"S", "Se", "Te"}:
+        return "chalcogenide"
+    if elements & {"F", "Cl", "Br", "I"}:
+        return "halide"
+    if elements & {"N", "P", "As", "Sb", "Bi"}:
+        return "pnictide"
+    if "C" in elements:
+        return "carbide_or_carbon"
+    return "other"
 
 
 def synthetic_suzuki_adapter() -> DatasetAdapter:
@@ -607,6 +853,84 @@ def real_moleculenet_esol_adapter() -> DatasetAdapter:
     )
 
 
+def real_matbench_expt_gap_adapter() -> DatasetAdapter:
+    path = ensure_public_data_file("matbench_expt_gap.json.gz")
+    records = read_matbench_json_gz(path)
+    pool: list[Candidate] = []
+    for idx, row in enumerate(records):
+        formula = str(row["composition"]).strip()
+        gap_ev = float(row["gap expt"])
+        composition = parse_composition(formula)
+        total_atoms = sum(composition.values())
+        if total_atoms <= 0:
+            continue
+        elements = set(composition)
+        dominant_element = max(composition.items(), key=lambda item: (item[1], item[0]))[0]
+        dominant_family = element_family(dominant_element)
+        family = anion_family(elements)
+        element_count_bin = numeric_bin(
+            float(len(elements)),
+            (2.0, 4.0, 6.0),
+            ("binary", "ternary_quaternary", "quinary_senary", "complex"),
+        )
+        mean_atomic_number = sum(ELEMENT_Z.get(element, 0) * count for element, count in composition.items()) / total_atoms
+        max_fraction = max(composition.values()) / total_atoms
+        transition_flag = "has_transition_metal" if elements & TRANSITION_METALS else "no_transition_metal"
+        lanthanide_flag = "has_lanthanide" if elements & LANTHANIDES else "no_lanthanide"
+
+        pool.append(
+            Candidate(
+                candidate_id=f"matbench_expt_gap_{idx:04d}",
+                group=family,
+                x1=max(0.0, min(1.0, len(elements) / 8.0)),
+                x2=max(0.0, min(1.0, mean_atomic_number / 90.0)),
+                x3=max(0.0, min(1.0, max_fraction)),
+                objective_value=clamp_score(gap_ev / 8.0 * 100.0),
+                metadata={
+                    "composition": formula,
+                    "experimental_band_gap_ev": round(gap_ev, 6),
+                    "normalized_band_gap_score": clamp_score(gap_ev / 8.0 * 100.0),
+                    "anion_family": family,
+                    "element_count_bin": element_count_bin,
+                    "dominant_element": dominant_element,
+                    "dominant_family": dominant_family,
+                    "transition_metal_flag": transition_flag,
+                    "lanthanide_flag": lanthanide_flag,
+                    "mean_atomic_number_bin": numeric_bin(
+                        mean_atomic_number,
+                        (20.0, 40.0, 60.0),
+                        ("mean_z_low", "mean_z_mid", "mean_z_high", "mean_z_very_high"),
+                    ),
+                    "max_element_fraction_bin": numeric_bin(
+                        max_fraction,
+                        (0.34, 0.50, 0.75),
+                        ("balanced", "moderately_concentrated", "concentrated", "dominant_element_heavy"),
+                    ),
+                    "source_row": idx,
+                },
+            )
+        )
+    return DatasetAdapter(
+        dataset_id="real_matbench_expt_gap",
+        title="Matbench experimental band gap replay",
+        objective="maximize_normalized_experimental_band_gap",
+        decision_columns=(
+            "anion_family",
+            "element_count_bin",
+            "dominant_family",
+            "transition_metal_flag",
+            "lanthanide_flag",
+            "mean_atomic_number_bin",
+            "max_element_fraction_bin",
+        ),
+        hidden_target="normalized_band_gap_score",
+        group_column="anion_family",
+        preferred_groups=(),
+        failure_note="This real materials replay uses composition-only public features and revealed experimental band gaps; no fixed material-family prior is encoded.",
+        candidates=tuple(pool),
+    )
+
+
 DATASET_BUILDERS: dict[str, Callable[[], DatasetAdapter]] = {
     "synthetic_suzuki_i": synthetic_suzuki_adapter,
     "synthetic_chemlex_i": synthetic_chemlex_adapter,
@@ -614,6 +938,7 @@ DATASET_BUILDERS: dict[str, Callable[[], DatasetAdapter]] = {
     "real_buchwald_hartwig": real_buchwald_hartwig_adapter,
     "real_suzuki_miyaura": real_suzuki_miyaura_adapter,
     "real_moleculenet_esol": real_moleculenet_esol_adapter,
+    "real_matbench_expt_gap": real_matbench_expt_gap_adapter,
 }
 
 
@@ -941,6 +1266,32 @@ def gate_decision(
     )
 
 
+def no_gate_decision(
+    base_scores: dict[str, float],
+    adjusted_scores: dict[str, float],
+    row_order_stable: bool,
+    active_skill_ids: tuple[str, ...],
+) -> GateCertificate:
+    incumbent = top_candidate(base_scores)
+    challenger = top_candidate(adjusted_scores)
+    gate_margin = adjusted_scores[challenger] - base_scores[incumbent]
+    acquisition_loss = max(0.0, base_scores[incumbent] - base_scores[challenger])
+    return GateCertificate(
+        gate_version="no_gate",
+        incumbent_candidate=incumbent,
+        challenger_candidate=challenger,
+        selected_candidate=challenger,
+        authorized=challenger != incumbent,
+        gate_margin=round(gate_margin, 6),
+        acquisition_loss=round(acquisition_loss, 6),
+        row_order_stable=row_order_stable,
+        applied_skill_ids=active_skill_ids,
+        reason="ablation_gate_disabled_challenger_selected"
+        if challenger != incumbent
+        else "challenger_matches_incumbent",
+    )
+
+
 def update_hypothesis_from_reveal(
     h: HypothesisEntry,
     selected: Candidate,
@@ -972,6 +1323,9 @@ def run_policy(adapter: DatasetAdapter, task: TaskSpec, seed: int, mode: Mode) -
     observed_ids = {c.candidate_id for c in observed}
     skills = make_skills(adapter)
     hypothesis = make_hypothesis(adapter)
+    if mode == "no_care_random":
+        hypothesis.status = "inactive"
+        hypothesis.evidence_summary = "No CARE hypothesis or skill update is used in this random-search baseline."
     audit: list[AuditEntry] = []
     top10 = {c.candidate_id for c in sorted(pool, key=lambda x: x.objective_value, reverse=True)[:10]}
     best_trace: list[float] = []
@@ -981,36 +1335,55 @@ def run_policy(adapter: DatasetAdapter, task: TaskSpec, seed: int, mode: Mode) -
     selected_top10 = False
 
     for round_index in range(task.reveal_budget):
-        base_scores = public_incumbent_scores(adapter, observed_ids, observed)
-        if mode == "incumbent":
-            incumbent = top_candidate(base_scores)
+        if mode == "no_care_random":
+            selected_candidate = rng.choice([c for c in pool if c.candidate_id not in observed_ids])
             gate = GateCertificate(
-                gate_version="none",
-                incumbent_candidate=incumbent,
-                challenger_candidate=incumbent,
-                selected_candidate=incumbent,
+                gate_version="no_care",
+                incumbent_candidate=selected_candidate.candidate_id,
+                challenger_candidate=selected_candidate.candidate_id,
+                selected_candidate=selected_candidate.candidate_id,
                 authorized=False,
                 gate_margin=0.0,
                 acquisition_loss=0.0,
                 row_order_stable=True,
                 applied_skill_ids=(),
-                reason="baseline_incumbent_only",
+                reason="baseline_random_search_no_care",
             )
         else:
-            adjustments, skill_cert = skill_adjustments(adapter, pool, observed_ids, observed, skills, round_index)
-            adjusted_scores = {cid: base_scores[cid] + adjustments.get(cid, 0.0) for cid in base_scores}
-            row_order_stable = row_order_stability_check(adapter, pool, observed_ids, observed, skills, round_index, adjustments)
-            active_skill_ids = tuple(k for k, v in skill_cert["skills"].items() if v.get("active"))
-            gate = gate_decision(mode, base_scores, adjusted_scores, adjustments, row_order_stable, active_skill_ids)
-            if gate.authorized:
-                intervention_count += 1
-                if by_id[gate.challenger_candidate].objective_value < by_id[gate.incumbent_candidate].objective_value:
-                    bad_interventions += 1
-            elif by_id[gate.challenger_candidate].objective_value > by_id[gate.incumbent_candidate].objective_value:
-                rejected_good_challengers += 1
+            base_scores = public_incumbent_scores(adapter, observed_ids, observed)
+            if mode == "incumbent":
+                incumbent = top_candidate(base_scores)
+                gate = GateCertificate(
+                    gate_version="none",
+                    incumbent_candidate=incumbent,
+                    challenger_candidate=incumbent,
+                    selected_candidate=incumbent,
+                    authorized=False,
+                    gate_margin=0.0,
+                    acquisition_loss=0.0,
+                    row_order_stable=True,
+                    applied_skill_ids=(),
+                    reason="baseline_incumbent_only",
+                )
+            else:
+                adjustments, skill_cert = skill_adjustments(adapter, pool, observed_ids, observed, skills, round_index)
+                adjusted_scores = {cid: base_scores[cid] + adjustments.get(cid, 0.0) for cid in base_scores}
+                row_order_stable = row_order_stability_check(adapter, pool, observed_ids, observed, skills, round_index, adjustments)
+                active_skill_ids = tuple(k for k, v in skill_cert["skills"].items() if v.get("active"))
+                if mode == "no_gate":
+                    gate = no_gate_decision(base_scores, adjusted_scores, row_order_stable, active_skill_ids)
+                else:
+                    gate = gate_decision(mode, base_scores, adjusted_scores, adjustments, row_order_stable, active_skill_ids)
+                if gate.authorized:
+                    intervention_count += 1
+                    if by_id[gate.challenger_candidate].objective_value < by_id[gate.incumbent_candidate].objective_value:
+                        bad_interventions += 1
+                elif by_id[gate.challenger_candidate].objective_value > by_id[gate.incumbent_candidate].objective_value:
+                    rejected_good_challengers += 1
 
         selected = by_id[gate.selected_candidate]
-        update_hypothesis_from_reveal(hypothesis, selected, observed, round_index, adapter.preferred_groups)
+        if mode != "no_care_random":
+            update_hypothesis_from_reveal(hypothesis, selected, observed, round_index, adapter.preferred_groups)
         observed.append(selected)
         observed_ids.add(selected.candidate_id)
         selected_top10 = selected_top10 or selected.candidate_id in top10
@@ -1025,7 +1398,13 @@ def run_policy(adapter: DatasetAdapter, task: TaskSpec, seed: int, mode: Mode) -
                 incumbent_candidate=gate.incumbent_candidate,
                 challenger_candidate=gate.challenger_candidate,
                 selected_candidate=selected.candidate_id,
-                selected_by="gate_authorized_challenger" if gate.authorized else "incumbent",
+                selected_by="no_care_random"
+                if mode == "no_care_random"
+                else "no_gate_challenger"
+                if mode == "no_gate"
+                else "gate_authorized_challenger"
+                if gate.authorized
+                else "incumbent",
                 gate=gate,
                 revealed_value=selected.objective_value,
                 best_so_far=best_so_far,
@@ -1088,7 +1467,7 @@ def write_outputs(
     OUTPUT_TABLES.mkdir(parents=True, exist_ok=True)
     metrics_path = OUTPUT_TABLES / f"{dataset_id}_metrics.csv"
     with metrics_path.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
+        writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()), lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
     (OUTPUT_RUNS / f"{dataset_id}_summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -1118,7 +1497,7 @@ def run_dataset(adapter: DatasetAdapter, seeds: int, rounds: int, initial: int) 
     rows: list[dict[str, Any]] = []
     audits: dict[tuple[str, int], list[AuditEntry]] = {}
     hypotheses: dict[tuple[str, int], HypothesisEntry] = {}
-    for mode in ("incumbent", "gate_v1", "gate_v2"):
+    for mode in ("no_care_random", "incumbent", "no_gate", "gate_v1", "gate_v2"):
         for seed in range(seeds):
             metrics, audit, hypothesis = run_policy(adapter, task, seed, mode)  # type: ignore[arg-type]
             rows.append(metrics)

@@ -9,6 +9,8 @@ Current status:
 - Includes public real HTE adapters for Dreher-Doyle Buchwald-Hartwig and
   Perera Suzuki-Miyaura data from `rxn4chemistry/rxn_yields`.
 - Includes a MoleculeNet ESOL adapter for molecular property finite-pool replay.
+- Includes a Matbench experimental band-gap adapter for real materials
+  composition-property replay.
 - Implements the CARE 2.0 minimum loop:
   `TaskSpec -> SkillCard -> HypothesisEntry -> GateCertificate -> AuditLog -> Metrics`.
 - Does not claim to reproduce CARE 1.0 paper numbers. It is a smoke test for the experiment interface while the original CARE 1.0 repo / public candidate tables are being confirmed.
@@ -24,6 +26,7 @@ python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset synthe
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_buchwald_hartwig --seeds 30 --rounds 10
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_suzuki_miyaura --seeds 30 --rounds 10
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_moleculenet_esol --seeds 30 --rounds 10
+python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_matbench_expt_gap --seeds 30 --rounds 10
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset all --seeds 30 --rounds 10
 ```
 
@@ -41,6 +44,9 @@ Tracked result snapshots:
 
 - `results/2026-06-28-doc-guided-sweep/`: aggregate summaries and metric tables
   for a six-adapter sweep guided by the CARE 2.0 / AI4Science notes.
+- `results/2026-06-29-materials-baselines/`: synthetic materials and real
+  Matbench experimental band-gap replay with an explicit `no_care_random`
+  baseline and no-gate ablation.
 
 The synthetic adapters let us test whether the same CARE gate and audit protocol
 behaves consistently across task shapes. The real HTE adapters download public
@@ -52,3 +58,9 @@ factor-evidence adjustments when public observations support them.
 
 The MoleculeNet ESOL adapter is not a reaction dataset. It frames measured
 solubility as a finite-pool molecular property search task.
+
+The Matbench experimental band-gap adapter uses composition-only public
+features and revealed experimental band gaps. It is a real materials replay
+dataset, but the first-pass observation model is intentionally lightweight; the
+2026-06-29 result snapshot should be read as a diagnostic baseline rather than
+as a positive CARE result.

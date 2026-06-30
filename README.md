@@ -8,7 +8,7 @@ Current contents:
 
 - `experiments/care_replay/`: a lightweight finite-pool replay harness for
   testing CARE-style incumbent/challenger/gate loops across synthetic adapters
-  and public HTE / molecular property datasets.
+  and public HTE / molecular-property / materials datasets.
 - `knowledge_base/`: a small SQLite + FTS knowledge-base prototype for CARE 2.0
   task, dataset, mechanism, and skill cards, with optional vector indexing.
 - `task_tracker/`: current project tasks, owners, blockers, and next actions.
@@ -32,7 +32,8 @@ The latest project sync focuses on three workstreams:
 
 1. **Dataset expansion and experiments**
    - Add Kimi-Lex once the download link and schema are available.
-   - Add a Materials Project pathway once access/API requirements are confirmed.
+   - Add a Materials Project pathway once access/API requirements are confirmed;
+     the current public materials proxy is Matbench experimental band gap.
    - Keep public, release-safe replay datasets separate from private/internal
      data.
 2. **Code and documentation**
@@ -50,11 +51,15 @@ The latest project sync focuses on three workstreams:
 The latest tracked replay output is in:
 
 - `experiments/care_replay/results/2026-06-28-doc-guided-sweep/`
+- `experiments/care_replay/results/2026-06-29-materials-baselines/`
 - `experiments/care_replay/outputs/`
 - `experiments/care_replay/data/raw/`
 
-The full output set includes six adapters, 30 seeds, 10 reveal rounds, per-mode
-metrics, raw public data files, 540 audit logs, and 540 knowledge snapshots.
+The tracked output set includes the six-adapter 2026-06-28 sweep plus the
+2026-06-29 material baseline pass with `no_care_random`, `incumbent`,
+`no_gate`, `gate_v1`, and `gate_v2` modes. Raw public data files, per-mode
+metrics, audit logs, and knowledge snapshots are kept under
+`experiments/care_replay/`.
 
 ## Quick Start
 
