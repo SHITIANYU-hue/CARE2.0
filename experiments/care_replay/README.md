@@ -11,6 +11,7 @@ Current status:
 - Includes a MoleculeNet ESOL adapter for molecular property finite-pool replay.
 - Includes a Matbench experimental band-gap adapter for real materials
   composition-property replay.
+- Supports optional LLM-in-the-loop modes through an OpenAI-compatible endpoint.
 - Implements the CARE 2.0 minimum loop:
   `TaskSpec -> SkillCard -> HypothesisEntry -> GateCertificate -> AuditLog -> Metrics`.
 - Does not claim to reproduce CARE 1.0 paper numbers. It is a smoke test for the experiment interface while the original CARE 1.0 repo / public candidate tables are being confirmed.
@@ -30,6 +31,17 @@ python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_m
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset all --seeds 30 --rounds 10
 ```
 
+Run a real LLM-in-the-loop smoke test:
+
+```bash
+export CARE_LLM_API_KEY="..."
+python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset synthetic_materials_i --seeds 3 --rounds 6 --initial 5 --modes no_care_random,incumbent,llm_no_gate,llm_gate_v1 --llm-model openai/gpt-4o-mini --output-tag llm_commonstack
+```
+
+The default LLM base URL is `https://api.commonstack.ai/v1`. The API key is read
+from `CARE_LLM_API_KEY` or `COMMONSTACK_API_KEY`; it is never stored in the
+repository.
+
 Outputs:
 
 - `outputs/tables/<dataset_id>_metrics.csv`
@@ -47,6 +59,9 @@ Tracked result snapshots:
 - `results/2026-06-29-materials-baselines/`: synthetic materials and real
   Matbench experimental band-gap replay with an explicit `no_care_random`
   baseline and no-gate ablation.
+- `results/2026-06-29-commonstack-llm-replay/`: synthetic materials and real
+  Matbench replay with real Commonstack LLM calls in `llm_no_gate` and
+  `llm_gate_v1` modes.
 
 The synthetic adapters let us test whether the same CARE gate and audit protocol
 behaves consistently across task shapes. The real HTE adapters download public
@@ -64,3 +79,7 @@ features and revealed experimental band gaps. It is a real materials replay
 dataset, but the first-pass observation model is intentionally lightweight; the
 2026-06-29 result snapshot should be read as a diagnostic baseline rather than
 as a positive CARE result.
+
+The LLM modes ask the model to propose bounded factor-level adjustments from
+revealed observations only. Audit logs store the raw model response, parsed JSON
+policy, applied factor adjustments, model name, and usage metadata.

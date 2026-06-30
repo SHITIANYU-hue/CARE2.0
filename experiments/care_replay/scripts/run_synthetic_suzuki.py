@@ -7,7 +7,10 @@ import gzip
 import hashlib
 import json
 import math
+import os
 import random
+import re
+import urllib.error
 import urllib.request
 import zipfile
 from dataclasses import asdict, dataclass, field
@@ -37,7 +40,9 @@ PUBLIC_DATA_URLS = {
 }
 
 SkillFamily = Literal["ranker", "constraint", "exploration", "data_analysis", "fallback"]
-Mode = Literal["no_care_random", "incumbent", "no_gate", "gate_v1", "gate_v2"]
+Mode = Literal["no_care_random", "incumbent", "no_gate", "gate_v1", "gate_v2", "llm_no_gate", "llm_gate_v1"]
+DEFAULT_MODES: tuple[Mode, ...] = ("no_care_random", "incumbent", "no_gate", "gate_v1", "gate_v2")
+ALL_MODES: tuple[Mode, ...] = (*DEFAULT_MODES, "llm_no_gate", "llm_gate_v1")
 
 
 @dataclass(frozen=True)
@@ -88,6 +93,15 @@ class SkillCard:
     prohibited_behaviors: tuple[str, ...]
     provenance: dict[str, Any]
     rationale: str
+
+
+@dataclass(frozen=True)
+class LLMConfig:
+    base_url: str
+    api_key: str
+    model: str
+    temperature: float
+    max_tokens: int
 
 
 @dataclass
@@ -1245,8 +1259,8 @@ def gate_decision(
             applied_skill_ids=active_skill_ids,
             reason="challenger_matches_incumbent",
         )
-    epsilon = 0.05 if gate_version == "gate_v1" else 0.12
-    min_margin = 0.025 if gate_version == "gate_v1" else 0.010
+    epsilon = 0.05 if gate_version in {"gate_v1", "llm_gate_v1"} else 0.12
+    min_margin = 0.025 if gate_version in {"gate_v1", "llm_gate_v1"} else 0.010
     gate_margin = adjusted_scores[challenger] - base_scores[incumbent]
     acquisition_loss = max(0.0, base_scores[incumbent] - base_scores[challenger])
     max_adjustment = max(abs(v) for v in adjustments.values()) if adjustments else 0.0
@@ -1292,6 +1306,222 @@ def no_gate_decision(
     )
 
 
+def is_llm_mode(mode: str) -> bool:
+    return mode in {"llm_no_gate", "llm_gate_v1"}
+
+
+def compact_candidate(c: Candidate) -> dict[str, Any]:
+    public_metadata = {
+        key: value
+        for key, value in c.metadata.items()
+        if key not in {"yield_value", "stability_score", "normalized_solubility_score", "normalized_band_gap_score"}
+    }
+    return {
+        "candidate_id": c.candidate_id,
+        "group": c.group,
+        "x1": round(c.x1, 4),
+        "x2": round(c.x2, 4),
+        "x3": round(c.x3, 4),
+        "revealed_objective": round(c.objective_value, 4),
+        "metadata": public_metadata,
+    }
+
+
+def observed_evidence_payload(adapter: DatasetAdapter, observed: list[Candidate]) -> dict[str, Any]:
+    global_mean = observed_mean(observed)
+    factor_rows = []
+    for (field_name, value), (count, value_mean) in factor_stats(observed, adapter.decision_columns).items():
+        if count < 2:
+            continue
+        factor_rows.append(
+            {
+                "field": field_name,
+                "value": value,
+                "count": count,
+                "mean": round(value_mean, 4),
+                "delta_vs_global": round(value_mean - global_mean, 4),
+            }
+        )
+    factor_rows = sorted(factor_rows, key=lambda item: (abs(item["delta_vs_global"]), item["count"]), reverse=True)[:24]
+    top_observed = sorted(observed, key=lambda c: c.objective_value, reverse=True)[:6]
+    bottom_observed = sorted(observed, key=lambda c: c.objective_value)[:6]
+    return {
+        "dataset": adapter.dataset_id,
+        "objective": adapter.objective,
+        "decision_columns": list(adapter.decision_columns),
+        "hidden_target": adapter.hidden_target,
+        "group_column": adapter.group_column,
+        "observed_count": len(observed),
+        "global_revealed_mean": round(global_mean, 4),
+        "factor_evidence": factor_rows,
+        "top_revealed": [compact_candidate(c) for c in top_observed],
+        "bottom_revealed": [compact_candidate(c) for c in bottom_observed],
+        "output_contract": {
+            "adjustments": [
+                {
+                    "field": "one decision column",
+                    "value": "one observed factor value",
+                    "direction": "prefer or penalize",
+                    "weight": "number between 0.0 and 0.08",
+                    "reason": "short evidence-based reason",
+                }
+            ],
+            "confidence": "number between 0 and 1",
+        },
+    }
+
+
+def extract_json_object(text: str) -> dict[str, Any]:
+    decoder = json.JSONDecoder()
+    for match in re.finditer(r"\{", text):
+        try:
+            parsed, _ = decoder.raw_decode(text[match.start() :])
+        except json.JSONDecodeError:
+            continue
+        if isinstance(parsed, dict):
+            return parsed
+    raise ValueError("No JSON object found in LLM response.")
+
+
+def chat_completion_text(config: LLMConfig, messages: list[dict[str, str]]) -> tuple[str, dict[str, Any]]:
+    payload = {
+        "model": config.model,
+        "messages": messages,
+        "temperature": config.temperature,
+        "max_tokens": config.max_tokens,
+    }
+    req = urllib.request.Request(
+        config.base_url.rstrip("/") + "/chat/completions",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": "Bearer " + config.api_key,
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=90) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", "replace")
+        raise RuntimeError(f"LLM endpoint returned HTTP {exc.code}: {body[:500]}") from exc
+    content = data["choices"][0]["message"].get("content", "")
+    usage = data.get("usage", {})
+    return content, {"model": data.get("model", config.model), "usage": usage}
+
+
+def llm_skill_adjustments(
+    adapter: DatasetAdapter,
+    pool: tuple[Candidate, ...],
+    observed_ids: set[str],
+    observed: list[Candidate],
+    seed: int,
+    round_index: int,
+    mode: Mode,
+    config: LLMConfig,
+) -> tuple[dict[str, float], dict[str, Any], dict[str, Any]]:
+    adjustments = {c.candidate_id: 0.0 for c in pool if c.candidate_id not in observed_ids}
+    if len(observed) < 8:
+        cert = {
+            "skills": {"llm_factor_policy": {"active": False, "reason": "observed_count_below_8"}},
+            "max_abs_adjustment": 0.0,
+        }
+        record = {"called": False, "reason": "observed_count_below_8"}
+        return adjustments, cert, record
+
+    prompt_payload = observed_evidence_payload(adapter, observed)
+    system = (
+        "You are a CARE policy proposer for scientific finite-pool replay. "
+        "Use only the revealed observations in the user JSON. "
+        "Do not assume hidden outcomes for unrevealed candidates. "
+        "Return only one JSON object with an adjustments array and confidence. "
+        "No markdown. No prose. No chain-of-thought."
+    )
+    user = (
+        "Propose bounded factor-level score adjustments for the next candidate selection. "
+        "Use fields only from decision_columns. Use values that are supported by factor_evidence "
+        "or shown in top_revealed/bottom_revealed. Prefer high-evidence factors and penalize "
+        "low-evidence factors. Max 4 adjustments. Return exactly this shape: "
+        "{\"adjustments\":[{\"field\":\"dopant\",\"value\":\"D4\",\"direction\":\"prefer\",\"weight\":0.05,\"reason\":\"short evidence reason\"}],\"confidence\":0.7}. "
+        "JSON input:\n"
+        + json.dumps(prompt_payload, ensure_ascii=False)
+    )
+    content, response_meta = chat_completion_text(config, [{"role": "system", "content": system}, {"role": "user", "content": user}])
+
+    parse_error = ""
+    try:
+        parsed = extract_json_object(content)
+    except ValueError as exc:
+        parsed = {"adjustments": [], "confidence": 0.0}
+        parse_error = str(exc)
+
+    if "adjustments" not in parsed and {"field", "value", "direction"} <= set(parsed):
+        parsed = {"adjustments": [parsed], "confidence": parsed.get("confidence", 0.5)}
+
+    allowed_fields = set(adapter.decision_columns)
+    applied_specs = []
+    for item in list(parsed.get("adjustments", []))[:4]:
+        if not isinstance(item, dict):
+            continue
+        field_name = str(item.get("field", ""))
+        value = str(item.get("value", ""))
+        direction = str(item.get("direction", "")).lower()
+        if field_name not in allowed_fields or direction not in {"prefer", "penalize"}:
+            continue
+        try:
+            magnitude = min(0.08, max(0.0, abs(float(item.get("weight", 0.0)))))
+        except (TypeError, ValueError):
+            continue
+        delta = magnitude if direction == "prefer" else -magnitude
+        matched = 0
+        for c in pool:
+            if c.candidate_id not in adjustments:
+                continue
+            if str(c.metadata.get(field_name, "")) != value:
+                continue
+            adjustments[c.candidate_id] += delta
+            matched += 1
+        applied_specs.append(
+            {
+                "field": field_name,
+                "value": value,
+                "direction": direction,
+                "weight": round(delta, 6),
+                "matched_candidates": matched,
+                "reason": str(item.get("reason", ""))[:240],
+            }
+        )
+
+    for cid, value in list(adjustments.items()):
+        adjustments[cid] = max(-0.12, min(0.12, value))
+    max_abs = max((abs(v) for v in adjustments.values()), default=0.0)
+    cert = {
+        "skills": {
+            "llm_factor_policy": {
+                "active": bool(applied_specs),
+                "model": response_meta["model"],
+                "applied_specs": applied_specs,
+                "parse_error": parse_error,
+            }
+        },
+        "max_abs_adjustment": round(max_abs, 6),
+    }
+    record = {
+        "called": True,
+        "mode": mode,
+        "seed": seed,
+        "round_index": round_index,
+        "model": response_meta["model"],
+        "usage": response_meta["usage"],
+        "prompt_payload": prompt_payload,
+        "raw_response": content,
+        "parsed_response": parsed,
+        "applied_specs": applied_specs,
+        "parse_error": parse_error,
+    }
+    return adjustments, cert, record
+
+
 def update_hypothesis_from_reveal(
     h: HypothesisEntry,
     selected: Candidate,
@@ -1313,7 +1543,13 @@ def update_hypothesis_from_reveal(
     )
 
 
-def run_policy(adapter: DatasetAdapter, task: TaskSpec, seed: int, mode: Mode) -> tuple[dict[str, Any], list[AuditEntry], HypothesisEntry]:
+def run_policy(
+    adapter: DatasetAdapter,
+    task: TaskSpec,
+    seed: int,
+    mode: Mode,
+    llm_config: LLMConfig | None = None,
+) -> tuple[dict[str, Any], list[AuditEntry], HypothesisEntry]:
     rng = random.Random(seed)
     pool = adapter.candidates
     by_id = {c.candidate_id: c for c in pool}
@@ -1332,9 +1568,11 @@ def run_policy(adapter: DatasetAdapter, task: TaskSpec, seed: int, mode: Mode) -
     intervention_count = 0
     bad_interventions = 0
     rejected_good_challengers = 0
+    llm_call_count = 0
     selected_top10 = False
 
     for round_index in range(task.reveal_budget):
+        llm_record: dict[str, Any] | None = None
         if mode == "no_care_random":
             selected_candidate = rng.choice([c for c in pool if c.candidate_id not in observed_ids])
             gate = GateCertificate(
@@ -1366,11 +1604,27 @@ def run_policy(adapter: DatasetAdapter, task: TaskSpec, seed: int, mode: Mode) -
                     reason="baseline_incumbent_only",
                 )
             else:
-                adjustments, skill_cert = skill_adjustments(adapter, pool, observed_ids, observed, skills, round_index)
+                if is_llm_mode(mode):
+                    if llm_config is None:
+                        raise RuntimeError("LLM mode requested but no LLM config was provided.")
+                    adjustments, skill_cert, llm_record = llm_skill_adjustments(
+                        adapter,
+                        pool,
+                        observed_ids,
+                        observed,
+                        seed,
+                        round_index,
+                        mode,
+                        llm_config,
+                    )
+                    llm_call_count += int(bool(llm_record.get("called")))
+                    row_order_stable = True
+                else:
+                    adjustments, skill_cert = skill_adjustments(adapter, pool, observed_ids, observed, skills, round_index)
+                    row_order_stable = row_order_stability_check(adapter, pool, observed_ids, observed, skills, round_index, adjustments)
                 adjusted_scores = {cid: base_scores[cid] + adjustments.get(cid, 0.0) for cid in base_scores}
-                row_order_stable = row_order_stability_check(adapter, pool, observed_ids, observed, skills, round_index, adjustments)
                 active_skill_ids = tuple(k for k, v in skill_cert["skills"].items() if v.get("active"))
-                if mode == "no_gate":
+                if mode in {"no_gate", "llm_no_gate"}:
                     gate = no_gate_decision(base_scores, adjusted_scores, row_order_stable, active_skill_ids)
                 else:
                     gate = gate_decision(mode, base_scores, adjusted_scores, adjustments, row_order_stable, active_skill_ids)
@@ -1389,6 +1643,9 @@ def run_policy(adapter: DatasetAdapter, task: TaskSpec, seed: int, mode: Mode) -
         selected_top10 = selected_top10 or selected.candidate_id in top10
         best_so_far = max(c.objective_value for c in observed)
         best_trace.append(best_so_far)
+        hypothesis_snapshot = asdict(hypothesis)
+        if llm_record is not None:
+            hypothesis_snapshot["llm_policy"] = llm_record
         audit.append(
             AuditEntry(
                 dataset_id=adapter.dataset_id,
@@ -1400,6 +1657,12 @@ def run_policy(adapter: DatasetAdapter, task: TaskSpec, seed: int, mode: Mode) -
                 selected_candidate=selected.candidate_id,
                 selected_by="no_care_random"
                 if mode == "no_care_random"
+                else "llm_no_gate_challenger"
+                if mode == "llm_no_gate"
+                else "llm_gate_authorized_challenger"
+                if is_llm_mode(mode) and gate.authorized
+                else "llm_gate_rejected_incumbent"
+                if is_llm_mode(mode)
                 else "no_gate_challenger"
                 if mode == "no_gate"
                 else "gate_authorized_challenger"
@@ -1408,7 +1671,7 @@ def run_policy(adapter: DatasetAdapter, task: TaskSpec, seed: int, mode: Mode) -
                 gate=gate,
                 revealed_value=selected.objective_value,
                 best_so_far=best_so_far,
-                hypothesis_snapshot=asdict(hypothesis),
+                hypothesis_snapshot=hypothesis_snapshot,
             )
         )
     final_best = max(c.objective_value for c in observed)
@@ -1423,6 +1686,7 @@ def run_policy(adapter: DatasetAdapter, task: TaskSpec, seed: int, mode: Mode) -
         "intervention_count": intervention_count,
         "bad_intervention_count": bad_interventions,
         "rejected_good_challenger_count": rejected_good_challengers,
+        "llm_call_count": llm_call_count,
         "hypothesis_confidence": round(hypothesis.confidence, 4),
         "hypothesis_support_count": hypothesis.support_count,
     }
@@ -1442,6 +1706,7 @@ def aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "intervention_count",
         "bad_intervention_count",
         "rejected_good_challenger_count",
+        "llm_call_count",
         "hypothesis_confidence",
         "hypothesis_support_count",
     ]
@@ -1457,7 +1722,7 @@ def aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def write_outputs(
-    dataset_id: str,
+    output_id: str,
     rows: list[dict[str, Any]],
     summary: dict[str, Any],
     audits: dict[tuple[str, int], list[AuditEntry]],
@@ -1465,47 +1730,88 @@ def write_outputs(
 ) -> None:
     OUTPUT_RUNS.mkdir(parents=True, exist_ok=True)
     OUTPUT_TABLES.mkdir(parents=True, exist_ok=True)
-    metrics_path = OUTPUT_TABLES / f"{dataset_id}_metrics.csv"
+    metrics_path = OUTPUT_TABLES / f"{output_id}_metrics.csv"
     with metrics_path.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()), lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
-    (OUTPUT_RUNS / f"{dataset_id}_summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    (OUTPUT_RUNS / f"{output_id}_summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     for (mode, seed), audit in sorted(audits.items()):
-        with (OUTPUT_RUNS / f"{dataset_id}_audit_{mode}_seed{seed}.jsonl").open("w", encoding="utf-8") as f:
+        with (OUTPUT_RUNS / f"{output_id}_audit_{mode}_seed{seed}.jsonl").open("w", encoding="utf-8") as f:
             for entry in audit:
                 f.write(json.dumps(asdict(entry), ensure_ascii=False) + "\n")
     for (mode, seed), hypothesis in sorted(hypotheses.items()):
-        (OUTPUT_RUNS / f"{dataset_id}_knowledge_{mode}_seed{seed}.json").write_text(
+        (OUTPUT_RUNS / f"{output_id}_knowledge_{mode}_seed{seed}.json").write_text(
             json.dumps(asdict(hypothesis), ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",
         )
     # Keep the original seed-0 filenames as a short compatibility handle.
     if ("gate_v2", 0) in audits:
-        with (OUTPUT_RUNS / f"{dataset_id}_audit_seed0.jsonl").open("w", encoding="utf-8") as f:
+        with (OUTPUT_RUNS / f"{output_id}_audit_seed0.jsonl").open("w", encoding="utf-8") as f:
             for entry in audits[("gate_v2", 0)]:
                 f.write(json.dumps(asdict(entry), ensure_ascii=False) + "\n")
     if ("gate_v2", 0) in hypotheses:
-        (OUTPUT_RUNS / f"{dataset_id}_knowledge_seed0.json").write_text(
+        (OUTPUT_RUNS / f"{output_id}_knowledge_seed0.json").write_text(
             json.dumps(asdict(hypotheses[("gate_v2", 0)]), ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",
         )
 
 
-def run_dataset(adapter: DatasetAdapter, seeds: int, rounds: int, initial: int) -> dict[str, Any]:
+def parse_modes(raw: str) -> tuple[Mode, ...]:
+    modes = tuple(item.strip() for item in raw.split(",") if item.strip())
+    if not modes:
+        raise ValueError("At least one mode is required.")
+    unknown = [mode for mode in modes if mode not in ALL_MODES]
+    if unknown:
+        raise ValueError(f"Unknown mode(s): {unknown}. Available modes: {', '.join(ALL_MODES)}")
+    return modes  # type: ignore[return-value]
+
+
+def llm_config_from_args(args: argparse.Namespace, modes: tuple[Mode, ...]) -> LLMConfig | None:
+    if not any(is_llm_mode(mode) for mode in modes):
+        return None
+    api_key = (
+        os.environ.get(args.llm_api_key_env)
+        or os.environ.get("COMMONSTACK_API_KEY")
+        or os.environ.get("CARE_LLM_API_KEY")
+    )
+    if not api_key:
+        raise RuntimeError(
+            f"Set {args.llm_api_key_env} or COMMONSTACK_API_KEY before running LLM modes."
+        )
+    return LLMConfig(
+        base_url=args.llm_base_url,
+        api_key=api_key,
+        model=args.llm_model,
+        temperature=args.llm_temperature,
+        max_tokens=args.llm_max_tokens,
+    )
+
+
+def run_dataset(
+    adapter: DatasetAdapter,
+    seeds: int,
+    rounds: int,
+    initial: int,
+    modes: tuple[Mode, ...] = DEFAULT_MODES,
+    llm_config: LLMConfig | None = None,
+    output_tag: str = "",
+) -> dict[str, Any]:
     task = make_task(adapter, initial, rounds)
     rows: list[dict[str, Any]] = []
     audits: dict[tuple[str, int], list[AuditEntry]] = {}
     hypotheses: dict[tuple[str, int], HypothesisEntry] = {}
-    for mode in ("no_care_random", "incumbent", "no_gate", "gate_v1", "gate_v2"):
+    for mode in modes:
         for seed in range(seeds):
-            metrics, audit, hypothesis = run_policy(adapter, task, seed, mode)  # type: ignore[arg-type]
+            metrics, audit, hypothesis = run_policy(adapter, task, seed, mode, llm_config)
             rows.append(metrics)
             audits[(mode, seed)] = audit
             hypotheses[(mode, seed)] = hypothesis
+    output_id = adapter.dataset_id if not output_tag else f"{adapter.dataset_id}_{output_tag}"
     summary = {
         "experiment": "care_multi_dataset_skill_knowledge_replay",
         "disclaimer": "Synthetic smoke test; not a CARE 1.0 paper reproduction.",
+        "output_id": output_id,
         "dataset": {
             "dataset_id": adapter.dataset_id,
             "title": adapter.title,
@@ -1517,9 +1823,18 @@ def run_dataset(adapter: DatasetAdapter, seeds: int, rounds: int, initial: int) 
         "seeds": seeds,
         "rounds": rounds,
         "initial_observations": initial,
+        "modes": list(modes),
+        "llm": None
+        if llm_config is None
+        else {
+            "base_url": llm_config.base_url,
+            "model": llm_config.model,
+            "temperature": llm_config.temperature,
+            "max_tokens": llm_config.max_tokens,
+        },
         "aggregate": aggregate(rows),
     }
-    write_outputs(adapter.dataset_id, rows, summary, audits, hypotheses)
+    write_outputs(output_id, rows, summary, audits, hypotheses)
     return summary
 
 
@@ -1529,10 +1844,22 @@ def main() -> None:
     parser.add_argument("--seeds", type=int, default=30)
     parser.add_argument("--rounds", type=int, default=10)
     parser.add_argument("--initial", type=int, default=5)
+    parser.add_argument("--modes", default=",".join(DEFAULT_MODES), help=f"Comma-separated modes from: {', '.join(ALL_MODES)}")
+    parser.add_argument("--llm-base-url", default=os.environ.get("CARE_LLM_BASE_URL", "https://api.commonstack.ai/v1"))
+    parser.add_argument("--llm-model", default=os.environ.get("CARE_LLM_MODEL", "moonshotai/kimi-k2.7-code"))
+    parser.add_argument("--llm-api-key-env", default="CARE_LLM_API_KEY")
+    parser.add_argument("--llm-temperature", type=float, default=0.0)
+    parser.add_argument("--llm-max-tokens", type=int, default=500)
+    parser.add_argument("--output-tag", default="", help="Optional suffix for output filenames, e.g. llm_commonstack.")
     args = parser.parse_args()
 
+    modes = parse_modes(args.modes)
+    llm_config = llm_config_from_args(args, modes)
     dataset_ids = list(DATASET_BUILDERS) if args.dataset == "all" else [args.dataset]
-    summaries = [run_dataset(DATASET_BUILDERS[dataset_id](), args.seeds, args.rounds, args.initial) for dataset_id in dataset_ids]
+    summaries = [
+        run_dataset(DATASET_BUILDERS[dataset_id](), args.seeds, args.rounds, args.initial, modes, llm_config, args.output_tag)
+        for dataset_id in dataset_ids
+    ]
     if len(summaries) == 1:
         print(json.dumps(summaries[0], ensure_ascii=False, indent=2))
     else:
@@ -1540,6 +1867,7 @@ def main() -> None:
             "experiment": "care_multi_dataset_skill_knowledge_replay",
             "disclaimer": "Synthetic smoke test; not a CARE 1.0 paper reproduction.",
             "datasets": [summary["dataset"]["dataset_id"] for summary in summaries],
+            "modes": list(modes),
             "summaries": summaries,
         }
         (OUTPUT_RUNS / "all_datasets_summary.json").write_text(json.dumps(combined, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

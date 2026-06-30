@@ -57,8 +57,9 @@ The latest tracked replay output is in:
 
 The tracked output set includes the six-adapter 2026-06-28 sweep plus the
 2026-06-29 material baseline pass with `no_care_random`, `incumbent`,
-`no_gate`, `gate_v1`, and `gate_v2` modes. Raw public data files, per-mode
-metrics, audit logs, and knowledge snapshots are kept under
+`no_gate`, `gate_v1`, and `gate_v2` modes, plus the first Commonstack
+LLM-in-the-loop replay using `llm_no_gate` and `llm_gate_v1`. Raw public data
+files, per-mode metrics, audit logs, and knowledge snapshots are kept under
 `experiments/care_replay/`.
 
 ## Quick Start
@@ -67,6 +68,13 @@ Run the replay smoke test:
 
 ```bash
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset all --seeds 30 --rounds 10
+```
+
+Run a real LLM-in-the-loop replay:
+
+```bash
+export CARE_LLM_API_KEY="..."
+python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset synthetic_materials_i --seeds 3 --rounds 6 --initial 5 --modes no_care_random,incumbent,llm_no_gate,llm_gate_v1 --llm-model openai/gpt-4o-mini --output-tag llm_commonstack
 ```
 
 Build the public seed knowledge base:
