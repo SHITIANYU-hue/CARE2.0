@@ -9,6 +9,8 @@ Current status:
 - Includes public real HTE adapters for Dreher-Doyle Buchwald-Hartwig and
   Perera Suzuki-Miyaura data from `rxn4chemistry/rxn_yields`.
 - Includes a MoleculeNet ESOL adapter for molecular property finite-pool replay.
+- Includes MoleculeNet FreeSolv and Lipophilicity adapters for additional
+  molecular-property generalization checks.
 - Includes a Matbench experimental band-gap adapter for real materials
   composition-property replay.
 - Supports optional LLM-in-the-loop modes through an OpenAI-compatible endpoint.
@@ -27,6 +29,8 @@ python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset synthe
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_buchwald_hartwig --seeds 30 --rounds 10
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_suzuki_miyaura --seeds 30 --rounds 10
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_moleculenet_esol --seeds 30 --rounds 10
+python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_moleculenet_freesolv --seeds 30 --rounds 10
+python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_moleculenet_lipophilicity --seeds 30 --rounds 10
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_matbench_expt_gap --seeds 30 --rounds 10
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset all --seeds 30 --rounds 10
 ```
@@ -62,6 +66,8 @@ Tracked result snapshots:
 - `results/2026-06-29-commonstack-llm-replay/`: synthetic materials and real
   Matbench replay with real Commonstack LLM calls in `llm_no_gate` and
   `llm_gate_v1` modes.
+- `results/2026-06-30-generalization-sweep/`: nine-dataset baseline and CARE2
+  generalization sweep after adding FreeSolv and Lipophilicity.
 
 The synthetic adapters let us test whether the same CARE gate and audit protocol
 behaves consistently across task shapes. The real HTE adapters download public
@@ -73,6 +79,15 @@ factor-evidence adjustments when public observations support them.
 
 The MoleculeNet ESOL adapter is not a reaction dataset. It frames measured
 solubility as a finite-pool molecular property search task.
+
+The MoleculeNet FreeSolv adapter frames experimental hydration free energy as a
+finite-pool molecular property search task. The hidden objective is a fixed-scale
+hydration-affinity score where more negative experimental hydration free energy
+is better.
+
+The MoleculeNet Lipophilicity adapter frames experimental lipophilicity as a
+finite-pool molecular property search task. The hidden objective is a fixed-scale
+normalized lipophilicity score.
 
 The Matbench experimental band-gap adapter uses composition-only public
 features and revealed experimental band gaps. It is a real materials replay

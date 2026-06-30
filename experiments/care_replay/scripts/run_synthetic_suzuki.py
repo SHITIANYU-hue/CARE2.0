@@ -36,6 +36,8 @@ PUBLIC_DATA_URLS = {
         "data/Suzuki-Miyaura/aap9112_Data_File_S1.xlsx"
     ),
     "moleculenet_esol_delaney.csv": "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/delaney-processed.csv",
+    "moleculenet_freesolv_sampl.csv": "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/SAMPL.csv",
+    "moleculenet_lipophilicity.csv": "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/Lipophilicity.csv",
     "matbench_expt_gap.json.gz": "https://ml.materialsproject.org/projects/matbench_expt_gap.json.gz",
 }
 
@@ -286,6 +288,29 @@ def numeric_bin(value: float, edges: tuple[float, ...], labels: tuple[str, ...])
         if value <= edge:
             return label
     return labels[-1]
+
+
+def smiles_public_descriptors(smiles: str) -> tuple[dict[str, str], tuple[float, float, float]]:
+    length = float(len(smiles))
+    hetero_count = float(sum(smiles.count(token) for token in ("N", "O", "S", "P", "n", "o", "s")))
+    halogen_count = float(smiles.count("Cl") + smiles.count("Br") + smiles.count("F") + smiles.count("I"))
+    aromatic_count = float(sum(1 for ch in smiles if ch in {"c", "n", "o", "s"}))
+    ring_token_count = float(sum(1 for ch in smiles if ch.isdigit()))
+    branch_count = float(smiles.count("(") + smiles.count(")"))
+    double_bond_count = float(smiles.count("="))
+    descriptor_bins = {
+        "smiles_length_bin": numeric_bin(length, (20.0, 45.0, 80.0), ("smiles_short", "smiles_mid", "smiles_long", "smiles_very_long")),
+        "hetero_atom_bin": numeric_bin(hetero_count, (0.0, 2.0, 5.0), ("hetero_none", "hetero_low", "hetero_mid", "hetero_high")),
+        "halogen_bin": numeric_bin(halogen_count, (0.0, 1.0, 3.0), ("halogen_none", "halogen_low", "halogen_mid", "halogen_high")),
+        "aromatic_bin": numeric_bin(aromatic_count, (0.0, 6.0, 12.0), ("aromatic_none", "aromatic_low", "aromatic_mid", "aromatic_high")),
+        "ring_token_bin": numeric_bin(ring_token_count, (0.0, 2.0, 6.0), ("ring_token_none", "ring_token_low", "ring_token_mid", "ring_token_high")),
+        "branch_bin": numeric_bin(branch_count, (0.0, 4.0, 10.0), ("branch_none", "branch_low", "branch_mid", "branch_high")),
+        "double_bond_bin": numeric_bin(double_bond_count, (0.0, 1.0, 4.0), ("double_bond_none", "double_bond_low", "double_bond_mid", "double_bond_high")),
+    }
+    x1 = max(0.0, min(1.0, length / 160.0))
+    x2 = max(0.0, min(1.0, (hetero_count + halogen_count) / 16.0))
+    x3 = max(0.0, min(1.0, (aromatic_count + ring_token_count + branch_count) / 36.0))
+    return descriptor_bins, (x1, x2, x3)
 
 
 ELEMENT_Z = {
@@ -867,6 +892,108 @@ def real_moleculenet_esol_adapter() -> DatasetAdapter:
     )
 
 
+def real_moleculenet_freesolv_adapter() -> DatasetAdapter:
+    path = ensure_public_data_file("moleculenet_freesolv_sampl.csv")
+    records = read_csv_dicts(path)
+    pool: list[Candidate] = []
+    for idx, row in enumerate(records):
+        smiles = row["smiles"].strip()
+        experimental_delta_g = float(row["expt"])
+        calculated_delta_g = float(row["calc"])
+        descriptor_bins, (x1, x2, x3) = smiles_public_descriptors(smiles)
+
+        # Fixed [-25, 5] kcal/mol scale; more negative hydration free energy is better.
+        hydration_affinity_score = clamp_score((5.0 - experimental_delta_g) / 30.0 * 100.0)
+        pool.append(
+            Candidate(
+                candidate_id=f"freesolv_{idx:04d}",
+                group=descriptor_bins["hetero_atom_bin"],
+                x1=x1,
+                x2=x2,
+                x3=x3,
+                objective_value=hydration_affinity_score,
+                metadata={
+                    "iupac": row["iupac"],
+                    "smiles": smiles,
+                    **descriptor_bins,
+                    "experimental_hydration_free_energy": round(experimental_delta_g, 4),
+                    "calculated_hydration_free_energy": round(calculated_delta_g, 4),
+                    "hydration_affinity_score": hydration_affinity_score,
+                    "source_row": idx + 2,
+                },
+            )
+        )
+    return DatasetAdapter(
+        dataset_id="real_moleculenet_freesolv",
+        title="MoleculeNet FreeSolv hydration free-energy replay",
+        objective="maximize_hydration_affinity_score",
+        decision_columns=(
+            "smiles_length_bin",
+            "hetero_atom_bin",
+            "halogen_bin",
+            "aromatic_bin",
+            "ring_token_bin",
+            "branch_bin",
+            "double_bond_bin",
+        ),
+        hidden_target="hydration_affinity_score",
+        group_column="hetero_atom_bin",
+        preferred_groups=(),
+        failure_note="This is molecular property replay over SMILES-derived public descriptors; no fixed preferred chemistry prior is encoded.",
+        candidates=tuple(pool),
+    )
+
+
+def real_moleculenet_lipophilicity_adapter() -> DatasetAdapter:
+    path = ensure_public_data_file("moleculenet_lipophilicity.csv")
+    records = read_csv_dicts(path)
+    pool: list[Candidate] = []
+    for idx, row in enumerate(records):
+        smiles = row["smiles"].strip()
+        experimental_logd = float(row["exp"])
+        descriptor_bins, (x1, x2, x3) = smiles_public_descriptors(smiles)
+
+        # Fixed [-3, 5] logD-like scale avoids using dataset min/max as hidden target information.
+        normalized_lipophilicity_score = clamp_score((experimental_logd + 3.0) / 8.0 * 100.0)
+        pool.append(
+            Candidate(
+                candidate_id=f"lipo_{idx:04d}",
+                group=descriptor_bins["smiles_length_bin"],
+                x1=x1,
+                x2=x2,
+                x3=x3,
+                objective_value=normalized_lipophilicity_score,
+                metadata={
+                    "chembl_id": row["CMPD_CHEMBLID"],
+                    "smiles": smiles,
+                    **descriptor_bins,
+                    "experimental_lipophilicity": round(experimental_logd, 4),
+                    "normalized_lipophilicity_score": normalized_lipophilicity_score,
+                    "source_row": idx + 2,
+                },
+            )
+        )
+    return DatasetAdapter(
+        dataset_id="real_moleculenet_lipophilicity",
+        title="MoleculeNet Lipophilicity replay",
+        objective="maximize_normalized_lipophilicity",
+        decision_columns=(
+            "smiles_length_bin",
+            "hetero_atom_bin",
+            "halogen_bin",
+            "aromatic_bin",
+            "ring_token_bin",
+            "branch_bin",
+            "double_bond_bin",
+        ),
+        hidden_target="normalized_lipophilicity_score",
+        group_column="smiles_length_bin",
+        preferred_groups=(),
+        failure_note="This is molecular property replay over SMILES-derived public descriptors; no fixed preferred lipophilicity prior is encoded.",
+        candidates=tuple(pool),
+    )
+
+
 def real_matbench_expt_gap_adapter() -> DatasetAdapter:
     path = ensure_public_data_file("matbench_expt_gap.json.gz")
     records = read_matbench_json_gz(path)
@@ -952,6 +1079,8 @@ DATASET_BUILDERS: dict[str, Callable[[], DatasetAdapter]] = {
     "real_buchwald_hartwig": real_buchwald_hartwig_adapter,
     "real_suzuki_miyaura": real_suzuki_miyaura_adapter,
     "real_moleculenet_esol": real_moleculenet_esol_adapter,
+    "real_moleculenet_freesolv": real_moleculenet_freesolv_adapter,
+    "real_moleculenet_lipophilicity": real_moleculenet_lipophilicity_adapter,
     "real_matbench_expt_gap": real_matbench_expt_gap_adapter,
 }
 
@@ -1314,7 +1443,14 @@ def compact_candidate(c: Candidate) -> dict[str, Any]:
     public_metadata = {
         key: value
         for key, value in c.metadata.items()
-        if key not in {"yield_value", "stability_score", "normalized_solubility_score", "normalized_band_gap_score"}
+        if key not in {
+            "yield_value",
+            "stability_score",
+            "normalized_solubility_score",
+            "hydration_affinity_score",
+            "normalized_lipophilicity_score",
+            "normalized_band_gap_score",
+        }
     }
     return {
         "candidate_id": c.candidate_id,
