@@ -54,6 +54,8 @@ The latest tracked replay output is in:
 - `experiments/care_replay/results/2026-06-29-materials-baselines/`
 - `experiments/care_replay/results/2026-06-30-generalization-sweep/`
 - `experiments/care_replay/results/2026-06-30-llm-commonstack-5seed/`
+- `experiments/care_replay/results/2026-06-30-real-chemlex/`
+- `experiments/care_replay/results/2026-06-30-bh-to-suzuki-transfer/`
 - `experiments/care_replay/outputs/`
 - `experiments/care_replay/data/raw/`
 
@@ -61,8 +63,10 @@ The tracked output set includes the six-adapter 2026-06-28 sweep plus the
 2026-06-29 material baseline pass with `no_care_random`, `incumbent`,
 `no_gate`, `gate_v1`, and `gate_v2` modes, the nine-dataset 2026-06-30
 non-LLM generalization sweep, and the nine-dataset CommonStack LLM replay using
-`llm_no_gate` and `llm_gate_v1`. Raw public data files, per-mode metrics, audit
-logs, and knowledge snapshots are kept under `experiments/care_replay/`.
+`llm_no_gate` and `llm_gate_v1`. It now also includes a real ChemLex Acid-Amine
+wetlab adapter from Zenodo and the first BH-to-Suzuki transfer-card ablation.
+Raw public data files, per-mode metrics, audit logs, and knowledge snapshots
+are kept under `experiments/care_replay/`.
 
 ## Quick Start
 
@@ -95,6 +99,7 @@ endpoint, set `CARE_OPENAI_API_KEY`, `CARE_OPENAI_BASE_URL`, and
 
 ## Repository Status
 
-This is an initial code push. The next expected step is to replace the synthetic
-replay adapter with real Minerva/Olympus and ChemLex candidate tables when those
-tables are available for release.
+This is an initial code push. Real ChemLex wetlab replay is now connected; the
+next expected step is to replace the remaining synthetic-only controls with
+real Minerva/Olympus candidate tables when those tables are available for
+release.

@@ -8,6 +8,7 @@ Current status:
   ChemLex-style acid-amine optimization, and materials formulation optimization.
 - Includes public real HTE adapters for Dreher-Doyle Buchwald-Hartwig and
   Perera Suzuki-Miyaura data from `rxn4chemistry/rxn_yields`.
+- Includes the updated public ChemLex Acid-Amine wetlab adapter from Zenodo.
 - Includes a MoleculeNet ESOL adapter for molecular property finite-pool replay.
 - Includes MoleculeNet FreeSolv and Lipophilicity adapters for additional
   molecular-property generalization checks.
@@ -28,6 +29,7 @@ python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset synthe
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset synthetic_materials_i --seeds 30 --rounds 10
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_buchwald_hartwig --seeds 30 --rounds 10
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_suzuki_miyaura --seeds 30 --rounds 10
+python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_chemlex_acidamine --seeds 30 --rounds 10
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_moleculenet_esol --seeds 30 --rounds 10
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_moleculenet_freesolv --seeds 30 --rounds 10
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_moleculenet_lipophilicity --seeds 30 --rounds 10
@@ -77,6 +79,10 @@ Tracked result snapshots:
   generalization sweep after adding FreeSolv and Lipophilicity.
 - `results/2026-06-30-llm-commonstack-5seed/`: nine-dataset LLM replay using
   real CommonStack calls with `llm_no_gate` and `llm_gate_v1`.
+- `results/2026-06-30-real-chemlex/`: real ChemLex Acid-Amine wetlab replay
+  using the updated Zenodo v3 record.
+- `results/2026-06-30-bh-to-suzuki-transfer/`: first explicit BH-to-Suzuki
+  transfer-card ablation.
 
 The synthetic adapters let us test whether the same CARE gate and audit protocol
 behaves consistently across task shapes. The real HTE adapters download public
@@ -88,6 +94,10 @@ factor-evidence adjustments when public observations support them.
 
 The MoleculeNet ESOL adapter is not a reaction dataset. It frames measured
 solubility as a finite-pool molecular property search task.
+
+The real ChemLex Acid-Amine adapter uses the updated Zenodo wetlab table. The
+synthetic ChemLex adapter remains useful as a smoke-test control, but real
+ChemLex should be used for claims about acid-amine wetlab replay.
 
 The MoleculeNet FreeSolv adapter frames experimental hydration free energy as a
 finite-pool molecular property search task. The hidden objective is a fixed-scale

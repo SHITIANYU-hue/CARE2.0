@@ -38,6 +38,7 @@ PUBLIC_DATA_URLS = {
     "moleculenet_esol_delaney.csv": "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/delaney-processed.csv",
     "moleculenet_freesolv_sampl.csv": "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/SAMPL.csv",
     "moleculenet_lipophilicity.csv": "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/Lipophilicity.csv",
+    "chemlex_acidamine_wetlab_v3.xlsx": "https://zenodo.org/records/17596563/files/Chemlex_Acidamine_Wetlab_Data.xlsx?download=1",
     "matbench_expt_gap.json.gz": "https://ml.materialsproject.org/projects/matbench_expt_gap.json.gz",
 }
 
@@ -825,6 +826,56 @@ def real_suzuki_miyaura_adapter() -> DatasetAdapter:
     )
 
 
+def real_chemlex_acidamine_adapter() -> DatasetAdapter:
+    path = ensure_public_data_file("chemlex_acidamine_wetlab_v3.xlsx")
+    records = rows_to_dicts(read_xlsx_rows(path, "Sheet1"))
+    acid_labels = label_map([r["Acid"] for r in records], "A")
+    amine_labels = label_map([r["Amine"] for r in records], "N")
+    reagent_labels = label_map([r["Reagents"] for r in records], "R")
+    solvent_labels = label_map([r["Solvent"] for r in records], "S")
+    pool: list[Candidate] = []
+    for idx, row in enumerate(records):
+        conversion = row.get("Conversion")
+        if conversion is None:
+            continue
+        acid = acid_labels[str(row["Acid"])]
+        amine = amine_labels[str(row["Amine"])]
+        reagent = reagent_labels[str(row["Reagents"])]
+        solvent = solvent_labels[str(row["Solvent"])]
+        pool.append(
+            Candidate(
+                candidate_id=f"chemlex_{idx:05d}_{acid}_{amine}_{reagent}_{solvent}",
+                group=f"{acid}_{amine}",
+                x1=stable_fraction(acid),
+                x2=stable_fraction(amine),
+                x3=stable_fraction(reagent, solvent),
+                objective_value=clamp_score(float(conversion)),
+                metadata={
+                    "acid": acid,
+                    "amine": amine,
+                    "reagent": reagent,
+                    "solvent": solvent,
+                    "random_split": str(row.get("Random_Split", "")),
+                    "stratified_split_one_unseen": str(row.get("Stratified_Split_One_Unseen", "")),
+                    "stratified_split_both_unseen": str(row.get("Stratified_Split_Both_Unseen", "")),
+                    "conversion_value": clamp_score(float(conversion)),
+                    "source_row": idx + 2,
+                },
+            )
+        )
+    return DatasetAdapter(
+        dataset_id="real_chemlex_acidamine",
+        title="ChemLex acid-amine wetlab conversion replay",
+        objective="maximize_conversion",
+        decision_columns=("acid", "amine", "reagent", "solvent"),
+        hidden_target="conversion_value",
+        group_column="acid_amine_pair",
+        preferred_groups=(),
+        failure_note="This real wetlab replay uses public acid, amine, reagent, and solvent labels; no fixed preferred acid-amine pair prior is encoded.",
+        candidates=tuple(pool),
+    )
+
+
 def real_moleculenet_esol_adapter() -> DatasetAdapter:
     path = ensure_public_data_file("moleculenet_esol_delaney.csv")
     records = read_csv_dicts(path)
@@ -1078,6 +1129,7 @@ DATASET_BUILDERS: dict[str, Callable[[], DatasetAdapter]] = {
     "synthetic_materials_i": synthetic_materials_adapter,
     "real_buchwald_hartwig": real_buchwald_hartwig_adapter,
     "real_suzuki_miyaura": real_suzuki_miyaura_adapter,
+    "real_chemlex_acidamine": real_chemlex_acidamine_adapter,
     "real_moleculenet_esol": real_moleculenet_esol_adapter,
     "real_moleculenet_freesolv": real_moleculenet_freesolv_adapter,
     "real_moleculenet_lipophilicity": real_moleculenet_lipophilicity_adapter,
@@ -1445,6 +1497,7 @@ def compact_candidate(c: Candidate) -> dict[str, Any]:
         for key, value in c.metadata.items()
         if key not in {
             "yield_value",
+            "conversion_value",
             "stability_score",
             "normalized_solubility_score",
             "hydration_affinity_score",
