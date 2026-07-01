@@ -42,6 +42,13 @@ export CARE_LLM_API_KEY="..."
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset synthetic_materials_i --seeds 3 --rounds 6 --initial 5 --modes no_care_random,incumbent,llm_no_gate,llm_gate_v1 --llm-model openai/gpt-4o-mini --output-tag llm_commonstack
 ```
 
+Run the nine-dataset LLM generalization sweep:
+
+```bash
+export CARE_LLM_API_KEY="..."
+python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset all --seeds 5 --rounds 6 --initial 5 --modes no_care_random,incumbent,llm_no_gate,llm_gate_v1 --llm-model openai/gpt-4o-mini --output-tag llm_commonstack_5seed
+```
+
 The default LLM base URL is `https://api.commonstack.ai/v1`. The API key is read
 from `CARE_LLM_API_KEY` or `COMMONSTACK_API_KEY`; it is never stored in the
 repository.
@@ -68,6 +75,8 @@ Tracked result snapshots:
   `llm_gate_v1` modes.
 - `results/2026-06-30-generalization-sweep/`: nine-dataset baseline and CARE2
   generalization sweep after adding FreeSolv and Lipophilicity.
+- `results/2026-06-30-llm-commonstack-5seed/`: nine-dataset LLM replay using
+  real CommonStack calls with `llm_no_gate` and `llm_gate_v1`.
 
 The synthetic adapters let us test whether the same CARE gate and audit protocol
 behaves consistently across task shapes. The real HTE adapters download public
