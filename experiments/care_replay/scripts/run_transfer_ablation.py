@@ -27,6 +27,9 @@ DEFAULT_MODES: tuple[TransferMode, ...] = (
     "transfer_no_gate",
     "transfer_gate_v1",
     "transfer_plus_local_gate_v1",
+    "transfer_strict_no_gate",
+    "transfer_strict_gate_v1",
+    "transfer_strict_plus_local_gate_v1",
 )
 
 
@@ -148,6 +151,10 @@ def transfer_adjustments(
     card: TransferCard,
     min_target_support: int,
     effect_threshold: float,
+    strict: bool = False,
+    min_role_confidence: float = 0.18,
+    min_positive_roles: int = 2,
+    max_negative_roles: int = 0,
 ) -> tuple[dict[str, float], dict[str, Any]]:
     adjustments = {c.candidate_id: 0.0 for c in pool if c.candidate_id not in observed_ids}
     if len(observed) < 8:
@@ -158,11 +165,16 @@ def transfer_adjustments(
 
     factor_summary = replay.factor_stats(observed, adapter.decision_columns)
     global_mean = replay.observed_mean(observed)
-    role_by_target = {role.target_field: role for role in card.roles if role.transfer_weight > 0.0}
+    role_by_target = {
+        role.target_field: role
+        for role in card.roles
+        if role.transfer_weight > 0.0 and (not strict or role.confidence >= min_role_confidence)
+    }
     applied_specs: list[dict[str, Any]] = []
     positive = 0
     negative = 0
     scored = 0
+    strict_rejected = 0
 
     for c in pool:
         if c.candidate_id not in adjustments:
@@ -181,7 +193,15 @@ def transfer_adjustments(
             signals.append((effect / 100.0) * role.transfer_weight)
         if not signals:
             continue
-        bounded = max(-0.10, min(0.10, mean(signals)))
+        if strict:
+            positive_signals = [signal for signal in signals if signal > 0]
+            negative_signals = [signal for signal in signals if signal < 0]
+            if len(positive_signals) < min_positive_roles or len(negative_signals) > max_negative_roles:
+                strict_rejected += 1
+                continue
+            bounded = max(0.0, min(0.055, mean(positive_signals)))
+        else:
+            bounded = max(-0.10, min(0.10, mean(signals)))
         adjustments[c.candidate_id] += bounded
         scored += 1
         positive += int(bounded > 0)
@@ -207,6 +227,7 @@ def transfer_adjustments(
                 "target_field": target_field,
                 "transfer_weight": role.transfer_weight,
                 "confidence": role.confidence,
+                "strict_enabled": strict,
                 "active_target_values": sorted(active_values, key=lambda item: abs(item["effect"]), reverse=True)[:8],
             }
         )
@@ -220,6 +241,10 @@ def transfer_adjustments(
                 "scored_candidates": scored,
                 "positive_adjustments": positive,
                 "negative_adjustments": negative,
+                "strict_rejected_candidates": strict_rejected,
+                "strict_min_role_confidence": min_role_confidence if strict else 0.0,
+                "strict_min_positive_roles": min_positive_roles if strict else 0,
+                "strict_max_negative_roles": max_negative_roles if strict else 0,
                 "applied_specs": applied_specs,
             }
         },
@@ -237,6 +262,10 @@ def transfer_row_order_stability_check(
     min_target_support: int,
     effect_threshold: float,
     reference_adjustments: dict[str, float],
+    strict: bool = False,
+    min_role_confidence: float = 0.18,
+    min_positive_roles: int = 2,
+    max_negative_roles: int = 0,
 ) -> bool:
     shuffled = list(pool)
     random.Random(20_000 + len(observed)).shuffle(shuffled)
@@ -248,6 +277,10 @@ def transfer_row_order_stability_check(
         card,
         min_target_support,
         effect_threshold,
+        strict,
+        min_role_confidence,
+        min_positive_roles,
+        max_negative_roles,
     )
     return all(abs(reference_adjustments[k] - shuffled_adjustments[k]) < 1e-12 for k in reference_adjustments)
 
@@ -270,6 +303,9 @@ def run_target_policy(
     card: TransferCard,
     min_target_support: int,
     effect_threshold: float,
+    strict_min_role_confidence: float,
+    strict_min_positive_roles: int,
+    strict_max_negative_roles: int,
 ) -> tuple[dict[str, Any], list[replay.AuditEntry], replay.HypothesisEntry]:
     rng = random.Random(seed)
     pool = adapter.candidates
@@ -333,7 +369,7 @@ def run_target_policy(
                 row_order_stable = True
                 active_skill_ids: list[str] = []
 
-                if mode in {"target_local_no_gate", "target_local_gate_v1", "transfer_plus_local_gate_v1"}:
+                if mode in {"target_local_no_gate", "target_local_gate_v1", "transfer_plus_local_gate_v1", "transfer_strict_plus_local_gate_v1"}:
                     local_adjustments, local_cert = replay.skill_adjustments(
                         adapter, pool, observed_ids, observed, skills, round_index
                     )
@@ -342,7 +378,19 @@ def run_target_policy(
                     )
                     active_skill_ids.extend(k for k, v in local_cert["skills"].items() if v.get("active"))
 
-                if mode in {"transfer_no_gate", "transfer_gate_v1", "transfer_plus_local_gate_v1"}:
+                if mode in {
+                    "transfer_no_gate",
+                    "transfer_gate_v1",
+                    "transfer_plus_local_gate_v1",
+                    "transfer_strict_no_gate",
+                    "transfer_strict_gate_v1",
+                    "transfer_strict_plus_local_gate_v1",
+                }:
+                    strict_transfer = mode in {
+                        "transfer_strict_no_gate",
+                        "transfer_strict_gate_v1",
+                        "transfer_strict_plus_local_gate_v1",
+                    }
                     transfer_adjustment_values, transfer_cert = transfer_adjustments(
                         adapter,
                         pool,
@@ -351,6 +399,10 @@ def run_target_policy(
                         card,
                         min_target_support,
                         effect_threshold,
+                        strict_transfer,
+                        strict_min_role_confidence,
+                        strict_min_positive_roles,
+                        strict_max_negative_roles,
                     )
                     row_order_stable = row_order_stable and transfer_row_order_stability_check(
                         adapter,
@@ -361,6 +413,10 @@ def run_target_policy(
                         min_target_support,
                         effect_threshold,
                         transfer_adjustment_values,
+                        strict_transfer,
+                        strict_min_role_confidence,
+                        strict_min_positive_roles,
+                        strict_max_negative_roles,
                     )
                     transfer_skill = transfer_cert["skills"]["cross_domain_transfer_card"]
                     if transfer_skill.get("active"):
@@ -368,14 +424,14 @@ def run_target_policy(
                         transfer_scored_candidates_total += int(transfer_skill.get("scored_candidates", 0))
                         active_skill_ids.append("cross_domain_transfer_card")
 
-                if mode == "transfer_plus_local_gate_v1":
+                if mode in {"transfer_plus_local_gate_v1", "transfer_strict_plus_local_gate_v1"}:
                     adjustments = combine_adjustments(local_adjustments or {}, transfer_adjustment_values or {})
                 else:
                     adjustments = local_adjustments or transfer_adjustment_values or {
                         c.candidate_id: 0.0 for c in pool if c.candidate_id not in observed_ids
                     }
                 adjusted_scores = {cid: base_scores[cid] + adjustments.get(cid, 0.0) for cid in base_scores}
-                if mode in {"target_local_no_gate", "transfer_no_gate"}:
+                if mode in {"target_local_no_gate", "transfer_no_gate", "transfer_strict_no_gate"}:
                     gate = replay.no_gate_decision(base_scores, adjusted_scores, row_order_stable, tuple(active_skill_ids))
                 else:
                     gate = replay.gate_decision("gate_v1", base_scores, adjusted_scores, adjustments, row_order_stable, tuple(active_skill_ids))
@@ -511,6 +567,9 @@ def run_transfer_ablation(
     min_source_support: int,
     min_target_support: int,
     effect_threshold: float,
+    strict_min_role_confidence: float,
+    strict_min_positive_roles: int,
+    strict_max_negative_roles: int,
     modes: tuple[TransferMode, ...],
     output_tag: str,
 ) -> dict[str, Any]:
@@ -542,6 +601,9 @@ def run_transfer_ablation(
                 card,
                 min_target_support,
                 effect_threshold,
+                strict_min_role_confidence,
+                strict_min_positive_roles,
+                strict_max_negative_roles,
             )
             rows.append(metrics)
             audits[(mode, seed)] = audit
@@ -563,6 +625,9 @@ def run_transfer_ablation(
         "min_source_support": min_source_support,
         "min_target_support": min_target_support,
         "effect_threshold": effect_threshold,
+        "strict_min_role_confidence": strict_min_role_confidence,
+        "strict_min_positive_roles": strict_min_positive_roles,
+        "strict_max_negative_roles": strict_max_negative_roles,
         "task": asdict(task),
         "seeds": seeds,
         "rounds": rounds,
@@ -586,6 +651,9 @@ def main() -> None:
     parser.add_argument("--min-source-support", type=int, default=3)
     parser.add_argument("--min-target-support", type=int, default=2)
     parser.add_argument("--effect-threshold", type=float, default=4.0)
+    parser.add_argument("--strict-min-role-confidence", type=float, default=0.18)
+    parser.add_argument("--strict-min-positive-roles", type=int, default=2)
+    parser.add_argument("--strict-max-negative-roles", type=int, default=0)
     parser.add_argument("--modes", default=",".join(DEFAULT_MODES), help=f"Comma-separated modes from: {', '.join(DEFAULT_MODES)}")
     parser.add_argument("--output-tag", default="", help="Optional suffix for output filenames.")
     args = parser.parse_args()
@@ -601,6 +669,9 @@ def main() -> None:
         min_source_support=args.min_source_support,
         min_target_support=args.min_target_support,
         effect_threshold=args.effect_threshold,
+        strict_min_role_confidence=args.strict_min_role_confidence,
+        strict_min_positive_roles=args.strict_min_positive_roles,
+        strict_max_negative_roles=args.strict_max_negative_roles,
         modes=parse_modes(args.modes),
         output_tag=args.output_tag,
     )
