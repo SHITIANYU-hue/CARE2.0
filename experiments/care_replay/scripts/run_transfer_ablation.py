@@ -5,6 +5,7 @@ import argparse
 import csv
 import json
 import math
+import os
 import random
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -30,6 +31,8 @@ DEFAULT_MODES: tuple[TransferMode, ...] = (
     "transfer_strict_no_gate",
     "transfer_strict_gate_v1",
     "transfer_strict_plus_local_gate_v1",
+    "llm_transfer_gate_v1",
+    "llm_transfer_strict_gate_v1",
 )
 
 
@@ -65,6 +68,10 @@ def parse_modes(raw: str) -> tuple[TransferMode, ...]:
     if unknown:
         raise ValueError(f"Unknown mode(s): {unknown}. Available modes: {', '.join(DEFAULT_MODES)}")
     return modes
+
+
+def is_llm_transfer_mode(mode: TransferMode) -> bool:
+    return mode in {"llm_transfer_gate_v1", "llm_transfer_strict_gate_v1"}
 
 
 def role_map_for(source_dataset: str, target_dataset: str) -> dict[str, str]:
@@ -253,6 +260,266 @@ def transfer_adjustments(
     return adjustments, cert
 
 
+def llm_transfer_prompt_payload(
+    adapter: replay.DatasetAdapter,
+    observed: list[replay.Candidate],
+    card: TransferCard,
+    min_target_support: int,
+    effect_threshold: float,
+    strict: bool,
+    min_role_confidence: float,
+    min_positive_roles: int,
+    max_negative_roles: int,
+) -> dict[str, Any]:
+    active_roles = [asdict(role) for role in card.roles if role.transfer_weight > 0.0]
+    return {
+        "target_evidence": replay.observed_evidence_payload(adapter, observed),
+        "transfer_card": {
+            "card_id": card.card_id,
+            "source_dataset": card.source_dataset,
+            "target_dataset": card.target_dataset,
+            "source_observation_count": card.source_observation_count,
+            "discount": card.discount,
+            "role_map": card.role_map,
+            "roles": active_roles,
+            "evidence_summary": card.evidence_summary,
+        },
+        "transfer_boundary": (
+            "Use the transfer card only as source-to-target role-level evidence strength. "
+            "Do not assume hidden target outcomes, and do not transfer source factor values directly."
+        ),
+        "selection_constraints": {
+            "allowed_fields": sorted({role["target_field"] for role in active_roles}),
+            "min_target_support": min_target_support,
+            "effect_threshold": effect_threshold,
+            "strict": strict,
+            "strict_min_role_confidence": min_role_confidence if strict else 0.0,
+            "strict_min_positive_roles": min_positive_roles if strict else 0,
+            "strict_max_negative_roles": max_negative_roles if strict else 0,
+        },
+        "output_contract": {
+            "adjustments": [
+                {
+                    "field": "one allowed target decision column",
+                    "value": "one target factor value supported by factor_evidence/top_revealed/bottom_revealed",
+                    "direction": "prefer or penalize",
+                    "weight": "number between 0.0 and 0.08",
+                    "reason": "short evidence-based reason",
+                }
+            ],
+            "confidence": "number between 0 and 1",
+        },
+    }
+
+
+def llm_transfer_adjustments(
+    adapter: replay.DatasetAdapter,
+    pool: tuple[replay.Candidate, ...],
+    observed_ids: set[str],
+    observed: list[replay.Candidate],
+    card: TransferCard,
+    min_target_support: int,
+    effect_threshold: float,
+    seed: int,
+    round_index: int,
+    mode: TransferMode,
+    config: replay.LLMConfig,
+    strict: bool = False,
+    min_role_confidence: float = 0.18,
+    min_positive_roles: int = 2,
+    max_negative_roles: int = 0,
+) -> tuple[dict[str, float], dict[str, Any], dict[str, Any]]:
+    adjustments = {c.candidate_id: 0.0 for c in pool if c.candidate_id not in observed_ids}
+    if len(observed) < 8:
+        cert = {
+            "skills": {"llm_cross_domain_transfer_card": {"active": False, "reason": "observed_count_below_8"}},
+            "max_abs_adjustment": 0.0,
+        }
+        return adjustments, cert, {"called": False, "reason": "observed_count_below_8"}
+
+    role_by_target = {
+        role.target_field: role
+        for role in card.roles
+        if role.transfer_weight > 0.0 and (not strict or role.confidence >= min_role_confidence)
+    }
+    if not role_by_target:
+        cert = {
+            "skills": {"llm_cross_domain_transfer_card": {"active": False, "reason": "no_active_transfer_roles"}},
+            "max_abs_adjustment": 0.0,
+        }
+        return adjustments, cert, {"called": False, "reason": "no_active_transfer_roles"}
+
+    prompt_payload = llm_transfer_prompt_payload(
+        adapter,
+        observed,
+        card,
+        min_target_support,
+        effect_threshold,
+        strict,
+        min_role_confidence,
+        min_positive_roles,
+        max_negative_roles,
+    )
+    system = (
+        "You are a CARE 2.0 cross-domain transfer policy proposer for scientific finite-pool replay. "
+        "Use only the revealed target observations and the source-to-target role-level transfer card in the user JSON. "
+        "Do not assume hidden outcomes for unrevealed candidates. Do not transfer source factor values directly. "
+        "Return only one JSON object with an adjustments array and confidence. No markdown. No prose. No chain-of-thought."
+    )
+    user = (
+        "Propose bounded target factor-level score adjustments for the next candidate selection. "
+        "Use fields only from selection_constraints.allowed_fields. Use values supported by target factor_evidence, "
+        "top_revealed, or bottom_revealed. The transfer card tells you which target roles are reliable enough to reuse; "
+        "target observations determine the direction. Max 4 adjustments. Return exactly this shape: "
+        "{\"adjustments\":[{\"field\":\"ligand\",\"value\":\"L2\",\"direction\":\"prefer\",\"weight\":0.05,\"reason\":\"short evidence reason\"}],\"confidence\":0.7}. "
+        "JSON input:\n"
+        + json.dumps(prompt_payload, ensure_ascii=False)
+    )
+    content, response_meta = replay.chat_completion_text(
+        config,
+        [{"role": "system", "content": system}, {"role": "user", "content": user}],
+    )
+
+    parse_error = ""
+    try:
+        parsed = replay.extract_json_object(content)
+    except ValueError as exc:
+        parsed = {"adjustments": [], "confidence": 0.0}
+        parse_error = str(exc)
+    if "adjustments" not in parsed and {"field", "value", "direction"} <= set(parsed):
+        parsed = {"adjustments": [parsed], "confidence": parsed.get("confidence", 0.5)}
+
+    factor_summary = replay.factor_stats(observed, adapter.decision_columns)
+    global_mean = replay.observed_mean(observed)
+    applied_specs: list[dict[str, Any]] = []
+    rejected_specs: list[dict[str, Any]] = []
+    positive = 0
+    negative = 0
+    scored = 0
+    strict_rejected_candidates = 0
+
+    for item in list(parsed.get("adjustments", []))[:4]:
+        if not isinstance(item, dict):
+            continue
+        field_name = str(item.get("field", ""))
+        value = str(item.get("value", ""))
+        direction = str(item.get("direction", "")).lower()
+        role = role_by_target.get(field_name)
+        if role is None or direction not in {"prefer", "penalize"}:
+            rejected_specs.append({"item": item, "reason": "field_or_direction_not_allowed"})
+            continue
+        count, value_mean = factor_summary.get((field_name, value), (0, global_mean))
+        if count < min_target_support:
+            rejected_specs.append({"item": item, "reason": "insufficient_target_support", "target_support_count": count})
+            continue
+        target_effect = replay.smoothed_mean(count, value_mean, global_mean, prior_weight=2.0) - global_mean
+        if abs(target_effect) < effect_threshold:
+            rejected_specs.append({"item": item, "reason": "target_effect_below_threshold", "target_effect": round(target_effect, 4)})
+            continue
+        if strict:
+            if role.confidence < min_role_confidence:
+                rejected_specs.append({"item": item, "reason": "role_confidence_below_strict_threshold", "role_confidence": role.confidence})
+                continue
+            if direction != "prefer" or target_effect <= 0:
+                rejected_specs.append({"item": item, "reason": "strict_mode_requires_positive_target_signal", "target_effect": round(target_effect, 4)})
+                continue
+        try:
+            magnitude = min(0.08, max(0.0, abs(float(item.get("weight", 0.0)))))
+        except (TypeError, ValueError):
+            rejected_specs.append({"item": item, "reason": "invalid_weight"})
+            continue
+        scaled = magnitude * min(1.0, role.transfer_weight)
+        cap = 0.055 if strict else 0.10
+        delta = min(cap, scaled) if direction == "prefer" else -min(cap, scaled)
+        matched = 0
+        for c in pool:
+            if c.candidate_id not in adjustments:
+                continue
+            if str(c.metadata.get(field_name, "")) != value:
+                continue
+            adjustments[c.candidate_id] += delta
+            matched += 1
+        if matched == 0:
+            rejected_specs.append({"item": item, "reason": "no_unobserved_candidates_matched"})
+            continue
+        scored += matched
+        positive += int(delta > 0) * matched
+        negative += int(delta < 0) * matched
+        applied_specs.append(
+            {
+                "field": field_name,
+                "value": value,
+                "direction": direction,
+                "weight": round(delta, 6),
+                "matched_candidates": matched,
+                "target_support_count": count,
+                "target_effect": round(target_effect, 4),
+                "source_field": role.source_field,
+                "role_confidence": role.confidence,
+                "role_transfer_weight": role.transfer_weight,
+                "reason": str(item.get("reason", ""))[:240],
+            }
+        )
+
+    if strict and applied_specs:
+        by_id = {c.candidate_id: c for c in pool}
+        for cid, value in list(adjustments.items()):
+            if value == 0.0:
+                continue
+            candidate = by_id[cid]
+            positive_matches = 0
+            negative_matches = 0
+            for spec in applied_specs:
+                if str(candidate.metadata.get(spec["field"], "")) != spec["value"]:
+                    continue
+                positive_matches += int(float(spec["weight"]) > 0)
+                negative_matches += int(float(spec["weight"]) < 0)
+            if positive_matches < min_positive_roles or negative_matches > max_negative_roles:
+                adjustments[cid] = 0.0
+                strict_rejected_candidates += 1
+
+    scored = sum(1 for value in adjustments.values() if value != 0.0)
+    positive = sum(1 for value in adjustments.values() if value > 0.0)
+    negative = sum(1 for value in adjustments.values() if value < 0.0)
+    for cid, value in list(adjustments.items()):
+        adjustments[cid] = max(-0.12, min(0.12, value))
+    max_abs = max((abs(v) for v in adjustments.values()), default=0.0)
+    cert = {
+        "skills": {
+            "llm_cross_domain_transfer_card": {
+                "active": bool(applied_specs),
+                "model": response_meta["model"],
+                "scored_candidates": scored,
+                "positive_adjustments": positive,
+                "negative_adjustments": negative,
+                "strict_enabled": strict,
+                "strict_min_positive_roles": min_positive_roles if strict else 0,
+                "strict_max_negative_roles": max_negative_roles if strict else 0,
+                "strict_rejected_candidates": strict_rejected_candidates,
+                "applied_specs": applied_specs,
+                "rejected_specs": rejected_specs,
+                "parse_error": parse_error,
+            }
+        },
+        "max_abs_adjustment": round(max_abs, 6),
+    }
+    record = {
+        "called": True,
+        "mode": mode,
+        "seed": seed,
+        "round_index": round_index,
+        "model": response_meta["model"],
+        "usage": response_meta["usage"],
+        "prompt_payload": prompt_payload,
+        "raw_response": content,
+        "parsed_response": parsed,
+        "applied_specs": applied_specs,
+        "rejected_specs": rejected_specs,
+        "parse_error": parse_error,
+    }
+    return adjustments, cert, record
+
+
 def transfer_row_order_stability_check(
     adapter: replay.DatasetAdapter,
     pool: tuple[replay.Candidate, ...],
@@ -306,6 +573,7 @@ def run_target_policy(
     strict_min_role_confidence: float,
     strict_min_positive_roles: int,
     strict_max_negative_roles: int,
+    llm_config: replay.LLMConfig | None = None,
 ) -> tuple[dict[str, Any], list[replay.AuditEntry], replay.HypothesisEntry]:
     rng = random.Random(seed)
     pool = adapter.candidates
@@ -329,9 +597,12 @@ def run_target_policy(
     selected_top10 = any(c.candidate_id in top10 for c in observed)
     transfer_active_rounds = 0
     transfer_scored_candidates_total = 0
+    llm_call_count = 0
+    llm_parse_error_count = 0
 
     for round_index in range(task.reveal_budget):
         transfer_cert: dict[str, Any] | None = None
+        llm_record: dict[str, Any] | None = None
         if mode == "no_care_random":
             selected_candidate = rng.choice([c for c in pool if c.candidate_id not in observed_ids])
             gate = replay.GateCertificate(
@@ -385,44 +656,71 @@ def run_target_policy(
                     "transfer_strict_no_gate",
                     "transfer_strict_gate_v1",
                     "transfer_strict_plus_local_gate_v1",
+                    "llm_transfer_gate_v1",
+                    "llm_transfer_strict_gate_v1",
                 }:
                     strict_transfer = mode in {
                         "transfer_strict_no_gate",
                         "transfer_strict_gate_v1",
                         "transfer_strict_plus_local_gate_v1",
+                        "llm_transfer_strict_gate_v1",
                     }
-                    transfer_adjustment_values, transfer_cert = transfer_adjustments(
-                        adapter,
-                        pool,
-                        observed_ids,
-                        observed,
-                        card,
-                        min_target_support,
-                        effect_threshold,
-                        strict_transfer,
-                        strict_min_role_confidence,
-                        strict_min_positive_roles,
-                        strict_max_negative_roles,
-                    )
-                    row_order_stable = row_order_stable and transfer_row_order_stability_check(
-                        adapter,
-                        pool,
-                        observed_ids,
-                        observed,
-                        card,
-                        min_target_support,
-                        effect_threshold,
-                        transfer_adjustment_values,
-                        strict_transfer,
-                        strict_min_role_confidence,
-                        strict_min_positive_roles,
-                        strict_max_negative_roles,
-                    )
-                    transfer_skill = transfer_cert["skills"]["cross_domain_transfer_card"]
+                    if is_llm_transfer_mode(mode):
+                        if llm_config is None:
+                            raise RuntimeError("LLM transfer mode requested but no LLM config was provided.")
+                        transfer_adjustment_values, transfer_cert, llm_record = llm_transfer_adjustments(
+                            adapter,
+                            pool,
+                            observed_ids,
+                            observed,
+                            card,
+                            min_target_support,
+                            effect_threshold,
+                            seed,
+                            round_index,
+                            mode,
+                            llm_config,
+                            strict_transfer,
+                            strict_min_role_confidence,
+                            strict_min_positive_roles,
+                            strict_max_negative_roles,
+                        )
+                        llm_call_count += int(bool(llm_record.get("called")))
+                        llm_parse_error_count += int(bool(llm_record.get("parse_error")))
+                        transfer_skill = transfer_cert["skills"]["llm_cross_domain_transfer_card"]
+                    else:
+                        transfer_adjustment_values, transfer_cert = transfer_adjustments(
+                            adapter,
+                            pool,
+                            observed_ids,
+                            observed,
+                            card,
+                            min_target_support,
+                            effect_threshold,
+                            strict_transfer,
+                            strict_min_role_confidence,
+                            strict_min_positive_roles,
+                            strict_max_negative_roles,
+                        )
+                        row_order_stable = row_order_stable and transfer_row_order_stability_check(
+                            adapter,
+                            pool,
+                            observed_ids,
+                            observed,
+                            card,
+                            min_target_support,
+                            effect_threshold,
+                            transfer_adjustment_values,
+                            strict_transfer,
+                            strict_min_role_confidence,
+                            strict_min_positive_roles,
+                            strict_max_negative_roles,
+                        )
+                        transfer_skill = transfer_cert["skills"]["cross_domain_transfer_card"]
                     if transfer_skill.get("active"):
                         transfer_active_rounds += 1
                         transfer_scored_candidates_total += int(transfer_skill.get("scored_candidates", 0))
-                        active_skill_ids.append("cross_domain_transfer_card")
+                        active_skill_ids.append("llm_cross_domain_transfer_card" if is_llm_transfer_mode(mode) else "cross_domain_transfer_card")
 
                 if mode in {"transfer_plus_local_gate_v1", "transfer_strict_plus_local_gate_v1"}:
                     adjustments = combine_adjustments(local_adjustments or {}, transfer_adjustment_values or {})
@@ -455,6 +753,8 @@ def run_target_policy(
         hypothesis_snapshot["transfer_card"] = asdict(card)
         if transfer_cert is not None:
             hypothesis_snapshot["transfer_policy"] = transfer_cert
+        if llm_record is not None:
+            hypothesis_snapshot["llm_transfer_policy"] = llm_record
         audit.append(
             replay.AuditEntry(
                 dataset_id=adapter.dataset_id,
@@ -486,6 +786,8 @@ def run_target_policy(
         "rejected_good_challenger_count": rejected_good_challengers,
         "transfer_active_rounds": transfer_active_rounds,
         "transfer_scored_candidates_total": transfer_scored_candidates_total,
+        "llm_call_count": llm_call_count,
+        "llm_parse_error_count": llm_parse_error_count,
         "source_observation_count": card.source_observation_count,
         "mean_transfer_confidence": round(mean(role.confidence for role in card.roles), 4),
         "hypothesis_confidence": round(hypothesis.confidence, 4),
@@ -508,6 +810,8 @@ def aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "rejected_good_challenger_count",
         "transfer_active_rounds",
         "transfer_scored_candidates_total",
+        "llm_call_count",
+        "llm_parse_error_count",
         "source_observation_count",
         "mean_transfer_confidence",
         "hypothesis_confidence",
@@ -523,6 +827,25 @@ def aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
                 "std": round(pstdev(vals), 4) if len(vals) > 1 else 0.0,
             }
     return out
+
+
+def llm_config_from_args(args: argparse.Namespace, modes: tuple[TransferMode, ...]) -> replay.LLMConfig | None:
+    if not any(is_llm_transfer_mode(mode) for mode in modes):
+        return None
+    api_key = (
+        os.environ.get(args.llm_api_key_env)
+        or os.environ.get("COMMONSTACK_API_KEY")
+        or os.environ.get("CARE_LLM_API_KEY")
+    )
+    if not api_key:
+        raise RuntimeError(f"Set {args.llm_api_key_env}, COMMONSTACK_API_KEY, or CARE_LLM_API_KEY before running LLM transfer modes.")
+    return replay.LLMConfig(
+        base_url=args.llm_base_url,
+        api_key=api_key,
+        model=args.llm_model,
+        temperature=args.llm_temperature,
+        max_tokens=args.llm_max_tokens,
+    )
 
 
 def write_outputs(
@@ -571,6 +894,7 @@ def run_transfer_ablation(
     strict_min_positive_roles: int,
     strict_max_negative_roles: int,
     modes: tuple[TransferMode, ...],
+    llm_config: replay.LLMConfig | None,
     output_tag: str,
 ) -> dict[str, Any]:
     source_adapter = replay.DATASET_BUILDERS[source_dataset]()
@@ -604,6 +928,7 @@ def run_transfer_ablation(
                 strict_min_role_confidence,
                 strict_min_positive_roles,
                 strict_max_negative_roles,
+                llm_config,
             )
             rows.append(metrics)
             audits[(mode, seed)] = audit
@@ -633,6 +958,14 @@ def run_transfer_ablation(
         "rounds": rounds,
         "initial_observations": initial,
         "modes": list(modes),
+        "llm": None
+        if llm_config is None
+        else {
+            "base_url": llm_config.base_url,
+            "model": llm_config.model,
+            "temperature": llm_config.temperature,
+            "max_tokens": llm_config.max_tokens,
+        },
         "aggregate": aggregate(rows),
     }
     write_outputs(output_id, rows, summary, audits, hypotheses, cards)
@@ -655,8 +988,15 @@ def main() -> None:
     parser.add_argument("--strict-min-positive-roles", type=int, default=2)
     parser.add_argument("--strict-max-negative-roles", type=int, default=0)
     parser.add_argument("--modes", default=",".join(DEFAULT_MODES), help=f"Comma-separated modes from: {', '.join(DEFAULT_MODES)}")
+    parser.add_argument("--llm-base-url", default=os.environ.get("CARE_LLM_BASE_URL", "https://api.commonstack.ai/v1"))
+    parser.add_argument("--llm-model", default=os.environ.get("CARE_LLM_MODEL", "moonshotai/kimi-k2.7-code"))
+    parser.add_argument("--llm-api-key-env", default="CARE_LLM_API_KEY")
+    parser.add_argument("--llm-temperature", type=float, default=0.0)
+    parser.add_argument("--llm-max-tokens", type=int, default=500)
     parser.add_argument("--output-tag", default="", help="Optional suffix for output filenames.")
     args = parser.parse_args()
+    modes = parse_modes(args.modes)
+    llm_config = llm_config_from_args(args, modes)
 
     summary = run_transfer_ablation(
         source_dataset=args.source_dataset,
@@ -672,7 +1012,8 @@ def main() -> None:
         strict_min_role_confidence=args.strict_min_role_confidence,
         strict_min_positive_roles=args.strict_min_positive_roles,
         strict_max_negative_roles=args.strict_max_negative_roles,
-        modes=parse_modes(args.modes),
+        modes=modes,
+        llm_config=llm_config,
         output_tag=args.output_tag,
     )
     print(json.dumps(summary, ensure_ascii=False, indent=2))
