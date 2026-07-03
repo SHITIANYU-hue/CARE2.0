@@ -33,6 +33,8 @@ DEFAULT_MODES: tuple[TransferMode, ...] = (
     "transfer_strict_plus_local_gate_v1",
     "llm_transfer_gate_v1",
     "llm_transfer_strict_gate_v1",
+    "llm_audit_transfer_gate_v1",
+    "llm_audit_transfer_strict_gate_v1",
 )
 
 
@@ -72,6 +74,14 @@ def parse_modes(raw: str) -> tuple[TransferMode, ...]:
 
 def is_llm_transfer_mode(mode: TransferMode) -> bool:
     return mode in {"llm_transfer_gate_v1", "llm_transfer_strict_gate_v1"}
+
+
+def is_llm_audit_transfer_mode(mode: TransferMode) -> bool:
+    return mode in {"llm_audit_transfer_gate_v1", "llm_audit_transfer_strict_gate_v1"}
+
+
+def is_any_llm_mode(mode: TransferMode) -> bool:
+    return is_llm_transfer_mode(mode) or is_llm_audit_transfer_mode(mode)
 
 
 def role_map_for(source_dataset: str, target_dataset: str) -> dict[str, str]:
@@ -520,6 +530,198 @@ def llm_transfer_adjustments(
     return adjustments, cert, record
 
 
+def compact_public_candidate(
+    adapter: replay.DatasetAdapter,
+    candidate: replay.Candidate,
+    base_score: float,
+    adjusted_score: float,
+    adjustment: float,
+    transfer_cert: dict[str, Any],
+) -> dict[str, Any]:
+    hidden_keys = {
+        adapter.hidden_target,
+        "yield_value",
+        "conversion_value",
+        "stability_score",
+        "normalized_solubility_score",
+        "hydration_affinity_score",
+        "normalized_lipophilicity_score",
+        "normalized_band_gap_score",
+    }
+    public_metadata = {key: value for key, value in candidate.metadata.items() if key not in hidden_keys}
+    applied_specs = []
+    transfer_skill = next(iter(transfer_cert.get("skills", {}).values()), {})
+    for spec in transfer_skill.get("applied_specs", []):
+        field = spec.get("target_field") or spec.get("field")
+        if not field:
+            continue
+        value = candidate.metadata.get(str(field))
+        if value in ("", None):
+            continue
+        matched_values = []
+        for active in spec.get("active_target_values", []):
+            if str(active.get("value", "")) == str(value):
+                matched_values.append(active)
+        if matched_values:
+            applied_specs.append(
+                {
+                    "target_field": field,
+                    "target_value": value,
+                    "source_field": spec.get("source_field"),
+                    "transfer_weight": spec.get("transfer_weight"),
+                    "role_confidence": spec.get("confidence"),
+                    "matched_target_evidence": matched_values[:3],
+                }
+            )
+    return {
+        "candidate_id": candidate.candidate_id,
+        "group": candidate.group,
+        "public_features": {"x1": round(candidate.x1, 4), "x2": round(candidate.x2, 4), "x3": round(candidate.x3, 4)},
+        "metadata": public_metadata,
+        "base_score": round(base_score, 6),
+        "adjusted_score": round(adjusted_score, 6),
+        "transfer_adjustment": round(adjustment, 6),
+        "matched_transfer_specs": applied_specs[:8],
+    }
+
+
+def llm_audit_gate(
+    adapter: replay.DatasetAdapter,
+    pool: tuple[replay.Candidate, ...],
+    observed: list[replay.Candidate],
+    card: TransferCard,
+    transfer_cert: dict[str, Any],
+    base_scores: dict[str, float],
+    adjusted_scores: dict[str, float],
+    adjustments: dict[str, float],
+    gate: replay.GateCertificate,
+    seed: int,
+    round_index: int,
+    mode: TransferMode,
+    config: replay.LLMConfig,
+    candidate_count: int = 8,
+) -> tuple[replay.GateCertificate, dict[str, Any]]:
+    if not gate.authorized:
+        return gate, {"called": False, "reason": "gate_not_authorized"}
+    by_id = {candidate.candidate_id: candidate for candidate in pool}
+    candidate_ids = [cid for cid, _score in sorted(adjusted_scores.items(), key=lambda kv: (kv[1], kv[0]), reverse=True)[:candidate_count]]
+    candidate_ids = list(dict.fromkeys([gate.incumbent_candidate, gate.challenger_candidate, *candidate_ids]))
+    candidates = [
+        compact_public_candidate(
+            adapter,
+            by_id[cid],
+            base_scores[cid],
+            adjusted_scores[cid],
+            adjustments.get(cid, 0.0),
+            transfer_cert,
+        )
+        for cid in candidate_ids
+        if cid in by_id
+    ]
+    prompt_payload = {
+        "target_evidence": replay.observed_evidence_payload(adapter, observed),
+        "transfer_card": {
+            "card_id": card.card_id,
+            "source_dataset": card.source_dataset,
+            "target_dataset": card.target_dataset,
+            "source_observation_count": card.source_observation_count,
+            "discount": card.discount,
+            "role_map": card.role_map,
+            "roles": [asdict(role) for role in card.roles if role.transfer_weight > 0.0],
+            "evidence_summary": card.evidence_summary,
+        },
+        "proposed_gate": asdict(gate),
+        "candidate_shortlist": candidates,
+        "transfer_certificate": transfer_cert,
+        "audit_instruction": (
+            "Audit only whether the challenger has enough revealed target evidence and transfer-card support "
+            "to override the incumbent. Do not use hidden outcomes for shortlisted candidates. "
+            "When the evidence is close, sparse, or mostly inherited from broad transfer priors, reject."
+        ),
+        "output_contract": {
+            "decision": "one of: approve, reject",
+            "confidence": "number between 0 and 1",
+            "reason": "short evidence-based reason",
+        },
+    }
+    system = (
+        "You are a CARE 2.0 cross-domain transfer auditor. "
+        "Use only revealed target evidence, public candidate features, and the source-to-target role transfer card. "
+        "Do not infer hidden outcomes for candidate IDs. Return only one JSON object. No markdown. No chain-of-thought."
+    )
+    user = (
+        "Decide whether to approve the proposed challenger over the incumbent. "
+        "Approve only when the challenger has clear target-observation support on transferred roles and no obvious negative evidence. "
+        "Reject if evidence is weak, broad, contradictory, close to the incumbent, or mostly due to a single noisy factor. "
+        "Return exactly one JSON object with keys decision, confidence, and reason. "
+        "The decision value must be either approve or reject. "
+        "JSON input:\n"
+        + json.dumps(prompt_payload, ensure_ascii=False)
+    )
+    content, response_meta = replay.chat_completion_text(
+        config,
+        [{"role": "system", "content": system}, {"role": "user", "content": user}],
+    )
+    parse_error = ""
+    try:
+        parsed = replay.extract_json_object(content)
+    except ValueError as exc:
+        parsed = {"decision": "reject", "confidence": 0.0, "reason": "parse_error_defaults_to_reject"}
+        parse_error = str(exc)
+    decision = str(parsed.get("decision", "")).strip().lower()
+    confidence_raw = parsed.get("confidence", 0.0)
+    try:
+        confidence = max(0.0, min(1.0, float(confidence_raw)))
+    except (TypeError, ValueError):
+        confidence = 0.0
+    approved = decision == "approve" and confidence >= 0.6 and not parse_error
+    reason = str(parsed.get("reason", ""))[:240]
+    applied_skill_ids = tuple(dict.fromkeys([*gate.applied_skill_ids, "llm_transfer_auditor"]))
+    if approved:
+        audited_gate = replay.GateCertificate(
+            gate_version=gate.gate_version,
+            incumbent_candidate=gate.incumbent_candidate,
+            challenger_candidate=gate.challenger_candidate,
+            selected_candidate=gate.selected_candidate,
+            authorized=True,
+            gate_margin=gate.gate_margin,
+            acquisition_loss=gate.acquisition_loss,
+            row_order_stable=gate.row_order_stable,
+            applied_skill_ids=applied_skill_ids,
+            reason="llm_audit_approved_challenger",
+        )
+    else:
+        audited_gate = replay.GateCertificate(
+            gate_version=gate.gate_version,
+            incumbent_candidate=gate.incumbent_candidate,
+            challenger_candidate=gate.challenger_candidate,
+            selected_candidate=gate.incumbent_candidate,
+            authorized=False,
+            gate_margin=gate.gate_margin,
+            acquisition_loss=gate.acquisition_loss,
+            row_order_stable=gate.row_order_stable,
+            applied_skill_ids=applied_skill_ids,
+            reason="llm_audit_rejected_challenger",
+        )
+    record = {
+        "called": True,
+        "mode": mode,
+        "seed": seed,
+        "round_index": round_index,
+        "model": response_meta["model"],
+        "usage": response_meta["usage"],
+        "decision": decision,
+        "approved": approved,
+        "confidence": confidence,
+        "reason": reason,
+        "prompt_payload": prompt_payload,
+        "raw_response": content,
+        "parsed_response": parsed,
+        "parse_error": parse_error,
+    }
+    return audited_gate, record
+
+
 def transfer_row_order_stability_check(
     adapter: replay.DatasetAdapter,
     pool: tuple[replay.Candidate, ...],
@@ -658,12 +860,15 @@ def run_target_policy(
                     "transfer_strict_plus_local_gate_v1",
                     "llm_transfer_gate_v1",
                     "llm_transfer_strict_gate_v1",
+                    "llm_audit_transfer_gate_v1",
+                    "llm_audit_transfer_strict_gate_v1",
                 }:
                     strict_transfer = mode in {
                         "transfer_strict_no_gate",
                         "transfer_strict_gate_v1",
                         "transfer_strict_plus_local_gate_v1",
                         "llm_transfer_strict_gate_v1",
+                        "llm_audit_transfer_strict_gate_v1",
                     }
                     if is_llm_transfer_mode(mode):
                         if llm_config is None:
@@ -733,6 +938,27 @@ def run_target_policy(
                     gate = replay.no_gate_decision(base_scores, adjusted_scores, row_order_stable, tuple(active_skill_ids))
                 else:
                     gate = replay.gate_decision("gate_v1", base_scores, adjusted_scores, adjustments, row_order_stable, tuple(active_skill_ids))
+
+                if is_llm_audit_transfer_mode(mode):
+                    if llm_config is None:
+                        raise RuntimeError("LLM audit transfer mode requested but no LLM config was provided.")
+                    gate, llm_record = llm_audit_gate(
+                        adapter,
+                        pool,
+                        observed,
+                        card,
+                        transfer_cert or {},
+                        base_scores,
+                        adjusted_scores,
+                        adjustments,
+                        gate,
+                        seed,
+                        round_index,
+                        mode,
+                        llm_config,
+                    )
+                    llm_call_count += int(bool(llm_record.get("called")))
+                    llm_parse_error_count += int(bool(llm_record.get("parse_error")))
 
                 if gate.authorized:
                     intervention_count += 1
@@ -830,7 +1056,7 @@ def aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def llm_config_from_args(args: argparse.Namespace, modes: tuple[TransferMode, ...]) -> replay.LLMConfig | None:
-    if not any(is_llm_transfer_mode(mode) for mode in modes):
+    if not any(is_any_llm_mode(mode) for mode in modes):
         return None
     api_key = (
         os.environ.get(args.llm_api_key_env)
