@@ -4,7 +4,7 @@
 
 这轮实验不是在复现 CARE 1.0 论文的最终数字。我们做的是 CARE 2.0 的 replay harness 和跨领域 transfer 验证：先把不同领域的数据统一成有限候选池搜索，再看源领域沉淀下来的 skill / prior 能不能在目标领域带来真实收益。
 
-目前结论比最初更清楚：平台接口已经跑通，而且 transfer 不是只有概念验证。最新 50-seed server sweep 里，分子性质任务 `FreeSolv -> Lipophilicity` 和反应 HTE 任务 `Suzuki-Miyaura -> Buchwald-Hartwig` 都出现了稳定正向 transfer gain。
+目前结论比最初更清楚：平台接口已经跑通，而且 transfer 不是只有概念验证。最新 50-seed server sweep 里，分子性质任务 `FreeSolv -> Lipophilicity` 和反应 HTE 任务 `Suzuki-Miyaura -> Buchwald-Hartwig` 都出现了稳定正向 transfer gain。随后补做的真实 LLM follow-up 说明，LLM proposer 在共享 descriptor 的分子性质方向能给出小幅正收益；但在反应 HTE transfer 上，当前 LLM proposer 还不如确定性 transfer card，LLM auditor 也偏保守。
 
 具体来说，我们想验证三件事：
 
@@ -151,6 +151,8 @@ Suzuki 单任务 replay 上 final best 持平，AUC 略低。这说明只在单�
 
 同时，这里也能看到 gate 的 tradeoff：普通 transfer gate 收益更大，但有一定 bad interventions；strict gate 更安全，但收益变小。下一步应该做的是 gate calibration，而不是否定 transfer 本身。
 
+补做的真实 LLM follow-up 结果更像一个边界检查。10 seeds 下，确定性 `transfer_gate_v1` 仍然最强，final best 从 incumbent 的 86.6260 提到 90.0980；但 `llm_transfer_gate_v1` 只有 85.6227，低于 incumbent，`llm_audit_transfer_gate_v1` 基本回到 incumbent。这里的结论不是 LLM 接不进来，事实上 70 次 LLM proposer 调用全部 parse 成功；问题是当前 prompt/约束下，LLM 还没有学会比确定性 role-level transfer 更好地使用反应 HTE evidence。
+
 ## 5. 第三阶段：分子性质任务
 
 这一步是为了回应 AI4Science 文档里的“分子发现”方向。我们没有一上来做复杂生成式分子设计，而是先选真实分子性质数据，把它转成有限候选池搜索。
@@ -206,6 +208,8 @@ ESOL 上有一个小幅正向信号。final best 从 88.6412 到 89.0674，top-1
 这组结果最适合用来说明 CARE 2.0 的跨领域 transfer 是有明星优势的。`transfer_value_prior_gate_v1` 不只是 final best 提升，AUC 也提升了 2.4，说明它不是最后偶然撞到一个好点，而是在整个 replay 过程中更早进入高价值区域。top-10 hit 从 incumbent 的 4% 提到 30%，这个信号很直观。
 
 需要同时讲清楚限制：这个模式只适合共享 descriptor vocabulary 的任务。它比 strict gate 更激进，所以 bad interventions 也更多。当前它证明了 transfer 的上限和潜力，下一步要把这个优势和更好的安全 gate 结合起来。
+
+真实 LLM follow-up 在这个方向给了一个更积极的信号。10 seeds 下，`llm_transfer_gate_v1` final best 是 87.1750，比 incumbent 高 +0.5250；AUC 是 85.6050，比 incumbent 高 +0.6950；top-10 hit 从 0 提到 0.1。它和确定性 `transfer_value_prior_gate_v1` 很接近，说明在共享 descriptor 空间里，LLM 可以读 transfer card 和 target evidence，并生成有用的 bounded adjustment。`llm_audit_transfer_gate_v1` 仍然太保守，基本没有带来增益。
 
 ## 6. 第四阶段：ChemLex 代理数据
 
@@ -286,6 +290,6 @@ ChemLex 代理数据上提升很明显，但这个结果要很小心地讲。它
 
 第二，做 gate calibration。当前最强的 value-prior transfer 能打出明显优势，但 bad interventions 也变多。下一版应该保留它的 top10 hit 和 AUC 优势，同时用 target confirmation、risk-aware gate 或 LLM audit 降低坏 intervention。
 
-第三，补更强的 challenger。现在 challenger 主要是规则化 factor evidence 和 shared descriptor prior。后面可以接 LLM/API，让 LLM 生成 structured proposal、rationale、skill artifact，但最终仍然由 gate 审查，不让 LLM 直接决定实验。
+第三，补更强的 challenger。现在 challenger 主要是规则化 factor evidence、shared descriptor prior，以及一版真实 LLM proposer。LLM proposer 已经能稳定返回可解析 proposal，但反应 HTE 上还不够强。下一步应该让 LLM 产出更受约束的 structured proposal、rationale 和 skill artifact，再由 gate 审查，而不是让 LLM 直接决定实验。
 
 第四，补跨域任务。分子方向可以从单属性扩到 LogP/QED/SA 多目标；材料方向可以接 Matbench 或 Materials Project 中能转成 finite-pool replay 的 property task。这样就能更贴近“化学、材料、药物多个领域的新物质发现平台”的 CARE 2.0 目标。

@@ -56,6 +56,9 @@ The latest tracked replay output is in:
 - `experiments/care_replay/results/2026-06-30-llm-commonstack-5seed/`
 - `experiments/care_replay/results/2026-06-30-real-chemlex/`
 - `experiments/care_replay/results/2026-06-30-bh-to-suzuki-transfer/`
+- `experiments/care_replay/results/2026-07-03-multidomain-transfer-feasibility/`
+- `experiments/care_replay/results/2026-07-03-transfer-advantage-sweep/`
+- `experiments/care_replay/results/2026-07-03-llm-transfer-followup/`
 - `experiments/care_replay/outputs/`
 - `experiments/care_replay/data/raw/`
 
@@ -64,7 +67,9 @@ The tracked output set includes the six-adapter 2026-06-28 sweep plus the
 `no_gate`, `gate_v1`, and `gate_v2` modes, the nine-dataset 2026-06-30
 non-LLM generalization sweep, and the nine-dataset CommonStack LLM replay using
 `llm_no_gate` and `llm_gate_v1`. It now also includes a real ChemLex Acid-Amine
-wetlab adapter from Zenodo and the first BH-to-Suzuki transfer-card ablation.
+wetlab adapter from Zenodo, multi-domain transfer sweeps, the 50-seed transfer
+advantage runs, and a 10-seed real-LLM transfer follow-up with LLM proposer and
+LLM auditor modes.
 Raw public data files, per-mode metrics, audit logs, and knowledge snapshots
 are kept under `experiments/care_replay/`.
 

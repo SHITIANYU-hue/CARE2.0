@@ -89,6 +89,9 @@ Tracked result snapshots:
 - `results/2026-07-03-transfer-advantage-sweep/`: 50-seed server sweep showing
   a larger transfer advantage with shared-vocabulary molecular value priors and
   a stabilized Suzuki-to-Buchwald-Hartwig HTE transfer result.
+- `results/2026-07-03-llm-transfer-followup/`: 10-seed real CommonStack LLM
+  transfer follow-up on FreeSolv-to-Lipophilicity and
+  Suzuki-to-Buchwald-Hartwig, including LLM proposer and LLM auditor modes.
 
 The synthetic adapters let us test whether the same CARE gate and audit protocol
 behaves consistently across task shapes. The real HTE adapters download public
