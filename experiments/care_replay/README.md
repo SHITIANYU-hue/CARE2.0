@@ -86,6 +86,9 @@ Tracked result snapshots:
 - `results/2026-07-03-multidomain-transfer-feasibility/`: multi-domain
   transfer role-map expansion and server-side feasibility sweep across
   reaction HTE, molecular-property, ChemLex, and proxy materials directions.
+- `results/2026-07-03-transfer-advantage-sweep/`: 50-seed server sweep showing
+  a larger transfer advantage with shared-vocabulary molecular value priors and
+  a stabilized Suzuki-to-Buchwald-Hartwig HTE transfer result.
 
 The synthetic adapters let us test whether the same CARE gate and audit protocol
 behaves consistently across task shapes. The real HTE adapters download public

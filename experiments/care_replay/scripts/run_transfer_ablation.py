@@ -31,6 +31,9 @@ DEFAULT_MODES: tuple[TransferMode, ...] = (
     "transfer_strict_no_gate",
     "transfer_strict_gate_v1",
     "transfer_strict_plus_local_gate_v1",
+    "transfer_value_prior_no_gate",
+    "transfer_value_prior_gate_v1",
+    "transfer_value_prior_strict_gate_v1",
     "llm_transfer_gate_v1",
     "llm_transfer_strict_gate_v1",
     "llm_audit_transfer_gate_v1",
@@ -50,6 +53,17 @@ class TransferRole:
 
 
 @dataclass(frozen=True)
+class TransferValuePrior:
+    source_field: str
+    target_field: str
+    value: str
+    source_support_count: int
+    source_effect: float
+    confidence: float
+    transfer_weight: float
+
+
+@dataclass(frozen=True)
 class TransferCard:
     card_id: str
     source_dataset: str
@@ -59,6 +73,7 @@ class TransferCard:
     min_source_support: int
     role_map: dict[str, str]
     roles: tuple[TransferRole, ...]
+    value_priors: tuple[TransferValuePrior, ...]
     evidence_summary: str
 
 
@@ -82,6 +97,14 @@ def is_llm_audit_transfer_mode(mode: TransferMode) -> bool:
 
 def is_any_llm_mode(mode: TransferMode) -> bool:
     return is_llm_transfer_mode(mode) or is_llm_audit_transfer_mode(mode)
+
+
+def is_value_prior_mode(mode: TransferMode) -> bool:
+    return mode in {
+        "transfer_value_prior_no_gate",
+        "transfer_value_prior_gate_v1",
+        "transfer_value_prior_strict_gate_v1",
+    }
 
 
 ROLE_MAPS: dict[tuple[str, str], dict[str, str]] = {
@@ -209,6 +232,42 @@ ROLE_MAPS: dict[tuple[str, str], dict[str, str]] = {
 }
 
 
+VALUE_PRIOR_FIELDS: dict[tuple[str, str], set[tuple[str, str]]] = {
+    (
+        "real_moleculenet_freesolv",
+        "real_moleculenet_lipophilicity",
+    ): {
+        ("smiles_length_bin", "smiles_length_bin"),
+        ("hetero_atom_bin", "hetero_atom_bin"),
+        ("halogen_bin", "halogen_bin"),
+        ("aromatic_bin", "aromatic_bin"),
+        ("ring_token_bin", "ring_token_bin"),
+        ("branch_bin", "branch_bin"),
+        ("double_bond_bin", "double_bond_bin"),
+    },
+    (
+        "real_moleculenet_lipophilicity",
+        "real_moleculenet_freesolv",
+    ): {
+        ("smiles_length_bin", "smiles_length_bin"),
+        ("hetero_atom_bin", "hetero_atom_bin"),
+        ("halogen_bin", "halogen_bin"),
+        ("aromatic_bin", "aromatic_bin"),
+        ("ring_token_bin", "ring_token_bin"),
+        ("branch_bin", "branch_bin"),
+        ("double_bond_bin", "double_bond_bin"),
+    },
+    (
+        "real_moleculenet_esol",
+        "real_moleculenet_freesolv",
+    ): {("smiles_length_bin", "smiles_length_bin")},
+    (
+        "real_moleculenet_esol",
+        "real_moleculenet_lipophilicity",
+    ): {("smiles_length_bin", "smiles_length_bin")},
+}
+
+
 def role_map_for(source_dataset: str, target_dataset: str) -> dict[str, str]:
     if (source_dataset, target_dataset) in ROLE_MAPS:
         return dict(ROLE_MAPS[(source_dataset, target_dataset)])
@@ -228,6 +287,7 @@ def compile_transfer_card(
     role_map: dict[str, str],
     discount: float,
     min_source_support: int,
+    source_value_effect_threshold: float = 3.0,
 ) -> TransferCard:
     factor_summary = replay.factor_stats(observed, source_adapter.decision_columns)
     global_mean = replay.observed_mean(observed)
@@ -260,12 +320,50 @@ def compile_transfer_card(
             )
         )
 
+    target_values_by_field = {
+        field: {str(candidate.metadata.get(field, "")) for candidate in target_adapter.candidates}
+        for field in target_adapter.decision_columns
+    }
+    active_value_fields = VALUE_PRIOR_FIELDS.get((source_adapter.dataset_id, target_adapter.dataset_id), set())
+    value_priors: list[TransferValuePrior] = []
+    role_by_pair = {(role.source_field, role.target_field): role for role in roles}
+    for source_field, target_field in sorted(active_value_fields):
+        if role_map.get(source_field) != target_field:
+            continue
+        role = role_by_pair.get((source_field, target_field))
+        if role is None or role.transfer_weight <= 0.0:
+            continue
+        target_values = target_values_by_field.get(target_field, set())
+        for (field_name, value), (count, value_mean) in factor_summary.items():
+            if field_name != source_field or count < min_source_support or str(value) not in target_values:
+                continue
+            effect = replay.smoothed_mean(count, value_mean, global_mean, prior_weight=2.0) - global_mean
+            if abs(effect) < source_value_effect_threshold:
+                continue
+            support_confidence = min(1.0, math.log1p(count) / math.log1p(10.0))
+            effect_confidence = min(1.0, abs(effect) / 16.0)
+            confidence = round(discount * support_confidence * effect_confidence, 4)
+            transfer_weight = round(min(0.08, abs(effect / 100.0) * role.transfer_weight), 6)
+            value_priors.append(
+                TransferValuePrior(
+                    source_field=source_field,
+                    target_field=target_field,
+                    value=str(value),
+                    source_support_count=count,
+                    source_effect=round(effect, 4),
+                    confidence=confidence,
+                    transfer_weight=transfer_weight,
+                )
+            )
+
     active = [role for role in roles if role.transfer_weight > 0.0]
     summary = (
         f"Compiled {len(active)} active role transfers from {source_adapter.dataset_id} "
-        f"using {len(observed)} observed source rows. Direction is not transferred as a "
-        "raw chemical rule; the card transfers role-level evidence strength and lets "
-        "target observations determine candidate-level direction."
+        f"using {len(observed)} observed source rows and {len(value_priors)} conservative "
+        "shared-vocabulary value priors. Direction is not transferred as a raw chemical "
+        "rule; the card transfers role-level evidence strength and only transfers "
+        "source value priors when source and target fields share the same public "
+        "descriptor vocabulary."
     )
     return TransferCard(
         card_id=f"transfer_{source_adapter.dataset_id}_to_{target_adapter.dataset_id}",
@@ -276,6 +374,7 @@ def compile_transfer_card(
         min_source_support=min_source_support,
         role_map=dict(role_map),
         roles=tuple(roles),
+        value_priors=tuple(value_priors),
         evidence_summary=summary,
     )
 
@@ -382,6 +481,100 @@ def transfer_adjustments(
                 "strict_min_role_confidence": min_role_confidence if strict else 0.0,
                 "strict_min_positive_roles": min_positive_roles if strict else 0,
                 "strict_max_negative_roles": max_negative_roles if strict else 0,
+                "applied_specs": applied_specs,
+            }
+        },
+        "max_abs_adjustment": round(max_abs, 6),
+    }
+    return adjustments, cert
+
+
+def source_value_prior_adjustments(
+    pool: tuple[replay.Candidate, ...],
+    observed_ids: set[str],
+    card: TransferCard,
+    strict: bool = False,
+    min_prior_confidence: float = 0.10,
+    min_positive_priors: int = 1,
+    max_negative_priors: int = 0,
+) -> tuple[dict[str, float], dict[str, Any]]:
+    adjustments = {c.candidate_id: 0.0 for c in pool if c.candidate_id not in observed_ids}
+    active_priors = [
+        prior
+        for prior in card.value_priors
+        if prior.transfer_weight > 0.0 and (not strict or prior.confidence >= min_prior_confidence)
+    ]
+    if not active_priors:
+        return adjustments, {
+            "skills": {
+                "source_value_prior": {
+                    "active": False,
+                    "reason": "no_shared_vocabulary_value_priors",
+                }
+            },
+            "max_abs_adjustment": 0.0,
+        }
+
+    priors_by_target: dict[tuple[str, str], list[TransferValuePrior]] = {}
+    for prior in active_priors:
+        priors_by_target.setdefault((prior.target_field, prior.value), []).append(prior)
+
+    scored = 0
+    positive = 0
+    negative = 0
+    strict_rejected = 0
+    for candidate in pool:
+        if candidate.candidate_id not in adjustments:
+            continue
+        signals: list[float] = []
+        for (target_field, value), priors in priors_by_target.items():
+            if str(candidate.metadata.get(target_field, "")) != value:
+                continue
+            for prior in priors:
+                direction = 1.0 if prior.source_effect > 0 else -1.0
+                signals.append(direction * prior.transfer_weight)
+        if not signals:
+            continue
+        if strict:
+            positive_signals = [signal for signal in signals if signal > 0]
+            negative_signals = [signal for signal in signals if signal < 0]
+            if len(positive_signals) < min_positive_priors or len(negative_signals) > max_negative_priors:
+                strict_rejected += 1
+                continue
+            bounded = max(0.0, min(0.06, mean(positive_signals)))
+        else:
+            bounded = max(-0.08, min(0.08, mean(signals)))
+        adjustments[candidate.candidate_id] += bounded
+        scored += 1
+        positive += int(bounded > 0)
+        negative += int(bounded < 0)
+
+    applied_specs = [
+        {
+            "source_field": prior.source_field,
+            "target_field": prior.target_field,
+            "value": prior.value,
+            "source_support_count": prior.source_support_count,
+            "source_effect": prior.source_effect,
+            "confidence": prior.confidence,
+            "transfer_weight": prior.transfer_weight,
+        }
+        for prior in sorted(active_priors, key=lambda item: abs(item.source_effect), reverse=True)[:20]
+    ]
+    max_abs = max((abs(v) for v in adjustments.values()), default=0.0)
+    cert = {
+        "skills": {
+            "source_value_prior": {
+                "active": scored > 0,
+                "card_id": card.card_id,
+                "scored_candidates": scored,
+                "positive_adjustments": positive,
+                "negative_adjustments": negative,
+                "strict_rejected_candidates": strict_rejected,
+                "strict_enabled": strict,
+                "min_prior_confidence": min_prior_confidence if strict else 0.0,
+                "min_positive_priors": min_positive_priors if strict else 0,
+                "max_negative_priors": max_negative_priors if strict else 0,
                 "applied_specs": applied_specs,
             }
         },
@@ -924,7 +1117,9 @@ def run_target_policy(
 
     for round_index in range(task.reveal_budget):
         transfer_cert: dict[str, Any] | None = None
+        value_prior_cert: dict[str, Any] | None = None
         llm_record: dict[str, Any] | None = None
+        round_transfer_active = False
         if mode == "no_care_random":
             selected_candidate = rng.choice([c for c in pool if c.candidate_id not in observed_ids])
             gate = replay.GateCertificate(
@@ -959,6 +1154,7 @@ def run_target_policy(
                 local_adjustments: dict[str, float] | None = None
                 local_cert: dict[str, Any] | None = None
                 transfer_adjustment_values: dict[str, float] | None = None
+                value_prior_adjustment_values: dict[str, float] | None = None
                 row_order_stable = True
                 active_skill_ids: list[str] = []
 
@@ -978,6 +1174,9 @@ def run_target_policy(
                     "transfer_strict_no_gate",
                     "transfer_strict_gate_v1",
                     "transfer_strict_plus_local_gate_v1",
+                    "transfer_value_prior_no_gate",
+                    "transfer_value_prior_gate_v1",
+                    "transfer_value_prior_strict_gate_v1",
                     "llm_transfer_gate_v1",
                     "llm_transfer_strict_gate_v1",
                     "llm_audit_transfer_gate_v1",
@@ -987,6 +1186,7 @@ def run_target_policy(
                         "transfer_strict_no_gate",
                         "transfer_strict_gate_v1",
                         "transfer_strict_plus_local_gate_v1",
+                        "transfer_value_prior_strict_gate_v1",
                         "llm_transfer_strict_gate_v1",
                         "llm_audit_transfer_strict_gate_v1",
                     }
@@ -1043,18 +1243,37 @@ def run_target_policy(
                         )
                         transfer_skill = transfer_cert["skills"]["cross_domain_transfer_card"]
                     if transfer_skill.get("active"):
-                        transfer_active_rounds += 1
+                        round_transfer_active = True
                         transfer_scored_candidates_total += int(transfer_skill.get("scored_candidates", 0))
                         active_skill_ids.append("llm_cross_domain_transfer_card" if is_llm_transfer_mode(mode) else "cross_domain_transfer_card")
 
+                if is_value_prior_mode(mode):
+                    strict_value_prior = mode == "transfer_value_prior_strict_gate_v1"
+                    value_prior_adjustment_values, value_prior_cert = source_value_prior_adjustments(
+                        pool,
+                        observed_ids,
+                        card,
+                        strict_value_prior,
+                        strict_min_role_confidence,
+                        max(1, strict_min_positive_roles - 1),
+                        strict_max_negative_roles,
+                    )
+                    value_prior_skill = value_prior_cert["skills"]["source_value_prior"]
+                    if value_prior_skill.get("active"):
+                        round_transfer_active = True
+                        transfer_scored_candidates_total += int(value_prior_skill.get("scored_candidates", 0))
+                        active_skill_ids.append("source_value_prior")
+
                 if mode in {"transfer_plus_local_gate_v1", "transfer_strict_plus_local_gate_v1"}:
                     adjustments = combine_adjustments(local_adjustments or {}, transfer_adjustment_values or {})
+                elif is_value_prior_mode(mode):
+                    adjustments = combine_adjustments(transfer_adjustment_values or {}, value_prior_adjustment_values or {})
                 else:
                     adjustments = local_adjustments or transfer_adjustment_values or {
                         c.candidate_id: 0.0 for c in pool if c.candidate_id not in observed_ids
                     }
                 adjusted_scores = {cid: base_scores[cid] + adjustments.get(cid, 0.0) for cid in base_scores}
-                if mode in {"target_local_no_gate", "transfer_no_gate", "transfer_strict_no_gate"}:
+                if mode in {"target_local_no_gate", "transfer_no_gate", "transfer_strict_no_gate", "transfer_value_prior_no_gate"}:
                     gate = replay.no_gate_decision(base_scores, adjusted_scores, row_order_stable, tuple(active_skill_ids))
                 else:
                     gate = replay.gate_decision("gate_v1", base_scores, adjusted_scores, adjustments, row_order_stable, tuple(active_skill_ids))
@@ -1087,6 +1306,8 @@ def run_target_policy(
                 elif by_id[gate.challenger_candidate].objective_value > by_id[gate.incumbent_candidate].objective_value:
                     rejected_good_challengers += 1
 
+        if round_transfer_active:
+            transfer_active_rounds += 1
         selected = by_id[gate.selected_candidate]
         if mode != "no_care_random":
             replay.update_hypothesis_from_reveal(hypothesis, selected, observed, round_index, adapter.preferred_groups)
@@ -1099,6 +1320,8 @@ def run_target_policy(
         hypothesis_snapshot["transfer_card"] = asdict(card)
         if transfer_cert is not None:
             hypothesis_snapshot["transfer_policy"] = transfer_cert
+        if value_prior_cert is not None:
+            hypothesis_snapshot["source_value_prior_policy"] = value_prior_cert
         if llm_record is not None:
             hypothesis_snapshot["llm_transfer_policy"] = llm_record
         audit.append(
@@ -1288,8 +1511,10 @@ def run_transfer_ablation(
         "target_dataset": target_dataset,
         "role_map": role_map,
         "transfer_boundary": (
-            "Source outcomes are used only to estimate role-level evidence strength. "
-            "No target hidden outcomes or direct source factor values are transferred."
+            "Source outcomes are used to estimate role-level evidence strength. "
+            "Direct source value priors are transferred only for whitelisted source-target "
+            "fields that share the same public descriptor vocabulary; no target hidden "
+            "outcomes are used."
         ),
         "source_observation_count": source_observation_count,
         "discount": discount,
