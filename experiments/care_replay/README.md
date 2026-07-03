@@ -83,6 +83,9 @@ Tracked result snapshots:
   using the updated Zenodo v3 record.
 - `results/2026-06-30-bh-to-suzuki-transfer/`: first explicit BH-to-Suzuki
   transfer-card ablation.
+- `results/2026-07-03-multidomain-transfer-feasibility/`: multi-domain
+  transfer role-map expansion and server-side feasibility sweep across
+  reaction HTE, molecular-property, ChemLex, and proxy materials directions.
 
 The synthetic adapters let us test whether the same CARE gate and audit protocol
 behaves consistently across task shapes. The real HTE adapters download public

@@ -84,14 +84,134 @@ def is_any_llm_mode(mode: TransferMode) -> bool:
     return is_llm_transfer_mode(mode) or is_llm_audit_transfer_mode(mode)
 
 
+ROLE_MAPS: dict[tuple[str, str], dict[str, str]] = {
+    (
+        "real_buchwald_hartwig",
+        "real_suzuki_miyaura",
+    ): {
+        "ligand": "ligand",
+        "base": "reagent",
+        "aryl_halide": "reactant_1",
+        "additive": "solvent",
+    },
+    (
+        "real_suzuki_miyaura",
+        "real_buchwald_hartwig",
+    ): {
+        "ligand": "ligand",
+        "reagent": "base",
+        "reactant_1": "aryl_halide",
+        "solvent": "additive",
+    },
+    (
+        "real_suzuki_miyaura",
+        "real_chemlex_acidamine",
+    ): {
+        "reactant_1": "acid",
+        "reactant_2": "amine",
+        "reagent": "reagent",
+        "solvent": "solvent",
+    },
+    (
+        "real_chemlex_acidamine",
+        "real_suzuki_miyaura",
+    ): {
+        "acid": "reactant_1",
+        "amine": "reactant_2",
+        "reagent": "reagent",
+        "solvent": "solvent",
+    },
+    (
+        "real_buchwald_hartwig",
+        "real_chemlex_acidamine",
+    ): {
+        "aryl_halide": "acid",
+        "base": "reagent",
+        "additive": "solvent",
+    },
+    (
+        "real_chemlex_acidamine",
+        "real_buchwald_hartwig",
+    ): {
+        "acid": "aryl_halide",
+        "reagent": "base",
+        "solvent": "additive",
+    },
+    (
+        "synthetic_chemlex_i",
+        "real_chemlex_acidamine",
+    ): {
+        "acid": "acid",
+        "amine": "amine",
+        "base_equivalents": "reagent",
+        "solvent_polarity": "solvent",
+    },
+    (
+        "synthetic_suzuki_i",
+        "real_suzuki_miyaura",
+    ): {
+        "ligand_identity": "ligand",
+        "catalyst_loading": "catalyst",
+        "temperature": "reagent",
+        "residence_time": "solvent",
+    },
+    (
+        "synthetic_materials_i",
+        "real_matbench_expt_gap",
+    ): {
+        "dopant": "dominant_family",
+        "dopant_ratio": "max_element_fraction_bin",
+        "anneal_temperature": "mean_atomic_number_bin",
+        "dwell_time": "element_count_bin",
+    },
+    (
+        "real_moleculenet_freesolv",
+        "real_moleculenet_lipophilicity",
+    ): {
+        "smiles_length_bin": "smiles_length_bin",
+        "hetero_atom_bin": "hetero_atom_bin",
+        "halogen_bin": "halogen_bin",
+        "aromatic_bin": "aromatic_bin",
+        "ring_token_bin": "ring_token_bin",
+        "branch_bin": "branch_bin",
+        "double_bond_bin": "double_bond_bin",
+    },
+    (
+        "real_moleculenet_lipophilicity",
+        "real_moleculenet_freesolv",
+    ): {
+        "smiles_length_bin": "smiles_length_bin",
+        "hetero_atom_bin": "hetero_atom_bin",
+        "halogen_bin": "halogen_bin",
+        "aromatic_bin": "aromatic_bin",
+        "ring_token_bin": "ring_token_bin",
+        "branch_bin": "branch_bin",
+        "double_bond_bin": "double_bond_bin",
+    },
+    (
+        "real_moleculenet_esol",
+        "real_moleculenet_freesolv",
+    ): {
+        "smiles_length_bin": "smiles_length_bin",
+        "hbond_donor_bin": "hetero_atom_bin",
+        "ring_bin": "ring_token_bin",
+        "rotatable_bond_bin": "branch_bin",
+    },
+    (
+        "real_moleculenet_esol",
+        "real_moleculenet_lipophilicity",
+    ): {
+        "smiles_length_bin": "smiles_length_bin",
+        "hbond_donor_bin": "hetero_atom_bin",
+        "ring_bin": "ring_token_bin",
+        "rotatable_bond_bin": "branch_bin",
+    },
+}
+
+
 def role_map_for(source_dataset: str, target_dataset: str) -> dict[str, str]:
-    if source_dataset == "real_buchwald_hartwig" and target_dataset == "real_suzuki_miyaura":
-        return {
-            "ligand": "ligand",
-            "base": "reagent",
-            "aryl_halide": "reactant_1",
-            "additive": "solvent",
-        }
+    if (source_dataset, target_dataset) in ROLE_MAPS:
+        return dict(ROLE_MAPS[(source_dataset, target_dataset)])
     raise ValueError(f"No role map defined for {source_dataset} -> {target_dataset}")
 
 
