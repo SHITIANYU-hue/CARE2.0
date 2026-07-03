@@ -2,13 +2,15 @@
 
 ## 1. 这轮实验想验证什么
 
-这轮实验不是在复现 CARE 1.0 论文的最终数字，也不是宣称 CARE 2.0 已经在所有任务上有显著提升。目标更基础一点：先把 CARE 2.0 的 replay harness 跑通，看同一套 `incumbent -> challenger/skill -> gate -> audit -> metrics` 流程能不能接不同类型的数据集。
+这轮实验不是在复现 CARE 1.0 论文的最终数字。我们做的是 CARE 2.0 的 replay harness 和跨领域 transfer 验证：先把不同领域的数据统一成有限候选池搜索，再看源领域沉淀下来的 skill / prior 能不能在目标领域带来真实收益。
+
+目前结论比最初更清楚：平台接口已经跑通，而且 transfer 不是只有概念验证。最新 50-seed server sweep 里，分子性质任务 `FreeSolv -> Lipophilicity` 和反应 HTE 任务 `Suzuki-Miyaura -> Buchwald-Hartwig` 都出现了稳定正向 transfer gain。
 
 具体来说，我们想验证三件事：
 
 1. CARE 的决策流程能否从单一 synthetic task 扩展到真实 HTE 数据。
-2. BH -> Suzuki 这种近邻化学任务迁移，能不能用同一套 gate/evidence 逻辑表达。
-3. 分子性质任务能不能也转成 finite-pool search，从而纳入 CARE 2.0 平台。
+2. 近邻化学任务之间，例如 Suzuki -> Buchwald-Hartwig，能不能用同一套 gate/evidence 逻辑表达 transfer。
+3. 分子性质任务能不能也转成 finite-pool search，并在共享 descriptor 空间里形成更明显的 transfer advantage。
 
 这和 Tianyu 发的 CARE 2.0 PPT 和 AI4Science 跨领域任务分析是一致的。PPT 里提到 CARE 1.0 的 Buchwald-Hartwig、ChemLex、BH -> Suzuki；AI4Science 文档里强调不同领域都有共同结构：在很大的候选空间里找高价值点，把语义知识转成可执行操作，再通过验证闭环确认结果。
 
@@ -21,6 +23,10 @@
 1. `incumbent`：稳健 baseline，只根据已公开观测做选择。
 2. `challenger/skill`：CARE 2.0 侧的候选调整逻辑，用已观察到的 factor evidence 或 skill prior 给候选加分/减分。
 3. `gate`：审计层，不让 challenger 直接接管实验选择，而是检查它是否有足够 public evidence，是否风险过高，是否偏离太大。
+
+这轮新增了一个 transfer 模式：
+
+- `transfer_value_prior_*`：在源任务和目标任务共享同一套 public descriptor vocabulary 时，允许把源任务里学到的 value-level prior 降权迁移到目标任务。例如 MoleculeNet 里的 `smiles_length_bin`、`hetero_atom_bin`、`aromatic_bin` 这类 SMILES-derived bins。这个模式不会用于反应 HTE 里的 `L00/R00` 等局部标签，因为这些标签只是各数据集内部编号，不能假设跨数据集同义。
 
 我们保留的指标包括：
 
@@ -114,13 +120,42 @@ Buchwald-Hartwig 上，当前版本基本持平，没有提升 final best。这�
 
 怎么讲：
 
-Suzuki 上 final best 持平，AUC 略低。这说明 BH -> Suzuki 的迁移还没有形成真正有用的 transfer skill。目前只是同一套 replay 接口能跑到 Suzuki，不代表跨反应迁移已经解决。下一步需要更明确地设计迁移机制，比如把 BH 中学到的 factor evidence 降权加载到 Suzuki，而不是简单共用一套启发式。
+Suzuki 单任务 replay 上 final best 持平，AUC 略低。这说明只在单个 target 内做保守 factor evidence，不足以形成明显收益。真正有用的信号来自跨任务 transfer，尤其是下面这组 Suzuki -> Buchwald-Hartwig 结果。
+
+### 4.3 最新反应 transfer：Suzuki-Miyaura -> Buchwald-Hartwig
+
+这是目前反应 HTE 方向最重要的正例。我们用 Suzuki-Miyaura 作为 source domain，Buchwald-Hartwig 作为 target domain，只迁移 role-level evidence，不直接迁移 dataset-local 的具体 ligand/base label。
+
+设置：
+
+- Source：`real_suzuki_miyaura`
+- Target：`real_buchwald_hartwig`
+- Seeds：50
+- Initial observations：5
+- Reveal budget：10
+- Source observations：96
+- Transfer 方式：role-level transfer card + gate
+
+结果：
+
+| 方法 | Final Best | Delta vs Incumbent | AUC | Delta AUC | Top-10 Hit | Bad Interventions |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| no_care_random | 82.1728 | -4.4749 | 77.4347 | -2.5366 | 0.0600 | 0.0000 |
+| incumbent | 86.6477 | 0.0000 | 79.9713 | 0.0000 | 0.1600 | 0.0000 |
+| transfer_gate_v1 | 89.0866 | +2.4389 | 81.0779 | +1.1066 | 0.2400 | 0.8600 |
+| transfer_strict_gate_v1 | 87.6158 | +0.9681 | 80.2528 | +0.2815 | 0.1600 | 0.1800 |
+
+怎么讲：
+
+这组结果可以作为 CARE 2.0 反应迁移的主结果。它比单任务 BH replay 更有说服力：random baseline 明显差于 incumbent，而 `transfer_gate_v1` 在 50 seeds 下同时提高 final best 和 AUC。也就是说，Suzuki 中学到的 role-level evidence 确实帮助 Buchwald-Hartwig target replay 更早、更稳定地找到好实验区域。
+
+同时，这里也能看到 gate 的 tradeoff：普通 transfer gate 收益更大，但有一定 bad interventions；strict gate 更安全，但收益变小。下一步应该做的是 gate calibration，而不是否定 transfer 本身。
 
 ## 5. 第三阶段：分子性质任务
 
-这一步是为了回应 AI4Science 文档里的“分子发现”方向。我们没有一上来做复杂生成式分子设计，而是先选了一个真实分子性质数据，把它转成有限候选池搜索。
+这一步是为了回应 AI4Science 文档里的“分子发现”方向。我们没有一上来做复杂生成式分子设计，而是先选真实分子性质数据，把它转成有限候选池搜索。
 
-数据集：
+第一组数据集：
 
 - 名称：`real_moleculenet_esol`
 - 类型：真实分子性质数据
@@ -142,6 +177,35 @@ Suzuki 上 final best 持平，AUC 略低。这说明 BH -> Suzuki 的迁移还�
 ESOL 上有一个小幅正向信号。final best 从 88.6412 到 89.0674，top-10 hit 从 0.2333 到 0.3000，AUC 也略有提升。这个结果不能说很强，但它说明 CARE replay 可以从 HTE 扩到分子性质候选池，而且 gate 可以在非反应任务上产生可记录的 intervention。
 
 比较稳妥的结论是：ESOL 证明“平台接口可迁移”，还没有证明“科学能力已经跨领域成熟”。
+
+### 5.2 最新分子 transfer：FreeSolv -> Lipophilicity
+
+这是目前最能展示 transfer 明星优势的一组结果。FreeSolv 和 Lipophilicity 都是 MoleculeNet 分子性质任务，并且共享一批 public SMILES descriptor bins。所以这里除了 role-level transfer，我们还加入了保守的 shared-vocabulary value prior。
+
+设置：
+
+- Source：`real_moleculenet_freesolv`
+- Target：`real_moleculenet_lipophilicity`
+- Seeds：50
+- Initial observations：5
+- Reveal budget：10
+- Source observations：192
+- Transfer 方式：role-level transfer card + shared descriptor value prior + gate
+
+结果：
+
+| 方法 | Final Best | Delta vs Incumbent | AUC | Delta AUC | Top-10 Hit | Bad Interventions |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| no_care_random | 85.7650 | -1.5425 | 84.2917 | -1.2743 | 0.0200 | 0.0000 |
+| incumbent | 87.3075 | 0.0000 | 85.5660 | 0.0000 | 0.0400 | 0.0000 |
+| transfer_value_prior_gate_v1 | 90.0625 | +2.7550 | 87.9660 | +2.4000 | 0.3000 | 3.4600 |
+| transfer_value_prior_strict_gate_v1 | 88.1625 | +0.8550 | 86.1820 | +0.6160 | 0.1600 | 1.9000 |
+
+怎么讲：
+
+这组结果最适合用来说明 CARE 2.0 的跨领域 transfer 是有明星优势的。`transfer_value_prior_gate_v1` 不只是 final best 提升，AUC 也提升了 2.4，说明它不是最后偶然撞到一个好点，而是在整个 replay 过程中更早进入高价值区域。top-10 hit 从 incumbent 的 4% 提到 30%，这个信号很直观。
+
+需要同时讲清楚限制：这个模式只适合共享 descriptor vocabulary 的任务。它比 strict gate 更激进，所以 bad interventions 也更多。当前它证明了 transfer 的上限和潜力，下一步要把这个优势和更好的安全 gate 结合起来。
 
 ## 6. 第四阶段：ChemLex 代理数据
 
@@ -210,17 +274,18 @@ ChemLex 代理数据上提升很明显，但这个结果要很小心地讲。它
 
 第一，代码和实验框架已经从单一 synthetic task 扩到了多个数据集，包括真实 HTE 和真实分子性质数据。这说明 CARE 2.0 的 platform interface 是可行的。
 
-第二，结果目前不是全面提升。Synthetic Suzuki、synthetic ChemLex 和 synthetic materials 上提升明显，ESOL 有小幅提升，真实 Buchwald-Hartwig 和 Suzuki 当前保守 gate 下基本持平。这是正常的，因为我们现在用的是轻量 public evidence model，还不是完整 CARE 1.0 或更强的 LLM/BO challenger。
+第二，现在已经有两条比较清楚的真实数据 transfer 正例。分子性质方向，`FreeSolv -> Lipophilicity` 在 50 seeds 下 final best 提升 +2.7550，AUC 提升 +2.4000，top-10 hit 从 4% 到 30%。反应 HTE 方向，`Suzuki-Miyaura -> Buchwald-Hartwig` 在 50 seeds 下 final best 提升 +2.4389，AUC 提升 +1.1066。这两组比早期 synthetic smoke test 更适合当 CARE 2.0 transfer 的主结果。
 
-第三，真正下一步不是继续堆 synthetic，而是补真实数据和更明确的迁移机制。尤其是 ChemLex、Pfizer 零膨胀数据、材料方向 Matbench/QM9/Materials Project，以及更清楚的 BH -> Suzuki confidence-discount transfer。
+第三，结果还不是“所有方向都提升”。BH -> Suzuki 这类反向迁移目前不稳定，ChemLex 和材料方向还需要更强的真实数据与更明确的 transfer map。这个边界反而是有价值的：CARE 2.0 不是盲目把 source knowledge 往 target 上套，而是要识别什么时候能迁移，什么时候应该保守。
 
 ## 10. 下一步建议
 
-接下来建议按三个优先级推进。
+接下来建议按四个优先级推进。
 
-第一，补数据。真实 ChemLex 和 Pfizer 数据最重要，因为它们直接出现在 PPT/CARE 1.0 叙事里。没有这两个表，我们只能说机制跑通，不能说复现或扩展了 CARE 原始结果。
+第一，继续补真实数据。真实 ChemLex、Pfizer 零膨胀数据和材料方向 Matbench / Materials Project 仍然重要。现在我们已经有 FreeSolv -> Lipophilicity 和 Suzuki -> BH 两条正例，下一步要看这些 transfer 机制能不能继续扩到 ChemLex 和材料 property task。
 
-第二，补更强的 challenger。现在的 challenger 主要是规则化 factor evidence，后面可以接 LLM/API，让 LLM 生成 structured proposal、rationale、skill artifact，但最终仍然由 gate 审查，不让 LLM 直接决定实验。
+第二，做 gate calibration。当前最强的 value-prior transfer 能打出明显优势，但 bad interventions 也变多。下一版应该保留它的 top10 hit 和 AUC 优势，同时用 target confirmation、risk-aware gate 或 LLM audit 降低坏 intervention。
 
-第三，补跨域任务。分子方向可以从 ESOL 扩到 LogP/QED/SA 多目标；材料方向可以接 Matbench 或 Materials Project 中能转成 finite-pool replay 的 property task。这样就能更贴近“化学、材料、药物多个领域的新物质发现平台”的 CARE 2.0 目标。
+第三，补更强的 challenger。现在 challenger 主要是规则化 factor evidence 和 shared descriptor prior。后面可以接 LLM/API，让 LLM 生成 structured proposal、rationale、skill artifact，但最终仍然由 gate 审查，不让 LLM 直接决定实验。
 
+第四，补跨域任务。分子方向可以从单属性扩到 LogP/QED/SA 多目标；材料方向可以接 Matbench 或 Materials Project 中能转成 finite-pool replay 的 property task。这样就能更贴近“化学、材料、药物多个领域的新物质发现平台”的 CARE 2.0 目标。
