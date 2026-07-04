@@ -69,6 +69,13 @@ python3 experiments/care_replay/scripts/run_surrogate_baselines.py --dataset rea
 python3 experiments/care_replay/scripts/run_surrogate_baselines.py --dataset real_moleculenet_lipophilicity --seeds 50 --rounds 10 --initial 5 --output-tag 50seed
 ```
 
+Run hybrid CARE transfer over a GP-UCB incumbent:
+
+```bash
+python3 experiments/care_replay/scripts/run_hybrid_surrogate_transfer.py --source-dataset real_moleculenet_freesolv --target-dataset real_moleculenet_lipophilicity --seeds 50 --rounds 10 --initial 5 --source-observations 192 --output-tag 50seed
+python3 experiments/care_replay/scripts/run_hybrid_surrogate_transfer.py --source-dataset real_suzuki_miyaura --target-dataset real_buchwald_hartwig --seeds 50 --rounds 10 --initial 5 --source-observations 96 --output-tag 50seed
+```
+
 Outputs:
 
 - `outputs/tables/<dataset_id>_metrics.csv`
@@ -111,6 +118,8 @@ Tracked result snapshots:
   Lipophilicity.
 - `results/2026-07-03-surrogate-baselines/`: dependency-free GP-UCB, GP-EI,
   and kNN-UCB target-only baselines compared with the 50-seed transfer results.
+- `results/2026-07-03-hybrid-surrogate-transfer/`: CARE transfer cards applied
+  as bounded adjustments over a mixed-kernel GP-UCB incumbent.
 
 The synthetic adapters let us test whether the same CARE gate and audit protocol
 behaves consistently across task shapes. The real HTE adapters download public
@@ -128,6 +137,8 @@ baselines.
 The current stronger baseline set includes random search, the public incumbent,
 incumbent ablations, mixed-kernel GP-UCB, mixed-kernel GP-EI, and kNN-UCB. The
 GP-style baselines are implemented without external numerical dependencies.
+The current hybrid setting uses GP-UCB as the incumbent acquisition and tests
+whether transfer cards can improve that stronger optimizer.
 
 The MoleculeNet ESOL adapter is not a reaction dataset. It frames measured
 solubility as a finite-pool molecular property search task.

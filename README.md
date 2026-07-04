@@ -63,6 +63,7 @@ The latest tracked replay output is in:
 - `experiments/care_replay/results/2026-07-03-llm-transfer-followup/`
 - `experiments/care_replay/results/2026-07-03-incumbent-rule-ablation/`
 - `experiments/care_replay/results/2026-07-03-surrogate-baselines/`
+- `experiments/care_replay/results/2026-07-03-hybrid-surrogate-transfer/`
 - `experiments/care_replay/outputs/`
 - `experiments/care_replay/data/raw/`
 
@@ -77,7 +78,9 @@ LLM auditor modes. The incumbent-rule ablation is included to make clear that
 the current incumbent is a strong transparent target-only control, not a
 CARE 1.0 reproduction or a named literature baseline. The surrogate-baseline
 snapshot adds dependency-free GP-UCB, GP-EI, and kNN-UCB comparisons against the
-current 50-seed transfer results.
+current 50-seed transfer results. The hybrid-surrogate snapshot then uses
+GP-UCB as the incumbent acquisition and tests whether CARE transfer cards can
+still improve that stronger optimizer.
 Raw public data files, per-mode metrics, audit logs, and knowledge snapshots
 are kept under `experiments/care_replay/`.
 

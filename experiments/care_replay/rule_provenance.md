@@ -131,6 +131,14 @@ incumbent, but current GP-UCB is stronger on that target. The reaction HTE
 story should therefore be reported as a positive transfer result against the
 current incumbent, not as a win against all target-only optimizers.
 
+The first hybrid experiment uses GP-UCB itself as the incumbent acquisition and
+lets transfer cards apply bounded acquisition adjustments. This gives a small
+positive signal for FreeSolv to Lipophilicity when shared descriptor value
+priors are enabled. It does not yet beat GP-UCB on Buchwald-Hartwig final best,
+although it slightly improves AUC. The next rule work should therefore focus on
+how transfer modifies the acquisition function, not just whether transfer can
+override a hand-written incumbent.
+
 At the same time, negative or flat transfer should remain in the internal
 report. It helps make the story credible: CARE 2.0 is not claiming universal
 transfer. The current claim should be that the platform can express and test
