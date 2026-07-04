@@ -1370,8 +1370,8 @@ def run_target_policy(
                     min_positive_priors = max(1, strict_min_positive_roles - 1)
                     if is_descriptor_value_prior_mode(mode) and strict_value_prior:
                         min_positive_priors = max(1, strict_min_positive_roles)
-                    signed_adjustment_cap = 0.02 if is_descriptor_value_prior_mode(mode) else 0.08
-                    positive_adjustment_cap = 0.015 if is_descriptor_value_prior_mode(mode) else 0.06
+                    signed_adjustment_cap = 0.08
+                    positive_adjustment_cap = 0.06
                     value_prior_adjustment_values, value_prior_cert = source_value_prior_adjustments(
                         pool,
                         observed_ids,
