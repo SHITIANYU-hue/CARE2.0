@@ -7,6 +7,7 @@ import json
 import math
 import os
 import random
+from collections import Counter
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from statistics import mean, pstdev
@@ -34,6 +35,9 @@ DEFAULT_MODES: tuple[TransferMode, ...] = (
     "transfer_value_prior_no_gate",
     "transfer_value_prior_gate_v1",
     "transfer_value_prior_strict_gate_v1",
+    "transfer_descriptor_value_prior_no_gate",
+    "transfer_descriptor_value_prior_gate_v1",
+    "transfer_descriptor_value_prior_strict_gate_v1",
     "llm_transfer_gate_v1",
     "llm_transfer_strict_gate_v1",
     "llm_audit_transfer_gate_v1",
@@ -104,6 +108,17 @@ def is_value_prior_mode(mode: TransferMode) -> bool:
         "transfer_value_prior_no_gate",
         "transfer_value_prior_gate_v1",
         "transfer_value_prior_strict_gate_v1",
+        "transfer_descriptor_value_prior_no_gate",
+        "transfer_descriptor_value_prior_gate_v1",
+        "transfer_descriptor_value_prior_strict_gate_v1",
+    }
+
+
+def is_descriptor_value_prior_mode(mode: TransferMode) -> bool:
+    return mode in {
+        "transfer_descriptor_value_prior_no_gate",
+        "transfer_descriptor_value_prior_gate_v1",
+        "transfer_descriptor_value_prior_strict_gate_v1",
     }
 
 
@@ -232,6 +247,74 @@ ROLE_MAPS: dict[tuple[str, str], dict[str, str]] = {
 }
 
 
+REACTION_DESCRIPTOR_ROLE_MAPS: dict[tuple[str, str], dict[str, str]] = {
+    (
+        "real_buchwald_hartwig",
+        "real_suzuki_miyaura",
+    ): {
+        "ligand_ligand_family": "ligand_ligand_family",
+        "ligand_has_phosphine": "ligand_has_phosphine",
+        "ligand_has_phosphorus": "ligand_has_phosphorus",
+        "ligand_mw_bin": "ligand_mw_bin",
+        "ligand_logp_bin": "ligand_logp_bin",
+        "ligand_aromatic_ring_bin": "ligand_aromatic_ring_bin",
+        "ligand_functional_class": "ligand_functional_class",
+        "base_reagent_base_family": "reagent_reagent_base_family",
+        "base_functional_class": "reagent_functional_class",
+        "base_mw_bin": "reagent_mw_bin",
+        "base_tpsa_bin": "reagent_tpsa_bin",
+        "base_has_phosphorus": "reagent_has_phosphorus",
+        "aryl_halide_halide_type": "reactant_1_halide_type",
+        "aryl_halide_has_aryl_halide": "reactant_1_has_aryl_halide",
+        "aryl_halide_has_boron": "reactant_1_has_boron",
+        "aryl_halide_boron_species": "reactant_1_boron_species",
+        "aryl_halide_has_heteroaromatic": "reactant_1_has_heteroaromatic",
+        "aryl_halide_functional_class": "reactant_1_functional_class",
+        "aryl_halide_mw_bin": "reactant_1_mw_bin",
+        "additive_functional_class": "solvent_functional_class",
+        "additive_mw_bin": "solvent_mw_bin",
+        "additive_tpsa_bin": "solvent_tpsa_bin",
+    },
+    (
+        "real_suzuki_miyaura",
+        "real_buchwald_hartwig",
+    ): {
+        "ligand_ligand_family": "ligand_ligand_family",
+        "ligand_has_phosphine": "ligand_has_phosphine",
+        "ligand_has_phosphorus": "ligand_has_phosphorus",
+        "ligand_mw_bin": "ligand_mw_bin",
+        "ligand_logp_bin": "ligand_logp_bin",
+        "ligand_aromatic_ring_bin": "ligand_aromatic_ring_bin",
+        "ligand_functional_class": "ligand_functional_class",
+        "reagent_reagent_base_family": "base_reagent_base_family",
+        "reagent_functional_class": "base_functional_class",
+        "reagent_mw_bin": "base_mw_bin",
+        "reagent_tpsa_bin": "base_tpsa_bin",
+        "reagent_has_phosphorus": "base_has_phosphorus",
+        "reactant_1_halide_type": "aryl_halide_halide_type",
+        "reactant_1_has_aryl_halide": "aryl_halide_has_aryl_halide",
+        "reactant_1_has_boron": "aryl_halide_has_boron",
+        "reactant_1_boron_species": "aryl_halide_boron_species",
+        "reactant_1_has_heteroaromatic": "aryl_halide_has_heteroaromatic",
+        "reactant_1_functional_class": "aryl_halide_functional_class",
+        "reactant_1_mw_bin": "aryl_halide_mw_bin",
+        "solvent_functional_class": "additive_functional_class",
+        "solvent_mw_bin": "additive_mw_bin",
+        "solvent_tpsa_bin": "additive_tpsa_bin",
+    },
+}
+
+
+def descriptor_role_map_for(source_dataset: str, target_dataset: str) -> dict[str, str]:
+    return dict(REACTION_DESCRIPTOR_ROLE_MAPS.get((source_dataset, target_dataset), {}))
+
+
+def descriptor_transfer_role_map_for(source_dataset: str, target_dataset: str) -> dict[str, str]:
+    role_map = role_map_for(source_dataset, target_dataset)
+    role_map.update(descriptor_role_map_for(source_dataset, target_dataset))
+    return role_map
+
+
 VALUE_PRIOR_FIELDS: dict[tuple[str, str], set[tuple[str, str]]] = {
     (
         "real_moleculenet_freesolv",
@@ -268,6 +351,10 @@ VALUE_PRIOR_FIELDS: dict[tuple[str, str], set[tuple[str, str]]] = {
 }
 
 
+for _reaction_pair, _descriptor_role_map in REACTION_DESCRIPTOR_ROLE_MAPS.items():
+    VALUE_PRIOR_FIELDS.setdefault(_reaction_pair, set()).update(_descriptor_role_map.items())
+
+
 def role_map_for(source_dataset: str, target_dataset: str) -> dict[str, str]:
     if (source_dataset, target_dataset) in ROLE_MAPS:
         return dict(ROLE_MAPS[(source_dataset, target_dataset)])
@@ -289,7 +376,8 @@ def compile_transfer_card(
     min_source_support: int,
     source_value_effect_threshold: float = 3.0,
 ) -> TransferCard:
-    factor_summary = replay.factor_stats(observed, source_adapter.decision_columns)
+    source_factor_columns = tuple(dict.fromkeys((*source_adapter.decision_columns, *role_map.keys())))
+    factor_summary = replay.factor_stats(observed, source_factor_columns)
     global_mean = replay.observed_mean(observed)
     effects_by_field: dict[str, list[float]] = {field: [] for field in role_map}
     for (field_name, _value), (count, value_mean) in factor_summary.items():
@@ -320,10 +408,15 @@ def compile_transfer_card(
             )
         )
 
-    target_values_by_field = {
-        field: {str(candidate.metadata.get(field, "")) for candidate in target_adapter.candidates}
-        for field in target_adapter.decision_columns
+    target_value_fields = tuple(dict.fromkeys((*target_adapter.decision_columns, *role_map.values())))
+    target_value_counts_by_field = {
+        field: Counter(str(candidate.metadata.get(field, "")) for candidate in target_adapter.candidates)
+        for field in target_value_fields
     }
+    target_values_by_field = {field: set(counts) for field, counts in target_value_counts_by_field.items()}
+    source_values_by_field: dict[str, set[str]] = {}
+    for (field_name, value), (_count, _value_mean) in factor_summary.items():
+        source_values_by_field.setdefault(field_name, set()).add(str(value))
     active_value_fields = VALUE_PRIOR_FIELDS.get((source_adapter.dataset_id, target_adapter.dataset_id), set())
     value_priors: list[TransferValuePrior] = []
     role_by_pair = {(role.source_field, role.target_field): role for role in roles}
@@ -334,8 +427,16 @@ def compile_transfer_card(
         if role is None or role.transfer_weight <= 0.0:
             continue
         target_values = target_values_by_field.get(target_field, set())
+        if len(source_values_by_field.get(source_field, set())) < 2 or len(target_values) < 2:
+            continue
         for (field_name, value), (count, value_mean) in factor_summary.items():
             if field_name != source_field or count < min_source_support or str(value) not in target_values:
+                continue
+            source_coverage = count / max(1, len(observed))
+            target_coverage = target_value_counts_by_field.get(target_field, Counter()).get(str(value), 0) / max(
+                1, len(target_adapter.candidates)
+            )
+            if source_coverage > 0.85 or target_coverage > 0.85:
                 continue
             effect = replay.smoothed_mean(count, value_mean, global_mean, prior_weight=2.0) - global_mean
             if abs(effect) < source_value_effect_threshold:
@@ -399,7 +500,10 @@ def transfer_adjustments(
             "max_abs_adjustment": 0.0,
         }
 
-    factor_summary = replay.factor_stats(observed, adapter.decision_columns)
+    target_factor_columns = tuple(
+        dict.fromkeys((*adapter.decision_columns, *(role.target_field for role in card.roles)))
+    )
+    factor_summary = replay.factor_stats(observed, target_factor_columns)
     global_mean = replay.observed_mean(observed)
     role_by_target = {
         role.target_field: role
@@ -497,6 +601,9 @@ def source_value_prior_adjustments(
     min_prior_confidence: float = 0.10,
     min_positive_priors: int = 1,
     max_negative_priors: int = 0,
+    skill_id: str = "source_value_prior",
+    signed_adjustment_cap: float = 0.08,
+    positive_adjustment_cap: float = 0.06,
 ) -> tuple[dict[str, float], dict[str, Any]]:
     adjustments = {c.candidate_id: 0.0 for c in pool if c.candidate_id not in observed_ids}
     active_priors = [
@@ -507,7 +614,7 @@ def source_value_prior_adjustments(
     if not active_priors:
         return adjustments, {
             "skills": {
-                "source_value_prior": {
+                skill_id: {
                     "active": False,
                     "reason": "no_shared_vocabulary_value_priors",
                 }
@@ -541,9 +648,9 @@ def source_value_prior_adjustments(
             if len(positive_signals) < min_positive_priors or len(negative_signals) > max_negative_priors:
                 strict_rejected += 1
                 continue
-            bounded = max(0.0, min(0.06, mean(positive_signals)))
+            bounded = max(0.0, min(positive_adjustment_cap, mean(positive_signals)))
         else:
-            bounded = max(-0.08, min(0.08, mean(signals)))
+            bounded = max(-signed_adjustment_cap, min(signed_adjustment_cap, mean(signals)))
         adjustments[candidate.candidate_id] += bounded
         scored += 1
         positive += int(bounded > 0)
@@ -564,7 +671,7 @@ def source_value_prior_adjustments(
     max_abs = max((abs(v) for v in adjustments.values()), default=0.0)
     cert = {
         "skills": {
-            "source_value_prior": {
+            skill_id: {
                 "active": scored > 0,
                 "card_id": card.card_id,
                 "scored_candidates": scored,
@@ -575,6 +682,8 @@ def source_value_prior_adjustments(
                 "min_prior_confidence": min_prior_confidence if strict else 0.0,
                 "min_positive_priors": min_positive_priors if strict else 0,
                 "max_negative_priors": max_negative_priors if strict else 0,
+                "signed_adjustment_cap": signed_adjustment_cap,
+                "positive_adjustment_cap": positive_adjustment_cap if strict else 0.0,
                 "applied_specs": applied_specs,
             }
         },
@@ -1187,6 +1296,7 @@ def run_target_policy(
                         "transfer_strict_gate_v1",
                         "transfer_strict_plus_local_gate_v1",
                         "transfer_value_prior_strict_gate_v1",
+                        "transfer_descriptor_value_prior_strict_gate_v1",
                         "llm_transfer_strict_gate_v1",
                         "llm_audit_transfer_strict_gate_v1",
                     }
@@ -1248,21 +1358,37 @@ def run_target_policy(
                         active_skill_ids.append("llm_cross_domain_transfer_card" if is_llm_transfer_mode(mode) else "cross_domain_transfer_card")
 
                 if is_value_prior_mode(mode):
-                    strict_value_prior = mode == "transfer_value_prior_strict_gate_v1"
+                    strict_value_prior = mode in {
+                        "transfer_value_prior_strict_gate_v1",
+                        "transfer_descriptor_value_prior_strict_gate_v1",
+                    }
+                    value_prior_skill_id = (
+                        "reaction_descriptor_value_prior"
+                        if is_descriptor_value_prior_mode(mode)
+                        else "source_value_prior"
+                    )
+                    min_positive_priors = max(1, strict_min_positive_roles - 1)
+                    if is_descriptor_value_prior_mode(mode) and strict_value_prior:
+                        min_positive_priors = max(1, strict_min_positive_roles)
+                    signed_adjustment_cap = 0.02 if is_descriptor_value_prior_mode(mode) else 0.08
+                    positive_adjustment_cap = 0.015 if is_descriptor_value_prior_mode(mode) else 0.06
                     value_prior_adjustment_values, value_prior_cert = source_value_prior_adjustments(
                         pool,
                         observed_ids,
                         card,
                         strict_value_prior,
                         strict_min_role_confidence,
-                        max(1, strict_min_positive_roles - 1),
+                        min_positive_priors,
                         strict_max_negative_roles,
+                        value_prior_skill_id,
+                        signed_adjustment_cap,
+                        positive_adjustment_cap,
                     )
-                    value_prior_skill = value_prior_cert["skills"]["source_value_prior"]
+                    value_prior_skill = value_prior_cert["skills"][value_prior_skill_id]
                     if value_prior_skill.get("active"):
                         round_transfer_active = True
                         transfer_scored_candidates_total += int(value_prior_skill.get("scored_candidates", 0))
-                        active_skill_ids.append("source_value_prior")
+                        active_skill_ids.append(value_prior_skill_id)
 
                 if mode in {"transfer_plus_local_gate_v1", "transfer_strict_plus_local_gate_v1"}:
                     adjustments = combine_adjustments(local_adjustments or {}, transfer_adjustment_values or {})
@@ -1273,7 +1399,13 @@ def run_target_policy(
                         c.candidate_id: 0.0 for c in pool if c.candidate_id not in observed_ids
                     }
                 adjusted_scores = {cid: base_scores[cid] + adjustments.get(cid, 0.0) for cid in base_scores}
-                if mode in {"target_local_no_gate", "transfer_no_gate", "transfer_strict_no_gate", "transfer_value_prior_no_gate"}:
+                if mode in {
+                    "target_local_no_gate",
+                    "transfer_no_gate",
+                    "transfer_strict_no_gate",
+                    "transfer_value_prior_no_gate",
+                    "transfer_descriptor_value_prior_no_gate",
+                }:
                     gate = replay.no_gate_decision(base_scores, adjusted_scores, row_order_stable, tuple(active_skill_ids))
                 else:
                     gate = replay.gate_decision("gate_v1", base_scores, adjusted_scores, adjustments, row_order_stable, tuple(active_skill_ids))
@@ -1424,6 +1556,7 @@ def write_outputs(
     audits: dict[tuple[str, int], list[replay.AuditEntry]],
     hypotheses: dict[tuple[str, int], replay.HypothesisEntry],
     cards: dict[int, TransferCard],
+    descriptor_cards: dict[int, TransferCard] | None = None,
 ) -> None:
     OUTPUT_RUNS.mkdir(parents=True, exist_ok=True)
     OUTPUT_TABLES.mkdir(parents=True, exist_ok=True)
@@ -1434,6 +1567,11 @@ def write_outputs(
     (OUTPUT_RUNS / f"{output_id}_summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     for seed, card in sorted(cards.items()):
         (OUTPUT_RUNS / f"{output_id}_transfer_card_seed{seed}.json").write_text(
+            json.dumps(asdict(card), ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+    for seed, card in sorted((descriptor_cards or {}).items()):
+        (OUTPUT_RUNS / f"{output_id}_descriptor_transfer_card_seed{seed}.json").write_text(
             json.dumps(asdict(card), ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",
         )
@@ -1470,10 +1608,13 @@ def run_transfer_ablation(
     target_adapter = replay.DATASET_BUILDERS[target_dataset]()
     task = replay.make_task(target_adapter, initial, rounds)
     role_map = role_map_for(source_dataset, target_dataset)
+    descriptor_role_map = descriptor_role_map_for(source_dataset, target_dataset)
+    descriptor_modes_requested = any(is_descriptor_value_prior_mode(mode) for mode in modes)
     rows: list[dict[str, Any]] = []
     audits: dict[tuple[str, int], list[replay.AuditEntry]] = {}
     hypotheses: dict[tuple[str, int], replay.HypothesisEntry] = {}
     cards: dict[int, TransferCard] = {}
+    descriptor_cards: dict[int, TransferCard] = {}
     for seed in range(seeds):
         source_observed = source_observations(source_adapter, seed, source_observation_count)
         card = compile_transfer_card(
@@ -1485,13 +1626,25 @@ def run_transfer_ablation(
             min_source_support,
         )
         cards[seed] = card
+        descriptor_card = card
+        if descriptor_modes_requested and descriptor_role_map:
+            descriptor_card = compile_transfer_card(
+                source_adapter,
+                target_adapter,
+                source_observed,
+                descriptor_transfer_role_map_for(source_dataset, target_dataset),
+                discount,
+                min_source_support,
+            )
+            descriptor_cards[seed] = descriptor_card
         for mode in modes:
+            active_card = descriptor_card if is_descriptor_value_prior_mode(mode) else card
             metrics, audit, hypothesis = run_target_policy(
                 target_adapter,
                 task,
                 seed,
                 mode,
-                card,
+                active_card,
                 min_target_support,
                 effect_threshold,
                 strict_min_role_confidence,
@@ -1510,6 +1663,7 @@ def run_transfer_ablation(
         "source_dataset": source_dataset,
         "target_dataset": target_dataset,
         "role_map": role_map,
+        "descriptor_role_map": descriptor_role_map,
         "transfer_boundary": (
             "Source outcomes are used to estimate role-level evidence strength. "
             "Direct source value priors are transferred only for whitelisted source-target "
@@ -1539,7 +1693,7 @@ def run_transfer_ablation(
         },
         "aggregate": aggregate(rows),
     }
-    write_outputs(output_id, rows, summary, audits, hypotheses, cards)
+    write_outputs(output_id, rows, summary, audits, hypotheses, cards, descriptor_cards)
     return summary
 
 

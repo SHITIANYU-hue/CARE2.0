@@ -24,6 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_RUNS = ROOT / "outputs" / "runs"
 OUTPUT_TABLES = ROOT / "outputs" / "tables"
 RAW_DATA = ROOT / "data" / "raw"
+REACTION_DESCRIPTOR_PATH = ROOT / "data" / "descriptors" / "reaction_component_descriptors.csv"
 XLSX_NS = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
 RELS_NS = "{http://schemas.openxmlformats.org/package/2006/relationships}"
 PUBLIC_DATA_URLS = {
@@ -41,6 +42,28 @@ PUBLIC_DATA_URLS = {
     "chemlex_acidamine_wetlab_v3.xlsx": "https://zenodo.org/records/17596563/files/Chemlex_Acidamine_Wetlab_Data.xlsx?download=1",
     "matbench_expt_gap.json.gz": "https://ml.materialsproject.org/projects/matbench_expt_gap.json.gz",
 }
+
+REACTION_DESCRIPTOR_METADATA_FIELDS = {
+    "rdkit_parse_ok": "rdkit_parse_ok",
+    "descriptor_mw_bin": "mw_bin",
+    "descriptor_logp_bin": "logp_bin",
+    "descriptor_tpsa_bin": "tpsa_bin",
+    "descriptor_rotatable_bin": "rotatable_bin",
+    "descriptor_aromatic_ring_bin": "aromatic_ring_bin",
+    "has_phosphorus": "has_phosphorus",
+    "has_phosphine": "has_phosphine",
+    "has_boron": "has_boron",
+    "has_aryl_halide": "has_aryl_halide",
+    "has_heteroaromatic": "has_heteroaromatic",
+    "halide_type": "halide_type",
+    "boron_species": "boron_species",
+    "ligand_family": "ligand_family",
+    "reagent_base_family": "reagent_base_family",
+    "solvent_family": "solvent_family",
+    "solvent_is_protic": "solvent_is_protic",
+    "functional_class": "functional_class",
+}
+REACTION_DESCRIPTOR_CACHE: dict[tuple[str, str, str], dict[str, str]] | None = None
 
 SkillFamily = Literal["ranker", "constraint", "exploration", "data_analysis", "fallback"]
 Mode = Literal["no_care_random", "incumbent", "no_gate", "gate_v1", "gate_v2", "llm_no_gate", "llm_gate_v1"]
@@ -198,6 +221,39 @@ def ensure_public_data_file(filename: str) -> Path:
 def read_csv_dicts(path: Path) -> list[dict[str, str]]:
     with path.open(newline="", encoding="utf-8") as f:
         return list(csv.DictReader(f))
+
+
+def clean_component_name(value: Any) -> str:
+    return str(value).strip()
+
+
+def load_reaction_component_descriptors() -> dict[tuple[str, str, str], dict[str, str]]:
+    global REACTION_DESCRIPTOR_CACHE
+    if REACTION_DESCRIPTOR_CACHE is not None:
+        return REACTION_DESCRIPTOR_CACHE
+    if not REACTION_DESCRIPTOR_PATH.exists():
+        REACTION_DESCRIPTOR_CACHE = {}
+        return REACTION_DESCRIPTOR_CACHE
+    rows = read_csv_dicts(REACTION_DESCRIPTOR_PATH)
+    REACTION_DESCRIPTOR_CACHE = {
+        (row["dataset_id"], row["role"], clean_component_name(row["raw_name"])): row
+        for row in rows
+    }
+    return REACTION_DESCRIPTOR_CACHE
+
+
+def reaction_component_metadata(dataset_id: str, role: str, raw_name: Any, prefix: str) -> dict[str, str]:
+    descriptors = load_reaction_component_descriptors()
+    row = descriptors.get((dataset_id, role, clean_component_name(raw_name)))
+    if row is None:
+        return {}
+    out: dict[str, str] = {
+        f"{prefix}_raw_name": clean_component_name(raw_name),
+        f"{prefix}_canonical_smiles": row.get("canonical_smiles", ""),
+    }
+    for source_field, target_suffix in REACTION_DESCRIPTOR_METADATA_FIELDS.items():
+        out[f"{prefix}_{target_suffix}"] = row.get(source_field, "")
+    return out
 
 
 def excel_col_index(cell_ref: str) -> int:
@@ -738,6 +794,10 @@ def real_buchwald_hartwig_adapter() -> DatasetAdapter:
         output = row.get("Output")
         if output is None:
             continue
+        ligand_raw = clean_component_name(row["Ligand"])
+        additive_raw = clean_component_name(row["Additive"])
+        base_raw = clean_component_name(row["Base"])
+        aryl_raw = clean_component_name(row["Aryl halide"])
         ligand = ligand_labels[str(row["Ligand"])]
         additive = additive_labels[str(row["Additive"])]
         base = base_labels[str(row["Base"])]
@@ -755,6 +815,14 @@ def real_buchwald_hartwig_adapter() -> DatasetAdapter:
                     "additive": additive,
                     "base": base,
                     "aryl_halide": aryl,
+                    "ligand_raw_name": ligand_raw,
+                    "additive_raw_name": additive_raw,
+                    "base_raw_name": base_raw,
+                    "aryl_halide_raw_name": aryl_raw,
+                    **reaction_component_metadata("real_buchwald_hartwig", "ligand", ligand_raw, "ligand"),
+                    **reaction_component_metadata("real_buchwald_hartwig", "additive", additive_raw, "additive"),
+                    **reaction_component_metadata("real_buchwald_hartwig", "base", base_raw, "base"),
+                    **reaction_component_metadata("real_buchwald_hartwig", "aryl_halide", aryl_raw, "aryl_halide"),
                     "yield_value": clamp_score(float(output)),
                     "source_row": idx + 2,
                 },
@@ -787,6 +855,12 @@ def real_suzuki_miyaura_adapter() -> DatasetAdapter:
         output = row.get("Product_Yield_PCT_Area_UV")
         if output is None:
             continue
+        reactant_raw = clean_component_name(row["Reactant_1_Name"])
+        boronic_raw = clean_component_name(row["Reactant_2_Name"])
+        catalyst_raw = clean_component_name(row["Catalyst_1_Short_Hand"])
+        ligand_raw = clean_component_name(row["Ligand_Short_Hand"])
+        reagent_raw = clean_component_name(row["Reagent_1_Short_Hand"])
+        solvent_raw = clean_component_name(row["Solvent_1_Short_Hand"])
         ligand = ligand_labels[str(row["Ligand_Short_Hand"])]
         catalyst = catalyst_labels[str(row["Catalyst_1_Short_Hand"])]
         reagent = reagent_labels[str(row["Reagent_1_Short_Hand"])]
@@ -808,6 +882,18 @@ def real_suzuki_miyaura_adapter() -> DatasetAdapter:
                     "ligand": ligand,
                     "reagent": reagent,
                     "solvent": solvent,
+                    "reactant_1_raw_name": reactant_raw,
+                    "reactant_2_raw_name": boronic_raw,
+                    "catalyst_raw_name": catalyst_raw,
+                    "ligand_raw_name": ligand_raw,
+                    "reagent_raw_name": reagent_raw,
+                    "solvent_raw_name": solvent_raw,
+                    **reaction_component_metadata("real_suzuki_miyaura", "reactant_1", reactant_raw, "reactant_1"),
+                    **reaction_component_metadata("real_suzuki_miyaura", "reactant_2", boronic_raw, "reactant_2"),
+                    **reaction_component_metadata("real_suzuki_miyaura", "catalyst", catalyst_raw, "catalyst"),
+                    **reaction_component_metadata("real_suzuki_miyaura", "ligand", ligand_raw, "ligand"),
+                    **reaction_component_metadata("real_suzuki_miyaura", "reagent", reagent_raw, "reagent"),
+                    **reaction_component_metadata("real_suzuki_miyaura", "solvent", solvent_raw, "solvent"),
                     "yield_value": clamp_score(float(output)),
                     "source_row": idx + 2,
                 },
