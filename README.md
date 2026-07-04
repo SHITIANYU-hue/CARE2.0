@@ -14,6 +14,8 @@ Current contents:
 - `task_tracker/`: current project tasks, owners, blockers, and next actions.
 - `overview.md`: a narrative overview of the current replay experiments,
   datasets, results, and next steps.
+- `experiments/care_replay/rule_provenance.md`: provenance notes for the
+  current incumbent, transfer rules, LLM roles, and incumbent ablation.
 
 The current replay experiments are smoke tests. Synthetic adapters validate the
 interface and audit flow; public adapters let the same loop run on real measured
@@ -59,6 +61,7 @@ The latest tracked replay output is in:
 - `experiments/care_replay/results/2026-07-03-multidomain-transfer-feasibility/`
 - `experiments/care_replay/results/2026-07-03-transfer-advantage-sweep/`
 - `experiments/care_replay/results/2026-07-03-llm-transfer-followup/`
+- `experiments/care_replay/results/2026-07-03-incumbent-rule-ablation/`
 - `experiments/care_replay/outputs/`
 - `experiments/care_replay/data/raw/`
 
@@ -69,7 +72,9 @@ non-LLM generalization sweep, and the nine-dataset CommonStack LLM replay using
 `llm_no_gate` and `llm_gate_v1`. It now also includes a real ChemLex Acid-Amine
 wetlab adapter from Zenodo, multi-domain transfer sweeps, the 50-seed transfer
 advantage runs, and a 10-seed real-LLM transfer follow-up with LLM proposer and
-LLM auditor modes.
+LLM auditor modes. The incumbent-rule ablation is included to make clear that
+the current incumbent is a strong transparent target-only control, not a
+CARE 1.0 reproduction or a named literature baseline.
 Raw public data files, per-mode metrics, audit logs, and knowledge snapshots
 are kept under `experiments/care_replay/`.
 

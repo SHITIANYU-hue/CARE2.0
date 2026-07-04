@@ -33,11 +33,23 @@
 - `final_best`：最终找到的最好结果。
 - `AUC`：整个实验过程里的 best-so-far 曲线面积，越高说明越早找到好点。
 - `regret`：距离全局最好点还有多远。
-- `top-10 hit`：是否命中全局 top 10% 区域。
+- `top-10 hit`：是否在 replay 过程中命中过全局 top 10 个候选点。
 - `interventions`：gate 授权 challenger 覆盖 incumbent 的次数。
 - `bad interventions`：授权后结果变差的次数。
 
 这个设置的好处是，最后不只看分数，还能看 gate 到底有没有在控制风险。
+
+## 2.5 规则来源和 incumbent 强度
+
+这里需要单独说清楚：当前 replay 里的 incumbent 不是 CARE 1.0 原版，也不是学术界公认的某个标准 baseline。它是我们为了 CARE 2.0 replay 写的一个透明 target-only control，只用已经 reveal 的目标域 observation 和 public candidate feature，不看 unrevealed 的隐藏结果。
+
+具体规则是：对每个未 reveal 的候选点，综合同组候选的 smoothed mean、各个 decision factor 的 smoothed mean、一个类似 UCB 的 uncertainty bonus，以及 `x1/x2/x3` 这几个 public feature 的轻量 prior。这个 baseline 比 random 强很多，所以 transfer 如果能赢它是有意义的；但它也不是 unbeatable oracle。
+
+我们补了一组 50-seed incumbent ablation 来检查这件事。Buchwald-Hartwig 上，完整 incumbent final best 是 86.6477，random 是 82.1728，factor_ucb 是 86.7960，说明 incumbent 是 strong baseline，但和其他公开证据规则在同一档。Lipophilicity 上，完整 incumbent final best 是 87.3075，factor_only 是 87.5225，factor_ucb 是 87.4550，两个更简单的 factor 规则甚至略高一点。这说明“LLM 没打过 incumbent”不能简单解释为 incumbent 被我们手搓得太强。
+
+当前 deterministic transfer rule 也要按工程规则来理解。它不是 CARE 1.0 直接搬来的规则，而是为了验证 CARE 2.0 跨域迁移写的 role-level transfer card：source domain 只提供哪些 role 更可信、权重多大；大多数方向仍然由 target domain 已 reveal 的 evidence 决定。只有 MoleculeNet 这种共享 descriptor vocabulary 的任务，才允许 source value prior 直接迁移。
+
+LLM 目前确实有真实调用，但角色还比较窄。`llm_transfer_gate_v1` 只是让模型在已有 transfer card 和 target evidence 里提 bounded factor adjustment；`llm_audit_transfer_gate_v1` 只是审计 challenger。它还没有在“进化规则”，比如重写 role map、调 support threshold、选哪些 descriptor 可以迁移，或者产出新的 skill artifact。因此 fixed rule 目前赢 LLM 不算特别反常，下一步更应该把 LLM 往 rule-level proposer 推，而不是继续让它只在一个手写 schema 里微调分数。
 
 ## 3. 第一阶段：Synthetic Suzuki smoke test
 

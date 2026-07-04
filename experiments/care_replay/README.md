@@ -55,6 +55,13 @@ The default LLM base URL is `https://api.commonstack.ai/v1`. The API key is read
 from `CARE_LLM_API_KEY` or `COMMONSTACK_API_KEY`; it is never stored in the
 repository.
 
+Run the target-only incumbent rule ablation:
+
+```bash
+python3 experiments/care_replay/scripts/run_incumbent_ablation.py --dataset real_buchwald_hartwig --seeds 50 --rounds 10 --initial 5 --output-tag 50seed
+python3 experiments/care_replay/scripts/run_incumbent_ablation.py --dataset real_moleculenet_lipophilicity --seeds 50 --rounds 10 --initial 5 --output-tag 50seed
+```
+
 Outputs:
 
 - `outputs/tables/<dataset_id>_metrics.csv`
@@ -92,6 +99,9 @@ Tracked result snapshots:
 - `results/2026-07-03-llm-transfer-followup/`: 10-seed real CommonStack LLM
   transfer follow-up on FreeSolv-to-Lipophilicity and
   Suzuki-to-Buchwald-Hartwig, including LLM proposer and LLM auditor modes.
+- `results/2026-07-03-incumbent-rule-ablation/`: 50-seed target-only ablation
+  explaining the current incumbent rule strength on Buchwald-Hartwig and
+  Lipophilicity.
 
 The synthetic adapters let us test whether the same CARE gate and audit protocol
 behaves consistently across task shapes. The real HTE adapters download public
@@ -100,6 +110,11 @@ fixed high-performing group prior is encoded; the replay policy only uses
 revealed observations. The current public observation model uses smoothed means
 over all revealed decision factors, and the gate only applies bounded
 factor-evidence adjustments when public observations support them.
+
+Rule provenance is tracked in `rule_provenance.md`. The current incumbent and
+transfer rules are transparent engineering controls for the CARE 2.0 replay
+harness; they are not CARE 1.0 paper-number reproductions or named community
+baselines.
 
 The MoleculeNet ESOL adapter is not a reaction dataset. It frames measured
 solubility as a finite-pool molecular property search task.
