@@ -233,6 +233,10 @@ ESOL 上有一个小幅正向信号。final best 从 88.6412 到 89.0674，top-1
 
 需要同时讲清楚限制：这个模式只适合共享 descriptor vocabulary 的任务。它比 strict gate 更激进，所以 bad interventions 也更多。当前它证明了 transfer 的上限和潜力，下一步要把这个优势和更好的安全 gate 结合起来。
 
+再往强 baseline 上推，100-seed hybrid GP-UCB 结果更保守，但也更有说服力。10 轮预算下，`hybrid_value_prior_gp_ucb_gate_v1` 把 GP-UCB 的 final best 从 88.9038 小幅提到 88.9225，AUC 从 86.5433 提到 86.7037，top-10 hit 从 0.11 提到 0.21。final best 基本接近持平，但 top-10 hit 接近翻倍，说明现在的迁移更像是在帮助 early discovery，而不是完全替代 target-only GP。低预算时这个信号更明显：5 轮预算下 final best +0.1463、AUC +0.3117；3 轮预算下 final best +0.2774、AUC +0.4091。
+
+我们也试了 warm-start，只让 transfer 影响前 3 或 5 轮，然后把控制权交还给 GP-UCB。这个方向没有成为更强策略：warm3 只剩很小收益，warm5 的 final best 还低于 GP-UCB。也就是说，对 FreeSolv -> Lipophilicity 这组共享 descriptor transfer 来说，目前更有效的是让 value-prior skill 在整个短预算 replay 中持续参与，而不是只做开局引导。
+
 真实 LLM follow-up 在这个方向给了一个更积极的信号。10 seeds 下，`llm_transfer_gate_v1` final best 是 87.1750，比 incumbent 高 +0.5250；AUC 是 85.6050，比 incumbent 高 +0.6950；top-10 hit 从 0 提到 0.1。它和确定性 `transfer_value_prior_gate_v1` 很接近，说明在共享 descriptor 空间里，LLM 可以读 transfer card 和 target evidence，并生成有用的 bounded adjustment。`llm_audit_transfer_gate_v1` 仍然太保守，基本没有带来增益。
 
 ## 6. 第四阶段：ChemLex 代理数据
@@ -304,7 +308,7 @@ ChemLex 代理数据上提升很明显，但这个结果要很小心地讲。它
 
 第一，代码和实验框架已经从单一 synthetic task 扩到了多个数据集，包括真实 HTE 和真实分子性质数据。这说明 CARE 2.0 的 platform interface 是可行的。
 
-第二，现在已经有真实数据 transfer 正例，但强度要分开讲。分子性质方向，`FreeSolv -> Lipophilicity` 在 50 seeds 下 final best 提升 +2.7550，AUC 提升 +2.4000，top-10 hit 从 4% 到 30%，而且强于新补的 GP-UCB / GP-EI / kNN-UCB surrogate baseline。进一步把 transfer 叠到 GP-UCB 上，也有小幅正收益，additive hybrid 的 final best +0.4000、AUC +0.2692；transfer-weighted GP kernel 的 `scale=1.5` 也有小幅正收益，final best +0.0875、AUC +0.2230。反应 HTE 方向，`Suzuki-Miyaura -> Buchwald-Hartwig` 相比 public incumbent 有提升，final best +2.4389，AUC +1.1066。GP-UCB target-only baseline 更强以后，简单 additive hybrid 还没赢 final best；但 transfer-weighted GP kernel 已经把 GP-UCB 从 final best 91.1145 / AUC 82.9700 提到 91.4146 / 83.2862。这说明反应方向不是只能赢弱 incumbent，skill 进入 acquisition geometry 后已经有小幅超过强 baseline 的信号。
+第二，现在已经有真实数据 transfer 正例，但强度要分开讲。分子性质方向，`FreeSolv -> Lipophilicity` 在 50 seeds 下 final best 提升 +2.7550，AUC 提升 +2.4000，top-10 hit 从 4% 到 30%，这是 public-incumbent 设置下最亮眼的 transfer 上限。进一步把 transfer 叠到更强的 GP-UCB 上，100-seed 结果不再是大幅 final-best 碾压，但仍有 early-discovery 增益：10 轮预算 top-10 hit 从 0.11 到 0.21，5 轮和 3 轮低预算下 final best / AUC 都稳定为正。transfer-weighted GP kernel 的 `scale=1.5` 也有小幅正收益，final best +0.0875、AUC +0.2230。反应 HTE 方向，`Suzuki-Miyaura -> Buchwald-Hartwig` 相比 public incumbent 有提升，final best +2.4389，AUC +1.1066。GP-UCB target-only baseline 更强以后，简单 additive hybrid 还没赢 final best；但 transfer-weighted GP kernel 已经把 GP-UCB 从 final best 91.1145 / AUC 82.9700 提到 91.4146 / 83.2862。这说明反应方向不是只能赢弱 incumbent，skill 进入 acquisition geometry 后已经有小幅超过强 baseline 的信号。
 
 第三，结果还不是“所有方向都提升”。BH -> Suzuki 这类反向迁移目前不稳定，ChemLex 和材料方向还需要更强的真实数据与更明确的 transfer map。这个边界反而是有价值的：CARE 2.0 不是盲目把 source knowledge 往 target 上套，而是要识别什么时候能迁移，什么时候应该保守。
 

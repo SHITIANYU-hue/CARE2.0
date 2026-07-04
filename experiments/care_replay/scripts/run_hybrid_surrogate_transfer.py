@@ -26,6 +26,8 @@ DEFAULT_MODES: tuple[HybridMode, ...] = (
     "hybrid_transfer_gp_ucb_no_gate",
     "hybrid_value_prior_gp_ucb_gate_v1",
     "hybrid_value_prior_gp_ucb_no_gate",
+    "hybrid_value_prior_gp_ucb_warm3_gate_v1",
+    "hybrid_value_prior_gp_ucb_warm5_gate_v1",
 )
 
 
@@ -40,11 +42,24 @@ def parse_modes(raw: str) -> tuple[HybridMode, ...]:
 
 
 def is_value_prior_mode(mode: HybridMode) -> bool:
-    return mode in {"hybrid_value_prior_gp_ucb_gate_v1", "hybrid_value_prior_gp_ucb_no_gate"}
+    return mode in {
+        "hybrid_value_prior_gp_ucb_gate_v1",
+        "hybrid_value_prior_gp_ucb_no_gate",
+        "hybrid_value_prior_gp_ucb_warm3_gate_v1",
+        "hybrid_value_prior_gp_ucb_warm5_gate_v1",
+    }
 
 
 def is_no_gate_mode(mode: HybridMode) -> bool:
     return mode in {"hybrid_transfer_gp_ucb_no_gate", "hybrid_value_prior_gp_ucb_no_gate"}
+
+
+def warm_start_round_limit(mode: HybridMode) -> int | None:
+    if mode == "hybrid_value_prior_gp_ucb_warm3_gate_v1":
+        return 3
+    if mode == "hybrid_value_prior_gp_ucb_warm5_gate_v1":
+        return 5
+    return None
 
 
 def aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
@@ -125,7 +140,8 @@ def run_policy(
         active_skill_ids: list[str] = []
         row_order_stable = True
 
-        if mode == "gp_ucb":
+        warm_limit = warm_start_round_limit(mode)
+        if mode == "gp_ucb" or (warm_limit is not None and round_index >= warm_limit):
             incumbent = replay.top_candidate(base_scores)
             gate = replay.GateCertificate(
                 gate_version="none",
@@ -137,7 +153,7 @@ def run_policy(
                 acquisition_loss=0.0,
                 row_order_stable=True,
                 applied_skill_ids=(),
-                reason="baseline_mixed_kernel_gp_ucb",
+                reason="baseline_mixed_kernel_gp_ucb" if mode == "gp_ucb" else "warm_start_transfer_expired_gp_ucb",
             )
         else:
             transfer_adjustments, transfer_cert = transfer.transfer_adjustments(

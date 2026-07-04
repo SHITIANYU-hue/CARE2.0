@@ -74,6 +74,7 @@ Run hybrid CARE transfer over a GP-UCB incumbent:
 ```bash
 python3 experiments/care_replay/scripts/run_hybrid_surrogate_transfer.py --source-dataset real_moleculenet_freesolv --target-dataset real_moleculenet_lipophilicity --seeds 50 --rounds 10 --initial 5 --source-observations 192 --output-tag 50seed
 python3 experiments/care_replay/scripts/run_hybrid_surrogate_transfer.py --source-dataset real_suzuki_miyaura --target-dataset real_buchwald_hartwig --seeds 50 --rounds 10 --initial 5 --source-observations 96 --output-tag 50seed
+python3 experiments/care_replay/scripts/run_hybrid_surrogate_transfer.py --source-dataset real_moleculenet_freesolv --target-dataset real_moleculenet_lipophilicity --seeds 100 --rounds 5 --initial 5 --source-observations 192 --modes gp_ucb,hybrid_value_prior_gp_ucb_gate_v1,hybrid_value_prior_gp_ucb_no_gate --output-tag lowbudget5_100seed
 ```
 
 Run transfer-weighted GP-kernel skill optimization:
@@ -131,6 +132,10 @@ Tracked result snapshots:
   confidence used to reweight the GP-UCB categorical kernel, giving a small
   positive acquisition-level transfer result over GP-UCB on real HTE and
   molecular-property replay.
+- `results/2026-07-04-hybrid-transfer-budget-sweep/`: 100-seed
+  FreeSolv-to-Lipophilicity hybrid transfer sweep over GP-UCB, including 3/5/10
+  round budgets and warm-start ablations. The main signal is early-discovery
+  gain: higher AUC and top-10 hit rate under a strong target-only GP baseline.
 
 The synthetic adapters let us test whether the same CARE gate and audit protocol
 behaves consistently across task shapes. The real HTE adapters download public
@@ -156,6 +161,11 @@ incumbent ablations, mixed-kernel GP-UCB, mixed-kernel GP-EI, and kNN-UCB. The
 GP-style baselines are implemented without external numerical dependencies.
 The current hybrid setting uses GP-UCB as the incumbent acquisition and tests
 whether transfer cards can improve that stronger optimizer.
+The latest budget sweep shows that shared-descriptor value-prior transfer over
+GP-UCB mostly helps early discovery. In the 10-round 100-seed setting,
+top-10 hit increases from 0.11 to 0.21 and AUC increases from 86.5433 to
+86.7037, while final best is nearly tied. In 3- and 5-round low-budget
+settings, the final-best and AUC deltas are larger.
 The transfer-weighted kernel setting moves one step deeper: the transfer card
 changes the GP kernel field weights directly, so the reusable skill optimizes
 the acquisition geometry instead of only adding a post-hoc candidate bonus.
