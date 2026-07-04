@@ -51,6 +51,10 @@
 
 LLM 目前确实有真实调用，但角色还比较窄。`llm_transfer_gate_v1` 只是让模型在已有 transfer card 和 target evidence 里提 bounded factor adjustment；`llm_audit_transfer_gate_v1` 只是审计 challenger。它还没有在“进化规则”，比如重写 role map、调 support threshold、选哪些 descriptor 可以迁移，或者产出新的 skill artifact。因此 fixed rule 目前赢 LLM 不算特别反常，下一步更应该把 LLM 往 rule-level proposer 推，而不是继续让它只在一个手写 schema 里微调分数。
 
+我们又补了一组更接近外部优化方法的 target-only surrogate baseline，包括 mixed-kernel GP-UCB、GP-EI 和 kNN-UCB。这组 baseline 只用 public feature 和目标域已 reveal 的 observation，不用 source transfer。结果把结论进一步分开了：`FreeSolv -> Lipophilicity` 上，CARE 的 `transfer_value_prior_gate_v1` final best 是 90.0625，仍然高于 GP-UCB 的 88.4775；但 `Suzuki -> Buchwald-Hartwig` 上，GP-UCB final best 是 91.1145，高于当前 transfer gate 的 89.0866。也就是说，分子性质方向可以说 transfer 赢过了更强 surrogate baseline；反应 HTE 方向目前只能说 transfer 赢 incumbent，但还没有赢 GP-UCB。
+
+这个结果对下一步很有帮助：反应方向不应该继续只和手写 incumbent 比，而应该把 GP-UCB 这类 surrogate 当成更强 incumbent，然后让 CARE transfer 去改 acquisition，或者让 LLM 在 role map、threshold、discount 这些规则层面参与进来。
+
 ## 3. 第一阶段：Synthetic Suzuki smoke test
 
 这一步是最早的 smoke test，目的不是讲真实化学结论，而是确认 replay 接口、audit log、skill 和 hypothesis update 都能跑。
@@ -290,7 +294,7 @@ ChemLex 代理数据上提升很明显，但这个结果要很小心地讲。它
 
 第一，代码和实验框架已经从单一 synthetic task 扩到了多个数据集，包括真实 HTE 和真实分子性质数据。这说明 CARE 2.0 的 platform interface 是可行的。
 
-第二，现在已经有两条比较清楚的真实数据 transfer 正例。分子性质方向，`FreeSolv -> Lipophilicity` 在 50 seeds 下 final best 提升 +2.7550，AUC 提升 +2.4000，top-10 hit 从 4% 到 30%。反应 HTE 方向，`Suzuki-Miyaura -> Buchwald-Hartwig` 在 50 seeds 下 final best 提升 +2.4389，AUC 提升 +1.1066。这两组比早期 synthetic smoke test 更适合当 CARE 2.0 transfer 的主结果。
+第二，现在已经有真实数据 transfer 正例，但强度要分开讲。分子性质方向，`FreeSolv -> Lipophilicity` 在 50 seeds 下 final best 提升 +2.7550，AUC 提升 +2.4000，top-10 hit 从 4% 到 30%，而且强于新补的 GP-UCB / GP-EI / kNN-UCB surrogate baseline。反应 HTE 方向，`Suzuki-Miyaura -> Buchwald-Hartwig` 相比 public incumbent 也有提升，final best +2.4389，AUC +1.1066；但新补的 GP-UCB target-only baseline 更强，所以这条目前应当说成“transfer 赢 incumbent，但还没赢最强 surrogate baseline”。
 
 第三，结果还不是“所有方向都提升”。BH -> Suzuki 这类反向迁移目前不稳定，ChemLex 和材料方向还需要更强的真实数据与更明确的 transfer map。这个边界反而是有价值的：CARE 2.0 不是盲目把 source knowledge 往 target 上套，而是要识别什么时候能迁移，什么时候应该保守。
 
@@ -298,10 +302,10 @@ ChemLex 代理数据上提升很明显，但这个结果要很小心地讲。它
 
 接下来建议按四个优先级推进。
 
-第一，继续补真实数据。真实 ChemLex、Pfizer 零膨胀数据和材料方向 Matbench / Materials Project 仍然重要。现在我们已经有 FreeSolv -> Lipophilicity 和 Suzuki -> BH 两条正例，下一步要看这些 transfer 机制能不能继续扩到 ChemLex 和材料 property task。
+第一，继续补真实数据。真实 ChemLex、Pfizer 零膨胀数据和材料方向 Matbench / Materials Project 仍然重要。现在 FreeSolv -> Lipophilicity 是更强的 transfer 正例；Suzuki -> BH 是正向但需要进一步优化的反应方向结果。下一步要看这些 transfer 机制能不能继续扩到 ChemLex 和材料 property task。
 
 第二，做 gate calibration。当前最强的 value-prior transfer 能打出明显优势，但 bad interventions 也变多。下一版应该保留它的 top10 hit 和 AUC 优势，同时用 target confirmation、risk-aware gate 或 LLM audit 降低坏 intervention。
 
-第三，补更强的 challenger。现在 challenger 主要是规则化 factor evidence、shared descriptor prior，以及一版真实 LLM proposer。LLM proposer 已经能稳定返回可解析 proposal，但反应 HTE 上还不够强。下一步应该让 LLM 产出更受约束的 structured proposal、rationale 和 skill artifact，再由 gate 审查，而不是让 LLM 直接决定实验。
+第三，补更强的 hybrid challenger。现在 challenger 主要是规则化 factor evidence、shared descriptor prior，以及一版真实 LLM proposer。新 baseline 显示 GP-UCB 在反应 HTE 上很强，所以下一步不应该只让 transfer 覆盖手写 incumbent，而应该让 transfer card 去改 GP-UCB acquisition。LLM 也应该产出更受约束的 structured proposal、rationale 和 skill artifact，再由 gate 审查，而不是让 LLM 直接决定实验。
 
 第四，补跨域任务。分子方向可以从单属性扩到 LogP/QED/SA 多目标；材料方向可以接 Matbench 或 Materials Project 中能转成 finite-pool replay 的 property task。这样就能更贴近“化学、材料、药物多个领域的新物质发现平台”的 CARE 2.0 目标。

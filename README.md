@@ -62,6 +62,7 @@ The latest tracked replay output is in:
 - `experiments/care_replay/results/2026-07-03-transfer-advantage-sweep/`
 - `experiments/care_replay/results/2026-07-03-llm-transfer-followup/`
 - `experiments/care_replay/results/2026-07-03-incumbent-rule-ablation/`
+- `experiments/care_replay/results/2026-07-03-surrogate-baselines/`
 - `experiments/care_replay/outputs/`
 - `experiments/care_replay/data/raw/`
 
@@ -74,7 +75,9 @@ wetlab adapter from Zenodo, multi-domain transfer sweeps, the 50-seed transfer
 advantage runs, and a 10-seed real-LLM transfer follow-up with LLM proposer and
 LLM auditor modes. The incumbent-rule ablation is included to make clear that
 the current incumbent is a strong transparent target-only control, not a
-CARE 1.0 reproduction or a named literature baseline.
+CARE 1.0 reproduction or a named literature baseline. The surrogate-baseline
+snapshot adds dependency-free GP-UCB, GP-EI, and kNN-UCB comparisons against the
+current 50-seed transfer results.
 Raw public data files, per-mode metrics, audit logs, and knowledge snapshots
 are kept under `experiments/care_replay/`.
 

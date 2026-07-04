@@ -116,8 +116,24 @@ be large in selected settings:
 - Suzuki-Miyaura to Buchwald-Hartwig shows a positive reaction-HTE transfer
   gain.
 
-At the same time, negative or flat transfer should remain in the internal report.
-It helps make the story credible: CARE 2.0 is not claiming universal transfer.
-The current claim should be that the platform can express and test transfer,
-that some real transfer directions are already positive, and that the next
-technical work is gate calibration plus LLM-driven rule evolution.
+The baseline story now has three layers:
+
+1. Basic replay baselines: random search and public incumbent.
+2. Incumbent ablations: group-only, factor-only, factor-UCB, and no-condition
+   prior variants.
+3. Stronger target-only surrogate baselines: dependency-free mixed-kernel
+   GP-UCB, mixed-kernel GP-EI, and kNN-UCB.
+
+The surrogate baseline comparison sharpens the claim. FreeSolv to
+Lipophilicity transfer remains stronger than the added GP-UCB / GP-EI / kNN-UCB
+baselines. Suzuki-Miyaura to Buchwald-Hartwig transfer beats the public
+incumbent, but current GP-UCB is stronger on that target. The reaction HTE
+story should therefore be reported as a positive transfer result against the
+current incumbent, not as a win against all target-only optimizers.
+
+At the same time, negative or flat transfer should remain in the internal
+report. It helps make the story credible: CARE 2.0 is not claiming universal
+transfer. The current claim should be that the platform can express and test
+transfer, that some real transfer directions are already positive, and that the
+next technical work is gate calibration, stronger surrogate incumbents, and
+LLM-driven rule evolution.
