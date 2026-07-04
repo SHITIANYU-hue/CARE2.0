@@ -57,6 +57,12 @@ LLM 目前确实有真实调用，但角色还比较窄。`llm_transfer_gate_v1`
 
 基于这个判断，我们又跑了一版 hybrid surrogate transfer：直接把 mixed-kernel GP-UCB 当作 incumbent acquisition，再让 CARE transfer card 做 bounded adjustment。结果更接近下一阶段真实目标。`FreeSolv -> Lipophilicity` 上，shared value-prior hybrid 把 GP-UCB final best 从 88.4775 提到 88.8775，AUC 从 86.4578 提到 86.7270，top-10 hit 从 0.08 到 0.16，说明 transfer 叠到更强 optimizer 上仍有小幅正信号。`Suzuki -> Buchwald-Hartwig` 上，hybrid 把 AUC 从 82.9700 提到 83.1863，但 final best 从 91.1145 降到 90.7886，所以反应方向现在还不是 headline win，更像是 acquisition calibration 的诊断结果。
 
+顺着天宇提的“能不能优化 skill，而不是只和弱 baseline 比”的方向，我们又做了一版更直接的 acquisition-level skill optimization：不再让 transfer card 只给候选加 bounded bonus，而是用 source-to-target role confidence 去重加权 GP-UCB 的 categorical kernel。直观说，source domain 只告诉系统哪些 target 字段更值得在相似性判断里重视，例如 Suzuki -> Buchwald-Hartwig 里 ligand、base、aryl_halide 这些 role 的权重会被提高；候选选择仍然由 GP-UCB 完成，不直接读取隐藏结果，也不直接指定 candidate id。
+
+这版结果是一个小幅但更干净的正信号。`Suzuki-Miyaura -> Buchwald-Hartwig` 上，原 GP-UCB final best 是 91.1145、AUC 是 82.9700；`transfer_weighted_gp_ucb_scale_1p5` 提到 final best 91.4146、AUC 83.2862。`scale=4` 的 final best 更高一点，91.4524，但 AUC 降到 82.1020，所以默认更适合讲 `scale=1.5`，因为它同时提升 final best 和搜索过程。分子 sanity check 里，`FreeSolv -> Lipophilicity` 的 `scale=1.5` 也从 GP-UCB 的 final best 88.4775 / AUC 86.4578 小幅提高到 88.5650 / 86.6808。
+
+这个结论要保守讲：现在不是“CARE2.0 已经大幅碾压 GP-UCB”，而是证明了一个关键方向可行：当 reusable skill 进入 acquisition geometry，而不是只做后处理加分时，确实可以在真实 replay 上小幅超过更强 target-only surrogate baseline。下一步应该把 `scale`、kernel field weights、gate threshold 这些东西交给 calibration split 或 LLM rule-level proposer 来选，而不是人工固定。
+
 ## 3. 第一阶段：Synthetic Suzuki smoke test
 
 这一步是最早的 smoke test，目的不是讲真实化学结论，而是确认 replay 接口、audit log、skill 和 hypothesis update 都能跑。
@@ -296,7 +302,7 @@ ChemLex 代理数据上提升很明显，但这个结果要很小心地讲。它
 
 第一，代码和实验框架已经从单一 synthetic task 扩到了多个数据集，包括真实 HTE 和真实分子性质数据。这说明 CARE 2.0 的 platform interface 是可行的。
 
-第二，现在已经有真实数据 transfer 正例，但强度要分开讲。分子性质方向，`FreeSolv -> Lipophilicity` 在 50 seeds 下 final best 提升 +2.7550，AUC 提升 +2.4000，top-10 hit 从 4% 到 30%，而且强于新补的 GP-UCB / GP-EI / kNN-UCB surrogate baseline。进一步把 transfer 叠到 GP-UCB 上，也有小幅正收益，final best +0.4000，AUC +0.2692。反应 HTE 方向，`Suzuki-Miyaura -> Buchwald-Hartwig` 相比 public incumbent 有提升，final best +2.4389，AUC +1.1066；但 GP-UCB target-only baseline 更强。hybrid 后 AUC 稍微提高，但 final best 降低，所以这条目前应当说成“transfer 有正向轨迹信号，但还没赢最强 surrogate baseline”。
+第二，现在已经有真实数据 transfer 正例，但强度要分开讲。分子性质方向，`FreeSolv -> Lipophilicity` 在 50 seeds 下 final best 提升 +2.7550，AUC 提升 +2.4000，top-10 hit 从 4% 到 30%，而且强于新补的 GP-UCB / GP-EI / kNN-UCB surrogate baseline。进一步把 transfer 叠到 GP-UCB 上，也有小幅正收益，additive hybrid 的 final best +0.4000、AUC +0.2692；transfer-weighted GP kernel 的 `scale=1.5` 也有小幅正收益，final best +0.0875、AUC +0.2230。反应 HTE 方向，`Suzuki-Miyaura -> Buchwald-Hartwig` 相比 public incumbent 有提升，final best +2.4389，AUC +1.1066。GP-UCB target-only baseline 更强以后，简单 additive hybrid 还没赢 final best；但 transfer-weighted GP kernel 已经把 GP-UCB 从 final best 91.1145 / AUC 82.9700 提到 91.4146 / 83.2862。这说明反应方向不是只能赢弱 incumbent，skill 进入 acquisition geometry 后已经有小幅超过强 baseline 的信号。
 
 第三，结果还不是“所有方向都提升”。BH -> Suzuki 这类反向迁移目前不稳定，ChemLex 和材料方向还需要更强的真实数据与更明确的 transfer map。这个边界反而是有价值的：CARE 2.0 不是盲目把 source knowledge 往 target 上套，而是要识别什么时候能迁移，什么时候应该保守。
 
@@ -308,6 +314,6 @@ ChemLex 代理数据上提升很明显，但这个结果要很小心地讲。它
 
 第二，做 gate calibration。当前最强的 value-prior transfer 能打出明显优势，但 bad interventions 也变多。下一版应该保留它的 top10 hit 和 AUC 优势，同时用 target confirmation、risk-aware gate 或 LLM audit 降低坏 intervention。
 
-第三，补更强的 hybrid challenger。现在 challenger 主要是规则化 factor evidence、shared descriptor prior，以及一版真实 LLM proposer。新 baseline 显示 GP-UCB 在反应 HTE 上很强，hybrid 实验也说明简单 additive transfer adjustment 还不够。下一步应该让 transfer card 更细地影响 GP-UCB acquisition，比如区分改 posterior mean、uncertainty、exploration weight，或者只做 candidate filtering。LLM 也应该产出更受约束的 structured proposal、rationale 和 skill artifact，再由 gate 审查，而不是让 LLM 直接决定实验。
+第三，继续做 acquisition-level skill optimization。现在 challenger 主要是规则化 factor evidence、shared descriptor prior，以及一版真实 LLM proposer。新 baseline 显示 GP-UCB 在反应 HTE 上很强，简单 additive transfer adjustment 不够；最新 transfer-weighted kernel 说明，把 skill 用来改 GP kernel field weights 是可行方向。下一步应该把 `scale`、posterior mean/uncertainty/exploration weight、candidate filtering 和 gate threshold 放进一个 calibration/search loop。LLM 也应该产出更受约束的 structured proposal、rationale 和 skill artifact，再由 gate 审查，而不是让 LLM 直接决定实验。
 
 第四，补跨域任务。分子方向可以从单属性扩到 LogP/QED/SA 多目标；材料方向可以接 Matbench 或 Materials Project 中能转成 finite-pool replay 的 property task。这样就能更贴近“化学、材料、药物多个领域的新物质发现平台”的 CARE 2.0 目标。

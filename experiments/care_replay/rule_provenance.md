@@ -127,9 +127,9 @@ The baseline story now has three layers:
 The surrogate baseline comparison sharpens the claim. FreeSolv to
 Lipophilicity transfer remains stronger than the added GP-UCB / GP-EI / kNN-UCB
 baselines. Suzuki-Miyaura to Buchwald-Hartwig transfer beats the public
-incumbent, but current GP-UCB is stronger on that target. The reaction HTE
-story should therefore be reported as a positive transfer result against the
-current incumbent, not as a win against all target-only optimizers.
+incumbent, but current GP-UCB is stronger than the additive transfer gate on
+that target. The reaction HTE story should therefore distinguish between
+ordinary transfer-over-incumbent and acquisition-level transfer-over-GP-UCB.
 
 The first hybrid experiment uses GP-UCB itself as the incumbent acquisition and
 lets transfer cards apply bounded acquisition adjustments. This gives a small
@@ -139,9 +139,21 @@ although it slightly improves AUC. The next rule work should therefore focus on
 how transfer modifies the acquisition function, not just whether transfer can
 override a hand-written incumbent.
 
+The transfer-weighted kernel experiment is the first acquisition-level positive
+result against GP-UCB. It uses the same mixed-kernel GP-UCB acquisition, but
+reweights categorical kernel fields using source-to-target transfer-card role
+confidence. This does not transfer hidden outcomes and does not directly select
+candidate ids. On Suzuki-Miyaura to Buchwald-Hartwig, `scale=1.5` improves
+50-seed final best from 91.1145 to 91.4146 and AUC from 82.9700 to 83.2862.
+On FreeSolv to Lipophilicity, the same moderate scale improves final best from
+88.4775 to 88.5650 and AUC from 86.4578 to 86.6808. The gain is small, and
+larger or smaller scales can hurt, so this should be framed as evidence that
+skill optimization can beat the stronger baseline in selected settings, not as
+a solved optimizer.
+
 At the same time, negative or flat transfer should remain in the internal
 report. It helps make the story credible: CARE 2.0 is not claiming universal
 transfer. The current claim should be that the platform can express and test
 transfer, that some real transfer directions are already positive, and that the
-next technical work is gate calibration, stronger surrogate incumbents, and
+next technical work is calibration of acquisition-level skill parameters and
 LLM-driven rule evolution.

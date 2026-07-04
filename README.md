@@ -64,6 +64,7 @@ The latest tracked replay output is in:
 - `experiments/care_replay/results/2026-07-03-incumbent-rule-ablation/`
 - `experiments/care_replay/results/2026-07-03-surrogate-baselines/`
 - `experiments/care_replay/results/2026-07-03-hybrid-surrogate-transfer/`
+- `experiments/care_replay/results/2026-07-04-transfer-weighted-kernel/`
 - `experiments/care_replay/outputs/`
 - `experiments/care_replay/data/raw/`
 
@@ -80,7 +81,10 @@ CARE 1.0 reproduction or a named literature baseline. The surrogate-baseline
 snapshot adds dependency-free GP-UCB, GP-EI, and kNN-UCB comparisons against the
 current 50-seed transfer results. The hybrid-surrogate snapshot then uses
 GP-UCB as the incumbent acquisition and tests whether CARE transfer cards can
-still improve that stronger optimizer.
+still improve that stronger optimizer. The transfer-weighted-kernel snapshot
+goes one step further: CARE transfer-card role confidence reweights the GP-UCB
+categorical kernel, producing a small positive acquisition-level result over
+GP-UCB on Suzuki-to-Buchwald-Hartwig and FreeSolv-to-Lipophilicity replay.
 Raw public data files, per-mode metrics, audit logs, and knowledge snapshots
 are kept under `experiments/care_replay/`.
 
