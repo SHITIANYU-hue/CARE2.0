@@ -298,6 +298,8 @@ ChemLex 代理数据上提升很明显，但这个结果要很小心地讲。它
 
 这部分和实验的关系是：现在 replay 里的 skill 还是手写的轻量规则；后面如果要做 CARE 2.0 的 self-improving skill library，就需要把每次实验中的假说、证据、失败 case、可复用规则沉淀进知识库，再由 gate 控制哪些能被重新使用。
 
+最新补的知识库卡片把 skill transfer 明确拆成六层，而不是只停留在 acquisition 层：representation transfer 负责 source/target 字段映射，mechanism transfer 负责可复用科学假说，model transfer 负责 kernel/embedding/feature transform，acquisition transfer 负责候选排序和探索策略，gate/risk transfer 负责识别 negative transfer，workflow transfer 负责实验预算、审计和数据边界。`transfer_weighted_gp_kernel` 现在只是其中一个 model/acquisition binding；真正的 CARE 2.0 skill artifact 应该把这六层一起记录下来。
+
 ## 9. 现在能得出的结论
 
 第一，代码和实验框架已经从单一 synthetic task 扩到了多个数据集，包括真实 HTE 和真实分子性质数据。这说明 CARE 2.0 的 platform interface 是可行的。

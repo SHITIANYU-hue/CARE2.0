@@ -145,6 +145,12 @@ transfer rules are transparent engineering controls for the CARE 2.0 replay
 harness; they are not CARE 1.0 paper-number reproductions or named community
 baselines.
 
+Layered skill-transfer design is tracked in `skill_transfer_layers.md`. The
+current transfer-weighted kernel experiment is treated as one concrete
+model/acquisition binding inside a broader transferable skill artifact that also
+needs representation mapping, mechanism hypotheses, gate/risk checks, and
+workflow boundaries.
+
 The current stronger baseline set includes random search, the public incumbent,
 incumbent ablations, mixed-kernel GP-UCB, mixed-kernel GP-EI, and kNN-UCB. The
 GP-style baselines are implemented without external numerical dependencies.

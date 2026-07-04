@@ -16,6 +16,9 @@ Current contents:
   datasets, results, and next steps.
 - `experiments/care_replay/rule_provenance.md`: provenance notes for the
   current incumbent, transfer rules, LLM roles, and incumbent ablation.
+- `experiments/care_replay/skill_transfer_layers.md`: layered CARE 2.0 skill
+  transfer design, covering representation, mechanism, model, acquisition,
+  gate/risk, and workflow transfer.
 
 The current replay experiments are smoke tests. Synthetic adapters validate the
 interface and audit flow; public adapters let the same loop run on real measured
