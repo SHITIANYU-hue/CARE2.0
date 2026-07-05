@@ -74,6 +74,15 @@ such as a particular ligand ID unless the field vocabulary is known to be shared
 For MoleculeNet tasks, shared descriptor bins are allowed to create conservative
 value priors because the vocabulary is genuinely shared.
 
+The reaction descriptor follow-up adds a stricter boundary for BH/Suzuki-style
+transfer. Raw descriptor value priors are now treated as diagnostic rather than
+default-safe: directly transferring the source-side sign of a descriptor value
+can create large negative transfer. The newer
+`transfer_descriptor_target_calibrated_*` modes instead use source descriptor
+priors only as a whitelist of values worth checking. The sign and most of the
+weight come from revealed target observations, and the strict variant only
+allows positive target-side signals through the gate.
+
 The gate then decides whether the transfer challenger can override the
 incumbent. It checks the margin, acquisition loss, row-order stability, and
 maximum bounded adjustment.

@@ -63,6 +63,14 @@ LLM 目前确实有真实调用，但角色还比较窄。`llm_transfer_gate_v1`
 
 这个结论要保守讲：现在不是“CARE2.0 已经大幅碾压 GP-UCB”，而是证明了一个关键方向可行：当 reusable skill 进入 acquisition geometry，而不是只做后处理加分时，确实可以在真实 replay 上小幅超过更强 target-only surrogate baseline。下一步应该把 `scale`、kernel field weights、gate threshold 这些东西交给 calibration split 或 LLM rule-level proposer 来选，而不是人工固定。
 
+## 2.6 最新补充：descriptor transfer 要做 target calibration
+
+群里最新讨论后，我们又补了一版 reaction descriptor transfer 的诊断实验。前一版 raw descriptor value prior 的问题很明显：它直接把 source 里某个 descriptor value 的正负方向迁移到 target，Suzuki -> Buchwald-Hartwig 上会造成严重负迁移。新实验改成 `target_calibrated_descriptor_prior`：source descriptor 只负责告诉系统哪些 descriptor value 值得关注，方向和强度由 target 已 reveal 的 observation 决定。
+
+正式结果是：BH -> Suzuki 上，新 strict calibrated 版本没有赢 incumbent，final best 是 92.0578，对 incumbent 是 -0.5507，但 AUC 是 +0.3212，top-10 hit 从 0.10 到 0.20，bad interventions 比 raw descriptor prior 少很多。Suzuki -> BH 上，strict calibrated 版本把 raw descriptor strict 的 final delta 从 -13.2594 修到 +1.3678，AUC delta 从 -9.4342 修到 +1.0884，并超过 incumbent。它还没有超过最强的 role-level `transfer_gate_v1`，后者 Suzuki -> BH 的 final delta 是 +2.4389；所以这不是新的 headline win，但它解释了 descriptor transfer 失败在哪里，也证明通过 target calibration 可以修复负迁移。
+
+这件事对 CARE 2.0 很关键：跨领域迁移不能只问“source 里什么好”，而要问“source 让 target 先看哪里，target 自己的早期证据是否支持这个方向”。下一步 LLM 更适合做 policy selector / rule evolver：在 role transfer、strict transfer、target-calibrated descriptor transfer、incumbent 之间选择，或者调 threshold 和 descriptor whitelist；而不是只在固定 schema 里给候选加一点 bounded adjustment。
+
 ## 3. 第一阶段：Synthetic Suzuki smoke test
 
 这一步是最早的 smoke test，目的不是讲真实化学结论，而是确认 replay 接口、audit log、skill 和 hypothesis update 都能跑。

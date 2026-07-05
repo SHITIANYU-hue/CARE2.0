@@ -136,6 +136,19 @@ Tracked result snapshots:
   FreeSolv-to-Lipophilicity hybrid transfer sweep over GP-UCB, including 3/5/10
   round budgets and warm-start ablations. The main signal is early-discovery
   gain: higher AUC and top-10 hit rate under a strong target-only GP baseline.
+- `results/2026-07-04-reaction-transfer-descriptors/`: reaction component
+  descriptor infrastructure and matched-cap descriptor-value-prior rerun for
+  BH/Suzuki transfer. It shows that descriptor-level transfer is active, but raw
+  source descriptor value direction can cause negative transfer.
+- `results/2026-07-05-gpt-transfer-descriptor-followup/`: GPT structured-output
+  follow-up for descriptor-aware LLM transfer. GPT fixes the previous JSON
+  reliability issue, but the current LLM proposer/auditor still produces almost
+  no effective interventions under the constrained adjustment schema.
+- `results/2026-07-05-target-calibrated-descriptor-transfer/`: target-calibrated
+  descriptor prior experiment. Source descriptors only whitelist values, while
+  target observations decide direction. This repairs Suzuki-to-BH raw descriptor
+  negative transfer and beats incumbent in the strict setting, but does not yet
+  beat the strongest role-level transfer baseline.
 
 The synthetic adapters let us test whether the same CARE gate and audit protocol
 behaves consistently across task shapes. The real HTE adapters download public
@@ -169,6 +182,11 @@ settings, the final-best and AUC deltas are larger.
 The transfer-weighted kernel setting moves one step deeper: the transfer card
 changes the GP kernel field weights directly, so the reusable skill optimizes
 the acquisition geometry instead of only adding a post-hoc candidate bonus.
+The target-calibrated descriptor setting adds a safety lesson for reaction
+transfer: descriptor infrastructure is useful, but direct source value direction
+is too risky. Source descriptor knowledge should narrow the search attention;
+target observations should decide the sign and strength before the gate can
+authorize an intervention.
 
 The MoleculeNet ESOL adapter is not a reaction dataset. It frames measured
 solubility as a finite-pool molecular property search task.

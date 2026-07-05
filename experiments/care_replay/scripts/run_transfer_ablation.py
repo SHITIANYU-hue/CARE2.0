@@ -38,6 +38,9 @@ DEFAULT_MODES: tuple[TransferMode, ...] = (
     "transfer_descriptor_value_prior_no_gate",
     "transfer_descriptor_value_prior_gate_v1",
     "transfer_descriptor_value_prior_strict_gate_v1",
+    "transfer_descriptor_target_calibrated_no_gate",
+    "transfer_descriptor_target_calibrated_gate_v1",
+    "transfer_descriptor_target_calibrated_strict_gate_v1",
     "llm_transfer_gate_v1",
     "llm_transfer_strict_gate_v1",
     "llm_audit_transfer_gate_v1",
@@ -124,6 +127,14 @@ def is_descriptor_value_prior_mode(mode: TransferMode) -> bool:
         "transfer_descriptor_value_prior_no_gate",
         "transfer_descriptor_value_prior_gate_v1",
         "transfer_descriptor_value_prior_strict_gate_v1",
+    }
+
+
+def is_target_calibrated_descriptor_prior_mode(mode: TransferMode) -> bool:
+    return mode in {
+        "transfer_descriptor_target_calibrated_no_gate",
+        "transfer_descriptor_target_calibrated_gate_v1",
+        "transfer_descriptor_target_calibrated_strict_gate_v1",
     }
 
 
@@ -690,6 +701,166 @@ def source_value_prior_adjustments(
                 "signed_adjustment_cap": signed_adjustment_cap,
                 "positive_adjustment_cap": positive_adjustment_cap if strict else 0.0,
                 "applied_specs": applied_specs,
+            }
+        },
+        "max_abs_adjustment": round(max_abs, 6),
+    }
+    return adjustments, cert
+
+
+def target_calibrated_descriptor_prior_adjustments(
+    adapter: replay.DatasetAdapter,
+    pool: tuple[replay.Candidate, ...],
+    observed_ids: set[str],
+    observed: list[replay.Candidate],
+    card: TransferCard,
+    min_target_support: int,
+    effect_threshold: float,
+    strict: bool = False,
+    min_prior_confidence: float = 0.10,
+    min_positive_priors: int = 1,
+    max_negative_priors: int = 0,
+    signed_adjustment_cap: float = 0.06,
+    positive_adjustment_cap: float = 0.05,
+) -> tuple[dict[str, float], dict[str, Any]]:
+    skill_id = "target_calibrated_descriptor_prior"
+    adjustments = {c.candidate_id: 0.0 for c in pool if c.candidate_id not in observed_ids}
+    active_priors = [
+        prior
+        for prior in card.value_priors
+        if prior.transfer_weight > 0.0 and (not strict or prior.confidence >= min_prior_confidence)
+    ]
+    if not active_priors:
+        return adjustments, {
+            "skills": {
+                skill_id: {
+                    "active": False,
+                    "reason": "no_descriptor_value_priors_for_target_calibration",
+                }
+            },
+            "max_abs_adjustment": 0.0,
+        }
+
+    priors_by_target: dict[tuple[str, str], list[TransferValuePrior]] = {}
+    for prior in active_priors:
+        priors_by_target.setdefault((prior.target_field, prior.value), []).append(prior)
+
+    target_fields = tuple(sorted({target_field for target_field, _value in priors_by_target}))
+    factor_summary = replay.factor_stats(observed, target_fields)
+    global_mean = replay.observed_mean(observed)
+    calibrated_specs: dict[tuple[str, str], dict[str, Any]] = {}
+    rejected_specs: list[dict[str, Any]] = []
+
+    for (target_field, value), priors in sorted(priors_by_target.items()):
+        count, value_mean = factor_summary.get((target_field, value), (0, global_mean))
+        if count < min_target_support:
+            rejected_specs.append(
+                {
+                    "target_field": target_field,
+                    "value": value,
+                    "reason": "insufficient_target_support",
+                    "target_support_count": count,
+                }
+            )
+            continue
+        target_effect = replay.smoothed_mean(count, value_mean, global_mean, prior_weight=2.0) - global_mean
+        if abs(target_effect) < effect_threshold:
+            rejected_specs.append(
+                {
+                    "target_field": target_field,
+                    "value": value,
+                    "reason": "target_effect_below_threshold",
+                    "target_support_count": count,
+                    "target_effect": round(target_effect, 4),
+                }
+            )
+            continue
+        max_confidence = max(prior.confidence for prior in priors)
+        source_weight = max(prior.transfer_weight for prior in priors)
+        source_effects = [prior.source_effect for prior in priors]
+        direction = 1.0 if target_effect > 0 else -1.0
+        if strict and direction < 0:
+            rejected_specs.append(
+                {
+                    "target_field": target_field,
+                    "value": value,
+                    "reason": "strict_mode_requires_positive_target_signal",
+                    "target_support_count": count,
+                    "target_effect": round(target_effect, 4),
+                }
+            )
+            continue
+
+        # Source evidence gates which descriptor values are considered, while
+        # revealed target data determines the sign and most of the magnitude.
+        source_gate = max(0.25, min(1.0, max_confidence + source_weight * 6.0))
+        target_magnitude = min(signed_adjustment_cap, abs(target_effect) / 100.0)
+        if strict:
+            target_magnitude = min(positive_adjustment_cap, target_magnitude)
+        delta = direction * target_magnitude * source_gate
+        calibrated_specs[(target_field, value)] = {
+            "target_field": target_field,
+            "value": value,
+            "target_support_count": count,
+            "target_effect": round(target_effect, 4),
+            "source_prior_count": len(priors),
+            "source_effects": [round(effect, 4) for effect in source_effects[:6]],
+            "max_source_confidence": round(max_confidence, 4),
+            "max_source_transfer_weight": round(source_weight, 6),
+            "source_gate": round(source_gate, 4),
+            "weight": round(delta, 6),
+        }
+
+    scored = 0
+    positive = 0
+    negative = 0
+    strict_rejected = 0
+    for candidate in pool:
+        if candidate.candidate_id not in adjustments:
+            continue
+        signals: list[float] = []
+        for (target_field, value), spec in calibrated_specs.items():
+            if str(candidate.metadata.get(target_field, "")) != value:
+                continue
+            signals.append(float(spec["weight"]))
+        if not signals:
+            continue
+        if strict:
+            positive_signals = [signal for signal in signals if signal > 0]
+            negative_signals = [signal for signal in signals if signal < 0]
+            if len(positive_signals) < min_positive_priors or len(negative_signals) > max_negative_priors:
+                strict_rejected += 1
+                continue
+            bounded = max(0.0, min(positive_adjustment_cap, mean(positive_signals)))
+        else:
+            bounded = max(-signed_adjustment_cap, min(signed_adjustment_cap, mean(signals)))
+        adjustments[candidate.candidate_id] += bounded
+        scored += 1
+        positive += int(bounded > 0)
+        negative += int(bounded < 0)
+
+    max_abs = max((abs(v) for v in adjustments.values()), default=0.0)
+    cert = {
+        "skills": {
+            skill_id: {
+                "active": scored > 0,
+                "card_id": card.card_id,
+                "scored_candidates": scored,
+                "positive_adjustments": positive,
+                "negative_adjustments": negative,
+                "strict_rejected_candidates": strict_rejected,
+                "strict_enabled": strict,
+                "min_prior_confidence": min_prior_confidence if strict else 0.0,
+                "min_positive_priors": min_positive_priors if strict else 0,
+                "max_negative_priors": max_negative_priors if strict else 0,
+                "signed_adjustment_cap": signed_adjustment_cap,
+                "positive_adjustment_cap": positive_adjustment_cap if strict else 0.0,
+                "calibrated_specs": sorted(
+                    calibrated_specs.values(),
+                    key=lambda item: abs(float(item["weight"])),
+                    reverse=True,
+                )[:24],
+                "rejected_specs": rejected_specs[:48],
             }
         },
         "max_abs_adjustment": round(max_abs, 6),
@@ -1348,6 +1519,7 @@ def run_target_policy(
                 local_cert: dict[str, Any] | None = None
                 transfer_adjustment_values: dict[str, float] | None = None
                 value_prior_adjustment_values: dict[str, float] | None = None
+                target_calibrated_adjustment_values: dict[str, float] | None = None
                 row_order_stable = True
                 active_skill_ids: list[str] = []
 
@@ -1370,6 +1542,9 @@ def run_target_policy(
                     "transfer_value_prior_no_gate",
                     "transfer_value_prior_gate_v1",
                     "transfer_value_prior_strict_gate_v1",
+                    "transfer_descriptor_target_calibrated_no_gate",
+                    "transfer_descriptor_target_calibrated_gate_v1",
+                    "transfer_descriptor_target_calibrated_strict_gate_v1",
                     "llm_transfer_gate_v1",
                     "llm_transfer_strict_gate_v1",
                     "llm_descriptor_transfer_gate_v1",
@@ -1382,6 +1557,7 @@ def run_target_policy(
                         "transfer_strict_plus_local_gate_v1",
                         "transfer_value_prior_strict_gate_v1",
                         "transfer_descriptor_value_prior_strict_gate_v1",
+                        "transfer_descriptor_target_calibrated_strict_gate_v1",
                         "llm_transfer_strict_gate_v1",
                         "llm_audit_transfer_strict_gate_v1",
                     }
@@ -1476,10 +1652,34 @@ def run_target_policy(
                         transfer_scored_candidates_total += int(value_prior_skill.get("scored_candidates", 0))
                         active_skill_ids.append(value_prior_skill_id)
 
+                if is_target_calibrated_descriptor_prior_mode(mode):
+                    strict_value_prior = mode == "transfer_descriptor_target_calibrated_strict_gate_v1"
+                    min_positive_priors = max(1, strict_min_positive_roles)
+                    target_calibrated_adjustment_values, value_prior_cert = target_calibrated_descriptor_prior_adjustments(
+                        adapter,
+                        pool,
+                        observed_ids,
+                        observed,
+                        card,
+                        min_target_support,
+                        effect_threshold,
+                        strict_value_prior,
+                        strict_min_role_confidence,
+                        min_positive_priors,
+                        strict_max_negative_roles,
+                    )
+                    calibrated_skill = value_prior_cert["skills"]["target_calibrated_descriptor_prior"]
+                    if calibrated_skill.get("active"):
+                        round_transfer_active = True
+                        transfer_scored_candidates_total += int(calibrated_skill.get("scored_candidates", 0))
+                        active_skill_ids.append("target_calibrated_descriptor_prior")
+
                 if mode in {"transfer_plus_local_gate_v1", "transfer_strict_plus_local_gate_v1"}:
                     adjustments = combine_adjustments(local_adjustments or {}, transfer_adjustment_values or {})
                 elif is_value_prior_mode(mode):
                     adjustments = combine_adjustments(transfer_adjustment_values or {}, value_prior_adjustment_values or {})
+                elif is_target_calibrated_descriptor_prior_mode(mode):
+                    adjustments = combine_adjustments(transfer_adjustment_values or {}, target_calibrated_adjustment_values or {})
                 else:
                     adjustments = local_adjustments or transfer_adjustment_values or {
                         c.candidate_id: 0.0 for c in pool if c.candidate_id not in observed_ids
@@ -1491,6 +1691,7 @@ def run_target_policy(
                     "transfer_strict_no_gate",
                     "transfer_value_prior_no_gate",
                     "transfer_descriptor_value_prior_no_gate",
+                    "transfer_descriptor_target_calibrated_no_gate",
                 }:
                     gate = replay.no_gate_decision(base_scores, adjusted_scores, row_order_stable, tuple(active_skill_ids))
                 else:
@@ -1695,7 +1896,12 @@ def run_transfer_ablation(
     task = replay.make_task(target_adapter, initial, rounds)
     role_map = role_map_for(source_dataset, target_dataset)
     descriptor_role_map = descriptor_role_map_for(source_dataset, target_dataset)
-    descriptor_modes_requested = any(is_descriptor_value_prior_mode(mode) or is_descriptor_llm_mode(mode) for mode in modes)
+    descriptor_modes_requested = any(
+        is_descriptor_value_prior_mode(mode)
+        or is_descriptor_llm_mode(mode)
+        or is_target_calibrated_descriptor_prior_mode(mode)
+        for mode in modes
+    )
     rows: list[dict[str, Any]] = []
     audits: dict[tuple[str, int], list[replay.AuditEntry]] = {}
     hypotheses: dict[tuple[str, int], replay.HypothesisEntry] = {}
@@ -1724,7 +1930,13 @@ def run_transfer_ablation(
             )
             descriptor_cards[seed] = descriptor_card
         for mode in modes:
-            active_card = descriptor_card if is_descriptor_value_prior_mode(mode) or is_descriptor_llm_mode(mode) else card
+            active_card = (
+                descriptor_card
+                if is_descriptor_value_prior_mode(mode)
+                or is_descriptor_llm_mode(mode)
+                or is_target_calibrated_descriptor_prior_mode(mode)
+                else card
+            )
             metrics, audit, hypothesis = run_target_policy(
                 target_adapter,
                 task,
