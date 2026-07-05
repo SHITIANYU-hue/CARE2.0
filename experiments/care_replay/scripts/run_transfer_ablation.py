@@ -42,6 +42,7 @@ DEFAULT_MODES: tuple[TransferMode, ...] = (
     "llm_transfer_strict_gate_v1",
     "llm_audit_transfer_gate_v1",
     "llm_audit_transfer_strict_gate_v1",
+    "llm_descriptor_transfer_gate_v1",
 )
 
 
@@ -92,7 +93,7 @@ def parse_modes(raw: str) -> tuple[TransferMode, ...]:
 
 
 def is_llm_transfer_mode(mode: TransferMode) -> bool:
-    return mode in {"llm_transfer_gate_v1", "llm_transfer_strict_gate_v1"}
+    return mode in {"llm_transfer_gate_v1", "llm_transfer_strict_gate_v1", "llm_descriptor_transfer_gate_v1"}
 
 
 def is_llm_audit_transfer_mode(mode: TransferMode) -> bool:
@@ -101,6 +102,10 @@ def is_llm_audit_transfer_mode(mode: TransferMode) -> bool:
 
 def is_any_llm_mode(mode: TransferMode) -> bool:
     return is_llm_transfer_mode(mode) or is_llm_audit_transfer_mode(mode)
+
+
+def is_descriptor_llm_mode(mode: TransferMode) -> bool:
+    return mode == "llm_descriptor_transfer_gate_v1"
 
 
 def is_value_prior_mode(mode: TransferMode) -> bool:
@@ -692,6 +697,57 @@ def source_value_prior_adjustments(
     return adjustments, cert
 
 
+def observed_transfer_evidence_payload(
+    adapter: replay.DatasetAdapter,
+    observed: list[replay.Candidate],
+    factor_columns: tuple[str, ...],
+    evidence_kind: str,
+) -> dict[str, Any]:
+    global_mean = replay.observed_mean(observed)
+    factor_rows = []
+    for (field_name, value), (count, value_mean) in replay.factor_stats(observed, factor_columns).items():
+        if count < 2:
+            continue
+        factor_rows.append(
+            {
+                "field": field_name,
+                "value": value,
+                "count": count,
+                "mean": round(value_mean, 4),
+                "delta_vs_global": round(value_mean - global_mean, 4),
+            }
+        )
+    factor_rows = sorted(factor_rows, key=lambda item: (abs(item["delta_vs_global"]), item["count"]), reverse=True)[:24]
+    top_observed = sorted(observed, key=lambda c: c.objective_value, reverse=True)[:6]
+    bottom_observed = sorted(observed, key=lambda c: c.objective_value)[:6]
+    return {
+        "dataset": adapter.dataset_id,
+        "objective": adapter.objective,
+        "decision_columns": list(adapter.decision_columns),
+        "evidence_fields": list(factor_columns),
+        "evidence_kind": evidence_kind,
+        "hidden_target": adapter.hidden_target,
+        "group_column": adapter.group_column,
+        "observed_count": len(observed),
+        "global_revealed_mean": round(global_mean, 4),
+        "factor_evidence": factor_rows,
+        "top_revealed": [replay.compact_candidate(c) for c in top_observed],
+        "bottom_revealed": [replay.compact_candidate(c) for c in bottom_observed],
+        "output_contract": {
+            "adjustments": [
+                {
+                    "field": "one observed factor field",
+                    "value": "one observed factor value",
+                    "direction": "prefer or penalize",
+                    "weight": "number between 0.0 and 0.08",
+                    "reason": "short evidence-based reason",
+                }
+            ],
+            "confidence": "number between 0 and 1",
+        },
+    }
+
+
 def llm_transfer_prompt_payload(
     adapter: replay.DatasetAdapter,
     observed: list[replay.Candidate],
@@ -702,10 +758,22 @@ def llm_transfer_prompt_payload(
     min_role_confidence: float,
     min_positive_roles: int,
     max_negative_roles: int,
+    descriptor_level: bool = False,
 ) -> dict[str, Any]:
-    active_roles = [asdict(role) for role in card.roles if role.transfer_weight > 0.0]
+    active_roles = [
+        asdict(role)
+        for role in card.roles
+        if role.transfer_weight > 0.0
+        and (not descriptor_level or role.target_field not in adapter.decision_columns)
+    ]
+    allowed_fields = tuple(sorted({role["target_field"] for role in active_roles}))
+    target_evidence = (
+        observed_transfer_evidence_payload(adapter, observed, allowed_fields, "reaction_descriptor")
+        if descriptor_level
+        else replay.observed_evidence_payload(adapter, observed)
+    )
     return {
-        "target_evidence": replay.observed_evidence_payload(adapter, observed),
+        "target_evidence": target_evidence,
         "transfer_card": {
             "card_id": card.card_id,
             "source_dataset": card.source_dataset,
@@ -717,11 +785,14 @@ def llm_transfer_prompt_payload(
             "evidence_summary": card.evidence_summary,
         },
         "transfer_boundary": (
-            "Use the transfer card only as source-to-target role-level evidence strength. "
+            "Use the transfer card only as source-to-target descriptor-level evidence strength. "
+            "Do not assume hidden target outcomes, and do not transfer dataset-local source labels directly."
+            if descriptor_level
+            else "Use the transfer card only as source-to-target role-level evidence strength. "
             "Do not assume hidden target outcomes, and do not transfer source factor values directly."
         ),
         "selection_constraints": {
-            "allowed_fields": sorted({role["target_field"] for role in active_roles}),
+            "allowed_fields": list(allowed_fields),
             "min_target_support": min_target_support,
             "effect_threshold": effect_threshold,
             "strict": strict,
@@ -760,6 +831,7 @@ def llm_transfer_adjustments(
     min_role_confidence: float = 0.18,
     min_positive_roles: int = 2,
     max_negative_roles: int = 0,
+    descriptor_level: bool = False,
 ) -> tuple[dict[str, float], dict[str, Any], dict[str, Any]]:
     adjustments = {c.candidate_id: 0.0 for c in pool if c.candidate_id not in observed_ids}
     if len(observed) < 8:
@@ -772,7 +844,9 @@ def llm_transfer_adjustments(
     role_by_target = {
         role.target_field: role
         for role in card.roles
-        if role.transfer_weight > 0.0 and (not strict or role.confidence >= min_role_confidence)
+        if role.transfer_weight > 0.0
+        and (not descriptor_level or role.target_field not in adapter.decision_columns)
+        and (not strict or role.confidence >= min_role_confidence)
     }
     if not role_by_target:
         cert = {
@@ -791,19 +865,26 @@ def llm_transfer_adjustments(
         min_role_confidence,
         min_positive_roles,
         max_negative_roles,
+        descriptor_level,
     )
+    card_kind = "descriptor-level" if descriptor_level else "role-level"
     system = (
         "You are a CARE 2.0 cross-domain transfer policy proposer for scientific finite-pool replay. "
-        "Use only the revealed target observations and the source-to-target role-level transfer card in the user JSON. "
+        f"Use only the revealed target observations and the source-to-target {card_kind} transfer card in the user JSON. "
         "Do not assume hidden outcomes for unrevealed candidates. Do not transfer source factor values directly. "
         "Return only one JSON object with an adjustments array and confidence. No markdown. No prose. No chain-of-thought."
+    )
+    example = (
+        "{\"adjustments\":[{\"field\":\"ligand_has_phosphine\",\"value\":\"yes\",\"direction\":\"prefer\",\"weight\":0.05,\"reason\":\"short evidence reason\"}],\"confidence\":0.7}"
+        if descriptor_level
+        else "{\"adjustments\":[{\"field\":\"ligand\",\"value\":\"L2\",\"direction\":\"prefer\",\"weight\":0.05,\"reason\":\"short evidence reason\"}],\"confidence\":0.7}"
     )
     user = (
         "Propose bounded target factor-level score adjustments for the next candidate selection. "
         "Use fields only from selection_constraints.allowed_fields. Use values supported by target factor_evidence, "
         "top_revealed, or bottom_revealed. The transfer card tells you which target roles are reliable enough to reuse; "
         "target observations determine the direction. Max 4 adjustments. Return exactly this shape: "
-        "{\"adjustments\":[{\"field\":\"ligand\",\"value\":\"L2\",\"direction\":\"prefer\",\"weight\":0.05,\"reason\":\"short evidence reason\"}],\"confidence\":0.7}. "
+        f"{example}. "
         "JSON input:\n"
         + json.dumps(prompt_payload, ensure_ascii=False)
     )
@@ -821,7 +902,8 @@ def llm_transfer_adjustments(
     if "adjustments" not in parsed and {"field", "value", "direction"} <= set(parsed):
         parsed = {"adjustments": [parsed], "confidence": parsed.get("confidence", 0.5)}
 
-    factor_summary = replay.factor_stats(observed, adapter.decision_columns)
+    factor_columns = tuple(sorted(role_by_target)) if descriptor_level else adapter.decision_columns
+    factor_summary = replay.factor_stats(observed, factor_columns)
     global_mean = replay.observed_mean(observed)
     applied_specs: list[dict[str, Any]] = []
     rejected_specs: list[dict[str, Any]] = []
@@ -918,9 +1000,10 @@ def llm_transfer_adjustments(
     max_abs = max((abs(v) for v in adjustments.values()), default=0.0)
     cert = {
         "skills": {
-            "llm_cross_domain_transfer_card": {
-                "active": bool(applied_specs),
-                "model": response_meta["model"],
+                "llm_cross_domain_transfer_card": {
+                    "active": bool(applied_specs),
+                    "descriptor_level": descriptor_level,
+                    "model": response_meta["model"],
                 "scored_candidates": scored,
                 "positive_adjustments": positive,
                 "negative_adjustments": negative,
@@ -940,6 +1023,7 @@ def llm_transfer_adjustments(
         "mode": mode,
         "seed": seed,
         "round_index": round_index,
+        "descriptor_level": descriptor_level,
         "model": response_meta["model"],
         "usage": response_meta["usage"],
         "prompt_payload": prompt_payload,
@@ -1288,6 +1372,7 @@ def run_target_policy(
                     "transfer_value_prior_strict_gate_v1",
                     "llm_transfer_gate_v1",
                     "llm_transfer_strict_gate_v1",
+                    "llm_descriptor_transfer_gate_v1",
                     "llm_audit_transfer_gate_v1",
                     "llm_audit_transfer_strict_gate_v1",
                 }:
@@ -1319,6 +1404,7 @@ def run_target_policy(
                             strict_min_role_confidence,
                             strict_min_positive_roles,
                             strict_max_negative_roles,
+                            is_descriptor_llm_mode(mode),
                         )
                         llm_call_count += int(bool(llm_record.get("called")))
                         llm_parse_error_count += int(bool(llm_record.get("parse_error")))
@@ -1609,7 +1695,7 @@ def run_transfer_ablation(
     task = replay.make_task(target_adapter, initial, rounds)
     role_map = role_map_for(source_dataset, target_dataset)
     descriptor_role_map = descriptor_role_map_for(source_dataset, target_dataset)
-    descriptor_modes_requested = any(is_descriptor_value_prior_mode(mode) for mode in modes)
+    descriptor_modes_requested = any(is_descriptor_value_prior_mode(mode) or is_descriptor_llm_mode(mode) for mode in modes)
     rows: list[dict[str, Any]] = []
     audits: dict[tuple[str, int], list[replay.AuditEntry]] = {}
     hypotheses: dict[tuple[str, int], replay.HypothesisEntry] = {}
@@ -1638,7 +1724,7 @@ def run_transfer_ablation(
             )
             descriptor_cards[seed] = descriptor_card
         for mode in modes:
-            active_card = descriptor_card if is_descriptor_value_prior_mode(mode) else card
+            active_card = descriptor_card if is_descriptor_value_prior_mode(mode) or is_descriptor_llm_mode(mode) else card
             metrics, audit, hypothesis = run_target_policy(
                 target_adapter,
                 task,
