@@ -6,6 +6,8 @@
 
 目前结论比最初更清楚：平台接口已经跑通，而且 transfer 不是只有概念验证。最新 50-seed server sweep 里，分子性质任务 `FreeSolv -> Lipophilicity` 和反应 HTE 任务 `Suzuki-Miyaura -> Buchwald-Hartwig` 都出现了稳定正向 transfer gain。随后补做的真实 LLM follow-up 说明，LLM proposer 在共享 descriptor 的分子性质方向能给出小幅正收益；但在反应 HTE transfer 上，当前 LLM proposer 还不如确定性 transfer card，LLM auditor 也偏保守。
 
+最新补充后，最适合作为“明显正向 transfer”展示的是 `FreeSolv -> Lipophilicity` 的 shared descriptor value-prior sweep。100 seeds 下，`transfer_value_prior_gate_v1` 在 3/5/10 个 reveal budget 上都稳定超过 incumbent：final best 分别提升 +1.1662、+0.9725、+0.8550，AUC 分别提升 +0.4184、+0.6707、+0.7009，top-10 hit 分别从 0.07/0.11/0.17 提到 0.13/0.18/0.23。这条结果比反应 descriptor transfer 更干净，因为 source 和 target 共享同一套 SMILES-derived descriptor vocabulary，不是在迁移数据集内部编号。
+
 具体来说，我们想验证三件事：
 
 1. CARE 的决策流程能否从单一 synthetic task 扩展到真实 HTE 数据。

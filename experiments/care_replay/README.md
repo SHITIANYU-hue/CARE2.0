@@ -149,6 +149,11 @@ Tracked result snapshots:
   target observations decide direction. This repairs Suzuki-to-BH raw descriptor
   negative transfer and beats incumbent in the strict setting, but does not yet
   beat the strongest role-level transfer baseline.
+- `results/2026-07-05-molprop-value-prior-budget-sweep/`: 100-seed
+  FreeSolv-to-Lipophilicity value-prior transfer sweep over 3/5/10-round
+  budgets. This is currently the cleanest positive transfer case: the shared
+  descriptor value-prior gate improves final best, AUC, and top-10 hit rate in
+  all three budget settings.
 
 The synthetic adapters let us test whether the same CARE gate and audit protocol
 behaves consistently across task shapes. The real HTE adapters download public
@@ -187,6 +192,10 @@ transfer: descriptor infrastructure is useful, but direct source value direction
 is too risky. Source descriptor knowledge should narrow the search attention;
 target observations should decide the sign and strength before the gate can
 authorize an intervention.
+The MoleculeNet value-prior budget sweep is the clearest current positive
+transfer result because the source and target share descriptor vocabulary. In
+3/5/10-round budgets, `transfer_value_prior_gate_v1` improves final best by
+1.1662/0.9725/0.8550 and top-10 hit by 0.06/0.07/0.06 over incumbent.
 
 The MoleculeNet ESOL adapter is not a reaction dataset. It frames measured
 solubility as a finite-pool molecular property search task.
