@@ -5,11 +5,13 @@ import argparse
 import csv
 import gzip
 import hashlib
+import http.client
 import json
 import math
 import os
 import random
 import re
+import time
 import urllib.error
 import urllib.request
 import zipfile
@@ -1658,30 +1660,170 @@ def extract_json_object(text: str) -> dict[str, Any]:
     raise ValueError("No JSON object found in LLM response.")
 
 
+def trace_llm_event(event: dict[str, Any]) -> None:
+    trace_path = os.environ.get("CARE_LLM_TRACE_LOG")
+    if not trace_path:
+        return
+    record = {
+        "ts": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+        **event,
+    }
+    try:
+        path = Path(trace_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+    except OSError:
+        return
+
+
 def chat_completion_text(config: LLMConfig, messages: list[dict[str, str]]) -> tuple[str, dict[str, Any]]:
     payload = {
         "model": config.model,
         "messages": messages,
         "temperature": config.temperature,
         "max_tokens": config.max_tokens,
+        "response_format": {"type": "json_object"},
+        "tools": [
+            {
+                "type": "function",
+                "function": {
+                    "name": "return_json",
+                    "description": "Return exactly the JSON object requested by the prompt.",
+                    "parameters": {
+                        "type": "object",
+                        "additionalProperties": True,
+                    },
+                },
+            }
+        ],
+        "tool_choice": {"type": "function", "function": {"name": "return_json"}},
     }
-    req = urllib.request.Request(
-        config.base_url.rstrip("/") + "/chat/completions",
-        data=json.dumps(payload).encode("utf-8"),
-        headers={
-            "Authorization": "Bearer " + config.api_key,
-            "Content-Type": "application/json",
-        },
-        method="POST",
+    retryable_http = {408, 409, 425, 429, 500, 502, 503, 504}
+    retryable_errors = (TimeoutError, ConnectionError, urllib.error.URLError, http.client.RemoteDisconnected)
+    last_error: BaseException | None = None
+    call_id = f"{os.getpid()}-{time.time_ns()}"
+    call_started = time.monotonic()
+    trace_llm_event(
+        {
+            "event": "call_start",
+            "call_id": call_id,
+            "model": config.model,
+            "base_url": config.base_url.rstrip("/"),
+            "message_count": len(messages),
+            "max_tokens": config.max_tokens,
+            "response_format": payload["response_format"],
+            "tool_choice": payload["tool_choice"],
+        }
     )
-    try:
-        with urllib.request.urlopen(req, timeout=90) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-    except urllib.error.HTTPError as exc:
-        body = exc.read().decode("utf-8", "replace")
-        raise RuntimeError(f"LLM endpoint returned HTTP {exc.code}: {body[:500]}") from exc
-    content = data["choices"][0]["message"].get("content", "")
+    for attempt in range(4):
+        req = urllib.request.Request(
+            config.base_url.rstrip("/") + "/chat/completions",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Authorization": "Bearer " + config.api_key,
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+        try:
+            attempt_started = time.monotonic()
+            trace_llm_event({"event": "attempt_start", "call_id": call_id, "attempt": attempt + 1})
+            with urllib.request.urlopen(req, timeout=90) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            trace_llm_event(
+                {
+                    "event": "attempt_ok",
+                    "call_id": call_id,
+                    "attempt": attempt + 1,
+                    "elapsed_seconds": round(time.monotonic() - attempt_started, 3),
+                    "response_model": data.get("model", config.model),
+                    "usage": data.get("usage", {}),
+                }
+            )
+            break
+        except urllib.error.HTTPError as exc:
+            body = exc.read().decode("utf-8", "replace")
+            if exc.code not in retryable_http or attempt == 3:
+                trace_llm_event(
+                    {
+                        "event": "call_error",
+                        "call_id": call_id,
+                        "attempt": attempt + 1,
+                        "elapsed_seconds": round(time.monotonic() - call_started, 3),
+                        "error_type": type(exc).__name__,
+                        "http_code": exc.code,
+                        "retryable": False,
+                    }
+                )
+                raise RuntimeError(f"LLM endpoint returned HTTP {exc.code}: {body[:500]}") from exc
+            last_error = RuntimeError(f"LLM endpoint returned retryable HTTP {exc.code}: {body[:500]}")
+            trace_llm_event(
+                {
+                    "event": "attempt_retry",
+                    "call_id": call_id,
+                    "attempt": attempt + 1,
+                    "elapsed_seconds": round(time.monotonic() - call_started, 3),
+                    "error_type": type(exc).__name__,
+                    "http_code": exc.code,
+                    "retryable": True,
+                }
+            )
+        except retryable_errors as exc:
+            if attempt == 3:
+                trace_llm_event(
+                    {
+                        "event": "call_error",
+                        "call_id": call_id,
+                        "attempt": attempt + 1,
+                        "elapsed_seconds": round(time.monotonic() - call_started, 3),
+                        "error_type": type(exc).__name__,
+                        "error": str(exc)[:200],
+                        "retryable": False,
+                    }
+                )
+                raise RuntimeError(f"LLM endpoint request failed after retries: {exc}") from exc
+            last_error = exc
+            trace_llm_event(
+                {
+                    "event": "attempt_retry",
+                    "call_id": call_id,
+                    "attempt": attempt + 1,
+                    "elapsed_seconds": round(time.monotonic() - call_started, 3),
+                    "error_type": type(exc).__name__,
+                    "error": str(exc)[:200],
+                    "retryable": True,
+                }
+            )
+        time.sleep(2.0 * (attempt + 1))
+    else:
+        trace_llm_event(
+            {
+                "event": "call_error",
+                "call_id": call_id,
+                "elapsed_seconds": round(time.monotonic() - call_started, 3),
+                "error_type": type(last_error).__name__ if last_error else "UnknownError",
+                "error": str(last_error)[:200],
+                "retryable": False,
+            }
+        )
+        raise RuntimeError(f"LLM endpoint request failed after retries: {last_error}")
+    message = data["choices"][0]["message"]
+    content = message.get("content", "")
+    tool_calls = message.get("tool_calls") or []
+    if tool_calls:
+        content = tool_calls[0].get("function", {}).get("arguments", "") or content
     usage = data.get("usage", {})
+    trace_llm_event(
+        {
+            "event": "call_ok",
+            "call_id": call_id,
+            "elapsed_seconds": round(time.monotonic() - call_started, 3),
+            "response_model": data.get("model", config.model),
+            "tool_call_count": len(tool_calls),
+            "usage": usage,
+        }
+    )
     return content, {"model": data.get("model", config.model), "usage": usage}
 
 
