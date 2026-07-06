@@ -1,37 +1,41 @@
 # CARE 2.0 实验进展汇总
 
-版本日期：2026-07-03
+版本日期：2026-07-06
 
 用途：团队内部同步；可直接复制到飞书文档继续编辑。
 
-## 0. 先说结论
+## 0. 当前结论
 
-这轮工作主要是在验证 CARE 2.0 能不能从单一反应优化系统，往“通用新物质发现平台”推进。现在的结论可以分成三层：
+这轮工作的重点不是复现 CARE 1.0 论文里的最终数字，而是验证 CARE 2.0 能否从单一反应优化扩展成一个跨任务、跨数据集的 replay + transfer 平台。现在可以比较明确地说：平台已经跑通，transfer 也已经有真实数据正例，但不同 transfer 机制的适用边界很明显。
 
-第一，平台接口已经跑通。我们把反应 HTE、分子性质、材料性质、ChemLex 形态任务都统一成了 offline finite-pool replay。每个任务都可以用同一套流程跑：`incumbent baseline -> challenger/skill -> gate -> audit log -> metrics`。
+目前最值得讲的结果有三条。
 
-第二，transfer 已经有比较清楚的正例。最新 50-seed server sweep 里，有两组结果最值得讲：
+| 方向 | 对比 baseline | 最强结果 | 结论 |
+| --- | --- | --- | --- |
+| FreeSolv -> Lipophilicity | target-only incumbent | 100 seeds，3/5/10 budget 下 final best 分别 +1.1662、+0.9725、+0.8550 | 共享分子 descriptor 空间下，value-prior transfer 是当前最清楚的正例 |
+| Suzuki-Miyaura -> Buchwald-Hartwig | target-only incumbent | final best +2.4389，AUC +1.1066 | 反应 HTE 里，role-level transfer 可以带来正向收益 |
+| Suzuki-Miyaura -> Buchwald-Hartwig | mixed-kernel GP-UCB | calibration 选出的 `scale=1.5` 在 held-out seeds 上 final best +0.3966，AUC +0.3162 | transfer 进入 acquisition geometry 后，也能在强 baseline 上保留小幅正信号 |
 
-| Transfer 方向 | 最强模式 | Final best 提升 | AUC 提升 | Top-10 hit 变化 | 读法 |
-| --- | --- | ---: | ---: | ---: | --- |
-| FreeSolv -> Lipophilicity | `transfer_value_prior_gate_v1` | +2.7550 | +2.4000 | 4% -> 30% | 共享分子 descriptor 空间下，transfer 优势最明显 |
-| Suzuki-Miyaura -> Buchwald-Hartwig | `transfer_gate_v1` | +2.4389 | +1.1066 | 16% -> 24% | 反应 HTE 中，role-level transfer 有稳定正向收益 |
+同时也有几个需要明确说明的边界：
 
-第三，系统还不是“所有任务都提升”。BH -> Suzuki 这类反向迁移目前仍不稳定；Matbench 上当前 composition-only observation model 不够强；LLM audit 已经能接入并输出可解析结果，但目前偏保守。这个边界很重要：CARE 2.0 不是盲目迁移 source knowledge，而是要学会什么时候迁移、迁移多少、什么时候由 gate 拦下来。
+1. 分子方向的 GP-kernel reweighting 没有在 held-out seeds 上赢 GP-UCB，不能当正结果讲。
+2. BH -> Suzuki 方向不稳定，说明 transfer 有明显方向性。
+3. raw descriptor value prior 容易负迁移；必须用 target observations 校准方向。
+4. LLM 已经真实接入，但目前还没有稳定超过 deterministic transfer rule。下一步更适合让 LLM 做 rule-level proposer / policy selector，而不是直接决定实验点。
 
 ## 1. 实验框架
 
-我们把每个数据集都改写成一个有限候选池搜索问题。数据集中已经有候选点和真实结果，但 replay 过程中系统不能提前看未选择候选的目标值。每一轮只能基于已经 reveal 的 observations 和 public features 选择下一个候选点，然后再 reveal 真实结果。
+所有任务都被统一成 offline finite-pool replay。数据集中已有候选点和真实结果，但 replay 过程中系统不能提前看未选择候选的目标值。每一轮只能基于已经 reveal 的 observations 和 public features 选择下一个候选点，然后再 reveal 真实结果。
 
-核心角色如下：
+核心组件如下：
 
 | 组件 | 作用 |
 | --- | --- |
-| `no_care_random` | 不使用 CARE，随机选择未观测候选，是最低基线 |
-| `incumbent` | 只基于已公开观测做稳健选择，是主要 target-only baseline |
-| `challenger / skill` | 根据 factor evidence、skill prior 或 transfer card 调整候选排序 |
-| `gate` | 审查 challenger 是否可以覆盖 incumbent，控制风险 |
-| `audit log` | 记录每轮选择、gate certificate、hypothesis snapshot 和 LLM 响应 |
+| `no_care_random` | 不使用 CARE，随机选择未观测候选 |
+| `incumbent` | target-only baseline，只用目标任务已观测数据和 public features |
+| `challenger / skill` | 根据 factor evidence、transfer card、descriptor prior 或 LLM proposal 调整候选排序 |
+| `gate` | 审查 challenger 是否可以覆盖 incumbent，控制 negative transfer 风险 |
+| `audit log` | 记录每轮选择、gate certificate、hypothesis snapshot、transfer card 和 LLM 响应 |
 
 主要指标：
 
@@ -40,242 +44,237 @@
 | `final_best` | replay 结束时找到的最好结果 |
 | `best_so_far_auc` | best-so-far 曲线面积；越高说明越早找到好点 |
 | `simple_regret` | 距离全局最优还有多远 |
-| `top10_hit` | 是否进入全局 top 10% 区域 |
+| `top10_hit` | 是否命中过全局 top 10 候选 |
 | `intervention_count` | gate 授权 challenger 覆盖 incumbent 的次数 |
 | `bad_intervention_count` | intervention 后结果比 incumbent 差的次数 |
-| `llm_call_count` | 实际 LLM 调用次数 |
-| `llm_parse_error_count` | LLM 输出解析失败次数 |
 
-## 2. 数据集覆盖情况
+## 2. 已接入数据集
 
 目前已经接入的数据集/任务如下：
 
 | 数据集 | 类型 | 候选数 | 作用 |
 | --- | ---: | ---: | --- |
-| `synthetic_suzuki_i` | synthetic reaction replay | 448 | Suzuki-like smoke test，验证 replay/skill/gate 接口 |
+| `synthetic_suzuki_i` | synthetic reaction replay | 448 | Suzuki-like smoke test |
 | `synthetic_chemlex_i` | synthetic ChemLex-style replay | 1728 | 验证 acid-amine/ChemLex 任务形态 |
 | `synthetic_materials_i` | synthetic materials replay | 336 | 验证材料配方/工艺任务形态 |
 | `real_buchwald_hartwig` | public real HTE | 3955 | Dreher-Doyle Buchwald-Hartwig yield replay |
 | `real_suzuki_miyaura` | public real HTE | 5760 | Perera Suzuki-Miyaura yield replay |
 | `real_chemlex_acidamine` | real wetlab ChemLex | 11669 | ChemLex Acid-Amine wetlab conversion replay |
-| `real_moleculenet_esol` | molecular property | 1128 | ESOL solubility finite-pool replay |
+| `real_moleculenet_esol` | molecular property | 1128 | ESOL solubility replay |
 | `real_moleculenet_freesolv` | molecular property | 642 | FreeSolv hydration free energy replay |
 | `real_moleculenet_lipophilicity` | molecular property | 4200 | Lipophilicity replay |
 | `real_matbench_expt_gap` | materials property | 4604 | Matbench experimental band gap replay |
 
-## 3. 第一批实验：基础 replay 和 smoke test
+这里需要区分两类结果：真实 HTE、MoleculeNet、ChemLex、Matbench 是真实公开数据；synthetic Suzuki/ChemLex/materials 主要用于接口验证，不应该作为对外科学性能结果。
 
-这批实验的目标不是证明科学性能，而是确认系统能在不同任务形态上稳定跑通。
+## 3. 目前完成的主要工作
+
+### 3.1 多数据集 replay harness
+
+已经完成统一 replay harness，支持不同数据集共用一套流程：
+
+`TaskSpec -> SkillCard -> HypothesisEntry -> GateCertificate -> AuditLog -> Metrics`
+
+这部分的意义是工程层面的：不同领域任务可以进入同一个实验评估框架。后续无论是接 ChemLex、材料性质、分子性质，还是 reaction HTE，都不需要重新写一套评估逻辑。
+
+### 3.2 baseline 体系
+
+已经补了多种 baseline，不只是和 random 比：
+
+| Baseline | 作用 |
+| --- | --- |
+| `no_care_random` | 最低基线 |
+| `incumbent` | public target-only baseline |
+| incumbent ablations | 检查 incumbent 是否过强或过弱 |
+| GP-UCB / GP-EI / kNN-UCB | 更接近常规 Bayesian optimization 的 target-only surrogate baseline |
+| no-gate / gate / strict-gate transfer | 分析 transfer 收益和风险 |
+
+这个部分很关键，因为如果只和 random 或弱 incumbent 比，transfer 的说服力不够。现在我们至少能区分：哪些结果只赢了 public incumbent，哪些能在 GP-UCB 这种更强 baseline 上保留收益。
+
+### 3.3 transfer card 和 role-level transfer
+
+我们实现了 source-to-target transfer card。它不直接读取 target hidden outcome，也不直接指定候选点，而是把 source domain 中哪些 role 更有证据、confidence 多高、是否可迁移，整理成可审计的结构。
+
+例如 Suzuki -> Buchwald-Hartwig 的 role map 是：
+
+| Source field | Target field |
+| --- | --- |
+| ligand | ligand |
+| reagent | base |
+| reactant_1 | aryl_halide |
+| solvent | additive |
+
+这条路线已经在 reaction HTE 上产生正向结果。
+
+## 4. 主结果一：FreeSolv -> Lipophilicity
+
+这是目前最清楚的分子方向 transfer 正例。
+
+FreeSolv 和 Lipophilicity 都来自 MoleculeNet，输入都可以表示成 SMILES-derived descriptors，例如：
+
+- `smiles_length_bin`
+- `hetero_atom_bin`
+- `halogen_bin`
+- `aromatic_bin`
+- `ring_token_bin`
+- `branch_bin`
+- `double_bond_bin`
+
+因为 source 和 target 共享同一套 descriptor vocabulary，所以 value-level prior 的迁移是合理的。这里不是把某个数据集内部编号硬搬到另一个数据集，而是在共享 public descriptor 空间里迁移经验。
+
+### 4.1 100-seed budget sweep
 
 设置：
 
-- Seeds：30
+- Source：`real_moleculenet_freesolv`
+- Target：`real_moleculenet_lipophilicity`
+- Seeds：100
+- Initial observations：5
+- Budgets：3、5、10 reveal rounds
+- Main mode：`transfer_value_prior_gate_v1`
+
+结果：
+
+| Budget | Incumbent final | Transfer final | Delta final | Delta AUC | Top10 hit |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 3 | 84.9338 | 86.1000 | +1.1662 | +0.4184 | 0.07 -> 0.13 |
+| 5 | 86.1287 | 87.1012 | +0.9725 | +0.6707 | 0.11 -> 0.18 |
+| 10 | 87.9513 | 88.8063 | +0.8550 | +0.7009 | 0.17 -> 0.23 |
+
+读法：低预算下提升最明显，说明 transfer prior 对 early discovery 有帮助。
+
+### 4.2 Held-out check
+
+为了避免只看 100-seed aggregate，我们又做了 50/50 split：seeds `0-49` 用于 calibration，seeds `50-99` 用于 held-out evaluation。
+
+| Budget | Selected policy | Held-out delta final | Held-out delta AUC | Held-out delta top10 |
+| ---: | --- | ---: | ---: | ---: |
+| 3 | `transfer_value_prior_gate_v1` | +0.3425 | +0.1900 | +0.0400 |
+| 5 | `transfer_value_prior_gate_v1` | +0.2975 | +0.2605 | +0.0400 |
+| 10 | `transfer_value_prior_gate_v1` | +0.3750 | +0.2168 | -0.0200 |
+
+读法：held-out 后提升幅度变小，但 final best 和 AUC 仍然稳定为正。这说明这条分子 transfer 不是单纯靠几个 seed 拉高平均值。
+
+## 5. 主结果二：Suzuki -> Buchwald-Hartwig
+
+这是目前 reaction HTE 方向最重要的 transfer 正例。
+
+### 5.1 相比 public incumbent 的 role-level transfer
+
+设置：
+
+- Source：`real_suzuki_miyaura`
+- Target：`real_buchwald_hartwig`
+- Seeds：50
 - Initial observations：5
 - Reveal budget：10
-- Modes：`no_care_random`, `incumbent`, `no_gate`, `gate_v1`, `gate_v2`
+- Source observations：96
+- Main mode：`transfer_gate_v1`
 
-关键结果：
+结果：
 
-| 数据集 | 最好 CARE2 模式 | Final best 相比 incumbent | AUC 相比 incumbent | 结论 |
-| --- | --- | ---: | ---: | --- |
-| synthetic_suzuki_i | `gate_v1/gate_v2` | +4.5563 | +6.1074 | positive synthetic control |
-| synthetic_chemlex_i | `gate_v1/gate_v2` | +6.9028 | +9.7056 | ChemLex 形态任务可被 skill/gate 利用 |
-| synthetic_materials_i | `gate_v1/gate_v2` | +2.4809 | +3.5795 | 材料形态接口可用 |
-| real_buchwald_hartwig | `gate_v1/gate_v2` | +0.0000 | +0.0000 | 单任务保守 gate 基本持平 |
-| real_suzuki_miyaura | `gate_v1/gate_v2` | +0.0000 | -0.0886 | 单任务保守 gate 略弱 |
-| real_moleculenet_esol | `gate_v1` | +0.4262 | +0.0640 | 小幅正信号 |
-| real_moleculenet_freesolv | `no_gate` | +0.3511 | +0.0352 | 有 challenger 信号，但 gate 较保守 |
-| real_moleculenet_lipophilicity | `gate_v1/gate_v2` | -0.0584 | -0.0058 | 单任务下略负 |
-| real_matbench_expt_gap | `no_gate` | +0.3250 | +0.0650 | 诊断结果，random baseline 反而更强 |
-
-解读：
-
-这一批证明的是“平台接口可迁移”，不是“所有真实任务都已经提升”。Synthetic 任务提升明显，真实 HTE 单任务基本中性，MoleculeNet 有小信号，Matbench 暴露出 observation model 太弱的问题。
-
-## 4. 材料方向实验
-
-材料方向分两步：先跑 synthetic materials，再接真实 Matbench experimental band gap。
-
-### 4.1 Synthetic materials
-
-| Mode | Final best | AUC | Top-10 hit | Bad interventions |
-| --- | ---: | ---: | ---: | ---: |
-| `no_care_random` | 90.2415 | 88.4020 | 0.4333 | 0.0000 |
-| `incumbent` | 93.3509 | 90.4718 | 0.7000 | 0.0000 |
-| `gate_v1` | 95.8318 | 94.0513 | 0.9333 | 0.7000 |
-
-结论：材料形态的 finite-pool replay、skill adjustment、gate、audit 都能工作。
-
-### 4.2 Real Matbench experimental band gap
-
-| Mode | Final best | AUC | Top-10 hit | Bad interventions |
-| --- | ---: | ---: | ---: | ---: |
-| `no_care_random` | 48.7417 | 43.7104 | 0.0000 | 0.0000 |
-| `incumbent` | 44.8000 | 41.3633 | 0.0000 | 0.0000 |
-| `no_gate` | 45.1250 | 41.4283 | 0.0000 | 0.0667 |
-| `gate_v1` | 44.8000 | 41.3633 | 0.0000 | 0.0333 |
-
-结论：真实材料数据能跑，但当前只用 composition bin 的 public observation model 不够强。这个结果应该当作诊断，不应该包装成 CARE 已经提升真实材料发现。
-
-下一步材料方向应该补 matminer-style descriptors、composition embeddings 或 pretrained materials surrogate。
-
-## 5. 真实 ChemLex 实验
-
-我们接入了 ChemLex Acid-Amine wetlab updated record。这个数据是真实 wetlab conversion，不是 synthetic proxy。
-
-### 5.1 Non-LLM ChemLex replay
-
-| Mode | Final best | AUC | Top-10 hit | Bad interventions |
-| --- | ---: | ---: | ---: | ---: |
-| `no_care_random` | 90.3810 | 82.8549 | 0.0333 | 0.0000 |
-| `incumbent` | 82.0203 | 75.7267 | 0.0000 | 0.0000 |
-| `gate_v1` | 82.1300 | 76.0638 | 0.0000 | 0.1333 |
-
-### 5.2 LLM ChemLex replay
-
-| Mode | Final best | AUC | Top-10 hit | LLM calls | Bad interventions |
+| Mode | Final best | Delta final | AUC | Delta AUC | Top10 hit |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| `no_care_random` | 89.6800 | 72.7893 | 0.0000 | 0.0000 | 0.0000 |
-| `incumbent` | 72.0440 | 70.1367 | 0.0000 | 0.0000 | 0.0000 |
-| `llm_no_gate` | 72.0440 | 70.1367 | 0.0000 | 3.0000 | 0.2000 |
-| `llm_gate_v1` | 72.0440 | 70.1367 | 0.0000 | 3.0000 | 0.2000 |
+| `no_care_random` | 82.1728 | -4.4749 | 77.4347 | -2.5366 | 0.0600 |
+| `incumbent` | 86.6477 | 0.0000 | 79.9713 | 0.0000 | 0.1600 |
+| `transfer_gate_v1` | 89.0866 | +2.4389 | 81.0779 | +1.1066 | 0.2400 |
+| `transfer_strict_gate_v1` | 87.6158 | +0.9681 | 80.2528 | +0.2815 | 0.1600 |
 
-解读：
+读法：role-level transfer 明确优于 target-only incumbent，但普通 gate 的 bad interventions 比 strict gate 多。下一步核心是保留收益，同时降低风险。
 
-ChemLex 真实数据现在能跑，但当前 policy 不强，random baseline 在这组设置里很高。这说明真实 ChemLex 需要单独分析数据 split、候选分布和 observation model，不能直接拿 synthetic ChemLex 的强提升来讲真实 wetlab 提升。
+### 5.2 相比 GP-UCB 的 acquisition-level transfer
 
-## 6. LLM-in-the-loop 实验
-
-我们做了两类 LLM 实验：一类是让 LLM 直接给 factor-level adjustment；另一类是让 LLM 做 transfer gate 的 auditor。
-
-### 6.1 九数据集 LLM generalization sweep
+为了避免只和 public incumbent 比，我们进一步把 CARE transfer skill 放进 GP-UCB acquisition geometry：source transfer-card role confidence 不再只是给候选加 post-hoc bonus，而是重加权 GP categorical kernel。
 
 设置：
 
-- Seeds：5
-- Rounds：6
-- LLM endpoint：OpenAI-compatible CommonStack endpoint
-- Modes：`no_care_random`, `incumbent`, `llm_no_gate`, `llm_gate_v1`
+- Source：`real_suzuki_miyaura`
+- Target：`real_buchwald_hartwig`
+- Base acquisition：`mixed_kernel_gp_ucb`
+- Transfer mechanism：role confidence -> categorical kernel weights
+- Scale grid：`0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4, 6`
+- Seeds：100
+- Calibration/evaluation split：50/50
 
-代表结果：
+Calibration 结果：
 
-| 数据集 | LLM gate final 相比 incumbent | LLM gate AUC 相比 incumbent | 读法 |
+| Selector | Selected policy | Calibration delta final | Calibration delta AUC | Held-out delta final | Held-out delta AUC | Held-out delta top10 |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| balanced | `transfer_weighted_gp_ucb_scale_1p5` | +0.3001 | +0.3162 | +0.3966 | +0.3162 | +0.0400 |
+| auc_priority | `transfer_weighted_gp_ucb_scale_1p5` | +0.3001 | +0.3162 | +0.3966 | +0.3162 | +0.0400 |
+| final_priority | `transfer_weighted_gp_ucb_scale_4` | +0.3379 | -0.8680 | +0.0135 | +0.1079 | -0.0200 |
+
+读法：`scale=1.5` 不是看完 100 seeds 后手工挑的，而是由 calibration seeds 选出来，并且在 held-out seeds 上继续赢 GP-UCB。这个提升不大，但比单纯赢 incumbent 更有说服力。
+
+## 6. descriptor transfer 的诊断结果
+
+我们试过把 reaction component descriptor 纳入 transfer，但 raw descriptor value prior 在 Suzuki -> BH 上会严重负迁移。
+
+原因是：reaction 里的很多 label 是 dataset-local 的，例如不同数据集里的 ligand/base 编号不一定同义。直接迁移 source value direction 风险很高。
+
+因此我们补了一版 `target_calibrated_descriptor_prior`：
+
+- source descriptor 不再直接决定正负方向；
+- source 只提供“哪些 descriptor value 值得关注”的白名单；
+- 方向和主要强度由 target 已观测样本决定；
+- strict 版本只接受 target-side positive signal。
+
+Suzuki -> BH 上的结果：
+
+| Mode | Delta final | Delta AUC | 读法 |
 | --- | ---: | ---: | --- |
-| real_buchwald_hartwig | +0.1850 | +0.0616 | 小幅正向 |
-| real_matbench_expt_gap | +2.8000 | +0.9833 | LLM 能提出有意义调整，但整体材料模型仍弱 |
-| real_moleculenet_lipophilicity | +1.4000 | +0.6875 | 分子性质上有小正信号 |
-| real_suzuki_miyaura | +0.0000 | +0.0000 | 持平 |
-| synthetic_materials_i | +0.1165 | +0.0522 | 小幅正向 |
+| raw descriptor strict | -13.2594 | -9.4342 | 严重负迁移 |
+| target-calibrated descriptor strict | +1.3678 | +1.0884 | 修复负迁移，并超过 incumbent |
+| role-level transfer gate | +2.4389 | +1.1066 | 当前仍是最强 reaction transfer |
 
-结论：LLM 路径已经接通，audit log 能记录 raw response、parsed policy、token usage、parse error 等。但直接让 LLM 生成 factor adjustment 不稳定，还不是主力结果。
+结论：descriptor transfer 不是不能用，但不能照搬 source value direction。更合理的方式是让 source 决定 attention，target observation 决定方向。
 
-### 6.2 LLM transfer proposal
+## 7. LLM 实验状态
 
-BH -> Suzuki 的 LLM transfer 5-seed 结果：
+LLM 路径已经真实接入，使用 OpenAI-compatible endpoint，audit log 中会记录 raw response、parsed policy、token usage 和 parse error。
 
-| Mode | Final best | AUC | LLM calls | Bad interventions | 读法 |
-| --- | ---: | ---: | ---: | ---: | --- |
-| `incumbent` | 89.7358 | 86.6963 | 0.0000 | 0.0000 | target-only baseline |
-| `transfer_strict_gate_v1` | 89.7358 | 86.6963 | 0.0000 | 0.4000 | deterministic strict transfer |
-| `llm_transfer_gate_v1` | 87.2325 | 85.1085 | 7.0000 | 2.8000 | LLM proposal 太宽，伤害较多 |
-| `llm_transfer_strict_gate_v1` | 87.9673 | 85.1761 | 7.0000 | 1.4000 | strict 后更安全但仍弱 |
+目前结论：
 
-结论：LLM 作为直接 proposer 目前比 deterministic strict gate 更噪。后续更适合让 LLM 做 auditor、解释器或 reranker，而不是直接接管 challenger。
+1. 直接让 LLM 生成 factor adjustment 不稳定。
+2. 在 reaction HTE transfer 上，LLM proposer 还没有超过 deterministic transfer card。
+3. LLM auditor 能降低风险，但偏保守，容易把有用 transfer 也挡掉。
+4. 在共享 descriptor 的分子任务上，LLM proposer 有小幅正信号，但还不是主结果。
 
-### 6.3 LLM audit transfer
+因此下一步 LLM 的位置应该上移：不要让它直接选实验点，而是让它做 rule-level proposer / policy selector，例如：
 
-BH -> Suzuki 的 LLM-audited transfer 5-seed 结果：
+- 判断 source-target pair 是否适合 transfer；
+- 选择 role transfer、value-prior transfer、target-calibrated descriptor transfer，还是保持 incumbent；
+- 调 gate threshold、transfer weight、support threshold；
+- 根据 audit log 总结 negative transfer 原因；
+- 产出可写入知识库的 skill artifact。
 
-| Mode | Final best | AUC | LLM calls | Bad interventions | 读法 |
-| --- | ---: | ---: | ---: | ---: | --- |
-| `incumbent` | 89.7358 | 86.6963 | 0.0000 | 0.0000 | target-only baseline |
-| `transfer_gate_v1` | 87.6407 | 85.1042 | 0.0000 | 1.4000 | plain transfer 有负迁移 |
-| `llm_audit_transfer_gate_v1` | 89.7358 | 86.6963 | 3.2000 | 0.0000 | LLM audit 拦掉坏 transfer，恢复 baseline |
-| `llm_audit_transfer_strict_gate_v1` | 89.7358 | 86.6963 | 0.6000 | 0.0000 | 更安全，但偏保守 |
+## 8. 材料和 ChemLex 方向
 
-结论：LLM auditor 已经能真实调用且无 parse error，能作为 safety filter，但现在过于保守，还没有保留正向 transfer gain。
+### 8.1 Matbench experimental band gap
 
-## 7. Transfer 实验主线
-
-Transfer 是 CARE 2.0 当前最重要的实验方向。我们按几个阶段推进。
-
-### 7.1 BH -> Suzuki：第一版 transfer，负向诊断
-
-第一版用 BH source evidence 构建 transfer card，再迁移到 Suzuki target。
-
-| Mode | Final best | AUC | Bad interventions | 读法 |
-| --- | ---: | ---: | ---: | --- |
-| `incumbent` | 92.6085 | 87.5533 | 0.0000 | target-only baseline |
-| `transfer_gate_v1` | 91.3879 | 86.4187 | 1.6333 | transfer 太宽，低于 incumbent |
-| `transfer_plus_local_gate_v1` | 91.6643 | 86.6158 | 1.0333 | 加 local skill 仍低于 incumbent |
-
-结论：这是一个有价值的 negative control。它说明 role-level transfer 不能随便搬，方向和 gate 都很重要。
-
-### 7.2 BH -> Suzuki：server-side strict transfer 小正例
-
-随后在服务器上做了 strict transfer 参数优化。
-
-| Mode | Final best | AUC | Bad interventions | 读法 |
-| --- | ---: | ---: | ---: | --- |
-| `incumbent` | 92.6085 | 87.5533 | 0.0000 | baseline |
-| `transfer_gate_v1` | 91.3879 | 86.4187 | 1.6333 | plain transfer 仍伤害 |
-| `transfer_strict_gate_v1` | 92.8770 | 87.7002 | 0.8333 | strict 后出现小幅正收益 |
-| `transfer_strict_plus_local_gate_v1` | 92.8273 | 87.5630 | 0.8667 | 与 strict 接近 |
-
-结论：BH -> Suzuki 不是完全不可能，但需要 stricter transfer gate。过窄的 `min_positive_roles = 3` 又会掉下去，说明 gate calibration 很关键。
-
-### 7.3 Multi-domain transfer feasibility
-
-我们把 transfer role map 扩展到多个方向：
-
-- reaction HTE：BH, Suzuki, ChemLex
-- molecular property：ESOL, FreeSolv, Lipophilicity
-- proxy：synthetic ChemLex -> real ChemLex, synthetic materials -> Matbench
+真实 Matbench 数据已经接入，候选数 4604。当前只用 composition bin 作为 public features。
 
 代表结果：
 
-| Source -> Target | Seeds | Best transfer mode | Final delta | AUC delta | 读法 |
-| --- | ---: | --- | ---: | ---: | --- |
-| Suzuki -> Buchwald-Hartwig | 30 | `transfer_gate_v1` | +2.9907 | +0.8135 | 第一条强反应 transfer 正例 |
-| Suzuki -> ChemLex | 10 | `transfer_strict_gate_v1` | +4.4380 | +0.4367 | 有正信号，但 random baseline 很强 |
-| ChemLex -> Buchwald-Hartwig | 10 | `transfer_no_gate` | +1.4691 | -0.2507 | final gain 有，AUC 不稳 |
-| FreeSolv -> Lipophilicity | 20 | `transfer_strict_gate_v1` | +0.3499 | +0.0556 | 分子 transfer 小正信号 |
-| ESOL -> Lipophilicity | 20 | `transfer_gate_v1` | +0.4062 | +0.1193 | 分子 transfer 小正信号 |
-| BH -> Suzuki | 10 | `transfer_gate_v1` | -1.3260 | -0.8504 | negative direction |
+| Mode | Final best | AUC | Top10 hit |
+| --- | ---: | ---: | ---: |
+| `no_care_random` | 48.7417 | 43.7104 | 0.0000 |
+| `incumbent` | 44.8000 | 41.3633 | 0.0000 |
+| `no_gate` | 45.1250 | 41.4283 | 0.0000 |
 
-结论：transfer 不是单一 pair 的特殊现象，但方向性很强。正向结果和负向结果都要保留，因为它们一起说明系统在区分“可迁移”和“不可迁移”。
+读法：真实材料数据能跑，但当前 observation model 明显不够强。材料方向不应该现在主讲性能提升，应该先补 matminer-style descriptors、composition embeddings 或 pretrained materials surrogate。
 
-### 7.4 最新 transfer advantage sweep：明星结果
+### 8.2 ChemLex Acid-Amine wetlab
 
-这轮是目前最值得重点展示的结果。我们新增了 `transfer_value_prior_*` 模式：当 source 和 target 共享同一套 public descriptor vocabulary 时，允许迁移保守 value-level prior。这个模式只用于共享描述符空间，例如 MoleculeNet 的 SMILES-derived bins；不会用于 HTE 的 dataset-local label。
+真实 ChemLex Acid-Amine wetlab 数据已经接入，候选数 11669。
 
-#### FreeSolv -> Lipophilicity
+当前 replay 能跑，但 policy 不强，random baseline 在部分设置里很高。这说明 ChemLex 需要单独分析数据 split、候选分布和 objective 分布。不能把 synthetic ChemLex 上的强提升直接迁移成真实 wetlab 结论。
 
-| Mode | Final best | Delta final | AUC | Delta AUC | Top-10 hit | Bad interventions |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| `no_care_random` | 85.7650 | -1.5425 | 84.2917 | -1.2743 | 0.0200 | 0.0000 |
-| `incumbent` | 87.3075 | 0.0000 | 85.5660 | 0.0000 | 0.0400 | 0.0000 |
-| `transfer_value_prior_gate_v1` | 90.0625 | +2.7550 | 87.9660 | +2.4000 | 0.3000 | 3.4600 |
-| `transfer_value_prior_strict_gate_v1` | 88.1625 | +0.8550 | 86.1820 | +0.6160 | 0.1600 | 1.9000 |
+## 9. CARE 2.0 知识库
 
-读法：这是当前最强的 transfer advantage。它不只是 final best 更高，AUC 也明显更高，top-10 hit 从 4% 提到 30%。这说明 transfer prior 让 replay 更早进入目标任务的高价值区域。
+除了 replay 实验，我们也搭了 CARE 2.0 知识库原型。这个知识库不是会议纪要，而是系统内部的 structured memory，用来沉淀 task、dataset、mechanism、skill、hypothesis。
 
-#### Suzuki -> Buchwald-Hartwig
-
-| Mode | Final best | Delta final | AUC | Delta AUC | Top-10 hit | Bad interventions |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| `no_care_random` | 82.1728 | -4.4749 | 77.4347 | -2.5366 | 0.0600 | 0.0000 |
-| `incumbent` | 86.6477 | 0.0000 | 79.9713 | 0.0000 | 0.1600 | 0.0000 |
-| `transfer_gate_v1` | 89.0866 | +2.4389 | 81.0779 | +1.1066 | 0.2400 | 0.8600 |
-| `transfer_strict_gate_v1` | 87.6158 | +0.9681 | 80.2528 | +0.2815 | 0.1600 | 0.1800 |
-
-读法：这是反应 HTE 方向最稳的正例。即使不直接迁移具体 factor values，只迁移 role-level evidence，也能比 target-only incumbent 更好。
-
-## 8. 知识库和 embedding 原型
-
-除了 replay 实验，我们还搭了 CARE 2.0 知识库原型。这个知识库不是会议纪要，而是 CARE 系统用的 structured memory，用来沉淀 task、dataset、mechanism、skill、hypothesis。
-
-已经做的部分：
+已经完成：
 
 | 模块 | 作用 |
 | --- | --- |
@@ -285,50 +284,66 @@ Transfer 是 CARE 2.0 当前最重要的实验方向。我们按几个阶段推�
 | `query_embeddings.py` | 支持语义检索 |
 | `awesome_resources.md` | 整理 AI4Chem、LLM4EDA、materials-aware LLM、molecular discovery 资源 |
 
-这部分和实验的关系是：之后每次实验产生的成功/失败 hypothesis、transfer card、gate decision、可复用 skill 都应该沉淀到知识库里。CARE 2.0 要变成通用平台，不能只靠一次性脚本跑实验，而要能积累 reusable skills。
+我们也把 skill transfer 拆成六层：
 
-## 9. 当前总体判断
+1. representation transfer：source/target 字段映射；
+2. mechanism transfer：可复用科学假说；
+3. model transfer：kernel、embedding、feature transform；
+4. acquisition transfer：候选排序和探索策略；
+5. gate/risk transfer：识别 negative transfer；
+6. workflow transfer：实验预算、审计和数据边界。
 
-现在可以比较稳地这么讲：
+现在的 transfer-weighted kernel 属于 model/acquisition binding；value-prior transfer 属于 representation + acquisition binding；target-calibrated descriptor 属于 representation + gate/risk binding。
 
-1. CARE 2.0 的 replay platform 已经跑通，覆盖 synthetic reaction、real HTE、real molecular property、real materials property、real ChemLex。
-2. Transfer 已经有两条真实数据正例：`FreeSolv -> Lipophilicity` 和 `Suzuki -> Buchwald-Hartwig`。
-3. 分子共享 descriptor 空间下，value-prior transfer 的优势最明显；反应 HTE 下，role-level transfer 也能产生稳定 gain。
-4. LLM 路径已经真实调用并可审计，但目前更适合做 auditor / critic，而不是直接 proposer。
-5. 材料方向和 ChemLex 方向已经接入，但要出强结果还需要更强 observation model 和更好的数据-specific analysis。
-6. Gate calibration 是下一步核心：我们要保留 transfer 的优势，同时降低 bad interventions。
+## 10. 当前总体判断
 
-## 10. 下一步建议
+可以给团队这样判断：
 
-按优先级，建议接下来做四件事。
+1. CARE 2.0 的多领域 replay platform 已经成立。
+2. Transfer 已经不是概念验证：FreeSolv -> Lipophilicity 和 Suzuki -> BH 都有真实数据正例。
+3. 分子方向的主线是 shared descriptor value-prior；reaction 方向的主线是 role-level transfer 和 acquisition-level kernel reweighting。
+4. GP-UCB 对比后，reaction transfer 仍有小幅 held-out 正信号；这比只赢 public incumbent 更有价值。
+5. 不是所有机制都通用：分子 GP-kernel transfer 没保住 held-out gain，BH -> Suzuki 也不稳定。
+6. LLM 已接入，但要从局部 adjustment 升级为 rule-level proposer / policy selector。
+7. 材料和 ChemLex 已经接入，但还不是性能主结果，需要更强 feature/model。
 
-### 10.1 继续做 gate calibration
+## 11. 下一步建议
 
-目标是把 `transfer_value_prior_gate_v1` 的大优势保留下来，同时降低 bad interventions。可以考虑：
+### 11.1 做 policy selector
 
-- 要求 target-side confirmation 后再授权强 transfer。
-- 对 source prior 做 uncertainty-aware weighting。
-- 把 LLM audit 改成结构化 checklist，而不是简单 approve/reject。
-- 针对不同 transfer 类型设置不同 gate：role-level HTE transfer 和 shared-descriptor molecular transfer 不应该用完全同一套阈值。
+现在已经有多种 transfer policy：
 
-### 10.2 补真实数据和更强 observation model
+- role-level transfer；
+- strict role transfer；
+- shared descriptor value-prior；
+- target-calibrated descriptor prior；
+- transfer-weighted GP kernel；
+- incumbent / GP-UCB fallback。
 
-重点数据：
+下一步应该做一个 selector：给定 source-target pair、早期 target observations、source transfer card 和历史 calibration 结果，自动选择 policy，而不是手动决定用哪种 transfer。
 
-- ChemLex：继续分析 wetlab split 和 candidate 分布。
-- Pfizer zero-inflated reaction data：如果能拿到，是很好的 CARE 1.0/2.0 连接点。
-- Matbench / Materials Project：材料方向需要 descriptors 或 surrogate，不然现在的 composition bin 太弱。
+### 11.2 让 LLM 参与 rule evolution
 
-### 10.3 强化 LLM 的位置
+LLM 不应该直接选实验点。更合理的是让它输出结构化 policy proposal：
 
-现在不建议让 LLM 直接决定实验点。更合理的位置是：
+- 哪些字段能迁移；
+- 哪些 descriptor 只能做 whitelist，不能迁移方向；
+- gate threshold 应该更宽还是更严；
+- 是否应该 fallback 到 GP-UCB；
+- 失败原因是什么，如何写入 skill library。
 
-- 给 transfer card 做解释和风险审查；
-- 对 candidate shortlist 做 reranking；
-- 根据 audit log 总结失败原因；
-- 把成功/失败经验写回 skill library。
+然后用 replay + held-out seeds 验证 LLM 提案。
 
-### 10.4 把实验结果沉淀进知识库
+### 11.3 补材料 descriptors
+
+Matbench 目前缺的是 representation，不是 replay 框架。下一步需要补：
+
+- composition descriptors；
+- element/property embeddings；
+- pretrained materials surrogate；
+- 或 Matbench 里更适合 finite-pool replay 的任务。
+
+### 11.4 把实验结果沉淀进知识库
 
 建议把以下内容结构化进入 CARE 2.0 knowledge base：
 
@@ -339,7 +354,15 @@ Transfer 是 CARE 2.0 当前最重要的实验方向。我们按几个阶段推�
 - gate rejected / approved 的典型 audit examples；
 - 可复用 skill/prior 及其适用边界。
 
-## 11. GitHub 中对应文件
+## 12. GitHub 中对应文件
+
+当前分支：
+
+`codex/target-calibrated-transfer`
+
+最新关键 commit：
+
+`1aeef9f Add calibrated transfer-weighted kernel follow-up`
 
 主要文件位置：
 
@@ -348,14 +371,16 @@ Transfer 是 CARE 2.0 当前最重要的实验方向。我们按几个阶段推�
 | 总览 | `overview.md` |
 | replay 主脚本 | `experiments/care_replay/scripts/run_synthetic_suzuki.py` |
 | transfer 主脚本 | `experiments/care_replay/scripts/run_transfer_ablation.py` |
-| 50-seed transfer advantage | `experiments/care_replay/results/2026-07-03-transfer-advantage-sweep/` |
-| multi-domain transfer feasibility | `experiments/care_replay/results/2026-07-03-multidomain-transfer-feasibility/` |
-| LLM audit transfer | `experiments/care_replay/results/2026-07-03-llm-audit-transfer-5seed/` |
-| LLM generalization sweep | `experiments/care_replay/results/2026-06-30-llm-commonstack-5seed/` |
+| transfer-weighted kernel | `experiments/care_replay/scripts/run_transfer_weighted_kernel.py` |
+| calibration summary 脚本 | `experiments/care_replay/scripts/build_transfer_weighted_calibration_summary.py` |
+| MoleculeNet value-prior sweep | `experiments/care_replay/results/2026-07-05-molprop-value-prior-budget-sweep/` |
+| calibrated transfer-weighted kernel | `experiments/care_replay/results/2026-07-05-calibrated-transfer-weighted-kernel/` |
+| target-calibrated descriptor transfer | `experiments/care_replay/results/2026-07-05-target-calibrated-descriptor-transfer/` |
+| transfer advantage sweep | `experiments/care_replay/results/2026-07-03-transfer-advantage-sweep/` |
 | real ChemLex | `experiments/care_replay/results/2026-06-30-real-chemlex/` |
 | materials baseline | `experiments/care_replay/results/2026-06-29-materials-baselines/` |
 | knowledge base | `knowledge_base/` |
 
-## 12. 给团队同步时可以用的一段话
+## 13. 给团队同步时可以用的一段话
 
-我们现在不是只把 CARE 1.0 的单个实验复现了一遍，而是在搭 CARE 2.0 的跨领域 replay 和 transfer 框架。所有任务都被统一成 finite-pool search，然后用同一套 incumbent、challenger、gate 和 audit 机制做比较。最关键的新结果是两条真实数据 transfer：FreeSolv 到 Lipophilicity 在 50 seeds 下 final best 提升 2.755、AUC 提升 2.400，top-10 hit 从 4% 到 30%；Suzuki 到 Buchwald-Hartwig 也在 50 seeds 下 final best 提升 2.439、AUC 提升 1.107。这说明 transfer 不是只有概念，已经能在合适的 source-target pair 上带来真实收益。下一步主要不是继续堆 synthetic，而是做 gate calibration、补真实数据、让 LLM 做更可靠的 audit/rerank，并把成功和失败的 transfer cases 沉淀进 CARE 2.0 知识库。
+我们现在完成的不是 CARE 1.0 原数字复现，而是 CARE 2.0 的跨任务 replay 和 transfer 框架。所有任务都被统一成 finite-pool search，并且有同一套 incumbent、challenger、gate、audit、metrics。当前最清楚的正例是 FreeSolv -> Lipophilicity：共享分子 descriptor value-prior 在 100 seeds、3/5/10 个 budget 下都提升 final best 和 AUC，held-out split 后仍然保持正向。反应方向上，Suzuki -> Buchwald-Hartwig 的 role-level transfer 相比 target-only incumbent 提升明显；进一步和 GP-UCB 比，calibration 选出的 transfer-weighted kernel 在 held-out seeds 上仍然有小幅正收益。边界也很清楚：分子 GP-kernel transfer 没保住 held-out gain，BH -> Suzuki 不稳定，LLM 目前还没稳定超过 deterministic rule。下一步应该重点做 policy selector 和 LLM rule evolution，而不是继续手动给每个 pair 调一条规则。
