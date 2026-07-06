@@ -84,6 +84,12 @@ python3 experiments/care_replay/scripts/run_transfer_weighted_kernel.py --source
 python3 experiments/care_replay/scripts/run_transfer_weighted_kernel.py --source-dataset real_moleculenet_freesolv --target-dataset real_moleculenet_lipophilicity --seeds 50 --rounds 10 --initial 5 --source-observations 192 --scales 0,1.5,4 --output-tag 50seed
 ```
 
+Build a calibration/held-out summary for transfer-weighted kernel grids:
+
+```bash
+python3 experiments/care_replay/scripts/build_transfer_weighted_calibration_summary.py --metrics experiments/care_replay/outputs/tables/transfer_weighted_kernel_real_suzuki_miyaura_to_real_buchwald_hartwig_calibrated_grid_100seed_metrics.csv --out-dir experiments/care_replay/results/2026-07-05-calibrated-transfer-weighted-kernel --label suzuki_to_bh --calibration-seed-count 50
+```
+
 Outputs:
 
 - `outputs/tables/<dataset_id>_metrics.csv`
@@ -154,6 +160,13 @@ Tracked result snapshots:
   budgets. This is currently the cleanest positive transfer case: the shared
   descriptor value-prior gate improves final best, AUC, and top-10 hit rate in
   all three budget settings.
+- `results/2026-07-05-calibrated-transfer-weighted-kernel/`: 100-seed
+  calibration/held-out follow-up for transfer-weighted GP kernels. On
+  Suzuki-to-Buchwald-Hartwig, calibration selects `scale=1.5`, which still
+  beats GP-UCB on held-out seeds by +0.3966 final best and +0.3162 AUC. The
+  same GP-kernel idea does not hold up on FreeSolv-to-Lipophilicity, while the
+  separate shared descriptor value-prior result remains positive under the
+  same 50/50 held-out check.
 
 The synthetic adapters let us test whether the same CARE gate and audit protocol
 behaves consistently across task shapes. The real HTE adapters download public

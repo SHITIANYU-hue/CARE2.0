@@ -65,6 +65,10 @@ LLM 目前确实有真实调用，但角色还比较窄。`llm_transfer_gate_v1`
 
 这个结论要保守讲：现在不是“CARE2.0 已经大幅碾压 GP-UCB”，而是证明了一个关键方向可行：当 reusable skill 进入 acquisition geometry，而不是只做后处理加分时，确实可以在真实 replay 上小幅超过更强 target-only surrogate baseline。下一步应该把 `scale`、kernel field weights、gate threshold 这些东西交给 calibration split 或 LLM rule-level proposer 来选，而不是人工固定。
 
+最新一步已经把这件事推进成 calibration/held-out 实验。我们固定了 11 个 scale 的 grid，用前 50 个 seeds 做 calibration，再只在后 50 个 held-out seeds 上评估。`Suzuki-Miyaura -> Buchwald-Hartwig` 上，balanced/AUC selector 都在 calibration 阶段选中 `transfer_weighted_gp_ucb_scale_1p5`；它在 held-out seeds 上仍然超过 GP-UCB，final best +0.3966，AUC +0.3162，top-10 hit +0.04。这个结果比“看完整结果后挑 scale”更可靠，说明 reaction HTE 的 acquisition-level transfer 确实有一个可校准的正向信号。
+
+同样的 GP-kernel calibration 在 `FreeSolv -> Lipophilicity` 上没有保住 held-out gain：calibration 选出的 scale 在 held-out 上 final 和 AUC 都低于 GP-UCB。因此分子方向现在不应该主讲 kernel reweighting，而应该主讲 shared descriptor value-prior。我们对 value-prior 的 3/5/10 budget 结果也做了 50/50 split，calibration 都选中 `transfer_value_prior_gate_v1`，held-out final delta 分别是 +0.3425、+0.2975、+0.3750，held-out AUC delta 分别是 +0.1900、+0.2605、+0.2168。也就是说，分子方向的正向 transfer 仍然成立，但有效机制不是 GP-kernel field reweighting，而是共享 descriptor value prior。
+
 ## 2.6 最新补充：descriptor transfer 要做 target calibration
 
 群里最新讨论后，我们又补了一版 reaction descriptor transfer 的诊断实验。前一版 raw descriptor value prior 的问题很明显：它直接把 source 里某个 descriptor value 的正负方向迁移到 target，Suzuki -> Buchwald-Hartwig 上会造成严重负迁移。新实验改成 `target_calibrated_descriptor_prior`：source descriptor 只负责告诉系统哪些 descriptor value 值得关注，方向和强度由 target 已 reveal 的 observation 决定。
