@@ -55,6 +55,13 @@ The default LLM base URL is `https://api.commonstack.ai/v1`. The API key is read
 from `CARE_LLM_API_KEY` or `COMMONSTACK_API_KEY`; it is never stored in the
 repository.
 
+Run a strong-model LLM transfer follow-up:
+
+```bash
+export CARE_LLM_API_KEY="..."
+python3 experiments/care_replay/scripts/run_transfer_ablation.py --source-dataset real_suzuki_miyaura --target-dataset real_buchwald_hartwig --source-observations 96 --seeds 5 --rounds 10 --initial 5 --modes no_care_random,incumbent,transfer_gate_v1,llm_transfer_gate_v1,llm_audit_transfer_gate_v1 --llm-model openai/gpt-5.5 --llm-max-tokens 700 --output-tag strong_model_openai_gpt-5_5_suzuki_to_bh_5seed
+```
+
 Run the target-only incumbent rule ablation:
 
 ```bash
@@ -167,6 +174,11 @@ Tracked result snapshots:
   same GP-kernel idea does not hold up on FreeSolv-to-Lipophilicity, while the
   separate shared descriptor value-prior result remains positive under the
   same 50/50 held-out check.
+- `results/2026-07-06-strong-llm-model-followup/`: same-prompt model swap for
+  Suzuki-to-Buchwald-Hartwig LLM transfer. `openai/gpt-5.5` improves the LLM
+  proposer over the earlier `openai/gpt-4o-mini` first-five-seed slice, but
+  still trails deterministic `transfer_gate_v1`. `deepseek/deepseek-v3.2`
+  is not reliable under the current long-context tool-call interface.
 
 The synthetic adapters let us test whether the same CARE gate and audit protocol
 behaves consistently across task shapes. The real HTE adapters download public

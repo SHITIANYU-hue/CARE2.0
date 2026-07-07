@@ -240,6 +240,10 @@ LLM 路径已经真实接入，使用 OpenAI-compatible endpoint，audit log 中
 3. LLM auditor 能降低风险，但偏保守，容易把有用 transfer 也挡掉。
 4. 在共享 descriptor 的分子任务上，LLM proposer 有小幅正信号，但还不是主结果。
 
+按“换更强模型可能提升质量”的方向，我们又补了 Suzuki -> Buchwald-Hartwig 的同 seeds 小对照。结果是：`openai/gpt-5.5` 确实比之前的 `openai/gpt-4o-mini` 好一些，`llm_transfer_gate_v1` 的 first-five-seed final best 从 86.0649 提到 87.1667，bad interventions 从 2.0000 降到 1.0000。但它仍然没有超过 deterministic `transfer_gate_v1`，后者同 seeds final best 是 91.5394。`deepseek/deepseek-v3.2` 在这个长上下文 tool-call 接口下不稳，parse errors 较多，最后基本退回 incumbent。
+
+所以这组实验的读法是：模型质量会影响 LLM proposer，但“只换模型”还不够。更应该让 LLM 产出 rule-level proposal，再用 replay 和 held-out seeds 验证。
+
 因此下一步 LLM 的位置应该上移：不要让它直接选实验点，而是让它做 rule-level proposer / policy selector，例如：
 
 - 判断 source-target pair 是否适合 transfer；

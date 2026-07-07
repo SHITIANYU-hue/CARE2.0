@@ -4,7 +4,7 @@
 
 这轮实验不是在复现 CARE 1.0 论文的最终数字。我们做的是 CARE 2.0 的 replay harness 和跨领域 transfer 验证：先把不同领域的数据统一成有限候选池搜索，再看源领域沉淀下来的 skill / prior 能不能在目标领域带来真实收益。
 
-目前结论比最初更清楚：平台接口已经跑通，而且 transfer 不是只有概念验证。最新 50-seed server sweep 里，分子性质任务 `FreeSolv -> Lipophilicity` 和反应 HTE 任务 `Suzuki-Miyaura -> Buchwald-Hartwig` 都出现了稳定正向 transfer gain。随后补做的真实 LLM follow-up 说明，LLM proposer 在共享 descriptor 的分子性质方向能给出小幅正收益；但在反应 HTE transfer 上，当前 LLM proposer 还不如确定性 transfer card，LLM auditor 也偏保守。
+目前结论比最初更清楚：平台接口已经跑通，而且 transfer 不是只有概念验证。最新 50-seed server sweep 里，分子性质任务 `FreeSolv -> Lipophilicity` 和反应 HTE 任务 `Suzuki-Miyaura -> Buchwald-Hartwig` 都出现了稳定正向 transfer gain。随后补做的真实 LLM follow-up 说明，LLM proposer 在共享 descriptor 的分子性质方向能给出小幅正收益；但在反应 HTE transfer 上，当前 LLM proposer 还不如确定性 transfer card，LLM auditor 也偏保守。最新的强模型 follow-up 进一步说明，换成 `openai/gpt-5.5` 会改善 LLM proposer 的 final best 和坏干预率，但仍没有超过 deterministic transfer rule；`deepseek/deepseek-v3.2` 在当前长上下文 tool-call 接口下反而不稳。
 
 最新补充后，最适合作为“明显正向 transfer”展示的是 `FreeSolv -> Lipophilicity` 的 shared descriptor value-prior sweep。100 seeds 下，`transfer_value_prior_gate_v1` 在 3/5/10 个 reveal budget 上都稳定超过 incumbent：final best 分别提升 +1.1662、+0.9725、+0.8550，AUC 分别提升 +0.4184、+0.6707、+0.7009，top-10 hit 分别从 0.07/0.11/0.17 提到 0.13/0.18/0.23。这条结果比反应 descriptor transfer 更干净，因为 source 和 target 共享同一套 SMILES-derived descriptor vocabulary，不是在迁移数据集内部编号。
 
@@ -52,6 +52,8 @@
 当前 deterministic transfer rule 也要按工程规则来理解。它不是 CARE 1.0 直接搬来的规则，而是为了验证 CARE 2.0 跨域迁移写的 role-level transfer card：source domain 只提供哪些 role 更可信、权重多大；大多数方向仍然由 target domain 已 reveal 的 evidence 决定。只有 MoleculeNet 这种共享 descriptor vocabulary 的任务，才允许 source value prior 直接迁移。
 
 LLM 目前确实有真实调用，但角色还比较窄。`llm_transfer_gate_v1` 只是让模型在已有 transfer card 和 target evidence 里提 bounded factor adjustment；`llm_audit_transfer_gate_v1` 只是审计 challenger。它还没有在“进化规则”，比如重写 role map、调 support threshold、选哪些 descriptor 可以迁移，或者产出新的 skill artifact。因此 fixed rule 目前赢 LLM 不算特别反常，下一步更应该把 LLM 往 rule-level proposer 推，而不是继续让它只在一个手写 schema 里微调分数。
+
+我们按“LLM 换强模型可能会提升质量”的方向又补了一组同 seeds 的模型替换实验。Suzuki -> Buchwald-Hartwig 上，`openai/gpt-5.5` 把 `llm_transfer_gate_v1` 的 first-five-seed final best 从 `gpt-4o-mini` 的 86.0649 提到 87.1667，bad interventions 从 2.0000 降到 1.0000，说明模型质量确实有影响。但它仍然低于同 seeds 的 deterministic `transfer_gate_v1`，后者 final best 是 91.5394。`deepseek/deepseek-v3.2` 在小测试里能返回 tool-call JSON，但进入真实长 prompt 后约一半调用没有可用 tool args，最后基本退回 incumbent。这说明下一步不能只换模型，还要改 LLM interface：让模型提出 rule artifact，再由 replay 验证。
 
 我们又补了一组更接近外部优化方法的 target-only surrogate baseline，包括 mixed-kernel GP-UCB、GP-EI 和 kNN-UCB。这组 baseline 只用 public feature 和目标域已 reveal 的 observation，不用 source transfer。结果把结论进一步分开了：`FreeSolv -> Lipophilicity` 上，CARE 的 `transfer_value_prior_gate_v1` final best 是 90.0625，仍然高于 GP-UCB 的 88.4775；但 `Suzuki -> Buchwald-Hartwig` 上，GP-UCB final best 是 91.1145，高于当前 transfer gate 的 89.0866。也就是说，分子性质方向可以说 transfer 赢过了更强 surrogate baseline；反应 HTE 方向目前只能说 transfer 赢 incumbent，但还没有赢 GP-UCB。
 
@@ -190,6 +192,8 @@ Suzuki 单任务 replay 上 final best 持平，AUC 略低。这说明只在单�
 同时，这里也能看到 gate 的 tradeoff：普通 transfer gate 收益更大，但有一定 bad interventions；strict gate 更安全，但收益变小。下一步应该做的是 gate calibration，而不是否定 transfer 本身。
 
 补做的真实 LLM follow-up 结果更像一个边界检查。10 seeds 下，确定性 `transfer_gate_v1` 仍然最强，final best 从 incumbent 的 86.6260 提到 90.0980；但 `llm_transfer_gate_v1` 只有 85.6227，低于 incumbent，`llm_audit_transfer_gate_v1` 基本回到 incumbent。这里的结论不是 LLM 接不进来，事实上 70 次 LLM proposer 调用全部 parse 成功；问题是当前 prompt/约束下，LLM 还没有学会比确定性 role-level transfer 更好地使用反应 HTE evidence。
+
+最新强模型 follow-up 用同样的 seeds 0-4 做了更公平的小对照。`gpt-5.5` 相比 `gpt-4o-mini` 有改善：`llm_transfer_gate_v1` final best 从 86.0649 到 87.1667，bad interventions 从 2.0000 到 1.0000。但 `transfer_gate_v1` 仍然是 91.5394，所以这不是“换模型就赢了”，而是“更强模型能改善 proposer 质量，但当前 adjustment schema 仍然不够”。`deepseek-v3.2` 的主要问题是长 prompt + tool-call 不稳，parse errors 均值 3.8，最后没有有效 intervention。
 
 ## 5. 第三阶段：分子性质任务
 
@@ -334,6 +338,6 @@ ChemLex 代理数据上提升很明显，但这个结果要很小心地讲。它
 
 第二，做 gate calibration。当前最强的 value-prior transfer 能打出明显优势，但 bad interventions 也变多。下一版应该保留它的 top10 hit 和 AUC 优势，同时用 target confirmation、risk-aware gate 或 LLM audit 降低坏 intervention。
 
-第三，继续做 acquisition-level skill optimization。现在 challenger 主要是规则化 factor evidence、shared descriptor prior，以及一版真实 LLM proposer。新 baseline 显示 GP-UCB 在反应 HTE 上很强，简单 additive transfer adjustment 不够；最新 transfer-weighted kernel 说明，把 skill 用来改 GP kernel field weights 是可行方向。下一步应该把 `scale`、posterior mean/uncertainty/exploration weight、candidate filtering 和 gate threshold 放进一个 calibration/search loop。LLM 也应该产出更受约束的 structured proposal、rationale 和 skill artifact，再由 gate 审查，而不是让 LLM 直接决定实验。
+第三，继续做 acquisition-level skill optimization。现在 challenger 主要是规则化 factor evidence、shared descriptor prior，以及一版真实 LLM proposer。新 baseline 显示 GP-UCB 在反应 HTE 上很强，简单 additive transfer adjustment 不够；最新 transfer-weighted kernel 说明，把 skill 用来改 GP kernel field weights 是可行方向。下一步应该把 `scale`、posterior mean/uncertainty/exploration weight、candidate filtering 和 gate threshold 放进一个 calibration/search loop。LLM 也应该产出更受约束的 structured proposal、rationale 和 skill artifact，再由 gate 审查，而不是让 LLM 直接决定实验。强模型 follow-up 支持这个判断：`gpt-5.5` 能改善 bounded adjustment，但仍没有超过 deterministic rule；更值得做的是让 LLM 搜 rule，而不是只让它调候选分数。
 
 第四，补跨域任务。分子方向可以从单属性扩到 LogP/QED/SA 多目标；材料方向可以接 Matbench 或 Materials Project 中能转成 finite-pool replay 的 property task。这样就能更贴近“化学、材料、药物多个领域的新物质发现平台”的 CARE 2.0 目标。
