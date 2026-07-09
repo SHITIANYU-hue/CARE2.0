@@ -944,6 +944,9 @@ def llm_transfer_prompt_payload(
         else replay.observed_evidence_payload(adapter, observed)
     )
     return {
+        "policy_task": (
+            "Propose small experiment-policy score adjustments. This is not a manuscript review."
+        ),
         "target_evidence": target_evidence,
         "transfer_card": {
             "card_id": card.card_id,
@@ -971,13 +974,20 @@ def llm_transfer_prompt_payload(
             "strict_min_positive_roles": min_positive_roles if strict else 0,
             "strict_max_negative_roles": max_negative_roles if strict else 0,
         },
+        "policy_rules": [
+            "Transfer card chooses trustworthy fields; revealed target evidence chooses direction.",
+            "prefer requires positive target delta_vs_global; penalize requires negative target delta_vs_global.",
+            "Prefer target values with at least 3 revealed examples; exactly-2 support is noisy and should be used only for very clear effects.",
+            "The requested weight is only an upper bound; the replay code recalibrates the final score change from target evidence.",
+            "If target evidence is weak or ambiguous, return no adjustments and confidence <= 0.35.",
+        ],
         "output_contract": {
             "adjustments": [
                 {
                     "field": "one allowed target decision column",
                     "value": "one target factor value supported by factor_evidence/top_revealed/bottom_revealed",
                     "direction": "prefer or penalize",
-                    "weight": "number between 0.0 and 0.08",
+                    "weight": "suggested upper bound between 0.0 and 0.08; final magnitude is target-calibrated",
                     "reason": "short evidence-based reason",
                 }
             ],
@@ -1040,10 +1050,11 @@ def llm_transfer_adjustments(
     )
     card_kind = "descriptor-level" if descriptor_level else "role-level"
     system = (
-        "You are a CARE 2.0 cross-domain transfer policy proposer for scientific finite-pool replay. "
-        f"Use only the revealed target observations and the source-to-target {card_kind} transfer card in the user JSON. "
-        "Do not assume hidden outcomes for unrevealed candidates. Do not transfer source factor values directly. "
-        "Return only one JSON object with an adjustments array and confidence. No markdown. No prose. No chain-of-thought."
+        "You are a CARE 2.0 transfer policy proposer for finite-pool scientific replay. "
+        f"Use only revealed target evidence and the source-to-target {card_kind} transfer card. "
+        "The transfer card decides which fields are trustworthy; target evidence decides prefer/penalize. "
+        "Do not infer hidden outcomes, do not transfer source factor values, and do not write review-style comments. "
+        "Return only JSON with adjustments and confidence."
     )
     example = (
         "{\"adjustments\":[{\"field\":\"ligand_has_phosphine\",\"value\":\"yes\",\"direction\":\"prefer\",\"weight\":0.05,\"reason\":\"short evidence reason\"}],\"confidence\":0.7}"
@@ -1053,8 +1064,11 @@ def llm_transfer_adjustments(
     user = (
         "Propose bounded target factor-level score adjustments for the next candidate selection. "
         "Use fields only from selection_constraints.allowed_fields. Use values supported by target factor_evidence, "
-        "top_revealed, or bottom_revealed. The transfer card tells you which target roles are reliable enough to reuse; "
-        "target observations determine the direction. Max 4 adjustments. Return exactly this shape: "
+        "top_revealed, or bottom_revealed. Target observations determine direction: prefer means positive target delta_vs_global; penalize means negative. "
+        "Prefer count >= 3. Use count == 2 only when the target effect is very clear and the transfer role is credible. "
+        "Treat weight as a suggested maximum; downstream code will recalibrate it from target support and effect size. "
+        "If no value passes the target-support and effect thresholds, return {\"adjustments\":[],\"confidence\":0.2}. "
+        "Max 4 adjustments. Return exactly this shape: "
         f"{example}. "
         "JSON input:\n"
         + json.dumps(prompt_payload, ensure_ascii=False)
@@ -1082,6 +1096,7 @@ def llm_transfer_adjustments(
     negative = 0
     scored = 0
     strict_rejected_candidates = 0
+    candidate_signals: dict[str, list[float]] = {cid: [] for cid in adjustments}
 
     for item in list(parsed.get("adjustments", []))[:4]:
         if not isinstance(item, dict):
@@ -1101,6 +1116,16 @@ def llm_transfer_adjustments(
         if abs(target_effect) < effect_threshold:
             rejected_specs.append({"item": item, "reason": "target_effect_below_threshold", "target_effect": round(target_effect, 4)})
             continue
+        if direction == "prefer" and target_effect <= 0:
+            rejected_specs.append(
+                {"item": item, "reason": "direction_contradicts_target_effect", "target_effect": round(target_effect, 4)}
+            )
+            continue
+        if direction == "penalize" and target_effect >= 0:
+            rejected_specs.append(
+                {"item": item, "reason": "direction_contradicts_target_effect", "target_effect": round(target_effect, 4)}
+            )
+            continue
         if strict:
             if role.confidence < min_role_confidence:
                 rejected_specs.append({"item": item, "reason": "role_confidence_below_strict_threshold", "role_confidence": role.confidence})
@@ -1113,29 +1138,32 @@ def llm_transfer_adjustments(
         except (TypeError, ValueError):
             rejected_specs.append({"item": item, "reason": "invalid_weight"})
             continue
-        scaled = magnitude * min(1.0, role.transfer_weight)
-        cap = 0.055 if strict else 0.10
-        delta = min(cap, scaled) if direction == "prefer" else -min(cap, scaled)
+
+        support_gate = min(1.0, count / max(1.0, float(min_target_support + 2)))
+        effect_gate = min(0.08, abs(target_effect) / 100.0)
+        calibrated_magnitude = min(magnitude, effect_gate) * min(1.0, role.transfer_weight) * support_gate
+        cap = 0.055 if strict else 0.08
+        delta = min(cap, calibrated_magnitude) if direction == "prefer" else -min(cap, calibrated_magnitude)
         matched = 0
         for c in pool:
             if c.candidate_id not in adjustments:
                 continue
             if str(c.metadata.get(field_name, "")) != value:
                 continue
-            adjustments[c.candidate_id] += delta
+            candidate_signals[c.candidate_id].append(delta)
             matched += 1
         if matched == 0:
             rejected_specs.append({"item": item, "reason": "no_unobserved_candidates_matched"})
             continue
-        scored += matched
-        positive += int(delta > 0) * matched
-        negative += int(delta < 0) * matched
         applied_specs.append(
             {
                 "field": field_name,
                 "value": value,
                 "direction": direction,
                 "weight": round(delta, 6),
+                "requested_weight": round(magnitude, 6),
+                "support_gate": round(support_gate, 4),
+                "effect_gate": round(effect_gate, 6),
                 "matched_candidates": matched,
                 "target_support_count": count,
                 "target_effect": round(target_effect, 4),
@@ -1146,28 +1174,23 @@ def llm_transfer_adjustments(
             }
         )
 
-    if strict and applied_specs:
-        by_id = {c.candidate_id: c for c in pool}
-        for cid, value in list(adjustments.items()):
-            if value == 0.0:
-                continue
-            candidate = by_id[cid]
-            positive_matches = 0
-            negative_matches = 0
-            for spec in applied_specs:
-                if str(candidate.metadata.get(spec["field"], "")) != spec["value"]:
-                    continue
-                positive_matches += int(float(spec["weight"]) > 0)
-                negative_matches += int(float(spec["weight"]) < 0)
-            if positive_matches < min_positive_roles or negative_matches > max_negative_roles:
-                adjustments[cid] = 0.0
+    for cid, signals in candidate_signals.items():
+        if not signals:
+            continue
+        if strict:
+            positive_signals = [signal for signal in signals if signal > 0]
+            negative_signals = [signal for signal in signals if signal < 0]
+            if len(positive_signals) < min_positive_roles or len(negative_signals) > max_negative_roles:
                 strict_rejected_candidates += 1
+                continue
+            value = mean(positive_signals)
+        else:
+            value = mean(signals)
+        adjustments[cid] = max(-0.08, min(0.08, value))
 
     scored = sum(1 for value in adjustments.values() if value != 0.0)
     positive = sum(1 for value in adjustments.values() if value > 0.0)
     negative = sum(1 for value in adjustments.values() if value < 0.0)
-    for cid, value in list(adjustments.items()):
-        adjustments[cid] = max(-0.12, min(0.12, value))
     max_abs = max((abs(v) for v in adjustments.values()), default=0.0)
     cert = {
         "skills": {
@@ -1313,7 +1336,13 @@ def llm_audit_gate(
         "audit_instruction": (
             "Audit only whether the challenger has enough revealed target evidence and transfer-card support "
             "to override the incumbent. Do not use hidden outcomes for shortlisted candidates. "
-            "When the evidence is close, sparse, or mostly inherited from broad transfer priors, reject."
+            "When the evidence is close, sparse, or mostly inherited from broad transfer priors, reject. "
+            "Audit as a policy-risk controller, not as a manuscript reviewer."
+        ),
+        "audit_rubric": (
+            "Approve only if the challenger has a clear target-side positive evidence trail on a transferred role, "
+            "the LLM/proposed adjustment direction matches that target evidence, and the adjusted score improvement "
+            "is not just a broad prior with weak support. Otherwise reject."
         ),
         "output_contract": {
             "decision": "one of: approve, reject",
@@ -1324,7 +1353,8 @@ def llm_audit_gate(
     system = (
         "You are a CARE 2.0 cross-domain transfer auditor. "
         "Use only revealed target evidence, public candidate features, and the source-to-target role transfer card. "
-        "Do not infer hidden outcomes for candidate IDs. Return only one JSON object. No markdown. No chain-of-thought."
+        "Do not infer hidden outcomes for candidate IDs. Do not write manuscript-review style comments. "
+        "Return only one JSON object. No markdown. No chain-of-thought."
     )
     user = (
         "Decide whether to approve the proposed challenger over the incumbent. "

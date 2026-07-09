@@ -11,6 +11,7 @@ import math
 import os
 import random
 import re
+import socket
 import time
 import urllib.error
 import urllib.request
@@ -1700,7 +1701,13 @@ def chat_completion_text(config: LLMConfig, messages: list[dict[str, str]]) -> t
         "tool_choice": {"type": "function", "function": {"name": "return_json"}},
     }
     retryable_http = {408, 409, 425, 429, 500, 502, 503, 504}
-    retryable_errors = (TimeoutError, ConnectionError, urllib.error.URLError, http.client.RemoteDisconnected)
+    retryable_errors = (
+        TimeoutError,
+        socket.timeout,
+        ConnectionError,
+        urllib.error.URLError,
+        http.client.RemoteDisconnected,
+    )
     last_error: BaseException | None = None
     call_id = f"{os.getpid()}-{time.time_ns()}"
     call_started = time.monotonic()

@@ -340,4 +340,6 @@ ChemLex 代理数据上提升很明显，但这个结果要很小心地讲。它
 
 第三，继续做 acquisition-level skill optimization。现在 challenger 主要是规则化 factor evidence、shared descriptor prior，以及一版真实 LLM proposer。新 baseline 显示 GP-UCB 在反应 HTE 上很强，简单 additive transfer adjustment 不够；最新 transfer-weighted kernel 说明，把 skill 用来改 GP kernel field weights 是可行方向。下一步应该把 `scale`、posterior mean/uncertainty/exploration weight、candidate filtering 和 gate threshold 放进一个 calibration/search loop。LLM 也应该产出更受约束的 structured proposal、rationale 和 skill artifact，再由 gate 审查，而不是让 LLM 直接决定实验。强模型 follow-up 支持这个判断：`gpt-5.5` 能改善 bounded adjustment，但仍没有超过 deterministic rule；更值得做的是让 LLM 搜 rule，而不是只让它调候选分数。
 
+最新 prompt follow-up 进一步确认了这点。我们按群里反馈把 LLM 从“像 AI 审稿一样评论”改成“实验策略 proposer”：prompt 变短，要求只根据 transfer card 和已揭示 target evidence 提规则；parser 强制校验 prefer/penalize 方向；v3 版本还把 LLM weight 变成建议上限，实际权重由 target support、target effect 和 transfer role weight 重新校准，同一候选命中多条 LLM 规则时取平均信号而不是直接累加。结果是 v3 的 LLM proposer 比直接加权版本更稳，AUC 到 80.8906，bad interventions 降到 0.6；但 final best 只有 86.1182，仍低于 deterministic `transfer_gate_v1` 的 91.5394。1200-token 重跑把 parse error 降到 0，但指标没有变好，说明瓶颈不是 JSON 截断，而是 LLM 选择规则本身还不够强。这个结果不应该包装成 LLM 已经赢了，而应该作为下一步 rule evolution / policy selector 的依据。
+
 第四，补跨域任务。分子方向可以从单属性扩到 LogP/QED/SA 多目标；材料方向可以接 Matbench 或 Materials Project 中能转成 finite-pool replay 的 property task。这样就能更贴近“化学、材料、药物多个领域的新物质发现平台”的 CARE 2.0 目标。

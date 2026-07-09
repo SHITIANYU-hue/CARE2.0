@@ -1,6 +1,6 @@
 # CARE 2.0 实验进展汇总
 
-版本日期：2026-07-06
+版本日期：2026-07-09
 
 用途：团队内部同步；可直接复制到飞书文档继续编辑。
 
@@ -311,6 +311,8 @@ LLM 路径已经真实接入，使用 OpenAI-compatible endpoint，audit log 中
 6. LLM 已接入，但要从局部 adjustment 升级为 rule-level proposer / policy selector。
 7. 材料和 ChemLex 已经接入，但还不是性能主结果，需要更强 feature/model。
 
+最新一轮 LLM prompt follow-up 让这个判断更具体。我们按群里反馈把 prompt 从“像 AI 审稿一样评论”改成更直接的实验策略 proposer：LLM 只提出小范围 transfer rule，方向必须由已揭示 target evidence 支持，最终权重由 replay 代码按 target support、target effect 和 transfer role weight 重新校准。这个 v3 版本把 LLM proposer 的 bad interventions 从旧 prompt 的 1.0 降到 0.6，AUC 提到 80.8906；但 final best 只有 86.1182，仍然明显低于 deterministic `transfer_gate_v1` 的 91.5394。把输出预算提到 1200 tokens 后 parse error 可以降到 0，但指标没有提升，说明主要问题不是 JSON 截断，而是 LLM 选择规则本身还不够强。下一步应该做 rule evolution / policy selector，而不是继续只改 prompt wording。
+
 ## 11. 下一步建议
 
 ### 11.1 做 policy selector
@@ -366,7 +368,7 @@ Matbench 目前缺的是 representation，不是 replay 框架。下一步需要
 
 最新关键 commit：
 
-`1aeef9f Add calibrated transfer-weighted kernel follow-up`
+本轮 `2026-07-09-llm-prompt-followup` push 后以远端 commit 为准。
 
 主要文件位置：
 
@@ -379,6 +381,8 @@ Matbench 目前缺的是 representation，不是 replay 框架。下一步需要
 | calibration summary 脚本 | `experiments/care_replay/scripts/build_transfer_weighted_calibration_summary.py` |
 | MoleculeNet value-prior sweep | `experiments/care_replay/results/2026-07-05-molprop-value-prior-budget-sweep/` |
 | calibrated transfer-weighted kernel | `experiments/care_replay/results/2026-07-05-calibrated-transfer-weighted-kernel/` |
+| strong LLM model follow-up | `experiments/care_replay/results/2026-07-06-strong-llm-model-followup/` |
+| LLM prompt follow-up | `experiments/care_replay/results/2026-07-09-llm-prompt-followup/` |
 | target-calibrated descriptor transfer | `experiments/care_replay/results/2026-07-05-target-calibrated-descriptor-transfer/` |
 | transfer advantage sweep | `experiments/care_replay/results/2026-07-03-transfer-advantage-sweep/` |
 | real ChemLex | `experiments/care_replay/results/2026-06-30-real-chemlex/` |

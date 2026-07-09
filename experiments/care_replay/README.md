@@ -62,6 +62,14 @@ export CARE_LLM_API_KEY="..."
 python3 experiments/care_replay/scripts/run_transfer_ablation.py --source-dataset real_suzuki_miyaura --target-dataset real_buchwald_hartwig --source-observations 96 --seeds 5 --rounds 10 --initial 5 --modes no_care_random,incumbent,transfer_gate_v1,llm_transfer_gate_v1,llm_audit_transfer_gate_v1 --llm-model openai/gpt-5.5 --llm-max-tokens 700 --output-tag strong_model_openai_gpt-5_5_suzuki_to_bh_5seed
 ```
 
+Run the latest target-calibrated LLM prompt follow-up:
+
+```bash
+export CARE_LLM_API_KEY="..."
+export CARE_LLM_TRACE_LOG="experiments/care_replay/outputs/logs/openai_gpt-5_5_suzuki_to_bh_prompt_v3_calibrated_5seed_calls.jsonl"
+python3 experiments/care_replay/scripts/run_transfer_ablation.py --source-dataset real_suzuki_miyaura --target-dataset real_buchwald_hartwig --source-observations 96 --seeds 5 --rounds 10 --initial 5 --modes no_care_random,incumbent,transfer_gate_v1,llm_transfer_gate_v1,llm_audit_transfer_gate_v1 --llm-model openai/gpt-5.5 --llm-max-tokens 700 --output-tag prompt_v3_calibrated_openai_gpt-5_5_suzuki_to_bh_5seed
+```
+
 Run the target-only incumbent rule ablation:
 
 ```bash
@@ -179,6 +187,13 @@ Tracked result snapshots:
   proposer over the earlier `openai/gpt-4o-mini` first-five-seed slice, but
   still trails deterministic `transfer_gate_v1`. `deepseek/deepseek-v3.2`
   is not reliable under the current long-context tool-call interface.
+- `results/2026-07-09-llm-prompt-followup/`: prompt and policy-interface
+  follow-up after team feedback that the LLM looked too review-like. The v3
+  version moves the LLM toward rule proposal: target observations verify
+  direction, final weights are target-calibrated, and candidate signals are
+  averaged instead of directly summed. This improves LLM safety/AUC versus the
+  direct-weight variants, but deterministic `transfer_gate_v1` remains the
+  strongest policy on the five-seed Suzuki-to-BH check.
 
 The synthetic adapters let us test whether the same CARE gate and audit protocol
 behaves consistently across task shapes. The real HTE adapters download public
@@ -204,6 +219,8 @@ incumbent ablations, mixed-kernel GP-UCB, mixed-kernel GP-EI, and kNN-UCB. The
 GP-style baselines are implemented without external numerical dependencies.
 The current hybrid setting uses GP-UCB as the incumbent acquisition and tests
 whether transfer cards can improve that stronger optimizer.
+The LLM client retries retryable HTTP failures, URL errors, disconnects, and
+socket read timeouts, and trace logs can be enabled with `CARE_LLM_TRACE_LOG`.
 The latest budget sweep shows that shared-descriptor value-prior transfer over
 GP-UCB mostly helps early discovery. In the 10-round 100-seed setting,
 top-10 hit increases from 0.11 to 0.21 and AUC increases from 86.5433 to
