@@ -51,6 +51,9 @@ DEFAULT_MODES: tuple[TransferMode, ...] = (
     "llm_audit_transfer_open_gate_v1",
     "llm_audit_transfer_unlocked_gate_v1",
     "llm_descriptor_transfer_gate_v1",
+    "llm_rule_patch_transfer_gate_v1",
+    "llm_rule_patch_interaction_gate_v1",
+    "llm_rule_patch_guarded_interaction_gate_v1",
 )
 
 
@@ -90,6 +93,20 @@ class TransferCard:
     evidence_summary: str
 
 
+@dataclass(frozen=True)
+class TransferRulePatch:
+    min_target_support: int
+    effect_threshold: float
+    signal_cap: float
+    aggregation: str
+    negative_policy: str
+    role_weight_multipliers: dict[str, float]
+    interaction_pairs: list[dict[str, Any]]
+    interaction_min_support: int
+    confidence: float
+    reason: str
+
+
 def parse_modes(raw: str) -> tuple[TransferMode, ...]:
     modes = tuple(item.strip() for item in raw.split(",") if item.strip())
     if not modes:
@@ -123,7 +140,23 @@ def is_llm_audit_transfer_mode(mode: TransferMode) -> bool:
 
 
 def is_any_llm_mode(mode: TransferMode) -> bool:
-    return is_llm_transfer_mode(mode) or is_llm_audit_transfer_mode(mode)
+    return is_llm_transfer_mode(mode) or is_llm_audit_transfer_mode(mode) or is_llm_rule_patch_mode(mode)
+
+
+def is_llm_rule_patch_mode(mode: TransferMode) -> bool:
+    return mode in {
+        "llm_rule_patch_transfer_gate_v1",
+        "llm_rule_patch_interaction_gate_v1",
+        "llm_rule_patch_guarded_interaction_gate_v1",
+    }
+
+
+def is_llm_interaction_rule_patch_mode(mode: TransferMode) -> bool:
+    return mode in {"llm_rule_patch_interaction_gate_v1", "llm_rule_patch_guarded_interaction_gate_v1"}
+
+
+def is_llm_guarded_interaction_rule_patch_mode(mode: TransferMode) -> bool:
+    return mode == "llm_rule_patch_guarded_interaction_gate_v1"
 
 
 def is_open_llm_policy_mode(mode: TransferMode) -> bool:
@@ -553,11 +586,20 @@ def transfer_adjustments(
     min_role_confidence: float = 0.18,
     min_positive_roles: int = 2,
     max_negative_roles: int = 0,
+    skill_id: str = "cross_domain_transfer_card",
+    role_weight_multipliers: dict[str, float] | None = None,
+    signal_cap: float = 0.10,
+    aggregation: str = "mean",
+    negative_policy: str = "allow",
+    rule_patch: dict[str, Any] | None = None,
+    interaction_pairs: list[dict[str, Any]] | None = None,
+    interaction_min_support: int = 1,
+    interaction_requires_role_agreement: bool = False,
 ) -> tuple[dict[str, float], dict[str, Any]]:
     adjustments = {c.candidate_id: 0.0 for c in pool if c.candidate_id not in observed_ids}
     if len(observed) < 8:
         return adjustments, {
-            "skills": {"cross_domain_transfer_card": {"active": False, "reason": "observed_count_below_8"}},
+            "skills": {skill_id: {"active": False, "reason": "observed_count_below_8"}},
             "max_abs_adjustment": 0.0,
         }
 
@@ -571,7 +613,47 @@ def transfer_adjustments(
         for role in card.roles
         if role.transfer_weight > 0.0 and (not strict or role.confidence >= min_role_confidence)
     }
+    multiplier_by_target = role_weight_multipliers or {}
+    aggregation = aggregation if aggregation in {"mean", "sum"} else "mean"
+    negative_policy = negative_policy if negative_policy in {"allow", "downweight", "block"} else "allow"
+    signal_cap = max(0.0, min(0.20, signal_cap))
+
+    def effective_role_weight(role: TransferRole) -> float:
+        multiplier = max(0.0, min(1.8, float(multiplier_by_target.get(role.target_field, 1.0))))
+        return max(0.0, min(1.8, role.transfer_weight * multiplier))
+
+    interaction_min_support = max(1, min(3, int(interaction_min_support)))
+    interaction_pair_specs: list[dict[str, Any]] = []
+    for item in interaction_pairs or []:
+        if not isinstance(item, dict):
+            continue
+        fields_raw = item.get("fields", [])
+        if not isinstance(fields_raw, (list, tuple)) or len(fields_raw) != 2:
+            continue
+        fields = tuple(str(field) for field in fields_raw)
+        if len(set(fields)) != 2 or any(field not in role_by_target for field in fields):
+            continue
+        interaction_pair_specs.append(
+            {
+                "fields": fields,
+                "weight": bounded_float(item.get("weight", 0.5), 0.5, 0.0, 1.0),
+                "reason": str(item.get("reason", ""))[:240],
+            }
+        )
+    interaction_summary: dict[tuple[tuple[str, str], tuple[str, str]], tuple[int, float]] = {}
+    for spec in interaction_pair_specs:
+        fields = spec["fields"]
+        buckets: dict[tuple[str, str], list[float]] = {}
+        for row in observed:
+            values = tuple(str(row.metadata.get(field, "")) for field in fields)
+            if any(not value for value in values):
+                continue
+            buckets.setdefault(values, []).append(row.objective_value)
+        for values, outcomes in buckets.items():
+            interaction_summary[(fields, values)] = (len(outcomes), mean(outcomes))
+
     applied_specs: list[dict[str, Any]] = []
+    active_interactions: list[dict[str, Any]] = []
     positive = 0
     negative = 0
     scored = 0
@@ -580,7 +662,7 @@ def transfer_adjustments(
     for c in pool:
         if c.candidate_id not in adjustments:
             continue
-        signals: list[float] = []
+        role_signals: list[float] = []
         for target_field, role in role_by_target.items():
             value = str(c.metadata.get(target_field, ""))
             if not value:
@@ -591,7 +673,38 @@ def transfer_adjustments(
             effect = replay.smoothed_mean(count, value_mean, global_mean, prior_weight=2.0) - global_mean
             if abs(effect) < effect_threshold:
                 continue
-            signals.append((effect / 100.0) * role.transfer_weight)
+            signal = (effect / 100.0) * effective_role_weight(role)
+            if signal < 0.0:
+                if negative_policy == "block":
+                    continue
+                if negative_policy == "downweight":
+                    signal *= 0.5
+            role_signals.append(signal)
+        signals: list[float] = list(role_signals)
+        for spec in interaction_pair_specs:
+            fields = spec["fields"]
+            values = tuple(str(c.metadata.get(field, "")) for field in fields)
+            if any(not value for value in values):
+                continue
+            count, pair_mean = interaction_summary.get((fields, values), (0, global_mean))
+            if count < interaction_min_support:
+                continue
+            effect = replay.smoothed_mean(count, pair_mean, global_mean, prior_weight=2.0) - global_mean
+            if abs(effect) < max(1.0, effect_threshold * 0.75):
+                continue
+            pair_weight = mean(effective_role_weight(role_by_target[field]) for field in fields) * float(spec["weight"])
+            signal = (effect / 100.0) * pair_weight
+            if signal < 0.0:
+                if negative_policy == "block":
+                    continue
+                if negative_policy == "downweight":
+                    signal *= 0.5
+            if interaction_requires_role_agreement and not any(
+                (role_signal > 0.0 and signal > 0.0) or (role_signal < 0.0 and signal < 0.0)
+                for role_signal in role_signals
+            ):
+                continue
+            signals.append(signal)
         if not signals:
             continue
         if strict:
@@ -600,9 +713,10 @@ def transfer_adjustments(
             if len(positive_signals) < min_positive_roles or len(negative_signals) > max_negative_roles:
                 strict_rejected += 1
                 continue
-            bounded = max(0.0, min(0.055, mean(positive_signals)))
+            bounded = max(0.0, min(min(0.055, signal_cap), mean(positive_signals)))
         else:
-            bounded = max(-0.10, min(0.10, mean(signals)))
+            combined = sum(signals) if aggregation == "sum" else mean(signals)
+            bounded = max(-signal_cap, min(signal_cap, combined))
         adjustments[c.candidate_id] += bounded
         scored += 1
         positive += int(bounded > 0)
@@ -627,16 +741,44 @@ def transfer_adjustments(
                 "source_field": role.source_field,
                 "target_field": target_field,
                 "transfer_weight": role.transfer_weight,
+                "effective_transfer_weight": round(effective_role_weight(role), 6),
+                "role_weight_multiplier": round(float(multiplier_by_target.get(target_field, 1.0)), 4),
                 "confidence": role.confidence,
                 "strict_enabled": strict,
                 "active_target_values": sorted(active_values, key=lambda item: abs(item["effect"]), reverse=True)[:8],
+            }
+        )
+    for spec in interaction_pair_specs:
+        fields = spec["fields"]
+        threshold = max(1.0, effect_threshold * 0.75)
+        active_values = []
+        for (summary_fields, values), (count, pair_mean) in interaction_summary.items():
+            if summary_fields != fields or count < interaction_min_support:
+                continue
+            effect = replay.smoothed_mean(count, pair_mean, global_mean, prior_weight=2.0) - global_mean
+            if abs(effect) >= threshold:
+                active_values.append(
+                    {
+                        "values": list(values),
+                        "count": count,
+                        "effect": round(effect, 4),
+                    }
+                )
+        active_interactions.append(
+            {
+                "fields": list(fields),
+                "weight": round(float(spec["weight"]), 4),
+                "interaction_min_support": interaction_min_support,
+                "interaction_effect_threshold": round(threshold, 4),
+                "reason": spec["reason"],
+                "active_target_value_pairs": sorted(active_values, key=lambda item: abs(item["effect"]), reverse=True)[:8],
             }
         )
 
     max_abs = max((abs(v) for v in adjustments.values()), default=0.0)
     cert = {
         "skills": {
-            "cross_domain_transfer_card": {
+            skill_id: {
                 "active": scored > 0,
                 "card_id": card.card_id,
                 "scored_candidates": scored,
@@ -646,7 +788,15 @@ def transfer_adjustments(
                 "strict_min_role_confidence": min_role_confidence if strict else 0.0,
                 "strict_min_positive_roles": min_positive_roles if strict else 0,
                 "strict_max_negative_roles": max_negative_roles if strict else 0,
+                "min_target_support": min_target_support,
+                "effect_threshold": effect_threshold,
+                "signal_cap": signal_cap,
+                "aggregation": aggregation,
+                "negative_policy": negative_policy,
+                "interaction_requires_role_agreement": interaction_requires_role_agreement,
+                "rule_patch": rule_patch,
                 "applied_specs": applied_specs,
+                "active_interactions": active_interactions,
             }
         },
         "max_abs_adjustment": round(max_abs, 6),
@@ -1093,6 +1243,264 @@ def llm_transfer_prompt_payload(
             "confidence": "number between 0 and 1",
         },
     }
+
+
+def default_transfer_rule_patch(
+    card: TransferCard,
+    min_target_support: int,
+    effect_threshold: float,
+) -> TransferRulePatch:
+    return TransferRulePatch(
+        min_target_support=min_target_support,
+        effect_threshold=effect_threshold,
+        signal_cap=0.10,
+        aggregation="mean",
+        negative_policy="allow",
+        role_weight_multipliers={
+            role.target_field: 1.0
+            for role in card.roles
+            if role.transfer_weight > 0.0
+        },
+        interaction_pairs=[],
+        interaction_min_support=1,
+        confidence=0.5,
+        reason="Fallback to the default deterministic transfer rule.",
+    )
+
+
+def normalize_transfer_rule_patch(
+    parsed: dict[str, Any],
+    card: TransferCard,
+    min_target_support: int,
+    effect_threshold: float,
+) -> TransferRulePatch:
+    active_targets = tuple(
+        dict.fromkeys(role.target_field for role in card.roles if role.transfer_weight > 0.0)
+    )
+    raw_multipliers = parsed.get("role_weight_multipliers", {})
+    if not isinstance(raw_multipliers, dict):
+        raw_multipliers = {}
+    multipliers: dict[str, float] = {}
+    for target_field in active_targets:
+        multipliers[target_field] = bounded_float(
+            raw_multipliers.get(target_field, 1.0),
+            1.0,
+            0.40,
+            1.60,
+        )
+
+    try:
+        support = int(round(float(parsed.get("min_target_support", min_target_support))))
+    except (TypeError, ValueError):
+        support = min_target_support
+    support = max(1, min(4, support))
+
+    aggregation = str(parsed.get("aggregation", "mean")).lower()
+    if aggregation not in {"mean", "sum"}:
+        aggregation = "mean"
+    negative_policy = str(parsed.get("negative_policy", "allow")).lower()
+    if negative_policy not in {"allow", "downweight", "block"}:
+        negative_policy = "allow"
+    raw_interactions = parsed.get("interaction_pairs", [])
+    if not isinstance(raw_interactions, list):
+        raw_interactions = []
+    interaction_pairs: list[dict[str, Any]] = []
+    active_target_set = set(active_targets)
+    for item in raw_interactions[:4]:
+        if not isinstance(item, dict):
+            continue
+        fields_raw = item.get("fields", item.get("target_fields", []))
+        if not isinstance(fields_raw, (list, tuple)) or len(fields_raw) != 2:
+            continue
+        fields = tuple(str(field) for field in fields_raw)
+        if len(set(fields)) != 2 or any(field not in active_target_set for field in fields):
+            continue
+        interaction_pairs.append(
+            {
+                "fields": list(fields),
+                "weight": bounded_float(item.get("weight", 0.5), 0.5, 0.0, 1.0),
+                "reason": str(item.get("reason", ""))[:240],
+            }
+        )
+    try:
+        interaction_min_support = int(round(float(parsed.get("interaction_min_support", 1))))
+    except (TypeError, ValueError):
+        interaction_min_support = 1
+    interaction_min_support = max(1, min(3, interaction_min_support))
+
+    return TransferRulePatch(
+        min_target_support=support,
+        effect_threshold=bounded_float(parsed.get("effect_threshold", effect_threshold), effect_threshold, 1.0, 8.0),
+        signal_cap=bounded_float(parsed.get("signal_cap", 0.10), 0.10, 0.04, 0.16),
+        aggregation=aggregation,
+        negative_policy=negative_policy,
+        role_weight_multipliers=multipliers,
+        interaction_pairs=interaction_pairs,
+        interaction_min_support=interaction_min_support,
+        confidence=bounded_float(parsed.get("confidence", 0.5), 0.5, 0.0, 1.0),
+        reason=str(parsed.get("reason", ""))[:600],
+    )
+
+
+def llm_rule_patch_prompt_payload(
+    adapter: replay.DatasetAdapter,
+    observed: list[replay.Candidate],
+    card: TransferCard,
+    min_target_support: int,
+    effect_threshold: float,
+    enable_interactions: bool = False,
+) -> dict[str, Any]:
+    active_roles = [asdict(role) for role in card.roles if role.transfer_weight > 0.0]
+    active_target_fields = tuple(sorted({role["target_field"] for role in active_roles}))
+    output_contract: dict[str, Any] = {
+        "min_target_support": 2,
+        "effect_threshold": 4.0,
+        "signal_cap": 0.10,
+        "aggregation": "mean",
+        "negative_policy": "allow",
+        "role_weight_multipliers": {"target_field": 1.0},
+        "confidence": "number between 0 and 1",
+        "reason": "short justification for the rule patch",
+    }
+    allowed_patch_space: dict[str, Any] = {
+        "min_target_support": "integer 1..4",
+        "effect_threshold": "float 1.0..8.0 in target objective units",
+        "signal_cap": "float 0.04..0.16; higher means bolder transfer",
+        "aggregation": ["mean", "sum"],
+        "negative_policy": ["allow", "downweight", "block"],
+        "role_weight_multipliers": "map each allowed target_field to 0.40..1.60",
+    }
+    if enable_interactions:
+        output_contract["interaction_pairs"] = [
+            {
+                "fields": ["target_field_a", "target_field_b"],
+                "weight": "number between 0 and 1",
+                "reason": "why this field interaction should transfer",
+            }
+        ]
+        output_contract["interaction_min_support"] = "integer 1..3"
+        allowed_patch_space["interaction_pairs"] = (
+            "up to 3 pairs of allowed target_fields. The code will estimate pair-value effects from revealed target rows only."
+        )
+        allowed_patch_space["interaction_min_support"] = "integer 1..3; use 1 only for early sparse HTE replay"
+
+    return {
+        "policy_task": (
+            "Patch the deterministic CARE transfer rule before replay. "
+            "Do not score individual candidates. The code will execute the patch deterministically."
+        ),
+        "target_evidence": observed_transfer_evidence_payload(
+            adapter,
+            observed,
+            active_target_fields or adapter.decision_columns,
+            "role_level_target_evidence",
+        ),
+        "transfer_card": {
+            "card_id": card.card_id,
+            "source_dataset": card.source_dataset,
+            "target_dataset": card.target_dataset,
+            "source_observation_count": card.source_observation_count,
+            "discount": card.discount,
+            "role_map": card.role_map,
+            "roles": active_roles,
+            "evidence_summary": card.evidence_summary,
+        },
+        "current_rule": {
+            "min_target_support": min_target_support,
+            "effect_threshold": effect_threshold,
+            "signal_cap": 0.10,
+            "aggregation": "mean",
+            "negative_policy": "allow",
+            "role_weight_multipliers": {role["target_field"]: 1.0 for role in active_roles},
+        },
+        "lessons_from_prior_runs": [
+            "Direct candidate-level LLM transfer was unstable and underperformed the fixed transfer rule.",
+            "The useful role for the LLM is to tune the transferable skill, not to replace the acquisition rule.",
+            "The patch should increase transfer gain while avoiding obvious negative transfer.",
+            "Single-field role reweighting alone was too weak; interaction patches should name transferable role pairs when enabled.",
+        ],
+        "allowed_patch_space": allowed_patch_space,
+        "output_contract": output_contract,
+    }
+
+
+def llm_transfer_rule_patch(
+    adapter: replay.DatasetAdapter,
+    observed: list[replay.Candidate],
+    card: TransferCard,
+    min_target_support: int,
+    effect_threshold: float,
+    seed: int,
+    mode: TransferMode,
+    config: replay.LLMConfig,
+) -> tuple[TransferRulePatch, dict[str, Any]]:
+    enable_interactions = is_llm_interaction_rule_patch_mode(mode)
+    guarded_interactions = is_llm_guarded_interaction_rule_patch_mode(mode)
+    prompt_payload = llm_rule_patch_prompt_payload(
+        adapter,
+        observed,
+        card,
+        min_target_support,
+        effect_threshold,
+        enable_interactions,
+    )
+    system = (
+        "You are a CARE 2.0 cross-domain transfer-rule optimizer. "
+        "Your job is to patch a reusable deterministic transfer skill from source-domain evidence and sparse revealed target evidence. "
+        "Do not output candidate recommendations. Do not infer hidden outcomes. "
+        "Return only JSON in the requested patch schema."
+    )
+    user = (
+        "Choose one conservative-but-useful rule patch. Prefer changes that can improve acquisition over the fixed transfer_gate_v1 "
+        "without making the result look like uncontrolled prompt luck. "
+        + (
+            "Because single-field reweighting has been too weak, select 1-3 mechanistically plausible field interactions when target evidence is sparse but suggestive. "
+            "Interaction pairs should be role-level fields, not specific values; the replay code will estimate value-pair effects only from revealed target rows. "
+            + (
+                "This guarded mode will only apply an interaction signal when a single-field role-transfer signal agrees in direction, so choose pairs that strengthen existing transfer evidence. "
+                if guarded_interactions
+                else ""
+            )
+            if enable_interactions
+            else ""
+        )
+        + "Return exactly this JSON shape: "
+        + (
+            "{\"min_target_support\":2,\"effect_threshold\":4.0,\"signal_cap\":0.10,\"aggregation\":\"mean\","
+            "\"negative_policy\":\"allow\",\"role_weight_multipliers\":{\"ligand\":1.0},"
+            "\"interaction_pairs\":[{\"fields\":[\"ligand\",\"base\"],\"weight\":0.5,\"reason\":\"short reason\"}],"
+            "\"interaction_min_support\":1,\"confidence\":0.7,\"reason\":\"short reason\"}. JSON input:\n"
+            if enable_interactions
+            else "{\"min_target_support\":2,\"effect_threshold\":4.0,\"signal_cap\":0.10,\"aggregation\":\"mean\","
+            "\"negative_policy\":\"allow\",\"role_weight_multipliers\":{\"ligand\":1.0},"
+            "\"confidence\":0.7,\"reason\":\"short reason\"}. JSON input:\n"
+        )
+        + json.dumps(prompt_payload, ensure_ascii=False)
+    )
+    content, response_meta = replay.chat_completion_text(
+        config,
+        [{"role": "system", "content": system}, {"role": "user", "content": user}],
+    )
+    parse_error = ""
+    try:
+        parsed = replay.extract_json_object(content)
+    except ValueError as exc:
+        parsed = {}
+        parse_error = str(exc)
+    patch = normalize_transfer_rule_patch(parsed, card, min_target_support, effect_threshold)
+    record = {
+        "called": True,
+        "seed": seed,
+        "mode": mode,
+        "model": response_meta["model"],
+        "usage": response_meta["usage"],
+        "prompt_payload": prompt_payload,
+        "raw_response": content,
+        "parsed_response": parsed,
+        "patch": asdict(patch),
+        "parse_error": parse_error,
+    }
+    return patch, record
 
 
 def llm_transfer_adjustments(
@@ -1789,6 +2197,15 @@ def transfer_row_order_stability_check(
     min_role_confidence: float = 0.18,
     min_positive_roles: int = 2,
     max_negative_roles: int = 0,
+    skill_id: str = "cross_domain_transfer_card",
+    role_weight_multipliers: dict[str, float] | None = None,
+    signal_cap: float = 0.10,
+    aggregation: str = "mean",
+    negative_policy: str = "allow",
+    rule_patch: dict[str, Any] | None = None,
+    interaction_pairs: list[dict[str, Any]] | None = None,
+    interaction_min_support: int = 1,
+    interaction_requires_role_agreement: bool = False,
 ) -> bool:
     shuffled = list(pool)
     random.Random(20_000 + len(observed)).shuffle(shuffled)
@@ -1804,6 +2221,15 @@ def transfer_row_order_stability_check(
         min_role_confidence,
         min_positive_roles,
         max_negative_roles,
+        skill_id,
+        role_weight_multipliers,
+        signal_cap,
+        aggregation,
+        negative_policy,
+        rule_patch,
+        interaction_pairs,
+        interaction_min_support,
+        interaction_requires_role_agreement,
     )
     return all(abs(reference_adjustments[k] - shuffled_adjustments[k]) < 1e-12 for k in reference_adjustments)
 
@@ -1855,6 +2281,23 @@ def run_target_policy(
     transfer_scored_candidates_total = 0
     llm_call_count = 0
     llm_parse_error_count = 0
+    llm_rule_patch: TransferRulePatch | None = None
+    llm_rule_patch_record: dict[str, Any] | None = None
+    if is_llm_rule_patch_mode(mode):
+        if llm_config is None:
+            raise RuntimeError("LLM rule-patch transfer mode requested but no LLM config was provided.")
+        llm_rule_patch, llm_rule_patch_record = llm_transfer_rule_patch(
+            adapter,
+            observed,
+            card,
+            min_target_support,
+            effect_threshold,
+            seed,
+            mode,
+            llm_config,
+        )
+        llm_call_count += int(bool(llm_rule_patch_record.get("called")))
+        llm_parse_error_count += int(bool(llm_rule_patch_record.get("parse_error")))
 
     for round_index in range(task.reveal_budget):
         transfer_cert: dict[str, Any] | None = None
@@ -1928,6 +2371,9 @@ def run_target_policy(
                     "llm_transfer_unlocked_gate_v1",
                     "llm_transfer_unlocked_no_gate_v1",
                     "llm_descriptor_transfer_gate_v1",
+                    "llm_rule_patch_transfer_gate_v1",
+                    "llm_rule_patch_interaction_gate_v1",
+                    "llm_rule_patch_guarded_interaction_gate_v1",
                     "llm_audit_transfer_gate_v1",
                     "llm_audit_transfer_strict_gate_v1",
                     "llm_audit_transfer_open_gate_v1",
@@ -1968,20 +2414,43 @@ def run_target_policy(
                         )
                         llm_call_count += int(bool(llm_record.get("called")))
                         llm_parse_error_count += int(bool(llm_record.get("parse_error")))
-                        transfer_skill = transfer_cert["skills"]["llm_cross_domain_transfer_card"]
+                        transfer_skill_id = "llm_cross_domain_transfer_card"
+                        transfer_skill = transfer_cert["skills"][transfer_skill_id]
                     else:
+                        transfer_skill_id = "cross_domain_transfer_card"
+                        effective_min_target_support = min_target_support
+                        effective_effect_threshold = effect_threshold
+                        rule_patch_kwargs: dict[str, Any] = {}
+                        if is_llm_rule_patch_mode(mode):
+                            if llm_rule_patch is None:
+                                llm_rule_patch = default_transfer_rule_patch(card, min_target_support, effect_threshold)
+                            transfer_skill_id = "llm_rule_patch_transfer_card"
+                            effective_min_target_support = llm_rule_patch.min_target_support
+                            effective_effect_threshold = llm_rule_patch.effect_threshold
+                            rule_patch_kwargs = {
+                                "skill_id": transfer_skill_id,
+                                "role_weight_multipliers": llm_rule_patch.role_weight_multipliers,
+                                "signal_cap": llm_rule_patch.signal_cap,
+                                "aggregation": llm_rule_patch.aggregation,
+                                "negative_policy": llm_rule_patch.negative_policy,
+                                "rule_patch": asdict(llm_rule_patch),
+                                "interaction_pairs": llm_rule_patch.interaction_pairs,
+                                "interaction_min_support": llm_rule_patch.interaction_min_support,
+                                "interaction_requires_role_agreement": is_llm_guarded_interaction_rule_patch_mode(mode),
+                            }
                         transfer_adjustment_values, transfer_cert = transfer_adjustments(
                             adapter,
                             pool,
                             observed_ids,
                             observed,
                             card,
-                            min_target_support,
-                            effect_threshold,
+                            effective_min_target_support,
+                            effective_effect_threshold,
                             strict_transfer,
                             strict_min_role_confidence,
                             strict_min_positive_roles,
                             strict_max_negative_roles,
+                            **rule_patch_kwargs,
                         )
                         row_order_stable = row_order_stable and transfer_row_order_stability_check(
                             adapter,
@@ -1989,19 +2458,20 @@ def run_target_policy(
                             observed_ids,
                             observed,
                             card,
-                            min_target_support,
-                            effect_threshold,
+                            effective_min_target_support,
+                            effective_effect_threshold,
                             transfer_adjustment_values,
                             strict_transfer,
                             strict_min_role_confidence,
                             strict_min_positive_roles,
                             strict_max_negative_roles,
+                            **rule_patch_kwargs,
                         )
-                        transfer_skill = transfer_cert["skills"]["cross_domain_transfer_card"]
+                        transfer_skill = transfer_cert["skills"][transfer_skill_id]
                     if transfer_skill.get("active"):
                         round_transfer_active = True
                         transfer_scored_candidates_total += int(transfer_skill.get("scored_candidates", 0))
-                        active_skill_ids.append("llm_cross_domain_transfer_card" if is_llm_transfer_mode(mode) else "cross_domain_transfer_card")
+                        active_skill_ids.append(transfer_skill_id)
 
                 if is_value_prior_mode(mode):
                     strict_value_prior = mode in {
@@ -2130,6 +2600,8 @@ def run_target_policy(
             hypothesis_snapshot["source_value_prior_policy"] = value_prior_cert
         if llm_record is not None:
             hypothesis_snapshot["llm_transfer_policy"] = llm_record
+        if llm_rule_patch_record is not None:
+            hypothesis_snapshot["llm_transfer_rule_patch"] = llm_rule_patch_record
         audit.append(
             replay.AuditEntry(
                 dataset_id=adapter.dataset_id,

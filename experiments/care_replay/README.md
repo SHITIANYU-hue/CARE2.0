@@ -70,6 +70,14 @@ export CARE_LLM_TRACE_LOG="experiments/care_replay/outputs/logs/openai_gpt-5_5_s
 python3 experiments/care_replay/scripts/run_transfer_ablation.py --source-dataset real_suzuki_miyaura --target-dataset real_buchwald_hartwig --source-observations 96 --seeds 5 --rounds 10 --initial 5 --modes no_care_random,incumbent,transfer_gate_v1,llm_transfer_gate_v1,llm_audit_transfer_gate_v1 --llm-model openai/gpt-5.5 --llm-max-tokens 700 --output-tag prompt_v3_calibrated_openai_gpt-5_5_suzuki_to_bh_5seed
 ```
 
+Run the latest LLM rule-patch interaction follow-up:
+
+```bash
+export CARE_LLM_API_KEY="..."
+export CARE_LLM_TRACE_LOG="experiments/care_replay/outputs/logs/rule_patch_guarded_interaction_openai_gpt-5_5_suzuki_to_bh_10seed_calls.jsonl"
+python3 experiments/care_replay/scripts/run_transfer_ablation.py --source-dataset real_suzuki_miyaura --target-dataset real_buchwald_hartwig --source-observations 96 --seeds 10 --rounds 10 --initial 5 --modes incumbent,transfer_gate_v1,llm_rule_patch_guarded_interaction_gate_v1 --llm-model openai/gpt-5.5 --llm-max-tokens 1200 --output-tag rule_patch_guarded_interaction_openai_gpt-5_5_suzuki_to_bh_10seed
+```
+
 Run the target-only incumbent rule ablation:
 
 ```bash
@@ -194,6 +202,13 @@ Tracked result snapshots:
   averaged instead of directly summed. This improves LLM safety/AUC versus the
   direct-weight variants, but deterministic `transfer_gate_v1` remains the
   strongest policy on the five-seed Suzuki-to-BH check.
+- `results/2026-07-10-llm-rule-patch-transfer-followup/`: rule-level LLM
+  transfer follow-up. The LLM patches the transferable skill once per seed
+  instead of directly scoring candidates. Single-field role reweighting still
+  trails deterministic transfer, but guarded LLM-selected role interactions
+  produce the first small positive LLM transfer edge over `transfer_gate_v1`
+  on Suzuki-to-Buchwald-Hartwig: 10-seed final best 90.4106 vs 90.0980 and AUC
+  83.7966 vs 82.9136, with a higher bad-intervention cost.
 
 The synthetic adapters let us test whether the same CARE gate and audit protocol
 behaves consistently across task shapes. The real HTE adapters download public

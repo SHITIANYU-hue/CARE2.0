@@ -55,6 +55,8 @@ LLM 目前确实有真实调用，但角色还比较窄。`llm_transfer_gate_v1`
 
 我们按“LLM 换强模型可能会提升质量”的方向又补了一组同 seeds 的模型替换实验。Suzuki -> Buchwald-Hartwig 上，`openai/gpt-5.5` 把 `llm_transfer_gate_v1` 的 first-five-seed final best 从 `gpt-4o-mini` 的 86.0649 提到 87.1667，bad interventions 从 2.0000 降到 1.0000，说明模型质量确实有影响。但它仍然低于同 seeds 的 deterministic `transfer_gate_v1`，后者 final best 是 91.5394。`deepseek/deepseek-v3.2` 在小测试里能返回 tool-call JSON，但进入真实长 prompt 后约一半调用没有可用 tool args，最后基本退回 incumbent。这说明下一步不能只换模型，还要改 LLM interface：让模型提出 rule artifact，再由 replay 验证。
 
+按照这个判断，我们又把 LLM 从“候选级打分器”上移成“skill/rule optimizer”。新模式不是让 LLM 直接给候选加分，而是每个 seed 调一次 LLM，让它提出可执行的 transfer rule patch；代码再用 target 已 reveal 的 evidence 和 gate 去执行。第一版只调单字段 role weight，结果仍然不如 deterministic transfer。第二版让 LLM 提出 `ligand-base`、`ligand-aryl_halide` 这类可迁移 role interaction，探索性变强但 bad interventions 偏多。最新 guarded 版本要求 interaction signal 必须和单字段 role-transfer signal 同方向，才允许进入候选分数。这个版本在 Suzuki -> Buchwald-Hartwig 的 10-seed 检查里首次超过固定 `transfer_gate_v1`：final best 90.4106 vs 90.0980，AUC 83.7966 vs 82.9136；但 bad interventions 也从 1.1 到 1.7，所以现在应该讲成“LLM rule-level transfer 有初步正向信号，但还需要风险控制”，而不是讲成已经大幅胜出。
+
 我们又补了一组更接近外部优化方法的 target-only surrogate baseline，包括 mixed-kernel GP-UCB、GP-EI 和 kNN-UCB。这组 baseline 只用 public feature 和目标域已 reveal 的 observation，不用 source transfer。结果把结论进一步分开了：`FreeSolv -> Lipophilicity` 上，CARE 的 `transfer_value_prior_gate_v1` final best 是 90.0625，仍然高于 GP-UCB 的 88.4775；但 `Suzuki -> Buchwald-Hartwig` 上，GP-UCB final best 是 91.1145，高于当前 transfer gate 的 89.0866。也就是说，分子性质方向可以说 transfer 赢过了更强 surrogate baseline；反应 HTE 方向目前只能说 transfer 赢 incumbent，但还没有赢 GP-UCB。
 
 这个结果对下一步很有帮助：反应方向不应该继续只和手写 incumbent 比，而应该把 GP-UCB 这类 surrogate 当成更强 incumbent，然后让 CARE transfer 去改 acquisition，或者让 LLM 在 role map、threshold、discount 这些规则层面参与进来。
