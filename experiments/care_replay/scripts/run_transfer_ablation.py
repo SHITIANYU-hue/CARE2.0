@@ -43,8 +43,10 @@ DEFAULT_MODES: tuple[TransferMode, ...] = (
     "transfer_descriptor_target_calibrated_strict_gate_v1",
     "llm_transfer_gate_v1",
     "llm_transfer_strict_gate_v1",
+    "llm_transfer_open_gate_v1",
     "llm_audit_transfer_gate_v1",
     "llm_audit_transfer_strict_gate_v1",
+    "llm_audit_transfer_open_gate_v1",
     "llm_descriptor_transfer_gate_v1",
 )
 
@@ -96,19 +98,41 @@ def parse_modes(raw: str) -> tuple[TransferMode, ...]:
 
 
 def is_llm_transfer_mode(mode: TransferMode) -> bool:
-    return mode in {"llm_transfer_gate_v1", "llm_transfer_strict_gate_v1", "llm_descriptor_transfer_gate_v1"}
+    return mode in {
+        "llm_transfer_gate_v1",
+        "llm_transfer_strict_gate_v1",
+        "llm_transfer_open_gate_v1",
+        "llm_audit_transfer_open_gate_v1",
+        "llm_descriptor_transfer_gate_v1",
+    }
 
 
 def is_llm_audit_transfer_mode(mode: TransferMode) -> bool:
-    return mode in {"llm_audit_transfer_gate_v1", "llm_audit_transfer_strict_gate_v1"}
+    return mode in {
+        "llm_audit_transfer_gate_v1",
+        "llm_audit_transfer_strict_gate_v1",
+        "llm_audit_transfer_open_gate_v1",
+    }
 
 
 def is_any_llm_mode(mode: TransferMode) -> bool:
     return is_llm_transfer_mode(mode) or is_llm_audit_transfer_mode(mode)
 
 
+def is_open_llm_policy_mode(mode: TransferMode) -> bool:
+    return mode in {"llm_transfer_open_gate_v1", "llm_audit_transfer_open_gate_v1"}
+
+
 def is_descriptor_llm_mode(mode: TransferMode) -> bool:
     return mode == "llm_descriptor_transfer_gate_v1"
+
+
+def bounded_float(raw: Any, default: float, lower: float, upper: float) -> float:
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        value = default
+    return max(lower, min(upper, value))
 
 
 def is_value_prior_mode(mode: TransferMode) -> bool:
@@ -930,6 +954,7 @@ def llm_transfer_prompt_payload(
     min_positive_roles: int,
     max_negative_roles: int,
     descriptor_level: bool = False,
+    open_policy: bool = False,
 ) -> dict[str, Any]:
     active_roles = [
         asdict(role)
@@ -943,9 +968,46 @@ def llm_transfer_prompt_payload(
         if descriptor_level
         else replay.observed_evidence_payload(adapter, observed)
     )
+    policy_rules = (
+        [
+            "Transfer card chooses trustworthy fields; revealed target evidence chooses direction.",
+            "prefer requires positive target delta_vs_global; penalize requires negative target delta_vs_global.",
+            "Sparse target evidence is allowed when the transfer role is mechanistically credible; count == 1 or 2 must name a potential confounder.",
+            "Return causal_confidence rather than an absolute score. Downstream code multiplies this confidence into the policy magnitude.",
+            "Prefer high upside with acceptable downside. If the target direction is contradictory or the mechanism is vague, return no adjustments and confidence <= 0.35.",
+        ]
+        if open_policy
+        else [
+            "Transfer card chooses trustworthy fields; revealed target evidence chooses direction.",
+            "prefer requires positive target delta_vs_global; penalize requires negative target delta_vs_global.",
+            "Prefer target values with at least 3 revealed examples; exactly-2 support is noisy and should be used only for very clear effects.",
+            "The requested weight is only an upper bound; the replay code recalibrates the final score change from target evidence.",
+            "If target evidence is weak or ambiguous, return no adjustments and confidence <= 0.35.",
+        ]
+    )
+    adjustment_contract = (
+        {
+            "field": "one allowed target decision column",
+            "value": "one target factor value supported by factor_evidence/top_revealed/bottom_revealed",
+            "direction": "prefer or penalize",
+            "causal_confidence": "number between 0 and 1; how strongly the revealed evidence and transfer card support this mechanism",
+            "potential_confounder": "short description of the main risk, especially for count <= 2",
+            "reason": "short evidence-based reason",
+        }
+        if open_policy
+        else {
+            "field": "one allowed target decision column",
+            "value": "one target factor value supported by factor_evidence/top_revealed/bottom_revealed",
+            "direction": "prefer or penalize",
+            "weight": "suggested upper bound between 0.0 and 0.08; final magnitude is target-calibrated",
+            "reason": "short evidence-based reason",
+        }
+    )
     return {
         "policy_task": (
-            "Propose small experiment-policy score adjustments. This is not a manuscript review."
+            "Propose risk-reward experiment-policy score adjustments. This is not a manuscript review."
+            if open_policy
+            else "Propose small experiment-policy score adjustments. This is not a manuscript review."
         ),
         "target_evidence": target_evidence,
         "transfer_card": {
@@ -968,29 +1030,17 @@ def llm_transfer_prompt_payload(
         "selection_constraints": {
             "allowed_fields": list(allowed_fields),
             "min_target_support": min_target_support,
+            "effective_min_target_support": 1 if open_policy else min_target_support,
             "effect_threshold": effect_threshold,
             "strict": strict,
+            "open_policy": open_policy,
             "strict_min_role_confidence": min_role_confidence if strict else 0.0,
             "strict_min_positive_roles": min_positive_roles if strict else 0,
             "strict_max_negative_roles": max_negative_roles if strict else 0,
         },
-        "policy_rules": [
-            "Transfer card chooses trustworthy fields; revealed target evidence chooses direction.",
-            "prefer requires positive target delta_vs_global; penalize requires negative target delta_vs_global.",
-            "Prefer target values with at least 3 revealed examples; exactly-2 support is noisy and should be used only for very clear effects.",
-            "The requested weight is only an upper bound; the replay code recalibrates the final score change from target evidence.",
-            "If target evidence is weak or ambiguous, return no adjustments and confidence <= 0.35.",
-        ],
+        "policy_rules": policy_rules,
         "output_contract": {
-            "adjustments": [
-                {
-                    "field": "one allowed target decision column",
-                    "value": "one target factor value supported by factor_evidence/top_revealed/bottom_revealed",
-                    "direction": "prefer or penalize",
-                    "weight": "suggested upper bound between 0.0 and 0.08; final magnitude is target-calibrated",
-                    "reason": "short evidence-based reason",
-                }
-            ],
+            "adjustments": [adjustment_contract],
             "confidence": "number between 0 and 1",
         },
     }
@@ -1013,6 +1063,7 @@ def llm_transfer_adjustments(
     min_positive_roles: int = 2,
     max_negative_roles: int = 0,
     descriptor_level: bool = False,
+    open_policy: bool = False,
 ) -> tuple[dict[str, float], dict[str, Any], dict[str, Any]]:
     adjustments = {c.candidate_id: 0.0 for c in pool if c.candidate_id not in observed_ids}
     if len(observed) < 8:
@@ -1047,32 +1098,61 @@ def llm_transfer_adjustments(
         min_positive_roles,
         max_negative_roles,
         descriptor_level,
+        open_policy,
     )
     card_kind = "descriptor-level" if descriptor_level else "role-level"
     system = (
-        "You are a CARE 2.0 transfer policy proposer for finite-pool scientific replay. "
-        f"Use only revealed target evidence and the source-to-target {card_kind} transfer card. "
-        "The transfer card decides which fields are trustworthy; target evidence decides prefer/penalize. "
-        "Do not infer hidden outcomes, do not transfer source factor values, and do not write review-style comments. "
-        "Return only JSON with adjustments and confidence."
+        (
+            "You are a CARE 2.0 transfer policy strategist for finite-pool scientific replay. "
+            f"Use only revealed target evidence and the source-to-target {card_kind} transfer card. "
+            "Your job is risk-reward transfer: identify plausible mechanisms that can improve acquisition under sparse target evidence. "
+            "Do not infer hidden outcomes, do not transfer source factor values, and do not write review-style comments. "
+            "Return only JSON with adjustments and confidence."
+        )
+        if open_policy
+        else (
+            "You are a CARE 2.0 transfer policy proposer for finite-pool scientific replay. "
+            f"Use only revealed target evidence and the source-to-target {card_kind} transfer card. "
+            "The transfer card decides which fields are trustworthy; target evidence decides prefer/penalize. "
+            "Do not infer hidden outcomes, do not transfer source factor values, and do not write review-style comments. "
+            "Return only JSON with adjustments and confidence."
+        )
     )
     example = (
-        "{\"adjustments\":[{\"field\":\"ligand_has_phosphine\",\"value\":\"yes\",\"direction\":\"prefer\",\"weight\":0.05,\"reason\":\"short evidence reason\"}],\"confidence\":0.7}"
-        if descriptor_level
-        else "{\"adjustments\":[{\"field\":\"ligand\",\"value\":\"L2\",\"direction\":\"prefer\",\"weight\":0.05,\"reason\":\"short evidence reason\"}],\"confidence\":0.7}"
+        (
+            "{\"adjustments\":[{\"field\":\"ligand_has_phosphine\",\"value\":\"yes\",\"direction\":\"prefer\",\"causal_confidence\":0.72,\"potential_confounder\":\"count is sparse\",\"reason\":\"short evidence reason\"}],\"confidence\":0.7}"
+            if descriptor_level
+            else "{\"adjustments\":[{\"field\":\"ligand\",\"value\":\"L2\",\"direction\":\"prefer\",\"causal_confidence\":0.72,\"potential_confounder\":\"count is sparse\",\"reason\":\"short evidence reason\"}],\"confidence\":0.7}"
+        )
+        if open_policy
+        else (
+            "{\"adjustments\":[{\"field\":\"ligand_has_phosphine\",\"value\":\"yes\",\"direction\":\"prefer\",\"weight\":0.05,\"reason\":\"short evidence reason\"}],\"confidence\":0.7}"
+            if descriptor_level
+            else "{\"adjustments\":[{\"field\":\"ligand\",\"value\":\"L2\",\"direction\":\"prefer\",\"weight\":0.05,\"reason\":\"short evidence reason\"}],\"confidence\":0.7}"
+        )
     )
-    user = (
-        "Propose bounded target factor-level score adjustments for the next candidate selection. "
-        "Use fields only from selection_constraints.allowed_fields. Use values supported by target factor_evidence, "
-        "top_revealed, or bottom_revealed. Target observations determine direction: prefer means positive target delta_vs_global; penalize means negative. "
-        "Prefer count >= 3. Use count == 2 only when the target effect is very clear and the transfer role is credible. "
-        "Treat weight as a suggested maximum; downstream code will recalibrate it from target support and effect size. "
-        "If no value passes the target-support and effect thresholds, return {\"adjustments\":[],\"confidence\":0.2}. "
-        "Max 4 adjustments. Return exactly this shape: "
-        f"{example}. "
-        "JSON input:\n"
-        + json.dumps(prompt_payload, ensure_ascii=False)
+    user_prefix = (
+        (
+            "Propose target factor-level policy adjustments for the next candidate selection. "
+            "Use fields only from selection_constraints.allowed_fields. Use values supported by target factor_evidence, "
+            "top_revealed, or bottom_revealed. Target observations determine direction: prefer means positive target delta_vs_global; penalize means negative. "
+            "Sparse support is allowed when the transfer role is credible, but every count <= 2 adjustment must state a potential_confounder. "
+            "Do not output a final score weight; output causal_confidence. Downstream code will convert confidence, target support, effect size, and transfer-card strength into a bounded policy signal. "
+            "If the target direction is contradictory, the mechanism is vague, or downside risk is not acceptable, return {\"adjustments\":[],\"confidence\":0.2}. "
+            "Max 4 adjustments. Return exactly this shape: "
+        )
+        if open_policy
+        else (
+            "Propose bounded target factor-level score adjustments for the next candidate selection. "
+            "Use fields only from selection_constraints.allowed_fields. Use values supported by target factor_evidence, "
+            "top_revealed, or bottom_revealed. Target observations determine direction: prefer means positive target delta_vs_global; penalize means negative. "
+            "Prefer count >= 3. Use count == 2 only when the target effect is very clear and the transfer role is credible. "
+            "Treat weight as a suggested maximum; downstream code will recalibrate it from target support and effect size. "
+            "If no value passes the target-support and effect thresholds, return {\"adjustments\":[],\"confidence\":0.2}. "
+            "Max 4 adjustments. Return exactly this shape: "
+        )
     )
+    user = user_prefix + f"{example}. " + "JSON input:\n" + json.dumps(prompt_payload, ensure_ascii=False)
     content, response_meta = replay.chat_completion_text(
         config,
         [{"role": "system", "content": system}, {"role": "user", "content": user}],
@@ -1097,6 +1177,8 @@ def llm_transfer_adjustments(
     scored = 0
     strict_rejected_candidates = 0
     candidate_signals: dict[str, list[float]] = {cid: [] for cid in adjustments}
+    parsed_confidence = bounded_float(parsed.get("confidence", 0.5), 0.5, 0.0, 1.0)
+    effective_min_support = 1 if open_policy else min_target_support
 
     for item in list(parsed.get("adjustments", []))[:4]:
         if not isinstance(item, dict):
@@ -1109,13 +1191,31 @@ def llm_transfer_adjustments(
             rejected_specs.append({"item": item, "reason": "field_or_direction_not_allowed"})
             continue
         count, value_mean = factor_summary.get((field_name, value), (0, global_mean))
-        if count < min_target_support:
+        if count < effective_min_support:
             rejected_specs.append({"item": item, "reason": "insufficient_target_support", "target_support_count": count})
             continue
         target_effect = replay.smoothed_mean(count, value_mean, global_mean, prior_weight=2.0) - global_mean
-        if abs(target_effect) < effect_threshold:
-            rejected_specs.append({"item": item, "reason": "target_effect_below_threshold", "target_effect": round(target_effect, 4)})
-            continue
+        causal_confidence: float | None = None
+        potential_confounder = str(item.get("potential_confounder", ""))[:180]
+        if open_policy:
+            causal_confidence = bounded_float(item.get("causal_confidence", parsed_confidence), parsed_confidence, 0.0, 1.0)
+            relaxed_effect_floor = max(1e-6, effect_threshold * 0.25)
+            if abs(target_effect) < effect_threshold and (
+                abs(target_effect) < relaxed_effect_floor or causal_confidence < 0.65
+            ):
+                rejected_specs.append(
+                    {
+                        "item": item,
+                        "reason": "target_effect_below_open_threshold",
+                        "target_effect": round(target_effect, 4),
+                        "causal_confidence": round(causal_confidence, 4),
+                    }
+                )
+                continue
+        else:
+            if abs(target_effect) < effect_threshold:
+                rejected_specs.append({"item": item, "reason": "target_effect_below_threshold", "target_effect": round(target_effect, 4)})
+                continue
         if direction == "prefer" and target_effect <= 0:
             rejected_specs.append(
                 {"item": item, "reason": "direction_contradicts_target_effect", "target_effect": round(target_effect, 4)}
@@ -1133,16 +1233,27 @@ def llm_transfer_adjustments(
             if direction != "prefer" or target_effect <= 0:
                 rejected_specs.append({"item": item, "reason": "strict_mode_requires_positive_target_signal", "target_effect": round(target_effect, 4)})
                 continue
-        try:
-            magnitude = min(0.08, max(0.0, abs(float(item.get("weight", 0.0)))))
-        except (TypeError, ValueError):
-            rejected_specs.append({"item": item, "reason": "invalid_weight"})
-            continue
-
-        support_gate = min(1.0, count / max(1.0, float(min_target_support + 2)))
-        effect_gate = min(0.08, abs(target_effect) / 100.0)
-        calibrated_magnitude = min(magnitude, effect_gate) * min(1.0, role.transfer_weight) * support_gate
-        cap = 0.055 if strict else 0.08
+        role_gate: float | None = None
+        causal_gate: float | None = None
+        if open_policy:
+            default_weight = 0.06 + 0.06 * (causal_confidence if causal_confidence is not None else parsed_confidence)
+            magnitude = bounded_float(item.get("policy_weight", item.get("weight", default_weight)), default_weight, 0.0, 0.12)
+            support_gate = min(1.0, max(0.45, count / max(1.0, float(min_target_support + 1))))
+            effect_gate = min(1.0, max(0.35, abs(target_effect) / max(effect_threshold, 1e-6)))
+            role_gate = min(1.0, max(0.55, role.transfer_weight))
+            causal_gate = 0.35 + 0.65 * (causal_confidence if causal_confidence is not None else parsed_confidence)
+            calibrated_magnitude = magnitude * support_gate * effect_gate * role_gate * causal_gate
+            cap = 0.12
+        else:
+            try:
+                magnitude = min(0.08, max(0.0, abs(float(item.get("weight", 0.0)))))
+            except (TypeError, ValueError):
+                rejected_specs.append({"item": item, "reason": "invalid_weight"})
+                continue
+            support_gate = min(1.0, count / max(1.0, float(min_target_support + 2)))
+            effect_gate = min(0.08, abs(target_effect) / 100.0)
+            calibrated_magnitude = min(magnitude, effect_gate) * min(1.0, role.transfer_weight) * support_gate
+            cap = 0.055 if strict else 0.08
         delta = min(cap, calibrated_magnitude) if direction == "prefer" else -min(cap, calibrated_magnitude)
         matched = 0
         for c in pool:
@@ -1164,6 +1275,10 @@ def llm_transfer_adjustments(
                 "requested_weight": round(magnitude, 6),
                 "support_gate": round(support_gate, 4),
                 "effect_gate": round(effect_gate, 6),
+                "role_gate": round(role_gate, 4) if role_gate is not None else None,
+                "causal_gate": round(causal_gate, 4) if causal_gate is not None else None,
+                "causal_confidence": round(causal_confidence, 4) if causal_confidence is not None else None,
+                "potential_confounder": potential_confounder,
                 "matched_candidates": matched,
                 "target_support_count": count,
                 "target_effect": round(target_effect, 4),
@@ -1184,9 +1299,12 @@ def llm_transfer_adjustments(
                 strict_rejected_candidates += 1
                 continue
             value = mean(positive_signals)
+        elif open_policy:
+            value = sum(signals)
         else:
             value = mean(signals)
-        adjustments[cid] = max(-0.08, min(0.08, value))
+        signal_cap = 0.12 if open_policy else 0.08
+        adjustments[cid] = max(-signal_cap, min(signal_cap, value))
 
     scored = sum(1 for value in adjustments.values() if value != 0.0)
     positive = sum(1 for value in adjustments.values() if value > 0.0)
@@ -1194,14 +1312,16 @@ def llm_transfer_adjustments(
     max_abs = max((abs(v) for v in adjustments.values()), default=0.0)
     cert = {
         "skills": {
-                "llm_cross_domain_transfer_card": {
-                    "active": bool(applied_specs),
-                    "descriptor_level": descriptor_level,
-                    "model": response_meta["model"],
+            "llm_cross_domain_transfer_card": {
+                "active": bool(applied_specs),
+                "descriptor_level": descriptor_level,
+                "open_policy": open_policy,
+                "model": response_meta["model"],
                 "scored_candidates": scored,
                 "positive_adjustments": positive,
                 "negative_adjustments": negative,
                 "strict_enabled": strict,
+                "signal_aggregation": "sum_clipped_0.12" if open_policy else "mean_clipped_0.08",
                 "strict_min_positive_roles": min_positive_roles if strict else 0,
                 "strict_max_negative_roles": max_negative_roles if strict else 0,
                 "strict_rejected_candidates": strict_rejected_candidates,
@@ -1218,6 +1338,7 @@ def llm_transfer_adjustments(
         "seed": seed,
         "round_index": round_index,
         "descriptor_level": descriptor_level,
+        "open_policy": open_policy,
         "model": response_meta["model"],
         "usage": response_meta["usage"],
         "prompt_payload": prompt_payload,
@@ -1300,6 +1421,7 @@ def llm_audit_gate(
     mode: TransferMode,
     config: replay.LLMConfig,
     candidate_count: int = 8,
+    open_policy: bool = False,
 ) -> tuple[replay.GateCertificate, dict[str, Any]]:
     if not gate.authorized:
         return gate, {"called": False, "reason": "gate_not_authorized"}
@@ -1318,6 +1440,29 @@ def llm_audit_gate(
         for cid in candidate_ids
         if cid in by_id
     ]
+    audit_instruction = (
+        "Audit as a CARE 2.0 Risk-Reward Auditor. Balance exploiting known good factors with exploring high-uncertainty regions. "
+        "Approve if the challenger offers a plausible mechanism transfer, even when target evidence is sparse (count == 1 or 2), "
+        "provided the acquisition downside is acceptable and the proposed direction does not contradict revealed target evidence. "
+        "Do not use hidden outcomes for shortlisted candidates."
+        if open_policy
+        else (
+            "Audit only whether the challenger has enough revealed target evidence and transfer-card support "
+            "to override the incumbent. Do not use hidden outcomes for shortlisted candidates. "
+            "When the evidence is close, sparse, or mostly inherited from broad transfer priors, reject. "
+            "Audit as a policy-risk controller, not as a manuscript reviewer."
+        )
+    )
+    audit_rubric = (
+        "Approve when upside from a transferred mechanism is plausible, target evidence direction is consistent, and acquisition loss is small enough for exploration. "
+        "Reject when the transfer mechanism is vague, the target-side direction is contradictory, or the challenger is dominated by a safer candidate."
+        if open_policy
+        else (
+            "Approve only if the challenger has a clear target-side positive evidence trail on a transferred role, "
+            "the LLM/proposed adjustment direction matches that target evidence, and the adjusted score improvement "
+            "is not just a broad prior with weak support. Otherwise reject."
+        )
+    )
     prompt_payload = {
         "target_evidence": replay.observed_evidence_payload(adapter, observed),
         "transfer_card": {
@@ -1333,17 +1478,10 @@ def llm_audit_gate(
         "proposed_gate": asdict(gate),
         "candidate_shortlist": candidates,
         "transfer_certificate": transfer_cert,
-        "audit_instruction": (
-            "Audit only whether the challenger has enough revealed target evidence and transfer-card support "
-            "to override the incumbent. Do not use hidden outcomes for shortlisted candidates. "
-            "When the evidence is close, sparse, or mostly inherited from broad transfer priors, reject. "
-            "Audit as a policy-risk controller, not as a manuscript reviewer."
-        ),
-        "audit_rubric": (
-            "Approve only if the challenger has a clear target-side positive evidence trail on a transferred role, "
-            "the LLM/proposed adjustment direction matches that target evidence, and the adjusted score improvement "
-            "is not just a broad prior with weak support. Otherwise reject."
-        ),
+        "open_policy": open_policy,
+        "approval_confidence_threshold": 0.5 if open_policy else 0.6,
+        "audit_instruction": audit_instruction,
+        "audit_rubric": audit_rubric,
         "output_contract": {
             "decision": "one of: approve, reject",
             "confidence": "number between 0 and 1",
@@ -1351,18 +1489,38 @@ def llm_audit_gate(
         },
     }
     system = (
-        "You are a CARE 2.0 cross-domain transfer auditor. "
-        "Use only revealed target evidence, public candidate features, and the source-to-target role transfer card. "
-        "Do not infer hidden outcomes for candidate IDs. Do not write manuscript-review style comments. "
-        "Return only one JSON object. No markdown. No chain-of-thought."
+        (
+            "You are a CARE 2.0 Risk-Reward Auditor for cross-domain scientific transfer. "
+            "Use only revealed target evidence, public candidate features, and the source-to-target role transfer card. "
+            "Approve useful exploration when mechanism transfer is plausible and downside is acceptable. "
+            "Do not infer hidden outcomes for candidate IDs. Return only one JSON object. No markdown. No chain-of-thought."
+        )
+        if open_policy
+        else (
+            "You are a CARE 2.0 cross-domain transfer auditor. "
+            "Use only revealed target evidence, public candidate features, and the source-to-target role transfer card. "
+            "Do not infer hidden outcomes for candidate IDs. Do not write manuscript-review style comments. "
+            "Return only one JSON object. No markdown. No chain-of-thought."
+        )
+    )
+    user_prefix = (
+        (
+            "Decide whether to approve the proposed challenger over the incumbent. "
+            "Approve when the challenger has a plausible transferred mechanism, target direction is consistent, and the acquisition loss is acceptable for exploration. "
+            "Reject when the mechanism is broad/vague, the target-side direction is contradictory, or a safer candidate dominates it. "
+        )
+        if open_policy
+        else (
+            "Decide whether to approve the proposed challenger over the incumbent. "
+            "Approve only when the challenger has clear target-observation support on transferred roles and no obvious negative evidence. "
+            "Reject if evidence is weak, broad, contradictory, close to the incumbent, or mostly due to a single noisy factor. "
+        )
     )
     user = (
-        "Decide whether to approve the proposed challenger over the incumbent. "
-        "Approve only when the challenger has clear target-observation support on transferred roles and no obvious negative evidence. "
-        "Reject if evidence is weak, broad, contradictory, close to the incumbent, or mostly due to a single noisy factor. "
-        "Return exactly one JSON object with keys decision, confidence, and reason. "
-        "The decision value must be either approve or reject. "
-        "JSON input:\n"
+        user_prefix
+        + "Return exactly one JSON object with keys decision, confidence, and reason. "
+        + "The decision value must be either approve or reject. "
+        + "JSON input:\n"
         + json.dumps(prompt_payload, ensure_ascii=False)
     )
     content, response_meta = replay.chat_completion_text(
@@ -1381,9 +1539,11 @@ def llm_audit_gate(
         confidence = max(0.0, min(1.0, float(confidence_raw)))
     except (TypeError, ValueError):
         confidence = 0.0
-    approved = decision == "approve" and confidence >= 0.6 and not parse_error
+    approval_threshold = 0.5 if open_policy else 0.6
+    approved = decision == "approve" and confidence >= approval_threshold and not parse_error
     reason = str(parsed.get("reason", ""))[:240]
-    applied_skill_ids = tuple(dict.fromkeys([*gate.applied_skill_ids, "llm_transfer_auditor"]))
+    auditor_skill_id = "llm_risk_reward_transfer_auditor" if open_policy else "llm_transfer_auditor"
+    applied_skill_ids = tuple(dict.fromkeys([*gate.applied_skill_ids, auditor_skill_id]))
     if approved:
         audited_gate = replay.GateCertificate(
             gate_version=gate.gate_version,
@@ -1417,9 +1577,11 @@ def llm_audit_gate(
         "round_index": round_index,
         "model": response_meta["model"],
         "usage": response_meta["usage"],
+        "open_policy": open_policy,
         "decision": decision,
         "approved": approved,
         "confidence": confidence,
+        "approval_threshold": approval_threshold,
         "reason": reason,
         "prompt_payload": prompt_payload,
         "raw_response": content,
@@ -1577,9 +1739,11 @@ def run_target_policy(
                     "transfer_descriptor_target_calibrated_strict_gate_v1",
                     "llm_transfer_gate_v1",
                     "llm_transfer_strict_gate_v1",
+                    "llm_transfer_open_gate_v1",
                     "llm_descriptor_transfer_gate_v1",
                     "llm_audit_transfer_gate_v1",
                     "llm_audit_transfer_strict_gate_v1",
+                    "llm_audit_transfer_open_gate_v1",
                 }:
                     strict_transfer = mode in {
                         "transfer_strict_no_gate",
@@ -1611,6 +1775,7 @@ def run_target_policy(
                             strict_min_positive_roles,
                             strict_max_negative_roles,
                             is_descriptor_llm_mode(mode),
+                            is_open_llm_policy_mode(mode),
                         )
                         llm_call_count += int(bool(llm_record.get("called")))
                         llm_parse_error_count += int(bool(llm_record.get("parse_error")))
@@ -1744,6 +1909,7 @@ def run_target_policy(
                         round_index,
                         mode,
                         llm_config,
+                        open_policy=is_open_llm_policy_mode(mode),
                     )
                     llm_call_count += int(bool(llm_record.get("called")))
                     llm_parse_error_count += int(bool(llm_record.get("parse_error")))
