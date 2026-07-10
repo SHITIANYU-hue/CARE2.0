@@ -54,6 +54,10 @@ DEFAULT_MODES: tuple[TransferMode, ...] = (
     "llm_rule_patch_transfer_gate_v1",
     "llm_rule_patch_interaction_gate_v1",
     "llm_rule_patch_guarded_interaction_gate_v1",
+    "llm_rule_patch_guarded_damped_interaction_gate_v1",
+    "llm_rule_patch_guarded_confirmed_interaction_gate_v1",
+    "llm_rule_patch_guarded_conservative_interaction_gate_v1",
+    "llm_rule_patch_guarded_positive_interaction_gate_v1",
 )
 
 
@@ -148,15 +152,63 @@ def is_llm_rule_patch_mode(mode: TransferMode) -> bool:
         "llm_rule_patch_transfer_gate_v1",
         "llm_rule_patch_interaction_gate_v1",
         "llm_rule_patch_guarded_interaction_gate_v1",
+        "llm_rule_patch_guarded_damped_interaction_gate_v1",
+        "llm_rule_patch_guarded_confirmed_interaction_gate_v1",
+        "llm_rule_patch_guarded_conservative_interaction_gate_v1",
+        "llm_rule_patch_guarded_positive_interaction_gate_v1",
     }
 
 
 def is_llm_interaction_rule_patch_mode(mode: TransferMode) -> bool:
-    return mode in {"llm_rule_patch_interaction_gate_v1", "llm_rule_patch_guarded_interaction_gate_v1"}
+    return mode in {
+        "llm_rule_patch_interaction_gate_v1",
+        "llm_rule_patch_guarded_interaction_gate_v1",
+        "llm_rule_patch_guarded_damped_interaction_gate_v1",
+        "llm_rule_patch_guarded_confirmed_interaction_gate_v1",
+        "llm_rule_patch_guarded_conservative_interaction_gate_v1",
+        "llm_rule_patch_guarded_positive_interaction_gate_v1",
+    }
 
 
 def is_llm_guarded_interaction_rule_patch_mode(mode: TransferMode) -> bool:
-    return mode == "llm_rule_patch_guarded_interaction_gate_v1"
+    return mode in {
+        "llm_rule_patch_guarded_interaction_gate_v1",
+        "llm_rule_patch_guarded_damped_interaction_gate_v1",
+        "llm_rule_patch_guarded_confirmed_interaction_gate_v1",
+        "llm_rule_patch_guarded_conservative_interaction_gate_v1",
+        "llm_rule_patch_guarded_positive_interaction_gate_v1",
+    }
+
+
+def is_llm_damped_interaction_rule_patch_mode(mode: TransferMode) -> bool:
+    return mode in {
+        "llm_rule_patch_guarded_damped_interaction_gate_v1",
+        "llm_rule_patch_guarded_confirmed_interaction_gate_v1",
+        "llm_rule_patch_guarded_conservative_interaction_gate_v1",
+        "llm_rule_patch_guarded_positive_interaction_gate_v1",
+    }
+
+
+def is_llm_confirmed_interaction_rule_patch_mode(mode: TransferMode) -> bool:
+    return mode in {
+        "llm_rule_patch_guarded_confirmed_interaction_gate_v1",
+        "llm_rule_patch_guarded_conservative_interaction_gate_v1",
+        "llm_rule_patch_guarded_positive_interaction_gate_v1",
+    }
+
+
+def interaction_signal_multiplier_for_rule_patch_mode(mode: TransferMode) -> float:
+    if mode == "llm_rule_patch_guarded_conservative_interaction_gate_v1":
+        return 0.25
+    if is_llm_damped_interaction_rule_patch_mode(mode):
+        return 0.5
+    return 1.0
+
+
+def negative_policy_for_rule_patch_mode(mode: TransferMode, patch: TransferRulePatch) -> str:
+    if mode == "llm_rule_patch_guarded_positive_interaction_gate_v1":
+        return "block"
+    return patch.negative_policy
 
 
 def is_open_llm_policy_mode(mode: TransferMode) -> bool:
@@ -595,6 +647,7 @@ def transfer_adjustments(
     interaction_pairs: list[dict[str, Any]] | None = None,
     interaction_min_support: int = 1,
     interaction_requires_role_agreement: bool = False,
+    interaction_signal_multiplier: float = 1.0,
 ) -> tuple[dict[str, float], dict[str, Any]]:
     adjustments = {c.candidate_id: 0.0 for c in pool if c.candidate_id not in observed_ids}
     if len(observed) < 8:
@@ -623,6 +676,7 @@ def transfer_adjustments(
         return max(0.0, min(1.8, role.transfer_weight * multiplier))
 
     interaction_min_support = max(1, min(3, int(interaction_min_support)))
+    interaction_signal_multiplier = max(0.0, min(1.0, float(interaction_signal_multiplier)))
     interaction_pair_specs: list[dict[str, Any]] = []
     for item in interaction_pairs or []:
         if not isinstance(item, dict):
@@ -693,7 +747,7 @@ def transfer_adjustments(
             if abs(effect) < max(1.0, effect_threshold * 0.75):
                 continue
             pair_weight = mean(effective_role_weight(role_by_target[field]) for field in fields) * float(spec["weight"])
-            signal = (effect / 100.0) * pair_weight
+            signal = (effect / 100.0) * pair_weight * interaction_signal_multiplier
             if signal < 0.0:
                 if negative_policy == "block":
                     continue
@@ -794,6 +848,7 @@ def transfer_adjustments(
                 "aggregation": aggregation,
                 "negative_policy": negative_policy,
                 "interaction_requires_role_agreement": interaction_requires_role_agreement,
+                "interaction_signal_multiplier": interaction_signal_multiplier,
                 "rule_patch": rule_patch,
                 "applied_specs": applied_specs,
                 "active_interactions": active_interactions,
@@ -2206,6 +2261,7 @@ def transfer_row_order_stability_check(
     interaction_pairs: list[dict[str, Any]] | None = None,
     interaction_min_support: int = 1,
     interaction_requires_role_agreement: bool = False,
+    interaction_signal_multiplier: float = 1.0,
 ) -> bool:
     shuffled = list(pool)
     random.Random(20_000 + len(observed)).shuffle(shuffled)
@@ -2230,6 +2286,7 @@ def transfer_row_order_stability_check(
         interaction_pairs,
         interaction_min_support,
         interaction_requires_role_agreement,
+        interaction_signal_multiplier,
     )
     return all(abs(reference_adjustments[k] - shuffled_adjustments[k]) < 1e-12 for k in reference_adjustments)
 
@@ -2374,6 +2431,10 @@ def run_target_policy(
                     "llm_rule_patch_transfer_gate_v1",
                     "llm_rule_patch_interaction_gate_v1",
                     "llm_rule_patch_guarded_interaction_gate_v1",
+                    "llm_rule_patch_guarded_damped_interaction_gate_v1",
+                    "llm_rule_patch_guarded_confirmed_interaction_gate_v1",
+                    "llm_rule_patch_guarded_conservative_interaction_gate_v1",
+                    "llm_rule_patch_guarded_positive_interaction_gate_v1",
                     "llm_audit_transfer_gate_v1",
                     "llm_audit_transfer_strict_gate_v1",
                     "llm_audit_transfer_open_gate_v1",
@@ -2427,16 +2488,20 @@ def run_target_policy(
                             transfer_skill_id = "llm_rule_patch_transfer_card"
                             effective_min_target_support = llm_rule_patch.min_target_support
                             effective_effect_threshold = llm_rule_patch.effect_threshold
+                            effective_interaction_min_support = llm_rule_patch.interaction_min_support
+                            if is_llm_confirmed_interaction_rule_patch_mode(mode) and len(observed) >= 8:
+                                effective_interaction_min_support = max(2, effective_interaction_min_support)
                             rule_patch_kwargs = {
                                 "skill_id": transfer_skill_id,
                                 "role_weight_multipliers": llm_rule_patch.role_weight_multipliers,
                                 "signal_cap": llm_rule_patch.signal_cap,
                                 "aggregation": llm_rule_patch.aggregation,
-                                "negative_policy": llm_rule_patch.negative_policy,
+                                "negative_policy": negative_policy_for_rule_patch_mode(mode, llm_rule_patch),
                                 "rule_patch": asdict(llm_rule_patch),
                                 "interaction_pairs": llm_rule_patch.interaction_pairs,
-                                "interaction_min_support": llm_rule_patch.interaction_min_support,
+                                "interaction_min_support": effective_interaction_min_support,
                                 "interaction_requires_role_agreement": is_llm_guarded_interaction_rule_patch_mode(mode),
+                                "interaction_signal_multiplier": interaction_signal_multiplier_for_rule_patch_mode(mode),
                             }
                         transfer_adjustment_values, transfer_cert = transfer_adjustments(
                             adapter,

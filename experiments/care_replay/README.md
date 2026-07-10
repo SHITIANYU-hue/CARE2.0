@@ -70,12 +70,12 @@ export CARE_LLM_TRACE_LOG="experiments/care_replay/outputs/logs/openai_gpt-5_5_s
 python3 experiments/care_replay/scripts/run_transfer_ablation.py --source-dataset real_suzuki_miyaura --target-dataset real_buchwald_hartwig --source-observations 96 --seeds 5 --rounds 10 --initial 5 --modes no_care_random,incumbent,transfer_gate_v1,llm_transfer_gate_v1,llm_audit_transfer_gate_v1 --llm-model openai/gpt-5.5 --llm-max-tokens 700 --output-tag prompt_v3_calibrated_openai_gpt-5_5_suzuki_to_bh_5seed
 ```
 
-Run the latest LLM rule-patch interaction follow-up:
+Run the latest LLM rule-patch risk-control follow-up:
 
 ```bash
 export CARE_LLM_API_KEY="..."
-export CARE_LLM_TRACE_LOG="experiments/care_replay/outputs/logs/rule_patch_guarded_interaction_openai_gpt-5_5_suzuki_to_bh_10seed_calls.jsonl"
-python3 experiments/care_replay/scripts/run_transfer_ablation.py --source-dataset real_suzuki_miyaura --target-dataset real_buchwald_hartwig --source-observations 96 --seeds 10 --rounds 10 --initial 5 --modes incumbent,transfer_gate_v1,llm_rule_patch_guarded_interaction_gate_v1 --llm-model openai/gpt-5.5 --llm-max-tokens 1200 --output-tag rule_patch_guarded_interaction_openai_gpt-5_5_suzuki_to_bh_10seed
+export CARE_LLM_TRACE_LOG="experiments/care_replay/outputs/logs/rule_patch_guarded_risk_control_openai_gpt-5_5_suzuki_to_bh_10seed_calls.jsonl"
+python3 experiments/care_replay/scripts/run_transfer_ablation.py --source-dataset real_suzuki_miyaura --target-dataset real_buchwald_hartwig --source-observations 96 --seeds 10 --rounds 10 --initial 5 --modes incumbent,transfer_gate_v1,llm_rule_patch_guarded_damped_interaction_gate_v1,llm_rule_patch_guarded_confirmed_interaction_gate_v1 --llm-model openai/gpt-5.5 --llm-max-tokens 1200 --output-tag rule_patch_guarded_risk_control_openai_gpt-5_5_suzuki_to_bh_10seed
 ```
 
 Run the target-only incumbent rule ablation:
@@ -206,9 +206,12 @@ Tracked result snapshots:
   transfer follow-up. The LLM patches the transferable skill once per seed
   instead of directly scoring candidates. Single-field role reweighting still
   trails deterministic transfer, but guarded LLM-selected role interactions
-  produce the first small positive LLM transfer edge over `transfer_gate_v1`
-  on Suzuki-to-Buchwald-Hartwig: 10-seed final best 90.4106 vs 90.0980 and AUC
-  83.7966 vs 82.9136, with a higher bad-intervention cost.
+  produce the first small positive LLM transfer edge over `transfer_gate_v1`.
+  The current recommended risk-control variant is
+  `llm_rule_patch_guarded_confirmed_interaction_gate_v1`: on the 10-seed
+  Suzuki-to-Buchwald-Hartwig check it reaches final best 90.6604 vs 90.0980 and
+  AUC 84.2049 vs 82.9136, with bad interventions 1.4 vs 1.1. A more aggressive
+  damped variant reaches 91.0730 / 84.4327 but raises bad interventions to 2.2.
 
 The synthetic adapters let us test whether the same CARE gate and audit protocol
 behaves consistently across task shapes. The real HTE adapters download public

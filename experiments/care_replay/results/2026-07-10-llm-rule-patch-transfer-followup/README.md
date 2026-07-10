@@ -19,7 +19,7 @@ executes that patch under the existing gate.
 
 ## What Changed
 
-Three LLM rule-patch variants were tested.
+Seven LLM rule-patch variants were tested.
 
 1. `llm_rule_patch_transfer_gate_v1`
    - One LLM call per seed.
@@ -41,6 +41,27 @@ Three LLM rule-patch variants were tested.
      final best and AUC in the 5-seed check, and keeps a smaller positive edge in
      the 10-seed check.
 
+4. `llm_rule_patch_guarded_damped_interaction_gate_v1`
+   - Keeps the guarded interaction logic, but halves interaction signal strength.
+   - Result: the largest final-best and AUC gain in the 10-seed check, but still
+     too many bad interventions.
+
+5. `llm_rule_patch_guarded_confirmed_interaction_gate_v1`
+   - Halves interaction signal strength and requires interaction value-pair
+     support >= 2 after the earliest sparse rounds.
+   - Result: the best balanced variant so far. It beats fixed transfer on final
+     best and AUC while cutting the bad-intervention cost relative to the earlier
+     guarded version.
+
+6. `llm_rule_patch_guarded_conservative_interaction_gate_v1`
+   - Uses quarter-strength confirmed interaction signals.
+   - Result: too conservative in final best and not safer in bad interventions.
+
+7. `llm_rule_patch_guarded_positive_interaction_gate_v1`
+   - Blocks negative interaction signals.
+   - Result: keeps a small positive final/AUC edge, but increases bad
+     interventions and is not recommended.
+
 ## Main Results
 
 5-seed guarded interaction check:
@@ -60,10 +81,28 @@ Three LLM rule-patch variants were tested.
 | `transfer_gate_v1` | 90.0980 | 82.9136 | 1.1 | 0.0 |
 | `llm_rule_patch_guarded_interaction_gate_v1` | 90.4106 | 83.7966 | 1.7 | 1.0 |
 
-The gain is real but modest: in 10 seeds, guarded interaction improves final best
-by +0.3126 and AUC by +0.8830 over fixed `transfer_gate_v1`. The trade-off is
-more bad interventions, so the current result should be presented as a promising
-direction rather than a finished win.
+10-seed risk-control check:
+
+| Mode | Final best | AUC | Bad interventions | Interventions | LLM calls / seed |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `incumbent` | 86.6260 | 81.9846 | 0.0 | 0.0 | 0.0 |
+| `transfer_gate_v1` | 90.0980 | 82.9136 | 1.1 | 3.5 | 0.0 |
+| `llm_rule_patch_guarded_damped_interaction_gate_v1` | 91.0730 | 84.4327 | 2.2 | 3.5 | 1.0 |
+| `llm_rule_patch_guarded_confirmed_interaction_gate_v1` | 90.6604 | 84.2049 | 1.4 | 2.9 | 1.0 |
+
+Additional 10-seed negative-policy checks:
+
+| Mode | Final best | AUC | Bad interventions | Interventions | LLM calls / seed |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `llm_rule_patch_guarded_conservative_interaction_gate_v1` | 89.8592 | 83.5624 | 2.2 | 3.4 | 1.0 |
+| `llm_rule_patch_guarded_positive_interaction_gate_v1` | 90.3047 | 83.8054 | 2.5 | 3.8 | 1.0 |
+
+The current recommended variant is
+`llm_rule_patch_guarded_confirmed_interaction_gate_v1`: in 10 seeds it improves
+final best by +0.5624 and AUC by +1.2913 over fixed `transfer_gate_v1`, while
+raising bad interventions only from 1.1 to 1.4. The damped variant shows a higher
+ceiling (+0.9750 final best, +1.5191 AUC), but its bad-intervention count rises
+to 2.2, so it is better treated as a diagnostic upper-risk setting.
 
 ## Interpretation
 
@@ -76,6 +115,8 @@ LLM transfer remains too brittle. The more promising pattern is:
 4. The gate only allows bounded interventions.
 5. The guarded version prevents sparse interaction evidence from overriding
    the base role-transfer signal by itself.
+6. The confirmed version delays stronger pair interactions until the target task
+   has enough local evidence for the value pair.
 
 This gives us a clearer CARE 2.0 story: LLM transfer gain comes from evolving the
 transferable skill, not from asking the model to guess hidden target outcomes.
@@ -86,14 +127,14 @@ transferable skill, not from asking the model to guess hidden target outcomes.
   patch runs.
 - `tables/`: per-seed metrics CSVs.
 - `runs/`: summary JSON files.
-- `audits/`: 10-seed guarded interaction audit logs.
+- `audits/`: 10-seed guarded interaction and risk-control audit logs.
 - `logs/`: LLM trace logs with model, timing, and token usage.
 
 ## Reproduction Command
 
 ```bash
 COMMONSTACK_API_KEY=... \
-CARE_LLM_TRACE_LOG=experiments/care_replay/outputs/logs/rule_patch_guarded_interaction_openai_gpt-5_5_suzuki_to_bh_10seed_calls.jsonl \
+CARE_LLM_TRACE_LOG=experiments/care_replay/outputs/logs/rule_patch_guarded_risk_control_openai_gpt-5_5_suzuki_to_bh_10seed_calls.jsonl \
 python3 experiments/care_replay/scripts/run_transfer_ablation.py \
   --source-dataset real_suzuki_miyaura \
   --target-dataset real_buchwald_hartwig \
@@ -101,18 +142,19 @@ python3 experiments/care_replay/scripts/run_transfer_ablation.py \
   --seeds 10 \
   --rounds 10 \
   --initial 5 \
-  --modes incumbent,transfer_gate_v1,llm_rule_patch_guarded_interaction_gate_v1 \
+  --modes incumbent,transfer_gate_v1,llm_rule_patch_guarded_damped_interaction_gate_v1,llm_rule_patch_guarded_confirmed_interaction_gate_v1 \
   --llm-model openai/gpt-5.5 \
   --llm-max-tokens 1200 \
-  --output-tag rule_patch_guarded_interaction_openai_gpt-5_5_suzuki_to_bh_10seed
+  --output-tag rule_patch_guarded_risk_control_openai_gpt-5_5_suzuki_to_bh_10seed
 ```
 
 ## Next Step
 
-The next useful experiment is to reduce the bad-intervention cost without losing
-the AUC gain. Two obvious variants are worth testing next:
+The next useful experiment is to make the confirmed variant adaptive instead of
+static. Two directions look most useful:
 
-- damp interaction weights in guarded mode, for example multiply interaction
-  contributions by 0.5;
-- require interaction value-pairs to have support >= 2 after the first few
-  rounds, while still allowing support 1 during the earliest sparse phase.
+- let the LLM choose which interaction pairs need support >= 2, instead of using
+  one global threshold for all pairs;
+- use a small target-only validation split inside each replay seed to choose
+  between fixed transfer, damped interaction, and confirmed interaction before
+  applying interventions.
