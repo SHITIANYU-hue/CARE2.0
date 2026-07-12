@@ -26,6 +26,9 @@ DEFAULT_MODES: tuple[HybridMode, ...] = (
     "hybrid_transfer_gp_ucb_no_gate",
     "hybrid_value_prior_gp_ucb_gate_v1",
     "hybrid_value_prior_gp_ucb_no_gate",
+    "hybrid_value_prior_gp_ucb_strict_gate_v1",
+    "hybrid_value_prior_gp_ucb_target_calibrated_gate_v1",
+    "hybrid_value_prior_gp_ucb_adaptive_gate_v1",
     "hybrid_value_prior_gp_ucb_warm3_gate_v1",
     "hybrid_value_prior_gp_ucb_warm5_gate_v1",
 )
@@ -45,6 +48,9 @@ def is_value_prior_mode(mode: HybridMode) -> bool:
     return mode in {
         "hybrid_value_prior_gp_ucb_gate_v1",
         "hybrid_value_prior_gp_ucb_no_gate",
+        "hybrid_value_prior_gp_ucb_strict_gate_v1",
+        "hybrid_value_prior_gp_ucb_target_calibrated_gate_v1",
+        "hybrid_value_prior_gp_ucb_adaptive_gate_v1",
         "hybrid_value_prior_gp_ucb_warm3_gate_v1",
         "hybrid_value_prior_gp_ucb_warm5_gate_v1",
     }
@@ -60,6 +66,20 @@ def warm_start_round_limit(mode: HybridMode) -> int | None:
     if mode == "hybrid_value_prior_gp_ucb_warm5_gate_v1":
         return 5
     return None
+
+
+def uses_strict_source_value_prior(mode: HybridMode) -> bool:
+    return mode in {
+        "hybrid_value_prior_gp_ucb_strict_gate_v1",
+        "hybrid_value_prior_gp_ucb_adaptive_gate_v1",
+    }
+
+
+def uses_target_calibrated_value_prior(mode: HybridMode) -> bool:
+    return mode in {
+        "hybrid_value_prior_gp_ucb_target_calibrated_gate_v1",
+        "hybrid_value_prior_gp_ucb_adaptive_gate_v1",
+    }
 
 
 def aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
@@ -136,7 +156,9 @@ def run_policy(
         )
         transfer_cert: dict[str, Any] | None = None
         value_prior_cert: dict[str, Any] | None = None
+        target_calibrated_value_prior_cert: dict[str, Any] | None = None
         adjustments = {candidate_id: 0.0 for candidate_id in base_scores}
+        target_calibrated_value_prior_adjustments: dict[str, float] | None = None
         active_skill_ids: list[str] = []
         row_order_stable = True
 
@@ -181,16 +203,66 @@ def run_policy(
                 transfer_scored_candidates_total += int(transfer_skill.get("scored_candidates", 0))
 
             if is_value_prior_mode(mode):
-                value_prior_adjustments, value_prior_cert = transfer.source_value_prior_adjustments(
-                    pool,
-                    observed_ids,
-                    card,
-                )
-                value_prior_skill = value_prior_cert["skills"]["source_value_prior"]
-                if value_prior_skill.get("active"):
-                    active_skill_ids.append("source_value_prior")
-                    transfer_scored_candidates_total += int(value_prior_skill.get("scored_candidates", 0))
-                adjustments = transfer.combine_adjustments(transfer_adjustments, value_prior_adjustments)
+                value_prior_adjustments: dict[str, float] | None = None
+                if mode != "hybrid_value_prior_gp_ucb_target_calibrated_gate_v1":
+                    strict_source_value_prior = uses_strict_source_value_prior(mode)
+                    source_value_prior_skill_id = (
+                        "strict_source_value_prior" if strict_source_value_prior else "source_value_prior"
+                    )
+                    value_prior_adjustments, value_prior_cert = transfer.source_value_prior_adjustments(
+                        pool,
+                        observed_ids,
+                        card,
+                        strict=strict_source_value_prior,
+                        min_prior_confidence=0.10,
+                        min_positive_priors=1,
+                        max_negative_priors=0,
+                        skill_id=source_value_prior_skill_id,
+                        signed_adjustment_cap=0.08,
+                        positive_adjustment_cap=0.05,
+                    )
+                    value_prior_skill = value_prior_cert["skills"][source_value_prior_skill_id]
+                    if value_prior_skill.get("active"):
+                        active_skill_ids.append(source_value_prior_skill_id)
+                        transfer_scored_candidates_total += int(value_prior_skill.get("scored_candidates", 0))
+
+                if uses_target_calibrated_value_prior(mode):
+                    target_calibrated_value_prior_adjustments, target_calibrated_value_prior_cert = (
+                        transfer.target_calibrated_descriptor_prior_adjustments(
+                            adapter,
+                            pool,
+                            observed_ids,
+                            observed,
+                            card,
+                            min_target_support,
+                            max(1.5, effect_threshold * 0.5),
+                            strict=False,
+                            signed_adjustment_cap=0.05,
+                            positive_adjustment_cap=0.04,
+                        )
+                    )
+                    target_calibrated_skill = target_calibrated_value_prior_cert["skills"][
+                        "target_calibrated_descriptor_prior"
+                    ]
+                    if target_calibrated_skill.get("active"):
+                        active_skill_ids.append("target_calibrated_descriptor_prior")
+                        transfer_scored_candidates_total += int(target_calibrated_skill.get("scored_candidates", 0))
+
+                if mode == "hybrid_value_prior_gp_ucb_target_calibrated_gate_v1":
+                    adjustments = transfer.combine_adjustments(
+                        transfer_adjustments,
+                        target_calibrated_value_prior_adjustments or {},
+                    )
+                elif mode == "hybrid_value_prior_gp_ucb_adaptive_gate_v1":
+                    adjustments = transfer.combine_adjustments(
+                        transfer_adjustments,
+                        transfer.combine_adjustments(
+                            value_prior_adjustments or {},
+                            target_calibrated_value_prior_adjustments or {},
+                        ),
+                    )
+                else:
+                    adjustments = transfer.combine_adjustments(transfer_adjustments, value_prior_adjustments or {})
             else:
                 adjustments = transfer_adjustments
 
@@ -203,7 +275,11 @@ def run_policy(
             transfer_active = False
             if transfer_cert and transfer_cert["skills"]["cross_domain_transfer_card"].get("active"):
                 transfer_active = True
-            if value_prior_cert and value_prior_cert["skills"]["source_value_prior"].get("active"):
+            if value_prior_cert and any(skill.get("active") for skill in value_prior_cert["skills"].values()):
+                transfer_active = True
+            if target_calibrated_value_prior_cert and any(
+                skill.get("active") for skill in target_calibrated_value_prior_cert["skills"].values()
+            ):
                 transfer_active = True
             transfer_active_rounds += int(transfer_active)
 
@@ -231,6 +307,8 @@ def run_policy(
             hypothesis_snapshot["transfer_policy"] = transfer_cert
         if value_prior_cert is not None:
             hypothesis_snapshot["source_value_prior_policy"] = value_prior_cert
+        if target_calibrated_value_prior_cert is not None:
+            hypothesis_snapshot["target_calibrated_value_prior_policy"] = target_calibrated_value_prior_cert
         audit.append(
             replay.AuditEntry(
                 dataset_id=adapter.dataset_id,

@@ -113,6 +113,12 @@ Build a calibration/held-out summary for transfer-weighted kernel grids:
 python3 experiments/care_replay/scripts/build_transfer_weighted_calibration_summary.py --metrics experiments/care_replay/outputs/tables/transfer_weighted_kernel_real_suzuki_miyaura_to_real_buchwald_hartwig_calibrated_grid_100seed_metrics.csv --out-dir experiments/care_replay/results/2026-07-05-calibrated-transfer-weighted-kernel --label suzuki_to_bh --calibration-seed-count 50
 ```
 
+Build the paired transfer significance audit:
+
+```bash
+python3 experiments/care_replay/scripts/build_transfer_significance_summary.py
+```
+
 Outputs:
 
 - `outputs/tables/<dataset_id>_metrics.csv`
@@ -212,6 +218,14 @@ Tracked result snapshots:
   Suzuki-to-Buchwald-Hartwig check it reaches final best 90.6604 vs 90.0980 and
   AUC 84.2049 vs 82.9136, with bad interventions 1.4 vs 1.1. A more aggressive
   damped variant reaches 91.0730 / 84.4327 but raises bad interventions to 2.2.
+- `results/2026-07-11-transfer-significance-audit/`: paired seed-level
+  bootstrap audit for the current transfer claims. It confirms statistically
+  positive transfer over the public incumbent for FreeSolv-to-Lipophilicity and
+  Suzuki-to-Buchwald-Hartwig, while marking the stronger GP-UCB comparisons as
+  boundary results whose confidence intervals still cross zero. It also stores
+  a new 100-seed target-calibrated MoleculeNet hybrid check: safer
+  target-calibrated transfer reduces bad interventions, but does not become a
+  new headline gain.
 
 The synthetic adapters let us test whether the same CARE gate and audit protocol
 behaves consistently across task shapes. The real HTE adapters download public
@@ -256,6 +270,11 @@ The MoleculeNet value-prior budget sweep is the clearest current positive
 transfer result because the source and target share descriptor vocabulary. In
 3/5/10-round budgets, `transfer_value_prior_gate_v1` improves final best by
 1.1662/0.9725/0.8550 and top-10 hit by 0.06/0.07/0.06 over incumbent.
+The transfer significance audit adds a stricter reading of these results:
+shared MoleculeNet descriptor value-prior transfer and Suzuki-to-BH role
+transfer are statistically positive over the public incumbent, while the
+current GP-UCB hybrid/acquisition-transfer variants remain promising but not
+yet statistically robust.
 
 The MoleculeNet ESOL adapter is not a reaction dataset. It frames measured
 solubility as a finite-pool molecular property search task.

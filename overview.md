@@ -4,7 +4,11 @@
 
 这轮实验不是在复现 CARE 1.0 论文的最终数字。我们做的是 CARE 2.0 的 replay harness 和跨领域 transfer 验证：先把不同领域的数据统一成有限候选池搜索，再看源领域沉淀下来的 skill / prior 能不能在目标领域带来真实收益。
 
-目前结论比最初更清楚：平台接口已经跑通，而且 transfer 不是只有概念验证。最新 50-seed server sweep 里，分子性质任务 `FreeSolv -> Lipophilicity` 和反应 HTE 任务 `Suzuki-Miyaura -> Buchwald-Hartwig` 都出现了稳定正向 transfer gain。随后补做的真实 LLM follow-up 说明，LLM proposer 在共享 descriptor 的分子性质方向能给出小幅正收益；但在反应 HTE transfer 上，当前 LLM proposer 还不如确定性 transfer card，LLM auditor 也偏保守。最新的强模型 follow-up 进一步说明，换成 `openai/gpt-5.5` 会改善 LLM proposer 的 final best 和坏干预率，但仍没有超过 deterministic transfer rule；`deepseek/deepseek-v3.2` 在当前长上下文 tool-call 接口下反而不稳。
+目前结论比最初更清楚：平台接口已经跑通，而且 transfer 不是只有概念验证。最新 paired bootstrap 审计显示，分子性质任务 `FreeSolv -> Lipophilicity` 和反应 HTE 任务 `Suzuki-Miyaura -> Buchwald-Hartwig` 都已经有统计意义上的正向 transfer gain。前者相对 public incumbent 的 final best 提升 +2.7550，95% bootstrap CI 是 [+1.4375, +4.0025]；AUC 提升 +2.4000，CI 是 [+1.3405, +3.4733]。后者 final best 提升 +2.4389，CI 是 [+0.8078, +4.3094]；AUC 提升 +1.1067，CI 是 [+0.1809, +2.2873]。这两条是目前最适合对外讲的“transfer 确实有效”的主结果。
+
+但也要把边界讲清楚：和更强的 target-only GP-UCB 比，当前 transfer 还没有形成统计显著优势。Suzuki -> BH 的 transfer-weighted GP kernel 相对 GP-UCB final best 均值是 +0.3483，但 CI 跨 0；FreeSolv -> Lipophilicity 的 hybrid value-prior 在 5-round low-budget 下 final best 均值是 +0.1462，CI 也跨 0。也就是说，现在已经能证明 CARE 2.0 transfer 在真实任务上有显著正例，但还不能说它稳稳打败所有强优化 baseline。
+
+随后补做的真实 LLM follow-up 说明，LLM proposer 在共享 descriptor 的分子性质方向能给出小幅正收益；但在反应 HTE transfer 上，当前 LLM proposer 还不如确定性 transfer card，LLM auditor 也偏保守。最新的强模型 follow-up 进一步说明，换成 `openai/gpt-5.5` 会改善 LLM proposer 的 final best 和坏干预率，但仍没有超过 deterministic transfer rule；`deepseek/deepseek-v3.2` 在当前长上下文 tool-call 接口下反而不稳。
 
 最新补充后，最适合作为“明显正向 transfer”展示的是 `FreeSolv -> Lipophilicity` 的 shared descriptor value-prior sweep。100 seeds 下，`transfer_value_prior_gate_v1` 在 3/5/10 个 reveal budget 上都稳定超过 incumbent：final best 分别提升 +1.1662、+0.9725、+0.8550，AUC 分别提升 +0.4184、+0.6707、+0.7009，top-10 hit 分别从 0.07/0.11/0.17 提到 0.13/0.18/0.23。这条结果比反应 descriptor transfer 更干净，因为 source 和 target 共享同一套 SMILES-derived descriptor vocabulary，不是在迁移数据集内部编号。
 
@@ -80,6 +84,18 @@ LLM 目前确实有真实调用，但角色还比较窄。`llm_transfer_gate_v1`
 正式结果是：BH -> Suzuki 上，新 strict calibrated 版本没有赢 incumbent，final best 是 92.0578，对 incumbent 是 -0.5507，但 AUC 是 +0.3212，top-10 hit 从 0.10 到 0.20，bad interventions 比 raw descriptor prior 少很多。Suzuki -> BH 上，strict calibrated 版本把 raw descriptor strict 的 final delta 从 -13.2594 修到 +1.3678，AUC delta 从 -9.4342 修到 +1.0884，并超过 incumbent。它还没有超过最强的 role-level `transfer_gate_v1`，后者 Suzuki -> BH 的 final delta 是 +2.4389；所以这不是新的 headline win，但它解释了 descriptor transfer 失败在哪里，也证明通过 target calibration 可以修复负迁移。
 
 这件事对 CARE 2.0 很关键：跨领域迁移不能只问“source 里什么好”，而要问“source 让 target 先看哪里，target 自己的早期证据是否支持这个方向”。下一步 LLM 更适合做 policy selector / rule evolver：在 role transfer、strict transfer、target-calibrated descriptor transfer、incumbent 之间选择，或者调 threshold 和 descriptor whitelist；而不是只在固定 schema 里给候选加一点 bounded adjustment。
+
+## 2.7 最新补充：显著性审计和下一步方向
+
+我们这轮又补了一个 paired seed-level significance audit。这个审计不是重新跑更大的实验，而是把已有主结果按同一个 seed 做成 transfer minus baseline 的配对差值，然后用 bootstrap 给 95% CI。它的价值是把“均值看起来更高”和“可以比较有把握地说有正向 transfer”区分开。
+
+结论分三层：
+
+1. 已经显著的 transfer：`FreeSolv -> Lipophilicity` 的 shared descriptor value prior，以及 `Suzuki-Miyaura -> Buchwald-Hartwig` 的 role-level transfer。两者的 final best、AUC、top-10 hit 的 CI 都在 0 以上。这是目前最能支撑 CARE 2.0 跨领域迁移的核心证据。
+2. 还不显著但值得继续推的方向：把 transfer 接到 GP-UCB 这类强 target-only optimizer 上。现在 reaction transfer-weighted GP kernel 和 molecule hybrid value prior 的均值都是正的，但 CI 跨 0。说明方向有信号，但还没有到“强 baseline 上稳定胜出”的程度。
+3. 风险控制的 tradeoff：新跑的 `hybrid_value_prior_gp_ucb_target_calibrated_gate_v1` 把 MoleculeNet low-budget hybrid 的 bad interventions 从 1.40 降到 0.51，但 final/AUC 增益也变小了。它说明安全 gate 可以降风险，但如果太保守，会把 transfer 的探索收益一起压掉。
+
+这对下一步的启发很直接：如果目标是看到更明显的 transfer 优势，不能只继续收紧 gate。更有价值的路线是让 source skill 进入 acquisition 本身，例如 kernel field weights、descriptor whitelist、early budget allocation、exploration/exploitation schedule；然后用 target calibration 控制方向，而不是完全压低幅度。LLM 也应该参与这些 rule-level 选择，而不是只做候选级加减分。
 
 ## 3. 第一阶段：Synthetic Suzuki smoke test
 
