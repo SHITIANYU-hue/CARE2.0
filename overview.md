@@ -342,6 +342,22 @@ ChemLex 代理数据上提升很明显，但这个结果要很小心地讲。它
 
 最新补的知识库卡片把 skill transfer 明确拆成六层，而不是只停留在 acquisition 层：representation transfer 负责 source/target 字段映射，mechanism transfer 负责可复用科学假说，model transfer 负责 kernel/embedding/feature transform，acquisition transfer 负责候选排序和探索策略，gate/risk transfer 负责识别 negative transfer，workflow transfer 负责实验预算、审计和数据边界。`transfer_weighted_gp_kernel` 现在只是其中一个 model/acquisition binding；真正的 CARE 2.0 skill artifact 应该把这六层一起记录下来。
 
+## 8.1 最新补充：coverage portfolio 和 risk-aware selector
+
+为了回答“能不能让大部分数据集都有 transfer 提升”，我们又补了一轮 coverage 实验，把 target-only surrogate baseline、普通 transfer gate、shared value prior、transfer-weighted GP kernel 和 hybrid GP-UCB transfer 放到同一个 portfolio 里比较。新结果在 `experiments/care_replay/results/2026-07-12-transfer-coverage-portfolio/`。
+
+这轮覆盖 11 个 source-target pair，包含 reaction HTE、ChemLex-style acid-amine、MoleculeNet 分子性质和一个材料 target stress test。每个 pair 用 50 seeds；portfolio 用 seeds 0-24 做 calibration，seeds 25-49 做 held-out evaluation。默认 risk-aware selector 只有在 calibration 上同时超过 fallback `+1.0 final best` 和 `+1.0 AUC` 时才允许 transfer，否则退回 target-only baseline。
+
+结果分三层看：
+
+1. 如果只问“best transfer 是否比 public incumbent 好”，11 个 pair 里有 7 个 final best 为正。
+2. 如果问“best transfer 是否比 GP-UCB 好”，11 个 pair 里有 4 个 final best 为正。
+3. 如果问“best transfer 是否比最强 target-only baseline 好”，11 个 pair 里有 3 个 final best 为正。
+
+最清楚的 strong-baseline 正例是两条。`FreeSolv -> Lipophilicity` 的 `transfer_value_prior_gate_v1` 相比 GP-UCB final best +1.5850、AUC +1.5082；`Suzuki -> ChemLex` 的 `transfer_weighted_gp_ucb_scale_1` 相比 GP-UCB final best +3.2395、AUC +1.7773。`Suzuki -> Buchwald-Hartwig` 的 weighted-kernel transfer 仍是小正向，final best +0.3001、AUC +0.3162；`BH -> Suzuki` 的 hybrid no-gate final best +0.2847，但 AUC -0.0325，所以只能当诊断，不适合作为主结果。
+
+更重要的是 selector 结论。transfer-only calibration selector 在 held-out 上相对 public incumbent 是 7/11 正向，但相对 GP-UCB 只有 2/11 正向。risk-aware selector 更保守，只在 2 个 pair 上选择 transfer，而这 2 个 pair 在 held-out 上都超过 GP-UCB。这个结果说明 CARE 2.0 不应该包装成“所有 source knowledge 都有用”，而应该强调平台逻辑：source knowledge 先变成 reusable skill candidate，再经过 target calibration / held-out replay / risk gate，只有证据足够时才进入 acquisition。
+
 ## 9. 现在能得出的结论
 
 第一，代码和实验框架已经从单一 synthetic task 扩到了多个数据集，包括真实 HTE 和真实分子性质数据。这说明 CARE 2.0 的 platform interface 是可行的。
