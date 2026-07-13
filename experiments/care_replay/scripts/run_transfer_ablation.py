@@ -8,7 +8,7 @@ import math
 import os
 import random
 from collections import Counter
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from statistics import mean, pstdev
 from typing import Any
@@ -1504,11 +1504,11 @@ def llm_rule_patch_prompt_payload(
             ),
             "recommended_patch_shape": [
                 "Keep min_target_support near 2 unless the target evidence is extremely sparse or noisy.",
-                "Use effect_threshold around 3.0-5.0; lower values create more interventions but may add noise.",
-                "Use signal_cap around 0.10-0.14 for a bolder but still bounded patch.",
-                "Boost high-confidence transferable roles modestly, usually 1.05-1.35, and downweight weak roles rather than zeroing them.",
-                "Prefer one or two interactions between high-confidence roles; do not list interactions just to fill the schema.",
-                "Use aggregation=sum only if signal_cap is bounded and negative_policy is downweight or block.",
+                "Use effect_threshold around 4.0-5.0 unless target evidence strongly supports a lower threshold.",
+                "Use signal_cap around 0.08-0.10; do not chase gain by making every intervention larger.",
+                "Boost high-confidence transferable roles modestly, usually 1.05-1.25, and downweight weak roles rather than zeroing them.",
+                "Prefer at most one interaction between high-confidence roles; do not list interactions just to fill the schema.",
+                "Prefer aggregation=mean and negative_policy=downweight or block. Use allow only with a very specific reason.",
             ],
             "failure_modes_to_avoid": [
                 "Do not output candidate IDs or specific hidden outcome claims.",
@@ -1564,8 +1564,8 @@ def llm_transfer_rule_patch(
     user = (
         (
             "Choose one prompt-optimized rule patch that has a realistic chance to beat fixed transfer_gate_v1 on final_best/AUC. "
-            "Be bolder than a pure reviewer, but keep the patch narrow enough that bad interventions remain diagnosable. "
-            "A good answer usually modestly boosts high-confidence roles, downweights weak roles, and adds one or two guarded interactions. "
+            "Be bolder than a pure reviewer, but keep the patch narrow enough that bad interventions do not exceed the fixed rule. "
+            "A good answer usually modestly boosts high-confidence roles, downweights weak roles, and adds at most one guarded interaction. "
             if prompt_optimized
             else "Choose one conservative-but-useful rule patch. Prefer changes that can improve acquisition over the fixed transfer_gate_v1 "
             "without making the result look like uncontrolled prompt luck. "
@@ -1583,7 +1583,7 @@ def llm_transfer_rule_patch(
         )
         + (
             "For this optimized mode, do not leave every role multiplier at 1.0 unless you are deliberately refusing to patch. "
-            "If you choose aggregation=sum, keep signal_cap modest and use negative_policy=downweight or block. "
+            "Prefer negative_policy=downweight or block, keep signal_cap at or below 0.10, and use at most one interaction pair. "
             if prompt_optimized
             else ""
         )
@@ -1611,6 +1611,18 @@ def llm_transfer_rule_patch(
         parsed = {}
         parse_error = str(exc)
     patch = normalize_transfer_rule_patch(parsed, card, min_target_support, effect_threshold)
+    if prompt_optimized:
+        patch = replace(
+            patch,
+            signal_cap=min(patch.signal_cap, 0.10),
+            negative_policy="downweight" if patch.negative_policy == "allow" else patch.negative_policy,
+            interaction_pairs=patch.interaction_pairs[:1],
+            interaction_min_support=max(2, patch.interaction_min_support),
+            reason=(
+                patch.reason
+                + " Risk-capped prompt-optimized mode applies at most one interaction, caps signal_cap at 0.10, and downweights allowed negatives."
+            )[:600],
+        )
     record = {
         "called": True,
         "seed": seed,

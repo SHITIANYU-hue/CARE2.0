@@ -82,8 +82,8 @@ Run the prompt-optimized LLM rule-patch follow-up:
 
 ```bash
 export CARE_LLM_API_KEY="..."
-export CARE_LLM_TRACE_LOG="experiments/care_replay/outputs/logs/rule_patch_prompt_optimized_openai_gpt-5_5_suzuki_to_bh_10seed_calls.jsonl"
-python3 experiments/care_replay/scripts/run_transfer_ablation.py --source-dataset real_suzuki_miyaura --target-dataset real_buchwald_hartwig --source-observations 96 --seeds 10 --rounds 10 --initial 5 --modes incumbent,transfer_gate_v1,llm_rule_patch_guarded_confirmed_interaction_gate_v1,llm_rule_patch_prompt_optimized_confirmed_gate_v1 --llm-model openai/gpt-5.5 --llm-max-tokens 1200 --output-tag rule_patch_prompt_optimized_openai_gpt-5_5_suzuki_to_bh_10seed
+export CARE_LLM_TRACE_LOG="experiments/care_replay/outputs/logs/rule_patch_prompt_optimized_risk_capped_openai_gpt-5_5_suzuki_to_bh_10seed_calls.jsonl"
+python3 experiments/care_replay/scripts/run_transfer_ablation.py --source-dataset real_suzuki_miyaura --target-dataset real_buchwald_hartwig --source-observations 96 --seeds 10 --rounds 10 --initial 5 --modes incumbent,transfer_gate_v1,llm_rule_patch_guarded_confirmed_interaction_gate_v1,llm_rule_patch_prompt_optimized_confirmed_gate_v1 --llm-model openai/gpt-5.5 --llm-max-tokens 1200 --output-tag rule_patch_prompt_optimized_risk_capped_openai_gpt-5_5_suzuki_to_bh_10seed
 ```
 
 Run the target-only incumbent rule ablation:
@@ -234,6 +234,13 @@ Tracked result snapshots:
   a new 100-seed target-calibrated MoleculeNet hybrid check: safer
   target-calibrated transfer reduces bad interventions, but does not become a
   new headline gain.
+- `results/2026-07-12-llm-prompt-risk-capped-followup/`: real CommonStack
+  `openai/gpt-5.5` prompt-optimization follow-up for Suzuki-to-BH LLM
+  rule-patch transfer. The key and structured output path work with zero parse
+  errors. A more aggressive prompt increased bad interventions and hurt final
+  best; the risk-capped prompt reduced bad interventions and improved AUC over
+  fixed transfer, but still did not beat fixed transfer on final best. The best
+  current LLM variant remains the guarded confirmed interaction patch.
 
 The synthetic adapters let us test whether the same CARE gate and audit protocol
 behaves consistently across task shapes. The real HTE adapters download public
