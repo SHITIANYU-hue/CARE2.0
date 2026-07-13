@@ -58,6 +58,7 @@ DEFAULT_MODES: tuple[TransferMode, ...] = (
     "llm_rule_patch_guarded_confirmed_interaction_gate_v1",
     "llm_rule_patch_guarded_conservative_interaction_gate_v1",
     "llm_rule_patch_guarded_positive_interaction_gate_v1",
+    "llm_rule_patch_prompt_optimized_confirmed_gate_v1",
 )
 
 
@@ -156,6 +157,7 @@ def is_llm_rule_patch_mode(mode: TransferMode) -> bool:
         "llm_rule_patch_guarded_confirmed_interaction_gate_v1",
         "llm_rule_patch_guarded_conservative_interaction_gate_v1",
         "llm_rule_patch_guarded_positive_interaction_gate_v1",
+        "llm_rule_patch_prompt_optimized_confirmed_gate_v1",
     }
 
 
@@ -167,6 +169,7 @@ def is_llm_interaction_rule_patch_mode(mode: TransferMode) -> bool:
         "llm_rule_patch_guarded_confirmed_interaction_gate_v1",
         "llm_rule_patch_guarded_conservative_interaction_gate_v1",
         "llm_rule_patch_guarded_positive_interaction_gate_v1",
+        "llm_rule_patch_prompt_optimized_confirmed_gate_v1",
     }
 
 
@@ -177,6 +180,7 @@ def is_llm_guarded_interaction_rule_patch_mode(mode: TransferMode) -> bool:
         "llm_rule_patch_guarded_confirmed_interaction_gate_v1",
         "llm_rule_patch_guarded_conservative_interaction_gate_v1",
         "llm_rule_patch_guarded_positive_interaction_gate_v1",
+        "llm_rule_patch_prompt_optimized_confirmed_gate_v1",
     }
 
 
@@ -186,6 +190,7 @@ def is_llm_damped_interaction_rule_patch_mode(mode: TransferMode) -> bool:
         "llm_rule_patch_guarded_confirmed_interaction_gate_v1",
         "llm_rule_patch_guarded_conservative_interaction_gate_v1",
         "llm_rule_patch_guarded_positive_interaction_gate_v1",
+        "llm_rule_patch_prompt_optimized_confirmed_gate_v1",
     }
 
 
@@ -194,6 +199,13 @@ def is_llm_confirmed_interaction_rule_patch_mode(mode: TransferMode) -> bool:
         "llm_rule_patch_guarded_confirmed_interaction_gate_v1",
         "llm_rule_patch_guarded_conservative_interaction_gate_v1",
         "llm_rule_patch_guarded_positive_interaction_gate_v1",
+        "llm_rule_patch_prompt_optimized_confirmed_gate_v1",
+    }
+
+
+def is_llm_prompt_optimized_rule_patch_mode(mode: TransferMode) -> bool:
+    return mode in {
+        "llm_rule_patch_prompt_optimized_confirmed_gate_v1",
     }
 
 
@@ -1404,6 +1416,7 @@ def llm_rule_patch_prompt_payload(
     min_target_support: int,
     effect_threshold: float,
     enable_interactions: bool = False,
+    prompt_optimized: bool = False,
 ) -> dict[str, Any]:
     active_roles = [asdict(role) for role in card.roles if role.transfer_weight > 0.0]
     active_target_fields = tuple(sorted({role["target_field"] for role in active_roles}))
@@ -1439,10 +1452,13 @@ def llm_rule_patch_prompt_payload(
         )
         allowed_patch_space["interaction_min_support"] = "integer 1..3; use 1 only for early sparse HTE replay"
 
-    return {
+    payload = {
         "policy_task": (
             "Patch the deterministic CARE transfer rule before replay. "
             "Do not score individual candidates. The code will execute the patch deterministically."
+        ),
+        "optimization_target": (
+            "Improve final_best and best_so_far_auc over the fixed transfer_gate_v1 rule, while keeping bad interventions auditable."
         ),
         "target_evidence": observed_transfer_evidence_payload(
             adapter,
@@ -1473,10 +1489,38 @@ def llm_rule_patch_prompt_payload(
             "The useful role for the LLM is to tune the transferable skill, not to replace the acquisition rule.",
             "The patch should increase transfer gain while avoiding obvious negative transfer.",
             "Single-field role reweighting alone was too weak; interaction patches should name transferable role pairs when enabled.",
+            "Ungated or overly broad interactions can raise bad interventions; confirmed guarded interactions were the most useful LLM rule-patch family so far.",
         ],
         "allowed_patch_space": allowed_patch_space,
         "output_contract": output_contract,
     }
+    if prompt_optimized:
+        payload["prompt_optimization_brief"] = {
+            "role": (
+                "Act as a transfer-skill engineer. Your output will be run by deterministic code, so choose executable policy knobs, not prose."
+            ),
+            "baseline_to_beat": (
+                "The fixed transfer rule is already strong. A useful patch should preserve strong role-level transfer while adding one small, targeted source-informed interaction advantage."
+            ),
+            "recommended_patch_shape": [
+                "Keep min_target_support near 2 unless the target evidence is extremely sparse or noisy.",
+                "Use effect_threshold around 3.0-5.0; lower values create more interventions but may add noise.",
+                "Use signal_cap around 0.10-0.14 for a bolder but still bounded patch.",
+                "Boost high-confidence transferable roles modestly, usually 1.05-1.35, and downweight weak roles rather than zeroing them.",
+                "Prefer one or two interactions between high-confidence roles; do not list interactions just to fill the schema.",
+                "Use aggregation=sum only if signal_cap is bounded and negative_policy is downweight or block.",
+            ],
+            "failure_modes_to_avoid": [
+                "Do not output candidate IDs or specific hidden outcome claims.",
+                "Do not make all multipliers 1.0 unless the evidence truly says no patch is useful.",
+                "Do not choose broad interaction pairs involving weak roles without a mechanism reason.",
+                "Do not rely on source labels as if they were target labels; source provides role confidence, target evidence decides direction.",
+            ],
+            "preferred_reasoning_summary": (
+                "In the reason field, briefly say which roles are boosted, which interaction is expected to help transfer, and how the patch controls risk."
+            ),
+        }
+    return payload
 
 
 def llm_transfer_rule_patch(
@@ -1491,6 +1535,7 @@ def llm_transfer_rule_patch(
 ) -> tuple[TransferRulePatch, dict[str, Any]]:
     enable_interactions = is_llm_interaction_rule_patch_mode(mode)
     guarded_interactions = is_llm_guarded_interaction_rule_patch_mode(mode)
+    prompt_optimized = is_llm_prompt_optimized_rule_patch_mode(mode)
     prompt_payload = llm_rule_patch_prompt_payload(
         adapter,
         observed,
@@ -1498,16 +1543,33 @@ def llm_transfer_rule_patch(
         min_target_support,
         effect_threshold,
         enable_interactions,
+        prompt_optimized,
     )
-    system = (
-        "You are a CARE 2.0 cross-domain transfer-rule optimizer. "
-        "Your job is to patch a reusable deterministic transfer skill from source-domain evidence and sparse revealed target evidence. "
-        "Do not output candidate recommendations. Do not infer hidden outcomes. "
-        "Return only JSON in the requested patch schema."
-    )
+    if prompt_optimized:
+        system = (
+            "You are a CARE 2.0 transfer-skill optimizer. "
+            "You design a small executable patch to a deterministic cross-domain transfer rule. "
+            "The fixed transfer rule is a strong baseline, so your patch must be specific, auditable, and slightly advantage-seeking. "
+            "Use source evidence to choose transferable roles and interactions; use revealed target evidence to calibrate risk. "
+            "Do not output candidate recommendations. Do not infer hidden outcomes. "
+            "Return only JSON in the requested patch schema."
+        )
+    else:
+        system = (
+            "You are a CARE 2.0 cross-domain transfer-rule optimizer. "
+            "Your job is to patch a reusable deterministic transfer skill from source-domain evidence and sparse revealed target evidence. "
+            "Do not output candidate recommendations. Do not infer hidden outcomes. "
+            "Return only JSON in the requested patch schema."
+        )
     user = (
-        "Choose one conservative-but-useful rule patch. Prefer changes that can improve acquisition over the fixed transfer_gate_v1 "
-        "without making the result look like uncontrolled prompt luck. "
+        (
+            "Choose one prompt-optimized rule patch that has a realistic chance to beat fixed transfer_gate_v1 on final_best/AUC. "
+            "Be bolder than a pure reviewer, but keep the patch narrow enough that bad interventions remain diagnosable. "
+            "A good answer usually modestly boosts high-confidence roles, downweights weak roles, and adds one or two guarded interactions. "
+            if prompt_optimized
+            else "Choose one conservative-but-useful rule patch. Prefer changes that can improve acquisition over the fixed transfer_gate_v1 "
+            "without making the result look like uncontrolled prompt luck. "
+        )
         + (
             "Because single-field reweighting has been too weak, select 1-3 mechanistically plausible field interactions when target evidence is sparse but suggestive. "
             "Interaction pairs should be role-level fields, not specific values; the replay code will estimate value-pair effects only from revealed target rows. "
@@ -1517,6 +1579,12 @@ def llm_transfer_rule_patch(
                 else ""
             )
             if enable_interactions
+            else ""
+        )
+        + (
+            "For this optimized mode, do not leave every role multiplier at 1.0 unless you are deliberately refusing to patch. "
+            "If you choose aggregation=sum, keep signal_cap modest and use negative_policy=downweight or block. "
+            if prompt_optimized
             else ""
         )
         + "Return exactly this JSON shape: "
@@ -2435,6 +2503,7 @@ def run_target_policy(
                     "llm_rule_patch_guarded_confirmed_interaction_gate_v1",
                     "llm_rule_patch_guarded_conservative_interaction_gate_v1",
                     "llm_rule_patch_guarded_positive_interaction_gate_v1",
+                    "llm_rule_patch_prompt_optimized_confirmed_gate_v1",
                     "llm_audit_transfer_gate_v1",
                     "llm_audit_transfer_strict_gate_v1",
                     "llm_audit_transfer_open_gate_v1",

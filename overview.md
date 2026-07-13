@@ -97,6 +97,8 @@ LLM 目前确实有真实调用，但角色还比较窄。`llm_transfer_gate_v1`
 
 这对下一步的启发很直接：如果目标是看到更明显的 transfer 优势，不能只继续收紧 gate。更有价值的路线是让 source skill 进入 acquisition 本身，例如 kernel field weights、descriptor whitelist、early budget allocation、exploration/exploitation schedule；然后用 target calibration 控制方向，而不是完全压低幅度。LLM 也应该参与这些 rule-level 选择，而不是只做候选级加减分。
 
+基于这个判断，代码里又新增了 `llm_rule_patch_prompt_optimized_confirmed_gate_v1`。它仍然走 rule-patch 路线，不让 LLM 直接选 candidate；但 prompt 明确把目标写成“超过 fixed `transfer_gate_v1` 的 final best / AUC，同时控制 bad interventions”。相比上一版，它会要求模型给出更具体的 skill patch：适度提高高置信 role 权重、降低弱 role 权重、选择 1-2 个 guarded interaction，并说明如何控制风险。这个版本需要真实 LLM key 在服务器上继续跑，同 seeds 对照上一版 `llm_rule_patch_guarded_confirmed_interaction_gate_v1`。
+
 ## 3. 第一阶段：Synthetic Suzuki smoke test
 
 这一步是最早的 smoke test，目的不是讲真实化学结论，而是确认 replay 接口、audit log、skill 和 hypothesis update 都能跑。
