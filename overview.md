@@ -12,6 +12,8 @@
 
 最新补充后，最适合作为“明显正向 transfer”展示的是 `FreeSolv -> Lipophilicity` 的 shared descriptor value-prior sweep。100 seeds 下，`transfer_value_prior_gate_v1` 在 3/5/10 个 reveal budget 上都稳定超过 incumbent：final best 分别提升 +1.1662、+0.9725、+0.8550，AUC 分别提升 +0.4184、+0.6707、+0.7009，top-10 hit 分别从 0.07/0.11/0.17 提到 0.13/0.18/0.23。这条结果比反应 descriptor transfer 更干净，因为 source 和 target 共享同一套 SMILES-derived descriptor vocabulary，不是在迁移数据集内部编号。
 
+最新又补了一版 acquisition-level scale ensemble，把多个 transfer-weighted GP-UCB scale 的候选排序做 rank averaging，避免只挑一个手写 scale。50 seeds 下，`Suzuki-Miyaura -> Buchwald-Hartwig` 从 GP-UCB 的 final best 91.1145 / AUC 82.9700 提到 92.1629 / 83.6026，增益是 +1.0484 / +0.6326；`Suzuki-Miyaura -> ChemLex` 从 87.7717 / 79.8070 提到 90.2678 / 80.6853，增益是 +2.4961 / +0.8783。这说明 transfer 已经不只是赢 public incumbent，也能在部分真实任务上叠到 strong acquisition baseline 之上。`ChemLex -> Buchwald-Hartwig` 仍是负迁移，这个边界需要诚实保留。
+
 具体来说，我们想验证三件事：
 
 1. CARE 的决策流程能否从单一 synthetic task 扩展到真实 HTE 数据。
@@ -358,11 +360,27 @@ ChemLex 代理数据上提升很明显，但这个结果要很小心地讲。它
 
 更重要的是 selector 结论。transfer-only calibration selector 在 held-out 上相对 public incumbent 是 7/11 正向，但相对 GP-UCB 只有 2/11 正向。risk-aware selector 更保守，只在 2 个 pair 上选择 transfer，而这 2 个 pair 在 held-out 上都超过 GP-UCB。这个结果说明 CARE 2.0 不应该包装成“所有 source knowledge 都有用”，而应该强调平台逻辑：source knowledge 先变成 reusable skill candidate，再经过 target calibration / held-out replay / risk gate，只有证据足够时才进入 acquisition。
 
+## 8.2 最新补充：scale ensemble 让 acquisition transfer 更稳
+
+为了继续回应“transfer 能不能在更多数据集上超过 strong baseline”，我们又补了一版 `transfer_weighted_gp_ucb_scale_ensemble_*`。它不是让 LLM 或规则直接选候选，而是把 source transfer card 转成多组 public categorical-kernel weights，再分别跑 GP-UCB acquisition，最后对每组 scale 的候选分数做 normalized rank averaging。直观上，它相当于让多个 transfer 强度投票，减少单个 scale 手调带来的偶然性。
+
+这版结果放在 `experiments/care_replay/results/2026-07-14-scale-ensemble-transfer/`，并重新生成了 portfolio：`experiments/care_replay/results/2026-07-14-transfer-coverage-with-ensembles/`。
+
+三条 50-seed 结果是：
+
+1. `Suzuki-Miyaura -> Buchwald-Hartwig`：GP-UCB 是 final best 91.1145 / AUC 82.9700；scale ensemble 是 92.1629 / 83.6026，提升 +1.0484 / +0.6326。这个结果比之前单 scale 的 +0.3001 / +0.3162 更像一个可讲的 acquisition transfer 正例。
+2. `Suzuki-Miyaura -> ChemLex`：GP-UCB 是 87.7717 / 79.8070；scale ensemble 是 90.2678 / 80.6853，提升 +2.4961 / +0.8783。单 scale `scale=1` 的 full-mean 仍然更高，但 ensemble 是一个更稳的可执行策略。
+3. `ChemLex -> Buchwald-Hartwig`：scale ensemble 比 GP-UCB 低 -1.8382 final best / -1.3454 AUC。这说明不是所有 ChemLex 形态的 knowledge 都能迁移回 Buchwald-Hartwig，risk gate 仍然必要。
+
+加入 ensemble 后，portfolio 里 policy 数从 134 增到 137。calibration selector 在 held-out 上相对 GP-UCB 为正的 pair 从 3/11 增到 4/11；transfer-only selector 相对 GP-UCB 从 2/11 增到 3/11；相对 best target-only baseline 从 1/11 增到 2/11。严格 risk-aware selector 仍然只放行 2 个 pair，这个保守性目前是合理的，因为负迁移还存在。
+
+这版对 CARE 2.0 的意义是：transfer 不应该只做 additive score patch，也不应该只靠一个固定规则；更自然的形式是“源领域沉淀 skill -> 目标领域校准 -> 进入 acquisition geometry -> selector 决定是否启用”。scale ensemble 是朝这个方向迈的一步。
+
 ## 9. 现在能得出的结论
 
 第一，代码和实验框架已经从单一 synthetic task 扩到了多个数据集，包括真实 HTE 和真实分子性质数据。这说明 CARE 2.0 的 platform interface 是可行的。
 
-第二，现在已经有真实数据 transfer 正例，但强度要分开讲。分子性质方向，`FreeSolv -> Lipophilicity` 在 50 seeds 下 final best 提升 +2.7550，AUC 提升 +2.4000，top-10 hit 从 4% 到 30%，这是 public-incumbent 设置下最亮眼的 transfer 上限。进一步把 transfer 叠到更强的 GP-UCB 上，100-seed 结果不再是大幅 final-best 碾压，但仍有 early-discovery 增益：10 轮预算 top-10 hit 从 0.11 到 0.21，5 轮和 3 轮低预算下 final best / AUC 都稳定为正。transfer-weighted GP kernel 的 `scale=1.5` 也有小幅正收益，final best +0.0875、AUC +0.2230。反应 HTE 方向，`Suzuki-Miyaura -> Buchwald-Hartwig` 相比 public incumbent 有提升，final best +2.4389，AUC +1.1066。GP-UCB target-only baseline 更强以后，简单 additive hybrid 还没赢 final best；但 transfer-weighted GP kernel 已经把 GP-UCB 从 final best 91.1145 / AUC 82.9700 提到 91.4146 / 83.2862。这说明反应方向不是只能赢弱 incumbent，skill 进入 acquisition geometry 后已经有小幅超过强 baseline 的信号。
+第二，现在已经有真实数据 transfer 正例，但强度要分开讲。分子性质方向，`FreeSolv -> Lipophilicity` 在 50 seeds 下 final best 提升 +2.7550，AUC 提升 +2.4000，top-10 hit 从 4% 到 30%，这是 public-incumbent 设置下最亮眼的 transfer 上限。进一步把 transfer 叠到更强的 GP-UCB 上，100-seed 结果不再是大幅 final-best 碾压，但仍有 early-discovery 增益：10 轮预算 top-10 hit 从 0.11 到 0.21，5 轮和 3 轮低预算下 final best / AUC 都稳定为正。transfer-weighted GP kernel 的 `scale=1.5` 也有小幅正收益，final best +0.0875、AUC +0.2230。反应 HTE 方向，`Suzuki-Miyaura -> Buchwald-Hartwig` 相比 public incumbent 有提升，final best +2.4389，AUC +1.1066。GP-UCB target-only baseline 更强以后，简单 additive hybrid 还没赢 final best；但最新 scale ensemble 已经把 GP-UCB 从 final best 91.1145 / AUC 82.9700 提到 92.1629 / 83.6026。这说明反应方向不是只能赢弱 incumbent，skill 进入 acquisition geometry 后已经能在部分 pair 上超过强 baseline。
 
 第三，结果还不是“所有方向都提升”。BH -> Suzuki 这类反向迁移目前不稳定，ChemLex 和材料方向还需要更强的真实数据与更明确的 transfer map。这个边界反而是有价值的：CARE 2.0 不是盲目把 source knowledge 往 target 上套，而是要识别什么时候能迁移，什么时候应该保守。
 

@@ -37,6 +37,10 @@ def scale_label(scale: float) -> str:
     return text.replace("-", "m")
 
 
+def scales_label(scales: tuple[float, ...]) -> str:
+    return "_".join(scale_label(scale) for scale in scales)
+
+
 def mixed_kernel_weighted(
     a: FeatureRecord,
     b: FeatureRecord,
@@ -189,6 +193,65 @@ def weighted_gp_scores(
     return scores, diagnostics
 
 
+def rank_normalized(scores: dict[str, float]) -> dict[str, float]:
+    ordered = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+    if len(ordered) == 1:
+        return {ordered[0][0]: 1.0}
+    denominator = float(len(ordered) - 1)
+    return {
+        candidate_id: 1.0 - (rank / denominator)
+        for rank, (candidate_id, _score) in enumerate(ordered)
+    }
+
+
+def ensemble_weighted_gp_scores(
+    adapter: replay.DatasetAdapter,
+    observed_ids: set[str],
+    observed: list[replay.Candidate],
+    features_by_id: dict[str, FeatureRecord],
+    scale_weights: list[tuple[float, tuple[float, ...], dict[str, Any]]],
+    gp_beta: float,
+    numeric_length_scale: float,
+    categorical_length_scale: float,
+    gp_noise: float,
+) -> tuple[dict[str, float], dict[str, Any]]:
+    rank_scores: dict[str, list[float]] = {}
+    scale_diagnostics: list[dict[str, Any]] = []
+    for scale, categorical_weights, weight_diagnostics in scale_weights:
+        scores, gp_diagnostics = weighted_gp_scores(
+            adapter,
+            observed_ids,
+            observed,
+            features_by_id,
+            categorical_weights,
+            gp_beta,
+            numeric_length_scale,
+            categorical_length_scale,
+            gp_noise,
+        )
+        normalized = rank_normalized(scores)
+        for candidate_id, score in normalized.items():
+            rank_scores.setdefault(candidate_id, []).append(score)
+        scale_diagnostics.append(
+            {
+                "scale": scale,
+                "weight_diagnostics": weight_diagnostics,
+                "gp_diagnostics": gp_diagnostics,
+            }
+        )
+    ensemble_scores = {
+        candidate_id: mean(values)
+        for candidate_id, values in rank_scores.items()
+    }
+    diagnostics = {
+        "candidate_count": len(ensemble_scores),
+        "ensemble_scales": [scale for scale, _weights, _diagnostics in scale_weights],
+        "score_aggregation": "mean_normalized_rank",
+        "scale_diagnostics": scale_diagnostics,
+    }
+    return ensemble_scores, diagnostics
+
+
 def aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
     by_mode: dict[str, list[dict[str, Any]]] = {}
     for row in rows:
@@ -282,6 +345,81 @@ def run_policy(
     return metrics, audit
 
 
+def run_ensemble_policy(
+    adapter: replay.DatasetAdapter,
+    task: replay.TaskSpec,
+    seed: int,
+    mode: str,
+    scale_weights: list[tuple[float, tuple[float, ...], dict[str, Any]]],
+    gp_beta: float,
+    numeric_length_scale: float,
+    categorical_length_scale: float,
+    gp_noise: float,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    rng = random.Random(seed)
+    pool = adapter.candidates
+    by_id = {candidate.candidate_id: candidate for candidate in pool}
+    features_by_id = {candidate.candidate_id: surrogate.candidate_features(adapter, candidate) for candidate in pool}
+    shuffled = list(pool)
+    rng.shuffle(shuffled)
+    observed = shuffled[: task.initial_observations]
+    observed_ids = {candidate.candidate_id for candidate in observed}
+    top10 = {candidate.candidate_id for candidate in sorted(pool, key=lambda x: x.objective_value, reverse=True)[:10]}
+    selected_top10 = any(candidate.candidate_id in top10 for candidate in observed)
+    best_trace: list[float] = []
+    audit: list[dict[str, Any]] = []
+
+    for round_index in range(task.reveal_budget):
+        scores, ensemble_diagnostics = ensemble_weighted_gp_scores(
+            adapter,
+            observed_ids,
+            observed,
+            features_by_id,
+            scale_weights,
+            gp_beta,
+            numeric_length_scale,
+            categorical_length_scale,
+            gp_noise,
+        )
+        selected_id = replay.top_candidate(scores)
+        selected = by_id[selected_id]
+        observed.append(selected)
+        observed_ids.add(selected.candidate_id)
+        selected_top10 = selected_top10 or selected.candidate_id in top10
+        best_so_far = max(candidate.objective_value for candidate in observed)
+        best_trace.append(best_so_far)
+        audit.append(
+            {
+                "dataset_id": adapter.dataset_id,
+                "seed": seed,
+                "round_index": round_index,
+                "mode": mode,
+                "public_observed_count": len(observed) - 1,
+                "selected_candidate": selected.candidate_id,
+                "selected_score": round(scores[selected_id], 6),
+                "revealed_value": selected.objective_value,
+                "best_so_far": best_so_far,
+                "hypothesis_snapshot": {
+                    "base_acquisition": "mixed_kernel_gp_ucb",
+                    "skill_optimization": "transfer_weighted_categorical_kernel_ensemble",
+                    "ensemble_diagnostics": ensemble_diagnostics,
+                },
+            }
+        )
+
+    final_best = max(candidate.objective_value for candidate in observed)
+    metrics = {
+        "dataset": adapter.dataset_id,
+        "mode": mode,
+        "seed": seed,
+        "final_best": round(final_best, 4),
+        "best_so_far_auc": round(mean(best_trace), 4),
+        "simple_regret": round(task.oracle_value - final_best, 4),
+        "top10_hit": int(selected_top10),
+    }
+    return metrics, audit
+
+
 def write_outputs(
     output_id: str,
     rows: list[dict[str, Any]],
@@ -325,6 +463,7 @@ def run_transfer_weighted_kernel(
     numeric_length_scale: float,
     categorical_length_scale: float,
     gp_noise: float,
+    ensemble_scales: tuple[float, ...],
     output_tag: str,
 ) -> dict[str, Any]:
     source_adapter = replay.DATASET_BUILDERS[source_dataset]()
@@ -371,6 +510,36 @@ def run_transfer_weighted_kernel(
             )
             rows.append(metrics)
             audits[(mode, seed)] = audit
+        if ensemble_scales:
+            scale_weights: list[tuple[float, tuple[float, ...], dict[str, Any]]] = []
+            for scale in ensemble_scales:
+                categorical_weights, weight_diagnostics = transfer_categorical_weights(
+                    target_adapter,
+                    card,
+                    scale,
+                    normalize,
+                )
+                scale_weights.append((scale, categorical_weights, weight_diagnostics))
+            mode = f"transfer_weighted_gp_ucb_scale_ensemble_{scales_label(ensemble_scales)}"
+            if seed == 0:
+                weight_examples[mode] = {
+                    "ensemble_scales": list(ensemble_scales),
+                    "score_aggregation": "mean_normalized_rank",
+                    "scale_weight_examples": [item[2] for item in scale_weights],
+                }
+            metrics, audit = run_ensemble_policy(
+                target_adapter,
+                task,
+                seed,
+                mode,
+                scale_weights,
+                gp_beta,
+                numeric_length_scale,
+                categorical_length_scale,
+                gp_noise,
+            )
+            rows.append(metrics)
+            audits[(mode, seed)] = audit
 
     output_id = f"transfer_weighted_kernel_{source_dataset}_to_{target_dataset}"
     if output_tag:
@@ -400,6 +569,7 @@ def run_transfer_weighted_kernel(
         "rounds": rounds,
         "initial_observations": initial,
         "scales": list(scales),
+        "ensemble_scales": list(ensemble_scales),
         "weight_examples_seed0": weight_examples,
         "aggregate": aggregate(rows),
     }
@@ -418,6 +588,11 @@ def main() -> None:
     parser.add_argument("--discount", type=float, default=0.65)
     parser.add_argument("--min-source-support", type=int, default=3)
     parser.add_argument("--scales", default="0,0.5,1,1.5,2,4")
+    parser.add_argument(
+        "--ensemble-scales",
+        default="",
+        help="Optional comma-separated transfer scales to aggregate by normalized-rank ensemble.",
+    )
     parser.add_argument("--no-normalize", action="store_true", help="Do not normalize categorical weights to mean 1.")
     parser.add_argument("--gp-beta", type=float, default=1.5)
     parser.add_argument("--numeric-length-scale", type=float, default=0.35)
@@ -440,6 +615,7 @@ def main() -> None:
         numeric_length_scale=args.numeric_length_scale,
         categorical_length_scale=args.categorical_length_scale,
         gp_noise=args.gp_noise,
+        ensemble_scales=parse_scales(args.ensemble_scales) if args.ensemble_scales else (),
         output_tag=args.output_tag,
     )
     print(json.dumps(summary, ensure_ascii=False, indent=2))

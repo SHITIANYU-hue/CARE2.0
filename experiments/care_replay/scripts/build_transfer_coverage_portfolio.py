@@ -30,6 +30,7 @@ class PolicySource:
 
 
 def default_sources() -> list[PolicySource]:
+    scale_ensemble_dir = RESULTS / "2026-07-14-scale-ensemble-transfer"
     return [
         # Target-only strong baselines.
         PolicySource("target_only", "real_buchwald_hartwig", "target_only", OUTPUT_TABLES / "surrogate_baselines_real_buchwald_hartwig_50seed_metrics.csv"),
@@ -56,6 +57,11 @@ def default_sources() -> list[PolicySource]:
         PolicySource("real_suzuki_miyaura", "real_chemlex_acidamine", "weighted_kernel", OUTPUT_TABLES / "transfer_weighted_kernel_real_suzuki_miyaura_to_real_chemlex_acidamine_coverage_50seed_metrics.csv"),
         PolicySource("real_chemlex_acidamine", "real_buchwald_hartwig", "weighted_kernel", OUTPUT_TABLES / "transfer_weighted_kernel_real_chemlex_acidamine_to_real_buchwald_hartwig_coverage_50seed_metrics.csv"),
         PolicySource("real_moleculenet_freesolv", "real_moleculenet_lipophilicity", "weighted_kernel", OUTPUT_TABLES / "transfer_weighted_kernel_real_moleculenet_freesolv_to_real_moleculenet_lipophilicity_50seed_metrics.csv"),
+        # Robust scale ensembles over acquisition-level transfer. These average
+        # normalized candidate ranks across several transfer-weight scales.
+        PolicySource("real_suzuki_miyaura", "real_buchwald_hartwig", "weighted_kernel_ensemble", scale_ensemble_dir / "transfer_weighted_kernel_real_suzuki_miyaura_to_real_buchwald_hartwig_scale_ensemble_mid_50seed_metrics.csv"),
+        PolicySource("real_suzuki_miyaura", "real_chemlex_acidamine", "weighted_kernel_ensemble", scale_ensemble_dir / "transfer_weighted_kernel_real_suzuki_miyaura_to_real_chemlex_acidamine_scale_ensemble_mid_50seed_metrics.csv"),
+        PolicySource("real_chemlex_acidamine", "real_buchwald_hartwig", "weighted_kernel_ensemble", scale_ensemble_dir / "transfer_weighted_kernel_real_chemlex_acidamine_to_real_buchwald_hartwig_scale_ensemble_high_50seed_metrics.csv"),
         # Hybrid transfer over GP-UCB.
         PolicySource("real_suzuki_miyaura", "real_buchwald_hartwig", "hybrid_gp", OUTPUT_TABLES / "hybrid_surrogate_transfer_real_suzuki_miyaura_to_real_buchwald_hartwig_50seed_metrics.csv"),
         PolicySource("real_buchwald_hartwig", "real_suzuki_miyaura", "hybrid_gp", OUTPUT_TABLES / "hybrid_surrogate_transfer_real_buchwald_hartwig_to_real_suzuki_miyaura_coverage_50seed_metrics.csv"),
