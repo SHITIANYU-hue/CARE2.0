@@ -65,7 +65,9 @@ def transfer_categorical_weights(
     card: transfer.TransferCard,
     scale: float,
     normalize: bool,
+    role_multipliers: dict[str, float] | None = None,
 ) -> tuple[tuple[float, ...], dict[str, Any]]:
+    role_multipliers = role_multipliers or {}
     confidence_by_target = {
         role.target_field: role.confidence
         for role in card.roles
@@ -89,7 +91,8 @@ def transfer_categorical_weights(
     for index, field_name in enumerate(adapter.decision_columns, start=1):
         role = role_by_target.get(field_name)
         confidence = confidence_by_target.get(field_name, 0.0)
-        weight = 1.0 + scale * confidence
+        role_multiplier = role_multipliers.get(field_name, 1.0)
+        weight = 1.0 + scale * confidence * role_multiplier
         raw_weights.append(weight)
         weight_rows.append(
             {
@@ -97,6 +100,7 @@ def transfer_categorical_weights(
                 "field": field_name,
                 "source_field": "" if role is None else role.source_field,
                 "role_confidence": confidence,
+                "role_multiplier": round(role_multiplier, 6),
                 "raw_weight": round(weight, 6),
             }
         )
@@ -132,6 +136,7 @@ def weighted_gp_scores(
     numeric_length_scale: float,
     categorical_length_scale: float,
     gp_noise: float,
+    include_posterior_maps: bool = False,
 ) -> tuple[dict[str, float], dict[str, Any]]:
     observed_features = [features_by_id[candidate.candidate_id] for candidate in observed]
     y_values = [candidate.objective_value / 100.0 for candidate in observed]
@@ -155,10 +160,18 @@ def weighted_gp_scores(
         kernel_matrix[i][i] += gp_noise
     lower = surrogate.cholesky_spd(kernel_matrix)
     alpha = surrogate.solve_cholesky(lower, y_norm)
+    quadratic = sum(value * coefficient for value, coefficient in zip(y_norm, alpha))
+    log_marginal_likelihood = (
+        -0.5 * quadratic
+        - sum(math.log(max(lower[index][index], 1e-12)) for index in range(size))
+        - 0.5 * size * math.log(2.0 * math.pi)
+    )
 
     scores: dict[str, float] = {}
     posterior_means: list[float] = []
     posterior_stds: list[float] = []
+    posterior_mean_by_id: dict[str, float] = {}
+    posterior_std_by_id: dict[str, float] = {}
     for candidate in adapter.candidates:
         if candidate.candidate_id in observed_ids:
             continue
@@ -181,6 +194,9 @@ def weighted_gp_scores(
         scores[candidate.candidate_id] = posterior_mean + gp_beta * posterior_std
         posterior_means.append(posterior_mean)
         posterior_stds.append(posterior_std)
+        if include_posterior_maps:
+            posterior_mean_by_id[candidate.candidate_id] = posterior_mean
+            posterior_std_by_id[candidate.candidate_id] = posterior_std
 
     diagnostics = {
         "candidate_count": len(scores),
@@ -189,7 +205,11 @@ def weighted_gp_scores(
         "posterior_std_mean": round(mean(posterior_stds), 6) if posterior_stds else 0.0,
         "y_mean": round(y_mean, 6),
         "y_scale": round(y_scale, 6),
+        "log_marginal_likelihood": round(log_marginal_likelihood, 6),
     }
+    if include_posterior_maps:
+        diagnostics["posterior_mean_by_id"] = posterior_mean_by_id
+        diagnostics["posterior_std_by_id"] = posterior_std_by_id
     return scores, diagnostics
 
 
@@ -214,6 +234,7 @@ def ensemble_weighted_gp_scores(
     numeric_length_scale: float,
     categorical_length_scale: float,
     gp_noise: float,
+    include_posterior_maps: bool = False,
 ) -> tuple[dict[str, float], dict[str, Any]]:
     rank_scores: dict[str, list[float]] = {}
     scale_diagnostics: list[dict[str, Any]] = []
@@ -228,6 +249,7 @@ def ensemble_weighted_gp_scores(
             numeric_length_scale,
             categorical_length_scale,
             gp_noise,
+            include_posterior_maps,
         )
         normalized = rank_normalized(scores)
         for candidate_id, score in normalized.items():
@@ -249,6 +271,24 @@ def ensemble_weighted_gp_scores(
         "score_aggregation": "mean_normalized_rank",
         "scale_diagnostics": scale_diagnostics,
     }
+    if include_posterior_maps:
+        candidate_ids = tuple(ensemble_scores)
+        diagnostics["posterior_mean_by_id"] = {
+            candidate_id: mean(
+                item["gp_diagnostics"]["posterior_mean_by_id"][candidate_id]
+                for item in scale_diagnostics
+            )
+            for candidate_id in candidate_ids
+        }
+        diagnostics["posterior_std_by_id"] = {
+            candidate_id: math.sqrt(
+                mean(
+                    item["gp_diagnostics"]["posterior_std_by_id"][candidate_id] ** 2
+                    for item in scale_diagnostics
+                )
+            )
+            for candidate_id in candidate_ids
+        }
     return ensemble_scores, diagnostics
 
 
