@@ -44,6 +44,9 @@ PUBLIC_DATA_URLS = {
     "moleculenet_lipophilicity.csv": "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/Lipophilicity.csv",
     "chemlex_acidamine_wetlab_v3.xlsx": "https://zenodo.org/records/17596563/files/Chemlex_Acidamine_Wetlab_Data.xlsx?download=1",
     "matbench_expt_gap.json.gz": "https://ml.materialsproject.org/projects/matbench_expt_gap.json.gz",
+    "matbench_dielectric.json.gz": "https://ml.materialsproject.org/projects/matbench_dielectric.json.gz",
+    "matbench_phonons.json.gz": "https://ml.materialsproject.org/projects/matbench_phonons.json.gz",
+    "matbench_log_kvrh.json.gz": "https://ml.materialsproject.org/projects/matbench_log_kvrh.json.gz",
 }
 
 REACTION_DESCRIPTOR_METADATA_FIELDS = {
@@ -1212,6 +1215,160 @@ def real_matbench_expt_gap_adapter() -> DatasetAdapter:
     )
 
 
+MATERIAL_DECISION_COLUMNS = (
+    "anion_family",
+    "element_count_bin",
+    "dominant_family",
+    "transition_metal_flag",
+    "lanthanide_flag",
+    "mean_atomic_number_bin",
+    "max_element_fraction_bin",
+)
+
+
+def structure_composition(structure: dict[str, Any]) -> dict[str, float]:
+    composition: dict[str, float] = {}
+    for site in structure.get("sites", []):
+        for species in site.get("species", []):
+            element = str(species.get("element", "")).strip()
+            if not element:
+                continue
+            composition[element] = composition.get(element, 0.0) + float(species.get("occu", 1.0))
+    return composition
+
+
+def material_public_features(composition: dict[str, float]) -> tuple[dict[str, Any], tuple[float, float, float]]:
+    total_atoms = sum(composition.values())
+    if total_atoms <= 0:
+        raise ValueError("Material composition must contain at least one atom")
+    elements = set(composition)
+    dominant_element = max(composition.items(), key=lambda item: (item[1], item[0]))[0]
+    mean_atomic_number = sum(ELEMENT_Z.get(element, 0) * count for element, count in composition.items()) / total_atoms
+    max_fraction = max(composition.values()) / total_atoms
+    metadata = {
+        "anion_family": anion_family(elements),
+        "element_count_bin": numeric_bin(
+            float(len(elements)),
+            (2.0, 4.0, 6.0),
+            ("binary", "ternary_quaternary", "quinary_senary", "complex"),
+        ),
+        "dominant_element": dominant_element,
+        "dominant_family": element_family(dominant_element),
+        "transition_metal_flag": "has_transition_metal" if elements & TRANSITION_METALS else "no_transition_metal",
+        "lanthanide_flag": "has_lanthanide" if elements & LANTHANIDES else "no_lanthanide",
+        "mean_atomic_number_bin": numeric_bin(
+            mean_atomic_number,
+            (20.0, 40.0, 60.0),
+            ("mean_z_low", "mean_z_mid", "mean_z_high", "mean_z_very_high"),
+        ),
+        "max_element_fraction_bin": numeric_bin(
+            max_fraction,
+            (0.34, 0.50, 0.75),
+            ("balanced", "moderately_concentrated", "concentrated", "dominant_element_heavy"),
+        ),
+    }
+    numeric = (
+        max(0.0, min(1.0, len(elements) / 8.0)),
+        max(0.0, min(1.0, mean_atomic_number / 90.0)),
+        max(0.0, min(1.0, max_fraction)),
+    )
+    return metadata, numeric
+
+
+def real_matbench_structure_property_adapter(
+    *,
+    filename: str,
+    dataset_id: str,
+    title: str,
+    objective: str,
+    target_column: str,
+    target_metadata_field: str,
+    normalize_target: Callable[[float], float],
+) -> DatasetAdapter:
+    path = ensure_public_data_file(filename)
+    records = read_matbench_json_gz(path)
+    pool: list[Candidate] = []
+    for idx, row in enumerate(records):
+        structure = row["structure"]
+        composition = structure_composition(structure)
+        if not composition:
+            continue
+        metadata, (x1, x2, x3) = material_public_features(composition)
+        raw_target = float(row[target_column])
+        normalized_target = clamp_score(normalize_target(raw_target))
+        formula = "".join(
+            f"{element}{count:g}"
+            for element, count in sorted(composition.items())
+        )
+        pool.append(
+            Candidate(
+                candidate_id=f"{dataset_id}_{idx:05d}",
+                group=str(metadata["anion_family"]),
+                x1=x1,
+                x2=x2,
+                x3=x3,
+                objective_value=normalized_target,
+                metadata={
+                    "composition": formula,
+                    **metadata,
+                    target_metadata_field: round(raw_target, 6),
+                    "normalized_property_score": normalized_target,
+                    "source_row": idx,
+                },
+            )
+        )
+    return DatasetAdapter(
+        dataset_id=dataset_id,
+        title=title,
+        objective=objective,
+        decision_columns=MATERIAL_DECISION_COLUMNS,
+        hidden_target="normalized_property_score",
+        group_column="anion_family",
+        preferred_groups=(),
+        failure_note=(
+            "This real Matbench replay uses composition-derived public features and sequentially revealed "
+            "property values; no target-family preference is encoded."
+        ),
+        candidates=tuple(pool),
+    )
+
+
+def real_matbench_dielectric_adapter() -> DatasetAdapter:
+    return real_matbench_structure_property_adapter(
+        filename="matbench_dielectric.json.gz",
+        dataset_id="real_matbench_dielectric",
+        title="Matbench refractive-index replay",
+        objective="maximize_refractive_index",
+        target_column="n",
+        target_metadata_field="refractive_index",
+        normalize_target=lambda value: math.log1p(max(value, 0.0)) / math.log(64.0) * 100.0,
+    )
+
+
+def real_matbench_phonons_adapter() -> DatasetAdapter:
+    return real_matbench_structure_property_adapter(
+        filename="matbench_phonons.json.gz",
+        dataset_id="real_matbench_phonons",
+        title="Matbench phonon peak replay",
+        objective="maximize_last_phonon_dos_peak",
+        target_column="last phdos peak",
+        target_metadata_field="last_phonon_dos_peak_cm-1",
+        normalize_target=lambda value: value / 4000.0 * 100.0,
+    )
+
+
+def real_matbench_log_kvrh_adapter() -> DatasetAdapter:
+    return real_matbench_structure_property_adapter(
+        filename="matbench_log_kvrh.json.gz",
+        dataset_id="real_matbench_log_kvrh",
+        title="Matbench bulk-modulus replay",
+        objective="maximize_log10_bulk_modulus",
+        target_column="log10(K_VRH)",
+        target_metadata_field="log10_bulk_modulus_gpa",
+        normalize_target=lambda value: value / 3.0 * 100.0,
+    )
+
+
 DATASET_BUILDERS: dict[str, Callable[[], DatasetAdapter]] = {
     "synthetic_suzuki_i": synthetic_suzuki_adapter,
     "synthetic_chemlex_i": synthetic_chemlex_adapter,
@@ -1223,6 +1380,9 @@ DATASET_BUILDERS: dict[str, Callable[[], DatasetAdapter]] = {
     "real_moleculenet_freesolv": real_moleculenet_freesolv_adapter,
     "real_moleculenet_lipophilicity": real_moleculenet_lipophilicity_adapter,
     "real_matbench_expt_gap": real_matbench_expt_gap_adapter,
+    "real_matbench_dielectric": real_matbench_dielectric_adapter,
+    "real_matbench_phonons": real_matbench_phonons_adapter,
+    "real_matbench_log_kvrh": real_matbench_log_kvrh_adapter,
 }
 
 

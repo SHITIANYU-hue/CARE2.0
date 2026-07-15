@@ -405,6 +405,30 @@ ROLE_MAPS: dict[tuple[str, str], dict[str, str]] = {
 }
 
 
+MATERIAL_DATASETS = (
+    "real_matbench_expt_gap",
+    "real_matbench_dielectric",
+    "real_matbench_phonons",
+    "real_matbench_log_kvrh",
+)
+MATERIAL_ROLE_MAP = {
+    "anion_family": "anion_family",
+    "element_count_bin": "element_count_bin",
+    "dominant_family": "dominant_family",
+    "transition_metal_flag": "transition_metal_flag",
+    "lanthanide_flag": "lanthanide_flag",
+    "mean_atomic_number_bin": "mean_atomic_number_bin",
+    "max_element_fraction_bin": "max_element_fraction_bin",
+}
+for _material_source in MATERIAL_DATASETS:
+    for _material_target in MATERIAL_DATASETS:
+        if _material_source != _material_target:
+            ROLE_MAPS.setdefault(
+                (_material_source, _material_target),
+                dict(MATERIAL_ROLE_MAP),
+            )
+
+
 REACTION_DESCRIPTOR_ROLE_MAPS: dict[tuple[str, str], dict[str, str]] = {
     (
         "real_buchwald_hartwig",
@@ -507,6 +531,15 @@ VALUE_PRIOR_FIELDS: dict[tuple[str, str], set[tuple[str, str]]] = {
         "real_moleculenet_lipophilicity",
     ): {("smiles_length_bin", "smiles_length_bin")},
 }
+
+
+for _material_source in MATERIAL_DATASETS:
+    for _material_target in MATERIAL_DATASETS:
+        if _material_source != _material_target:
+            VALUE_PRIOR_FIELDS.setdefault(
+                (_material_source, _material_target),
+                set(MATERIAL_ROLE_MAP.items()),
+            )
 
 
 for _reaction_pair, _descriptor_role_map in REACTION_DESCRIPTOR_ROLE_MAPS.items():
