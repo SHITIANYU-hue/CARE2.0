@@ -9,7 +9,7 @@ import random
 from dataclasses import asdict
 from pathlib import Path
 from statistics import mean, pstdev
-from typing import Any
+from typing import Any, Tuple
 
 import run_synthetic_suzuki as replay
 
@@ -27,7 +27,7 @@ DEFAULT_MODES: tuple[BaselineMode, ...] = (
     "knn_ucb",
 )
 
-FeatureRecord = tuple[tuple[float, ...], tuple[str, ...]]
+FeatureRecord = Tuple[Tuple[float, ...], Tuple[str, ...]]
 
 
 def parse_modes(raw: str) -> tuple[BaselineMode, ...]:
