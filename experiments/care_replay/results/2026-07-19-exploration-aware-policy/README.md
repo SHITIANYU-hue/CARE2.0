@@ -1,108 +1,109 @@
-# Exploration-aware LLM policy preflight
+# Live LLM exploration and transfer follow-up
 
-This note records the implementation and preflight checks prompted by the
-July 20 review of CARE 2.0 traces. It deliberately separates executable-policy
-validation from actual LLM evidence.
+This report records the July 19 live-model experiments. The model was called
+through CommonStack as `openai/gpt-5.6-sol`. API keys are not stored in the
+repository. All reported target outcomes come from finite-pool replay after a
+candidate is selected; prompts never contain unrevealed target values.
 
-## Problem
+## What changed
 
-Earlier traces showed a conservative greedy pattern:
+The implementation now includes:
 
-- confidence was concentrated near `0.70`;
-- weights were concentrated near `0.05`;
-- most proposals were `prefer` adjustments for already successful factors;
-- adjusted Top-1 often matched the target-only incumbent.
+1. compact prompts containing only public decision fields and revealed target
+   evidence;
+2. explicit `explore`, `exploit`, and `avoid` intents, counter-hypotheses, and
+   evidence-calibrated confidence;
+3. response-shape repair for valid JSON nested under `decision_summary`;
+4. reproducible held-out seed ranges through `--seed-start`;
+5. LLM-generated kernel-skill portfolios with target-only scale-0 anchors;
+6. a calibration selector with a bounded practical-equivalence margin;
+7. an online transfer router that requires at least 10 target observations and
+   online quality of at least 0.15 before a transfer skill may change the
+   target-only candidate.
 
-This made the LLM stable but gave it little opportunity to reduce uncertainty
-or test a counter-hypothesis.
+The legacy modes remain available as ablations.
 
-## Implementation
+## 1. Per-round LLM exploration policy
 
-The new `llm_explore_no_gate` and `llm_explore_gate_v1` modes add:
+The exploration policy was calibrated on seeds 0-2, then frozen and evaluated
+on seeds 3-7. Each task used 8 initial observations and 4 live LLM calls per
+seed. Sixty calls were made in the frozen evaluation; three returned no JSON
+because the 1,000-token completion budget was consumed by model reasoning.
 
-1. public factor coverage, including unseen and low-support values without
-   exposing hidden outcomes;
-2. an exploration prompt with explicit `explore`, `exploit`, and `avoid`
-   intents;
-3. a concise decision summary containing a testable hypothesis,
-   counter-hypothesis, uncertainty target, and evidence for/against;
-4. evidence-calibrated confidence and non-uniform adjustment weights;
-5. a seeded probabilistic exploration gate with a decaying risk budget;
-6. Top-1 change, exploration, penalization, confidence, and gate metrics;
-7. an executable GP-UCB beta schedule (`gp_beta` to `gp_beta_end`);
-8. target-only leave-one-out validation before a transfer-kernel expert can
-   enter the router.
+| Target | Delta Final vs incumbent | Delta AUC | Interpretation |
+| --- | ---: | ---: | --- |
+| Buchwald-Hartwig | +0.0328 | +0.3546 | Essentially tied |
+| ChemLex acid-amine | 0.0000 | 0.0000 | Gate rejected every change |
+| FreeSolv | -1.3933 | -0.6517 | Small negative transfer |
 
-The legacy LLM modes remain unchanged as comparison arms.
+The large Buchwald-Hartwig gain seen on calibration seeds did not reproduce on
+held-out seeds. This arm therefore does not establish generalization.
 
-## Deterministic policy preflight
+## 2. LLM-generated transfer skills
 
-To test the execution path without attributing behavior to a model, a local
-deterministic proposer generated the required exploration/exploitation/avoid
-JSON. This is **not an LLM result**.
+For each source-target pair, one LLM call saw source transfer-card evidence and
+the public target schema, then generated eight kernel-skill patches. A patch
+specifies role weights, transfer scales, a GP-UCB beta schedule, optional source
+prior calibration, confidence, and a failure condition. Target outcomes were
+not shown during skill generation.
 
-Dataset: real Buchwald-Hartwig, 30 seeds, 8 initial observations, 6 replay
-rounds.
+Development runs exposed two problems with choosing one fixed patch:
 
-| Mode | Final Best | Best-so-far AUC | Top-1 change rate | Interventions/seed | Bad interventions/seed |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Incumbent | 86.5224 | 82.6605 | 0.0000 | 0.0000 | 0.0000 |
-| Exploration + probabilistic gate | 87.7209 | 84.3693 | 0.8167 | 1.2667 | 0.6333 |
-| Exploration, no gate | 85.2503 | 83.9165 | 0.8222 | 4.9333 | 2.2333 |
+- `Suzuki -> BH`: the generated `safe_multiscale_anchor` patch was positive on
+  held-out seeds versus GP-UCB (`+1.5301` Final, `+0.7862` AUC), but a naive
+  calibration selector chose a different patch on a 0.06-point calibration
+  tie.
+- `Suzuki -> ChemLex`: `anchored_multiscale` was positive versus GP-UCB
+  (`+8.3512` Final, `+3.0222` AUC), while an overly wide one-standard-error set
+  selected a weaker high-confidence patch.
+- `FreeSolv -> Lipophilicity`: the selected fixed patch was negative versus
+  GP-UCB (`-2.5625` Final, `-1.6992` AUC).
+- `Dielectric -> band gap`: the selected fixed patch was strongly negative
+  (`-14.4376` Final, `-10.3535` AUC).
 
-The prompt contract can therefore create a different challenger, and the gate
-removes most harmful interventions. The preflight does not establish LLM
-generalization because the proposer was deterministic.
+These are development results, not final evidence. They show that the LLM can
+generate useful patches, but fixed calibration selection is not reliable
+enough across domains.
 
-## Strong-baseline preflight
+## 3. Frozen online router
 
-A three-patch exploration portfolio was also tested against GP-UCB, GP-EI, a
-target acquisition portfolio, and a fixed transfer ensemble. The portfolio was
-manually specified to test the dynamic-beta and router mechanics; it was not
-presented as model output.
+The final router was frozen after the development analysis above and evaluated
+on new seeds 30-49. It starts from an equal-rank GP-UCB/GP-EI target portfolio.
+Transfer can alter a selection only after target warm-up and only when
+prequential target evidence supports at least one LLM-generated skill.
 
-For Suzuki-Miyaura to Buchwald-Hartwig (10 seeds), target leave-one-out
-calibration rejected all candidate-changing transfer proposals. The router
-therefore matched the target acquisition portfolio: Final Best `86.4313`, AUC
-`81.7289`. Relative to GP-UCB, the deltas were `-0.5484` Final Best and
-`+0.2525` AUC. This is a safe fallback, not a transfer advantage.
+| Pair | Strongest target-only | Delta Final | Delta AUC | Router behavior |
+| --- | --- | ---: | ---: | --- |
+| Suzuki -> BH | GP-UCB | -2.0346 | -1.3248 | Fell back to target portfolio |
+| Suzuki -> ChemLex | Target portfolio | 0.0000 | 0.0000 | Exact safe fallback |
+| FreeSolv -> Lipophilicity | GP-EI | -0.0813 | -0.6570 | Near fallback; one small deviation |
+| Dielectric -> band gap | GP-EI | -2.3375 | -0.2414 | Exact portfolio fallback, but EI was stronger |
 
-For FreeSolv to Lipophilicity (5 seeds), strict routing also matched the target
-portfolio: Final Best `89.2000`, AUC `87.5500`. GP-UCB reached `88.7000` and
-`87.3000`; the fixed transfer ensemble reached `89.4250` and `87.4208`.
+Against GP-UCB alone, the router was positive on ChemLex (`+3.0790` Final,
+`+3.4142` AUC) and materials (`+1.1438`, `+0.9281`). Those numbers should not be
+presented as wins against the strongest target-only baseline. None of the
+20-seed confidence intervals establishes a statistically significant advantage
+over the strongest target-only method.
 
-## Live-model status
+## Current conclusion
 
-The CommonStack models endpoint authenticated and listed current models,
-including `openai/gpt-5.6-sol`. The first inference request returned HTTP 429
-with `Insufficient available balance: 0`. No live-model result is reported in
-this snapshot.
+The live calls verify that an LLM can turn source evidence into structured,
+executable transfer skills spanning reaction optimization, molecular
+properties, and materials. The online router substantially reduces the severe
+negative transfer observed with a fixed skill. The stronger claim, that LLM
+transfer consistently improves over the best target-only optimizer across
+domains, is not yet supported.
 
-## Interpretation
+The next technical priority is target-anchor routing: select GP-UCB, GP-EI, or
+their portfolio from target-only prequential evidence before adding transfer.
+Only after that anchor is competitive should the LLM skill receive residual
+transfer mass. Larger frozen evaluations should use saved LLM records so model
+generation is not repeated.
 
-The July 20 diagnosis was valid: fixed prompt anchors and a deterministic gate
-were suppressing exploration. The revised policy resolves the mechanical
-failure and exposes whether LLM proposals actually change a ranking. It does
-not yet prove that an LLM beats strong target-only baselines across domains.
-That claim requires funded live calls, frozen prompts, multiple source-target
-pairs, and held-out seeds.
+## Reproducibility files
 
-## Next experiment
-
-Once inference is available, freeze one prompt and run:
-
-```bash
-python3 experiments/care_replay/scripts/run_synthetic_suzuki.py \
-  --dataset real_buchwald_hartwig \
-  --seeds 30 --rounds 6 --initial 8 \
-  --modes incumbent,llm_gate_v1,llm_explore_gate_v1,llm_explore_no_gate \
-  --llm-model openai/gpt-5.6-sol \
-  --llm-temperature 0.2 --llm-max-tokens 1000 \
-  --output-tag exploration_gpt56_30seed
-```
-
-Then freeze the generated kernel-skill portfolio and evaluate it against
-GP-UCB, GP-EI, the target acquisition portfolio, and fixed transfer on held-out
-seeds. The report should include confidence/weight variance, explore/avoid
-balance, Top-1 change rate, gate authorization, bad interventions, paired
-confidence intervals, and per-pair wins/losses.
+`live_policy/` contains held-out summaries, per-seed metrics, and API event
+traces for the per-round LLM policy. `live_transfer/` contains completed LLM
+records plus the 20-seed frozen-router summaries and metrics. LLM records retain
+the exact prompt payload, raw response, normalized patches, and usage metadata;
+they contain no API key.

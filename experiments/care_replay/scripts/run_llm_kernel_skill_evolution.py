@@ -5,6 +5,7 @@ import argparse
 import concurrent.futures
 import csv
 import json
+import math
 import os
 import re
 from dataclasses import asdict, dataclass
@@ -345,6 +346,85 @@ def selection_score(metrics: dict[str, float]) -> float:
     return metrics["final_best_mean"] + metrics["best_so_far_auc_mean"]
 
 
+def select_calibration_robust_patch(
+    rows: list[dict[str, Any]],
+    calibration_seeds: set[int],
+    patches: tuple[KernelSkillPatch, ...],
+) -> tuple[str, dict[str, Any]]:
+    patch_by_mode = {patch_mode(patch): patch for patch in patches}
+    scores_by_mode: dict[str, dict[int, float]] = {}
+    for row in rows:
+        mode = str(row["mode"])
+        seed = int(row["seed"])
+        if mode not in patch_by_mode or seed not in calibration_seeds:
+            continue
+        scores_by_mode.setdefault(mode, {})[seed] = (
+            float(row["final_best"]) + float(row["best_so_far_auc"])
+        )
+    if not scores_by_mode:
+        raise RuntimeError("No LLM patch rows are available for calibration selection.")
+
+    mean_scores = {
+        mode: mean(seed_scores.values())
+        for mode, seed_scores in scores_by_mode.items()
+    }
+    empirical_best = max(mean_scores, key=mean_scores.get)
+    best_seed_scores = scores_by_mode[empirical_best]
+    eligible: list[str] = []
+    diagnostics: dict[str, Any] = {}
+    for mode, seed_scores in scores_by_mode.items():
+        shared_seeds = sorted(set(seed_scores) & set(best_seed_scores))
+        paired_deficits = [
+            best_seed_scores[seed] - seed_scores[seed]
+            for seed in shared_seeds
+        ]
+        mean_deficit = mean(paired_deficits) if paired_deficits else float("inf")
+        standard_error = (
+            pstdev(paired_deficits) / math.sqrt(len(paired_deficits))
+            if len(paired_deficits) > 1
+            else 0.0
+        )
+        # Small calibration sets can produce a very wide one-SE band. Cap the
+        # equivalence margin at one point on the 0-200 composite scale so a
+        # high-confidence patch cannot erase a meaningful empirical deficit.
+        tolerance = min(1.0, max(0.25, standard_error))
+        is_eligible = mean_deficit <= tolerance + 1e-12
+        if is_eligible:
+            eligible.append(mode)
+        patch = patch_by_mode[mode]
+        diagnostics[mode] = {
+            "calibration_composite_mean": round(mean_scores[mode], 6),
+            "paired_deficit_vs_empirical_best": round(mean_deficit, 6),
+            "paired_standard_error": round(standard_error, 6),
+            "eligibility_tolerance": round(tolerance, 6),
+            "eligible": is_eligible,
+            "llm_confidence": patch.confidence,
+            "has_target_only_anchor": 0.0 in patch.scales,
+        }
+
+    selected = max(
+        eligible,
+        key=lambda mode: (
+            patch_by_mode[mode].confidence,
+            int(0.0 in patch_by_mode[mode].scales),
+            -abs(patch_by_mode[mode].gp_beta - patch_by_mode[mode].gp_beta_end),
+            -len(patch_by_mode[mode].scales),
+            mode,
+        ),
+    )
+    return selected, {
+        "rule": (
+            "Paired practical-equivalence set on calibration final_best + AUC: "
+            "the one-standard-error margin is bounded to [0.25, 1.0] composite points; "
+            "within that set prefer higher LLM confidence, then a scale-0 target-only anchor."
+        ),
+        "empirical_best_mode": empirical_best,
+        "eligible_modes": sorted(eligible),
+        "selected_mode": selected,
+        "modes": diagnostics,
+    }
+
+
 def write_outputs(
     output_id: str,
     rows: list[dict[str, Any]],
@@ -534,7 +614,12 @@ def run_experiment(args: argparse.Namespace) -> dict[str, Any]:
     calibration = summarize(rows, calibration_seeds)
     heldout = summarize(rows, heldout_seeds)
     llm_modes = [patch_mode(patch) for patch in patches]
-    selected_mode = max(llm_modes, key=lambda mode: selection_score(calibration[mode]))
+    naive_selected_mode = max(llm_modes, key=lambda mode: selection_score(calibration[mode]))
+    selected_mode, selection_diagnostics = select_calibration_robust_patch(
+        rows,
+        calibration_seeds,
+        patches,
+    )
     gp_mode = "gp_ucb"
     fixed_mode = f"fixed_scale_ensemble_{weighted.scales_label(fixed_scales)}"
     selected_eval = heldout[selected_mode]
@@ -557,6 +642,8 @@ def run_experiment(args: argparse.Namespace) -> dict[str, Any]:
         "heldout_seed_count": args.seeds - args.calibration_seeds,
         "patches": [asdict(patch) for patch in patches],
         "selected_llm_mode": selected_mode,
+        "naive_calibration_selected_llm_mode": naive_selected_mode,
+        "selection_diagnostics": selection_diagnostics,
         "calibration": calibration,
         "heldout": heldout,
         "heldout_deltas": {

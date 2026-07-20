@@ -1,0 +1,401 @@
+{
+  "experiment": "care_llm_transfer_skill_router",
+  "source_dataset": "real_suzuki_miyaura",
+  "target_dataset": "real_chemlex_acidamine",
+  "seed_start": 30,
+  "seed_count": 20,
+  "initial_observations": 5,
+  "rounds": 8,
+  "llm_model": "openai/gpt-5.6-sol",
+  "llm_call_count_for_skill_generation": 1,
+  "patches": [
+    {
+      "patch_id": "anchored_multiscale",
+      "scales": [
+        0.0,
+        0.75,
+        1.5,
+        3.0
+      ],
+      "role_multipliers": {
+        "acid": 1.35,
+        "amine": 0.8,
+        "reagent": 1.25,
+        "solvent": 0.2
+      },
+      "gp_beta": 1.7,
+      "gp_beta_end": 1.1,
+      "source_prior_strength": 0.0,
+      "source_similarity_temperature": 0.5,
+      "source_neighbor_count": 12,
+      "calibration_mode": "off",
+      "min_cv_gain": 0.05,
+      "confidence": 0.74,
+      "reason": "Safety-anchor ensemble tests moderate role-strength transfer while retaining target-only GP-UCB; acid and reagent receive the most weight, and transfer fails if their rank contributions consistently hurt revealed-target replay."
+    },
+    {
+      "patch_id": "top_roles_focus",
+      "scales": [
+        0.5,
+        1.5,
+        3.5,
+        6.0
+      ],
+      "role_multipliers": {
+        "acid": 1.8,
+        "amine": 0.35,
+        "reagent": 1.65,
+        "solvent": 0.2
+      },
+      "gp_beta": 1.6,
+      "gp_beta_end": 1.0,
+      "source_prior_strength": 0.0,
+      "source_similarity_temperature": 0.4,
+      "source_neighbor_count": 10,
+      "calibration_mode": "off",
+      "min_cv_gain": 0.06,
+      "confidence": 0.7,
+      "reason": "Focuses on the two highest-confidence mappings, acid and reagent, across broad scales; the hypothesis is rejected if emphasizing either role degrades leave-one-out target ranking."
+    },
+    {
+      "patch_id": "explore_then_focus",
+      "scales": [
+        0.0,
+        1.0,
+        2.5,
+        5.0,
+        8.0
+      ],
+      "role_multipliers": {
+        "acid": 1.45,
+        "amine": 0.65,
+        "reagent": 1.3,
+        "solvent": 0.2
+      },
+      "gp_beta": 2.8,
+      "gp_beta_end": 1.0,
+      "source_prior_strength": 0.0,
+      "source_similarity_temperature": 0.65,
+      "source_neighbor_count": 16,
+      "calibration_mode": "off",
+      "min_cv_gain": 0.08,
+      "confidence": 0.67,
+      "reason": "High initial GP-UCB exploration protects against source-domain mismatch before annealing toward exploitation; the scale-zero member dominates if weighted transfer is brittle."
+    },
+    {
+      "patch_id": "conservative_anchor",
+      "scales": [
+        0.0,
+        0.4,
+        1.0
+      ],
+      "role_multipliers": {
+        "acid": 1.2,
+        "amine": 0.75,
+        "reagent": 1.1,
+        "solvent": 0.2
+      },
+      "gp_beta": 1.35,
+      "gp_beta_end": 0.9,
+      "source_prior_strength": 0.0,
+      "source_similarity_temperature": 0.8,
+      "source_neighbor_count": 20,
+      "calibration_mode": "off",
+      "min_cv_gain": 0.03,
+      "confidence": 0.81,
+      "reason": "Conservative low-scale ensemble makes only modest evidence-weighted kernel changes and keeps a target-only anchor; abandon transfer if even weak weighting reduces revealed-target cross-validation gain."
+    },
+    {
+      "patch_id": "amine_countertest",
+      "scales": [
+        0.0,
+        1.0,
+        2.0,
+        4.0
+      ],
+      "role_multipliers": {
+        "acid": 0.65,
+        "amine": 1.9,
+        "reagent": 0.55,
+        "solvent": 0.2
+      },
+      "gp_beta": 1.9,
+      "gp_beta_end": 1.15,
+      "source_prior_strength": 0.0,
+      "source_similarity_temperature": 0.55,
+      "source_neighbor_count": 14,
+      "calibration_mode": "off",
+      "min_cv_gain": 0.07,
+      "confidence": 0.48,
+      "reason": "Counter-hypothesis tests whether the lower-confidence amine role is more target-relevant than source confidence suggests; failure is indicated when amine-heavy scales trail the target-only member."
+    },
+    {
+      "patch_id": "reagent_bottleneck",
+      "scales": [
+        0.25,
+        0.75,
+        1.5,
+        3.0,
+        6.0
+      ],
+      "role_multipliers": {
+        "acid": 0.8,
+        "amine": 0.45,
+        "reagent": 2.4,
+        "solvent": 0.2
+      },
+      "gp_beta": 2.1,
+      "gp_beta_end": 1.2,
+      "source_prior_strength": 0.0,
+      "source_similarity_temperature": 0.3,
+      "source_neighbor_count": 8,
+      "calibration_mode": "off",
+      "min_cv_gain": 0.09,
+      "confidence": 0.63,
+      "reason": "Tests reagent as a low-cardinality reaction-condition bottleneck while suppressing uncertain mappings; reject if reagent similarity over-clusters candidates or loses replay rank gain."
+    },
+    {
+      "patch_id": "balanced_evidence",
+      "scales": [
+        0.0,
+        0.5,
+        1.25,
+        2.5,
+        4.5
+      ],
+      "role_multipliers": {
+        "acid": 1.35,
+        "amine": 0.9,
+        "reagent": 1.3,
+        "solvent": 0.2
+      },
+      "gp_beta": 1.8,
+      "gp_beta_end": 1.05,
+      "source_prior_strength": 0.0,
+      "source_similarity_temperature": 1.1,
+      "source_neighbor_count": 24,
+      "calibration_mode": "off",
+      "min_cv_gain": 0.05,
+      "confidence": 0.72,
+      "reason": "Balanced role weighting follows confidence without collapsing onto one field, while a broad temperature and scale ensemble reduce brittleness; failure occurs if all transferred members underperform scale zero."
+    },
+    {
+      "patch_id": "identity_stress_test",
+      "scales": [
+        0.0,
+        2.0,
+        5.0,
+        8.0
+      ],
+      "role_multipliers": {
+        "acid": 2.2,
+        "amine": 1.25,
+        "reagent": 0.4,
+        "solvent": 0.2
+      },
+      "gp_beta": 2.35,
+      "gp_beta_end": 1.2,
+      "source_prior_strength": 0.0,
+      "source_similarity_temperature": 1.5,
+      "source_neighbor_count": 32,
+      "calibration_mode": "off",
+      "min_cv_gain": 0.12,
+      "confidence": 0.55,
+      "reason": "Stress-tests a substrate-identity hypothesis against the reagent-focused view using aggressive scales plus a target-only anchor; disable transfer if high scales overspecialize or fail the stricter gain threshold."
+    }
+  ],
+  "strongest_target_mode_by_aggregate": "target_acquisition_portfolio",
+  "evidence_boundary": "Frozen LLM skills see source evidence and public target schema. During replay, the router uses only target outcomes revealed before each selection. No hidden target row is used for routing.",
+  "aggregate": {
+    "fixed_scale_ensemble_0p5_1_1p5_2_3_4": {
+      "final_best_mean": 80.1805,
+      "final_best_std": 23.3763,
+      "best_so_far_auc_mean": 72.7942,
+      "best_so_far_auc_std": 24.5209,
+      "simple_regret_mean": 19.8195,
+      "simple_regret_std": 23.3763,
+      "top10_hit_mean": 0.0,
+      "top10_hit_std": 0.0,
+      "seed_count": 20.0
+    },
+    "gp_ucb": {
+      "final_best_mean": 79.7875,
+      "final_best_std": 25.4065,
+      "best_so_far_auc_mean": 72.8024,
+      "best_so_far_auc_std": 25.7438,
+      "simple_regret_mean": 20.2125,
+      "simple_regret_std": 25.4065,
+      "top10_hit_mean": 0.0,
+      "top10_hit_std": 0.0,
+      "seed_count": 20.0
+    },
+    "llm_transfer_router": {
+      "final_best_mean": 82.8665,
+      "final_best_std": 23.9553,
+      "best_so_far_auc_mean": 76.2166,
+      "best_so_far_auc_std": 24.0047,
+      "simple_regret_mean": 17.1335,
+      "simple_regret_std": 23.9553,
+      "top10_hit_mean": 0.0,
+      "top10_hit_std": 0.0,
+      "seed_count": 20.0
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best_mean": 82.8775,
+      "final_best_std": 23.9853,
+      "best_so_far_auc_mean": 75.5482,
+      "best_so_far_auc_std": 24.0843,
+      "simple_regret_mean": 17.1225,
+      "simple_regret_std": 23.9853,
+      "top10_hit_mean": 0.0,
+      "top10_hit_std": 0.0,
+      "seed_count": 20.0
+    },
+    "target_acquisition_portfolio": {
+      "final_best_mean": 82.8665,
+      "final_best_std": 23.9553,
+      "best_so_far_auc_mean": 76.2166,
+      "best_so_far_auc_std": 24.0047,
+      "simple_regret_mean": 17.1335,
+      "simple_regret_std": 23.9553,
+      "top10_hit_mean": 0.0,
+      "top10_hit_std": 0.0,
+      "seed_count": 20.0
+    }
+  },
+  "paired_vs_gp_ucb": {
+    "seed_count": 20,
+    "final_best": {
+      "mean_delta": 3.079,
+      "std_delta": 11.3971,
+      "normal_95ci_low": -1.916,
+      "normal_95ci_high": 8.074,
+      "win_rate": 0.2,
+      "non_loss_rate": 0.75
+    },
+    "best_so_far_auc": {
+      "mean_delta": 3.4142,
+      "std_delta": 10.4885,
+      "normal_95ci_low": -1.1826,
+      "normal_95ci_high": 8.011,
+      "win_rate": 0.4,
+      "non_loss_rate": 0.8
+    },
+    "top10_hit": {
+      "mean_delta": 0.0,
+      "std_delta": 0.0,
+      "normal_95ci_low": 0.0,
+      "normal_95ci_high": 0.0,
+      "win_rate": 0.0,
+      "non_loss_rate": 1.0
+    }
+  },
+  "paired_vs_gp_ei": {
+    "seed_count": 20,
+    "final_best": {
+      "mean_delta": -0.011,
+      "std_delta": 1.9466,
+      "normal_95ci_low": -0.8641,
+      "normal_95ci_high": 0.8421,
+      "win_rate": 0.2,
+      "non_loss_rate": 0.95
+    },
+    "best_so_far_auc": {
+      "mean_delta": 0.6684,
+      "std_delta": 1.8542,
+      "normal_95ci_low": -0.1442,
+      "normal_95ci_high": 1.4811,
+      "win_rate": 0.35,
+      "non_loss_rate": 0.95
+    },
+    "top10_hit": {
+      "mean_delta": 0.0,
+      "std_delta": 0.0,
+      "normal_95ci_low": 0.0,
+      "normal_95ci_high": 0.0,
+      "win_rate": 0.0,
+      "non_loss_rate": 1.0
+    }
+  },
+  "paired_vs_target_portfolio": {
+    "seed_count": 20,
+    "final_best": {
+      "mean_delta": 0.0,
+      "std_delta": 0.0,
+      "normal_95ci_low": 0.0,
+      "normal_95ci_high": 0.0,
+      "win_rate": 0.0,
+      "non_loss_rate": 1.0
+    },
+    "best_so_far_auc": {
+      "mean_delta": 0.0,
+      "std_delta": 0.0,
+      "normal_95ci_low": 0.0,
+      "normal_95ci_high": 0.0,
+      "win_rate": 0.0,
+      "non_loss_rate": 1.0
+    },
+    "top10_hit": {
+      "mean_delta": 0.0,
+      "std_delta": 0.0,
+      "normal_95ci_low": 0.0,
+      "normal_95ci_high": 0.0,
+      "win_rate": 0.0,
+      "non_loss_rate": 1.0
+    }
+  },
+  "paired_vs_fixed_transfer": {
+    "seed_count": 20,
+    "final_best": {
+      "mean_delta": 2.686,
+      "std_delta": 17.2255,
+      "normal_95ci_low": -4.8634,
+      "normal_95ci_high": 10.2354,
+      "win_rate": 0.25,
+      "non_loss_rate": 0.8
+    },
+    "best_so_far_auc": {
+      "mean_delta": 3.4224,
+      "std_delta": 12.5979,
+      "normal_95ci_low": -2.0989,
+      "normal_95ci_high": 8.9437,
+      "win_rate": 0.35,
+      "non_loss_rate": 0.75
+    },
+    "top10_hit": {
+      "mean_delta": 0.0,
+      "std_delta": 0.0,
+      "normal_95ci_low": 0.0,
+      "normal_95ci_high": 0.0,
+      "win_rate": 0.0,
+      "non_loss_rate": 1.0
+    }
+  },
+  "paired_vs_strongest_target": {
+    "seed_count": 20,
+    "final_best": {
+      "mean_delta": 0.0,
+      "std_delta": 0.0,
+      "normal_95ci_low": 0.0,
+      "normal_95ci_high": 0.0,
+      "win_rate": 0.0,
+      "non_loss_rate": 1.0
+    },
+    "best_so_far_auc": {
+      "mean_delta": 0.0,
+      "std_delta": 0.0,
+      "normal_95ci_low": 0.0,
+      "normal_95ci_high": 0.0,
+      "win_rate": 0.0,
+      "non_loss_rate": 1.0
+    },
+    "top10_hit": {
+      "mean_delta": 0.0,
+      "std_delta": 0.0,
+      "normal_95ci_low": 0.0,
+      "normal_95ci_high": 0.0,
+      "win_rate": 0.0,
+      "non_loss_rate": 1.0
+    }
+  }
+}

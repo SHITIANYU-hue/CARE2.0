@@ -391,6 +391,30 @@ def softmax_weights(values: dict[str, float]) -> dict[str, float]:
     return {key: value / total for key, value in unnormalized.items()}
 
 
+def router_gate_decision(
+    anchor_candidate: str,
+    router_candidate: str,
+    observed_count: int,
+    max_quality: float,
+    anchor_loss: float,
+    risk_budget: float,
+    transfer_mass: float,
+    min_observations: int = 10,
+    min_quality: float = 0.15,
+) -> tuple[bool, str]:
+    if router_candidate == anchor_candidate:
+        return True, "router_matches_target_anchor"
+    if observed_count < min_observations:
+        return False, "target_warmup_incomplete"
+    if max_quality < min_quality:
+        return False, "online_quality_below_threshold"
+    if anchor_loss > risk_budget:
+        return False, "anchor_acquisition_loss_above_budget"
+    if transfer_mass > 0.45:
+        return False, "transfer_mass_above_cap"
+    return True, "online_evidence_authorized_transfer"
+
+
 def run_router_policy(
     source_adapter: replay.DatasetAdapter,
     target_adapter: replay.DatasetAdapter,
@@ -578,13 +602,14 @@ def run_router_policy(
             anchor_scores[anchor_selected_id] - anchor_scores[router_selected_id],
         )
         router_risk_budget = max(0.025, 0.080 * math.exp(-0.22 * round_index))
-        router_authorized = (
-            router_selected_id == anchor_selected_id
-            or (
-                max_quality >= 0.08
-                and anchor_loss <= router_risk_budget
-                and transfer_mass <= 0.45
-            )
+        router_authorized, router_reason = router_gate_decision(
+            anchor_selected_id,
+            router_selected_id,
+            len(observed),
+            max_quality,
+            anchor_loss,
+            router_risk_budget,
+            transfer_mass,
         )
         selected_id = router_selected_id if router_authorized else anchor_selected_id
         selected = by_id[selected_id]
@@ -613,9 +638,12 @@ def run_router_policy(
                         "router_candidate": router_selected_id,
                         "selected_candidate": selected_id,
                         "authorized": router_authorized,
+                        "reason": router_reason,
                         "anchor_acquisition_loss": round(anchor_loss, 6),
                         "risk_budget": round(router_risk_budget, 6),
                         "max_quality": round(max_quality, 6),
+                        "min_observations": 10,
+                        "min_quality": 0.15,
                     },
                     "expert_weights": expert_weights,
                     "route_diagnostics": route_diagnostics,

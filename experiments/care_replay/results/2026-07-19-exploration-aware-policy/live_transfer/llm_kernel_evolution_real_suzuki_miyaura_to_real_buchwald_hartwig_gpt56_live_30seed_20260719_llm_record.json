@@ -1,0 +1,553 @@
+{
+  "model": "openai/gpt-5.6-sol",
+  "usage": {
+    "prompt_tokens": 1488,
+    "completion_tokens": 1573,
+    "total_tokens": 3061,
+    "tps": 82.34,
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_write_tokens": 0,
+      "cached_tokens": 0,
+      "image_tokens": 0,
+      "text_tokens": 0,
+      "video_tokens": 0
+    },
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "audio_tokens": 0,
+      "image_tokens": 0,
+      "reasoning_tokens": 222,
+      "rejected_prediction_tokens": 0,
+      "text_tokens": 0,
+      "video_tokens": 0
+    }
+  },
+  "prompt_payload": {
+    "task": "Generate a small portfolio of executable cross-domain optimization skills. A skill may reshape the GP kernel and may add a source-neighbor prior only when leave-one-out target calibration supports it.",
+    "source_dataset": "real_suzuki_miyaura",
+    "source_objective": "yield_value",
+    "target_schema": {
+      "dataset_id": "real_buchwald_hartwig",
+      "decision_columns": [
+        "ligand",
+        "additive",
+        "base",
+        "aryl_halide"
+      ],
+      "field_cardinality": {
+        "ligand": 4,
+        "additive": 22,
+        "base": 3,
+        "aryl_halide": 15
+      },
+      "pool_size": 3955,
+      "hidden_target": "yield_value",
+      "boundary": "Only public feature schema is exposed. No target outcomes are included."
+    },
+    "transfer_card": {
+      "source_observation_count": 96,
+      "discount": 0.65,
+      "roles": [
+        {
+          "source_field": "ligand",
+          "target_field": "ligand",
+          "source_support_count": 12,
+          "source_mean_abs_effect": 11.6441,
+          "source_max_abs_effect": 21.4801,
+          "confidence": 0.65,
+          "transfer_weight": 1.0
+        },
+        {
+          "source_field": "reagent",
+          "target_field": "base",
+          "source_support_count": 8,
+          "source_mean_abs_effect": 6.8311,
+          "source_max_abs_effect": 15.8967,
+          "confidence": 0.4917,
+          "transfer_weight": 0.8417
+        },
+        {
+          "source_field": "reactant_1",
+          "target_field": "aryl_halide",
+          "source_support_count": 7,
+          "source_mean_abs_effect": 9.0875,
+          "source_max_abs_effect": 19.6487,
+          "confidence": 0.527,
+          "transfer_weight": 0.877
+        },
+        {
+          "source_field": "solvent",
+          "target_field": "additive",
+          "source_support_count": 4,
+          "source_mean_abs_effect": 3.8945,
+          "source_max_abs_effect": 6.2746,
+          "confidence": 0.1422,
+          "transfer_weight": 0.4922
+        }
+      ],
+      "shared_value_priors": [],
+      "evidence_summary": "Compiled 4 active role transfers from real_suzuki_miyaura using 96 observed source rows and 0 conservative shared-vocabulary value priors. Direction is not transferred as a raw chemical rule; the card transfers role-level evidence strength and only transfers source value priors when source and target fields share the same public descriptor vocabulary."
+    },
+    "base_policy": {
+      "name": "mixed_kernel_gp_ucb",
+      "gp_beta": 1.5,
+      "categorical_weight_formula": "1 + scale * source_role_confidence * role_multiplier",
+      "normalization": "categorical weights are normalized to mean 1",
+      "ensemble": "multiple scales are aggregated by mean normalized candidate rank",
+      "source_prior": "mapped-role nearest-neighbor prediction from source observations; sign and strength are recalibrated using only currently revealed target observations"
+    },
+    "design_rules": [
+      "Return diverse executable patches, not candidate IDs and not review prose.",
+      "At least one patch should include scale 0 as a target-only safety anchor in an ensemble.",
+      "At least one patch should focus on the two highest-confidence roles.",
+      "Include an exploration-first patch with gp_beta above 2.2 and gp_beta_end at or below 1.2.",
+      "Include a conservative patch with gp_beta and gp_beta_end both at or below 1.5.",
+      "Make at least one patch test a counter-hypothesis rather than only reinforcing the strongest source role.",
+      "Include at least two source-prior patches when mapped roles have shared vocabularies.",
+      "Use signed calibration when source and target objectives can be inversely related.",
+      "Use positive_only calibration only when the objective semantics support the same direction.",
+      "Set source_prior_strength to 0 when role vocabularies are not meaningfully comparable.",
+      "Downweight weak or semantically uncertain role mappings instead of treating all roles equally.",
+      "Use multi-scale ensembles when transfer strength is uncertain.",
+      "Do not claim access to target outcomes. Calibration and held-out evaluation happen after generation."
+    ],
+    "allowed_space": {
+      "patch_count": 8,
+      "scales": "1 to 6 numbers, each in [0, 8]",
+      "role_multipliers": "map every target decision field to [0.20, 3.0]",
+      "gp_beta": "number in [0.5, 3.0] used at the first replay round",
+      "gp_beta_end": "number in [0.5, 3.0] reached linearly at the final replay round",
+      "source_prior_strength": "number in [0, 2.5]",
+      "source_similarity_temperature": "number in [0.08, 2.0]",
+      "source_neighbor_count": "integer in [3, 48]",
+      "calibration_mode": "one of off, positive_only, signed",
+      "min_cv_gain": "leave-one-out gain threshold in [0, 0.35]"
+    },
+    "output_contract": {
+      "patches": [
+        {
+          "patch_id": "short_unique_name",
+          "scales": [
+            0.0,
+            1.0,
+            2.0
+          ],
+          "role_multipliers": {
+            "ligand": 1.0,
+            "additive": 1.0,
+            "base": 1.0,
+            "aryl_halide": 1.0
+          },
+          "gp_beta": 1.5,
+          "gp_beta_end": 1.0,
+          "source_prior_strength": 0.8,
+          "source_similarity_temperature": 0.35,
+          "source_neighbor_count": 12,
+          "calibration_mode": "signed",
+          "min_cv_gain": 0.03,
+          "confidence": "evidence-calibrated number in [0, 1]; do not reuse one default",
+          "reason": "brief hypothesis, counter-hypothesis, mechanism, and failure trigger"
+        }
+      ]
+    }
+  },
+  "raw_response": "{\"patches\":[{\"patch_id\":\"safe_multiscale_anchor\",\"scales\":[0.0,0.75,1.5,3.0],\"role_multipliers\":{\"ligand\":1.6,\"additive\":0.35,\"base\":0.85,\"aryl_halide\":1.3},\"gp_beta\":1.5,\"gp_beta_end\":1.0,\"source_prior_strength\":0.0,\"source_similarity_temperature\":0.5,\"source_neighbor_count\":12,\"calibration_mode\":\"off\",\"min_cv_gain\":0.05,\"confidence\":0.78,\"reason\":\"Hypothesis: ligand and aryl-halide role evidence improves the kernel; the scale-0 member protects against negative transfer. Rank averaging limits scale brittleness; fail if transferred scales consistently rank revealed outcomes worse than the anchor.\"},{\"patch_id\":\"top_roles_focus\",\"scales\":[0.5,1.25,2.5,5.0],\"role_multipliers\":{\"ligand\":2.4,\"additive\":0.2,\"base\":0.45,\"aryl_halide\":2.0},\"gp_beta\":1.7,\"gp_beta_end\":1.1,\"source_prior_strength\":0.0,\"source_similarity_temperature\":0.35,\"source_neighbor_count\":10,\"calibration_mode\":\"off\",\"min_cv_gain\":0.06,\"confidence\":0.74,\"reason\":\"Hypothesis: the two highest-confidence mappings, ligand and aryl_halide, carry most transferable structure; weak additive and base mappings are suppressed. Failure trigger: revealed-target validation favors balanced or target-only geometry.\"},{\"patch_id\":\"explore_then_cool\",\"scales\":[0.0,1.0,2.0,4.0,7.0],\"role_multipliers\":{\"ligand\":1.8,\"additive\":0.3,\"base\":0.75,\"aryl_halide\":1.45},\"gp_beta\":2.8,\"gp_beta_end\":1.0,\"source_prior_strength\":0.0,\"source_similarity_temperature\":0.8,\"source_neighbor_count\":20,\"calibration_mode\":\"off\",\"min_cv_gain\":0.08,\"confidence\":0.69,\"reason\":\"Hypothesis: broad early GP-UCB exploration can discover whether source-weighted categorical neighborhoods transfer before cooling toward exploitation. The target-only member and five scales hedge misspecification; fail if high-scale members remain poorly calibrated after reveals.\"},{\"patch_id\":\"conservative_ligand\",\"scales\":[0.0,0.5,1.0,2.0],\"role_multipliers\":{\"ligand\":1.9,\"additive\":0.25,\"base\":0.65,\"aryl_halide\":1.1},\"gp_beta\":1.3,\"gp_beta_end\":0.8,\"source_prior_strength\":0.0,\"source_similarity_temperature\":0.45,\"source_neighbor_count\":8,\"calibration_mode\":\"off\",\"min_cv_gain\":0.04,\"confidence\":0.76,\"reason\":\"Hypothesis: modest ligand emphasis captures the strongest source evidence without overexploration or aggressive transfer. The counterweight is a scale-0 anchor; fail if leave-one-out target replay shows no gain over target-only ranking.\"},{\"patch_id\":\"aryl_counterweight\",\"scales\":[0.75,1.5,3.0,6.0],\"role_multipliers\":{\"ligand\":1.05,\"additive\":0.25,\"base\":0.55,\"aryl_halide\":2.7},\"gp_beta\":2.1,\"gp_beta_end\":1.2,\"source_prior_strength\":0.0,\"source_similarity_temperature\":0.3,\"source_neighbor_count\":14,\"calibration_mode\":\"off\",\"min_cv_gain\":0.07,\"confidence\":0.61,\"reason\":\"Counter-hypothesis: substrate identity may dominate Buchwald-Hartwig behavior even though ligand has higher source confidence. Strong aryl-halide weighting tests that mechanism; fail if revealed-target validation instead supports ligand-led or uniform similarity.\"},{\"patch_id\":\"base_mapping_probe\",\"scales\":[0.0,0.8,1.8,3.5],\"role_multipliers\":{\"ligand\":1.15,\"additive\":0.25,\"base\":2.6,\"aryl_halide\":0.9},\"gp_beta\":2.3,\"gp_beta_end\":1.1,\"source_prior_strength\":0.0,\"source_similarity_temperature\":0.65,\"source_neighbor_count\":16,\"calibration_mode\":\"off\",\"min_cv_gain\":0.1,\"confidence\":0.49,\"reason\":\"Counter-hypothesis: the reagent-to-base role mapping is more useful in the target chemistry than its confidence suggests. A target-only anchor and strict gain trigger contain the risk; fail if base-emphasized scales underperform during revealed-target replay.\"},{\"patch_id\":\"balanced_discounted\",\"scales\":[0.0,0.4,1.0,2.2,4.5],\"role_multipliers\":{\"ligand\":1.5,\"additive\":0.3,\"base\":0.9,\"aryl_halide\":1.25},\"gp_beta\":1.9,\"gp_beta_end\":1.3,\"source_prior_strength\":0.0,\"source_similarity_temperature\":1.1,\"source_neighbor_count\":24,\"calibration_mode\":\"off\",\"min_cv_gain\":0.05,\"confidence\":0.71,\"reason\":\"Hypothesis: smoothly discounted role weights are safer than concentrating all similarity on one field. A broad scale ensemble averages uncertain transfer strength; fail if target replay selects either uniform geometry or a single-role extreme.\"},{\"patch_id\":\"weak_role_stress_test\",\"scales\":[0.0,0.6,1.2,2.4],\"role_multipliers\":{\"ligand\":0.85,\"additive\":1.8,\"base\":1.35,\"aryl_halide\":0.8},\"gp_beta\":1.6,\"gp_beta_end\":1.0,\"source_prior_strength\":0.0,\"source_similarity_temperature\":1.5,\"source_neighbor_count\":32,\"calibration_mode\":\"off\",\"min_cv_gain\":0.14,\"confidence\":0.38,\"reason\":\"Counter-hypothesis: target-specific additive and base structure may matter despite weak source mappings. High temperature, a target-only anchor, and a stringent gain threshold make this a controlled stress test; fail on absent cross-validated improvement.\"}]}",
+  "parsed_response": {
+    "patches": [
+      {
+        "patch_id": "safe_multiscale_anchor",
+        "scales": [
+          0.0,
+          0.75,
+          1.5,
+          3.0
+        ],
+        "role_multipliers": {
+          "ligand": 1.6,
+          "additive": 0.35,
+          "base": 0.85,
+          "aryl_halide": 1.3
+        },
+        "gp_beta": 1.5,
+        "gp_beta_end": 1.0,
+        "source_prior_strength": 0.0,
+        "source_similarity_temperature": 0.5,
+        "source_neighbor_count": 12,
+        "calibration_mode": "off",
+        "min_cv_gain": 0.05,
+        "confidence": 0.78,
+        "reason": "Hypothesis: ligand and aryl-halide role evidence improves the kernel; the scale-0 member protects against negative transfer. Rank averaging limits scale brittleness; fail if transferred scales consistently rank revealed outcomes worse than the anchor."
+      },
+      {
+        "patch_id": "top_roles_focus",
+        "scales": [
+          0.5,
+          1.25,
+          2.5,
+          5.0
+        ],
+        "role_multipliers": {
+          "ligand": 2.4,
+          "additive": 0.2,
+          "base": 0.45,
+          "aryl_halide": 2.0
+        },
+        "gp_beta": 1.7,
+        "gp_beta_end": 1.1,
+        "source_prior_strength": 0.0,
+        "source_similarity_temperature": 0.35,
+        "source_neighbor_count": 10,
+        "calibration_mode": "off",
+        "min_cv_gain": 0.06,
+        "confidence": 0.74,
+        "reason": "Hypothesis: the two highest-confidence mappings, ligand and aryl_halide, carry most transferable structure; weak additive and base mappings are suppressed. Failure trigger: revealed-target validation favors balanced or target-only geometry."
+      },
+      {
+        "patch_id": "explore_then_cool",
+        "scales": [
+          0.0,
+          1.0,
+          2.0,
+          4.0,
+          7.0
+        ],
+        "role_multipliers": {
+          "ligand": 1.8,
+          "additive": 0.3,
+          "base": 0.75,
+          "aryl_halide": 1.45
+        },
+        "gp_beta": 2.8,
+        "gp_beta_end": 1.0,
+        "source_prior_strength": 0.0,
+        "source_similarity_temperature": 0.8,
+        "source_neighbor_count": 20,
+        "calibration_mode": "off",
+        "min_cv_gain": 0.08,
+        "confidence": 0.69,
+        "reason": "Hypothesis: broad early GP-UCB exploration can discover whether source-weighted categorical neighborhoods transfer before cooling toward exploitation. The target-only member and five scales hedge misspecification; fail if high-scale members remain poorly calibrated after reveals."
+      },
+      {
+        "patch_id": "conservative_ligand",
+        "scales": [
+          0.0,
+          0.5,
+          1.0,
+          2.0
+        ],
+        "role_multipliers": {
+          "ligand": 1.9,
+          "additive": 0.25,
+          "base": 0.65,
+          "aryl_halide": 1.1
+        },
+        "gp_beta": 1.3,
+        "gp_beta_end": 0.8,
+        "source_prior_strength": 0.0,
+        "source_similarity_temperature": 0.45,
+        "source_neighbor_count": 8,
+        "calibration_mode": "off",
+        "min_cv_gain": 0.04,
+        "confidence": 0.76,
+        "reason": "Hypothesis: modest ligand emphasis captures the strongest source evidence without overexploration or aggressive transfer. The counterweight is a scale-0 anchor; fail if leave-one-out target replay shows no gain over target-only ranking."
+      },
+      {
+        "patch_id": "aryl_counterweight",
+        "scales": [
+          0.75,
+          1.5,
+          3.0,
+          6.0
+        ],
+        "role_multipliers": {
+          "ligand": 1.05,
+          "additive": 0.25,
+          "base": 0.55,
+          "aryl_halide": 2.7
+        },
+        "gp_beta": 2.1,
+        "gp_beta_end": 1.2,
+        "source_prior_strength": 0.0,
+        "source_similarity_temperature": 0.3,
+        "source_neighbor_count": 14,
+        "calibration_mode": "off",
+        "min_cv_gain": 0.07,
+        "confidence": 0.61,
+        "reason": "Counter-hypothesis: substrate identity may dominate Buchwald-Hartwig behavior even though ligand has higher source confidence. Strong aryl-halide weighting tests that mechanism; fail if revealed-target validation instead supports ligand-led or uniform similarity."
+      },
+      {
+        "patch_id": "base_mapping_probe",
+        "scales": [
+          0.0,
+          0.8,
+          1.8,
+          3.5
+        ],
+        "role_multipliers": {
+          "ligand": 1.15,
+          "additive": 0.25,
+          "base": 2.6,
+          "aryl_halide": 0.9
+        },
+        "gp_beta": 2.3,
+        "gp_beta_end": 1.1,
+        "source_prior_strength": 0.0,
+        "source_similarity_temperature": 0.65,
+        "source_neighbor_count": 16,
+        "calibration_mode": "off",
+        "min_cv_gain": 0.1,
+        "confidence": 0.49,
+        "reason": "Counter-hypothesis: the reagent-to-base role mapping is more useful in the target chemistry than its confidence suggests. A target-only anchor and strict gain trigger contain the risk; fail if base-emphasized scales underperform during revealed-target replay."
+      },
+      {
+        "patch_id": "balanced_discounted",
+        "scales": [
+          0.0,
+          0.4,
+          1.0,
+          2.2,
+          4.5
+        ],
+        "role_multipliers": {
+          "ligand": 1.5,
+          "additive": 0.3,
+          "base": 0.9,
+          "aryl_halide": 1.25
+        },
+        "gp_beta": 1.9,
+        "gp_beta_end": 1.3,
+        "source_prior_strength": 0.0,
+        "source_similarity_temperature": 1.1,
+        "source_neighbor_count": 24,
+        "calibration_mode": "off",
+        "min_cv_gain": 0.05,
+        "confidence": 0.71,
+        "reason": "Hypothesis: smoothly discounted role weights are safer than concentrating all similarity on one field. A broad scale ensemble averages uncertain transfer strength; fail if target replay selects either uniform geometry or a single-role extreme."
+      },
+      {
+        "patch_id": "weak_role_stress_test",
+        "scales": [
+          0.0,
+          0.6,
+          1.2,
+          2.4
+        ],
+        "role_multipliers": {
+          "ligand": 0.85,
+          "additive": 1.8,
+          "base": 1.35,
+          "aryl_halide": 0.8
+        },
+        "gp_beta": 1.6,
+        "gp_beta_end": 1.0,
+        "source_prior_strength": 0.0,
+        "source_similarity_temperature": 1.5,
+        "source_neighbor_count": 32,
+        "calibration_mode": "off",
+        "min_cv_gain": 0.14,
+        "confidence": 0.38,
+        "reason": "Counter-hypothesis: target-specific additive and base structure may matter despite weak source mappings. High temperature, a target-only anchor, and a stringent gain threshold make this a controlled stress test; fail on absent cross-validated improvement."
+      }
+    ]
+  },
+  "normalized_patches": [
+    {
+      "patch_id": "safe_multiscale_anchor",
+      "scales": [
+        0.0,
+        0.75,
+        1.5,
+        3.0
+      ],
+      "role_multipliers": {
+        "ligand": 1.6,
+        "additive": 0.35,
+        "base": 0.85,
+        "aryl_halide": 1.3
+      },
+      "gp_beta": 1.5,
+      "gp_beta_end": 1.0,
+      "source_prior_strength": 0.0,
+      "source_similarity_temperature": 0.5,
+      "source_neighbor_count": 12,
+      "calibration_mode": "off",
+      "min_cv_gain": 0.05,
+      "confidence": 0.78,
+      "reason": "Hypothesis: ligand and aryl-halide role evidence improves the kernel; the scale-0 member protects against negative transfer. Rank averaging limits scale brittleness; fail if transferred scales consistently rank revealed outcomes worse than the anchor."
+    },
+    {
+      "patch_id": "top_roles_focus",
+      "scales": [
+        0.5,
+        1.25,
+        2.5,
+        5.0
+      ],
+      "role_multipliers": {
+        "ligand": 2.4,
+        "additive": 0.2,
+        "base": 0.45,
+        "aryl_halide": 2.0
+      },
+      "gp_beta": 1.7,
+      "gp_beta_end": 1.1,
+      "source_prior_strength": 0.0,
+      "source_similarity_temperature": 0.35,
+      "source_neighbor_count": 10,
+      "calibration_mode": "off",
+      "min_cv_gain": 0.06,
+      "confidence": 0.74,
+      "reason": "Hypothesis: the two highest-confidence mappings, ligand and aryl_halide, carry most transferable structure; weak additive and base mappings are suppressed. Failure trigger: revealed-target validation favors balanced or target-only geometry."
+    },
+    {
+      "patch_id": "explore_then_cool",
+      "scales": [
+        0.0,
+        1.0,
+        2.0,
+        4.0,
+        7.0
+      ],
+      "role_multipliers": {
+        "ligand": 1.8,
+        "additive": 0.3,
+        "base": 0.75,
+        "aryl_halide": 1.45
+      },
+      "gp_beta": 2.8,
+      "gp_beta_end": 1.0,
+      "source_prior_strength": 0.0,
+      "source_similarity_temperature": 0.8,
+      "source_neighbor_count": 20,
+      "calibration_mode": "off",
+      "min_cv_gain": 0.08,
+      "confidence": 0.69,
+      "reason": "Hypothesis: broad early GP-UCB exploration can discover whether source-weighted categorical neighborhoods transfer before cooling toward exploitation. The target-only member and five scales hedge misspecification; fail if high-scale members remain poorly calibrated after reveals."
+    },
+    {
+      "patch_id": "conservative_ligand",
+      "scales": [
+        0.0,
+        0.5,
+        1.0,
+        2.0
+      ],
+      "role_multipliers": {
+        "ligand": 1.9,
+        "additive": 0.25,
+        "base": 0.65,
+        "aryl_halide": 1.1
+      },
+      "gp_beta": 1.3,
+      "gp_beta_end": 0.8,
+      "source_prior_strength": 0.0,
+      "source_similarity_temperature": 0.45,
+      "source_neighbor_count": 8,
+      "calibration_mode": "off",
+      "min_cv_gain": 0.04,
+      "confidence": 0.76,
+      "reason": "Hypothesis: modest ligand emphasis captures the strongest source evidence without overexploration or aggressive transfer. The counterweight is a scale-0 anchor; fail if leave-one-out target replay shows no gain over target-only ranking."
+    },
+    {
+      "patch_id": "aryl_counterweight",
+      "scales": [
+        0.75,
+        1.5,
+        3.0,
+        6.0
+      ],
+      "role_multipliers": {
+        "ligand": 1.05,
+        "additive": 0.25,
+        "base": 0.55,
+        "aryl_halide": 2.7
+      },
+      "gp_beta": 2.1,
+      "gp_beta_end": 1.2,
+      "source_prior_strength": 0.0,
+      "source_similarity_temperature": 0.3,
+      "source_neighbor_count": 14,
+      "calibration_mode": "off",
+      "min_cv_gain": 0.07,
+      "confidence": 0.61,
+      "reason": "Counter-hypothesis: substrate identity may dominate Buchwald-Hartwig behavior even though ligand has higher source confidence. Strong aryl-halide weighting tests that mechanism; fail if revealed-target validation instead supports ligand-led or uniform similarity."
+    },
+    {
+      "patch_id": "base_mapping_probe",
+      "scales": [
+        0.0,
+        0.8,
+        1.8,
+        3.5
+      ],
+      "role_multipliers": {
+        "ligand": 1.15,
+        "additive": 0.25,
+        "base": 2.6,
+        "aryl_halide": 0.9
+      },
+      "gp_beta": 2.3,
+      "gp_beta_end": 1.1,
+      "source_prior_strength": 0.0,
+      "source_similarity_temperature": 0.65,
+      "source_neighbor_count": 16,
+      "calibration_mode": "off",
+      "min_cv_gain": 0.1,
+      "confidence": 0.49,
+      "reason": "Counter-hypothesis: the reagent-to-base role mapping is more useful in the target chemistry than its confidence suggests. A target-only anchor and strict gain trigger contain the risk; fail if base-emphasized scales underperform during revealed-target replay."
+    },
+    {
+      "patch_id": "balanced_discounted",
+      "scales": [
+        0.0,
+        0.4,
+        1.0,
+        2.2,
+        4.5
+      ],
+      "role_multipliers": {
+        "ligand": 1.5,
+        "additive": 0.3,
+        "base": 0.9,
+        "aryl_halide": 1.25
+      },
+      "gp_beta": 1.9,
+      "gp_beta_end": 1.3,
+      "source_prior_strength": 0.0,
+      "source_similarity_temperature": 1.1,
+      "source_neighbor_count": 24,
+      "calibration_mode": "off",
+      "min_cv_gain": 0.05,
+      "confidence": 0.71,
+      "reason": "Hypothesis: smoothly discounted role weights are safer than concentrating all similarity on one field. A broad scale ensemble averages uncertain transfer strength; fail if target replay selects either uniform geometry or a single-role extreme."
+    },
+    {
+      "patch_id": "weak_role_stress_test",
+      "scales": [
+        0.0,
+        0.6,
+        1.2,
+        2.4
+      ],
+      "role_multipliers": {
+        "ligand": 0.85,
+        "additive": 1.8,
+        "base": 1.35,
+        "aryl_halide": 0.8
+      },
+      "gp_beta": 1.6,
+      "gp_beta_end": 1.0,
+      "source_prior_strength": 0.0,
+      "source_similarity_temperature": 1.5,
+      "source_neighbor_count": 32,
+      "calibration_mode": "off",
+      "min_cv_gain": 0.14,
+      "confidence": 0.38,
+      "reason": "Counter-hypothesis: target-specific additive and base structure may matter despite weak source mappings. High temperature, a target-only anchor, and a stringent gain threshold make this a controlled stress test; fail on absent cross-validated improvement."
+    }
+  ],
+  "parse_error": ""
+}

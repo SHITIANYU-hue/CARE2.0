@@ -1737,6 +1737,8 @@ def exploration_gate_decision(
     seed: int,
     round_index: int,
     proposal_confidence: float = 0.5,
+    prior_exploration_interventions: int = 0,
+    public_best_value: float = 0.0,
 ) -> GateCertificate:
     incumbent = top_candidate(base_scores)
     challenger = top_candidate(adjusted_scores)
@@ -1763,9 +1765,7 @@ def exploration_gate_decision(
     risk_budget = max(0.015, 0.060 * math.exp(-0.22 * round_index))
     temperature = max(0.012, 0.040 * math.exp(-0.18 * round_index))
     calibrated_confidence = max(0.0, min(1.0, proposal_confidence))
-    # A score margin created by the patch is not independent evidence. Only a
-    # near-tie can pass deterministically; other exploration spends risk budget.
-    evidence_authorized = acquisition_loss <= 0.004 and calibrated_confidence >= 0.50
+    has_exploration_headroom = public_best_value < 90.0
     acceptance_probability = min(
         0.70,
         (0.15 + 0.55 * novelty)
@@ -1777,17 +1777,30 @@ def exploration_gate_decision(
     ).random()
     risk_authorized = (
         acquisition_loss <= risk_budget
+        and calibrated_confidence >= 0.55
+        and public_best_value < 95.0
         and deterministic_draw <= acceptance_probability
+    )
+    quota_authorized = (
+        round_index <= 2
+        and prior_exploration_interventions == 0
+        and acquisition_loss <= risk_budget
+        and calibrated_confidence >= 0.62
+        and has_exploration_headroom
     )
     authorized = (
         row_order_stable
         and max_adjustment <= 0.20
-        and (evidence_authorized or risk_authorized)
+        and (quota_authorized or risk_authorized)
     )
-    if authorized and evidence_authorized:
-        reason = "authorized_exploration_with_positive_margin"
+    if authorized and quota_authorized:
+        reason = "authorized_exploration_quota"
     elif authorized:
         reason = "authorized_exploration_risk_budget"
+    elif not has_exploration_headroom:
+        reason = "rejected_exploration_insufficient_headroom"
+    elif calibrated_confidence < 0.55:
+        reason = "rejected_exploration_low_confidence"
     elif acquisition_loss > risk_budget:
         reason = "rejected_exploration_loss_above_budget"
     else:
@@ -1845,11 +1858,15 @@ def is_exploration_llm_mode(mode: str) -> bool:
     return mode in {"llm_explore_no_gate", "llm_explore_gate_v1"}
 
 
-def compact_candidate(c: Candidate) -> dict[str, Any]:
+def compact_candidate(
+    c: Candidate,
+    public_fields: tuple[str, ...] | None = None,
+) -> dict[str, Any]:
     public_metadata = {
         key: value
         for key, value in c.metadata.items()
-        if key not in {
+        if (public_fields is None or key in public_fields)
+        and key not in {
             "yield_value",
             "conversion_value",
             "stability_score",
@@ -1897,8 +1914,8 @@ def observed_evidence_payload(adapter: DatasetAdapter, observed: list[Candidate]
         "observed_count": len(observed),
         "global_revealed_mean": round(global_mean, 4),
         "factor_evidence": factor_rows,
-        "top_revealed": [compact_candidate(c) for c in top_observed],
-        "bottom_revealed": [compact_candidate(c) for c in bottom_observed],
+        "top_revealed": [compact_candidate(c, adapter.decision_columns) for c in top_observed],
+        "bottom_revealed": [compact_candidate(c, adapter.decision_columns) for c in bottom_observed],
         "output_contract": {
             "adjustments": [
                 {
@@ -2178,6 +2195,28 @@ def extract_json_object(text: str) -> dict[str, Any]:
     raise ValueError("No JSON object found in LLM response.")
 
 
+def repair_llm_response_shape(parsed: dict[str, Any]) -> tuple[dict[str, Any], str]:
+    decision_summary = parsed.get("decision_summary")
+    if (
+        "adjustments" not in parsed
+        and isinstance(decision_summary, dict)
+        and isinstance(decision_summary.get("adjustments"), list)
+    ):
+        repaired = dict(parsed)
+        repaired["adjustments"] = decision_summary["adjustments"]
+        repaired["confidence"] = decision_summary.get(
+            "confidence",
+            parsed.get("confidence", 0.0),
+        )
+        repaired["decision_summary"] = {
+            key: value
+            for key, value in decision_summary.items()
+            if key not in {"adjustments", "confidence"}
+        }
+        return repaired, "hoisted_adjustments_from_decision_summary"
+    return parsed, ""
+
+
 def trace_llm_event(event: dict[str, Any]) -> None:
     trace_path = os.environ.get("CARE_LLM_TRACE_LOG")
     if not trace_path:
@@ -2422,6 +2461,7 @@ def llm_skill_adjustments(
         parsed = {"adjustments": [], "confidence": 0.0}
         parse_error = str(exc)
 
+    parsed, schema_repair = repair_llm_response_shape(parsed)
     if "adjustments" not in parsed and {"field", "value", "direction"} <= set(parsed):
         parsed = {"adjustments": [parsed], "confidence": parsed.get("confidence", 0.5)}
 
@@ -2442,6 +2482,7 @@ def llm_skill_adjustments(
                 "policy_variant": "exploration_aware" if exploration_mode else "legacy",
                 "applied_specs": applied_specs,
                 "confidence_calibration": confidence_calibration,
+                "schema_repair": schema_repair,
                 "parse_error": parse_error,
             }
         },
@@ -2461,6 +2502,7 @@ def llm_skill_adjustments(
         "decision_summary": parsed.get("decision_summary", {}),
         "applied_specs": applied_specs,
         "confidence_calibration": confidence_calibration,
+        "schema_repair": schema_repair,
         "parse_error": parse_error,
     }
     return adjustments, cert, record
@@ -2517,6 +2559,7 @@ def run_policy(
     exploration_adjustment_count = 0
     penalize_adjustment_count = 0
     exploration_risk_accept_count = 0
+    exploration_quota_accept_count = 0
     llm_calibrated_confidence_total = 0.0
     selected_top10 = False
 
@@ -2603,12 +2646,17 @@ def run_policy(
                                 0.0,
                             )
                         ),
+                        intervention_count,
+                        max(candidate.objective_value for candidate in observed),
                     )
                 else:
                     gate = gate_decision(mode, base_scores, adjusted_scores, adjustments, row_order_stable, active_skill_ids)
                 challenger_change_count += int(gate.challenger_candidate != gate.incumbent_candidate)
                 exploration_risk_accept_count += int(
                     gate.reason == "authorized_exploration_risk_budget"
+                )
+                exploration_quota_accept_count += int(
+                    gate.reason == "authorized_exploration_quota"
                 )
                 if gate.authorized:
                     intervention_count += 1
@@ -2674,6 +2722,7 @@ def run_policy(
         "exploration_adjustment_count": exploration_adjustment_count,
         "penalize_adjustment_count": penalize_adjustment_count,
         "exploration_risk_accept_count": exploration_risk_accept_count,
+        "exploration_quota_accept_count": exploration_quota_accept_count,
         "llm_mean_calibrated_confidence": round(
             llm_calibrated_confidence_total / max(1, llm_call_count),
             4,
@@ -2703,6 +2752,7 @@ def aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "exploration_adjustment_count",
         "penalize_adjustment_count",
         "exploration_risk_accept_count",
+        "exploration_quota_accept_count",
         "llm_mean_calibrated_confidence",
         "hypothesis_confidence",
         "hypothesis_support_count",
@@ -2793,13 +2843,14 @@ def run_dataset(
     modes: tuple[Mode, ...] = DEFAULT_MODES,
     llm_config: LLMConfig | None = None,
     output_tag: str = "",
+    seed_start: int = 0,
 ) -> dict[str, Any]:
     task = make_task(adapter, initial, rounds)
     rows: list[dict[str, Any]] = []
     audits: dict[tuple[str, int], list[AuditEntry]] = {}
     hypotheses: dict[tuple[str, int], HypothesisEntry] = {}
     for mode in modes:
-        for seed in range(seeds):
+        for seed in range(seed_start, seed_start + seeds):
             metrics, audit, hypothesis = run_policy(adapter, task, seed, mode, llm_config)
             rows.append(metrics)
             audits[(mode, seed)] = audit
@@ -2807,7 +2858,7 @@ def run_dataset(
     output_id = adapter.dataset_id if not output_tag else f"{adapter.dataset_id}_{output_tag}"
     summary = {
         "experiment": "care_multi_dataset_skill_knowledge_replay",
-        "disclaimer": "Synthetic smoke test; not a CARE 1.0 paper reproduction.",
+        "disclaimer": "Finite-pool replay harness; not a CARE 1.0 paper reproduction.",
         "output_id": output_id,
         "dataset": {
             "dataset_id": adapter.dataset_id,
@@ -2818,6 +2869,7 @@ def run_dataset(
         "task": asdict(task),
         "candidate_count": len(adapter.candidates),
         "seeds": seeds,
+        "seed_start": seed_start,
         "rounds": rounds,
         "initial_observations": initial,
         "modes": list(modes),
@@ -2836,9 +2888,10 @@ def run_dataset(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run CARE 2.0 synthetic finite-pool replay smoke tests.")
+    parser = argparse.ArgumentParser(description="Run CARE 2.0 finite-pool replay experiments.")
     parser.add_argument("--dataset", default="synthetic_suzuki_i", choices=[*DATASET_BUILDERS.keys(), "all"])
     parser.add_argument("--seeds", type=int, default=30)
+    parser.add_argument("--seed-start", type=int, default=0)
     parser.add_argument("--rounds", type=int, default=10)
     parser.add_argument("--initial", type=int, default=5)
     parser.add_argument("--modes", default=",".join(DEFAULT_MODES), help=f"Comma-separated modes from: {', '.join(ALL_MODES)}")
@@ -2854,7 +2907,16 @@ def main() -> None:
     llm_config = llm_config_from_args(args, modes)
     dataset_ids = list(DATASET_BUILDERS) if args.dataset == "all" else [args.dataset]
     summaries = [
-        run_dataset(DATASET_BUILDERS[dataset_id](), args.seeds, args.rounds, args.initial, modes, llm_config, args.output_tag)
+        run_dataset(
+            DATASET_BUILDERS[dataset_id](),
+            args.seeds,
+            args.rounds,
+            args.initial,
+            modes,
+            llm_config,
+            args.output_tag,
+            args.seed_start,
+        )
         for dataset_id in dataset_ids
     ]
     if len(summaries) == 1:
@@ -2862,7 +2924,7 @@ def main() -> None:
     else:
         combined = {
             "experiment": "care_multi_dataset_skill_knowledge_replay",
-            "disclaimer": "Synthetic smoke test; not a CARE 1.0 paper reproduction.",
+            "disclaimer": "Finite-pool replay harness; not a CARE 1.0 paper reproduction.",
             "datasets": [summary["dataset"]["dataset_id"] for summary in summaries],
             "modes": list(modes),
             "summaries": summaries,

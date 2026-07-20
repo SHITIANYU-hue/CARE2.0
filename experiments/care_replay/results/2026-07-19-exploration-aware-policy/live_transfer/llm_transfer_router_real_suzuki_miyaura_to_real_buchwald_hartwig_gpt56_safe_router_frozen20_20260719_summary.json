@@ -1,0 +1,401 @@
+{
+  "experiment": "care_llm_transfer_skill_router",
+  "source_dataset": "real_suzuki_miyaura",
+  "target_dataset": "real_buchwald_hartwig",
+  "seed_start": 30,
+  "seed_count": 20,
+  "initial_observations": 5,
+  "rounds": 8,
+  "llm_model": "openai/gpt-5.6-sol",
+  "llm_call_count_for_skill_generation": 1,
+  "patches": [
+    {
+      "patch_id": "safe_multiscale_anchor",
+      "scales": [
+        0.0,
+        0.75,
+        1.5,
+        3.0
+      ],
+      "role_multipliers": {
+        "ligand": 1.6,
+        "additive": 0.35,
+        "base": 0.85,
+        "aryl_halide": 1.3
+      },
+      "gp_beta": 1.5,
+      "gp_beta_end": 1.0,
+      "source_prior_strength": 0.0,
+      "source_similarity_temperature": 0.5,
+      "source_neighbor_count": 12,
+      "calibration_mode": "off",
+      "min_cv_gain": 0.05,
+      "confidence": 0.78,
+      "reason": "Hypothesis: ligand and aryl-halide role evidence improves the kernel; the scale-0 member protects against negative transfer. Rank averaging limits scale brittleness; fail if transferred scales consistently rank revealed outcomes worse than the anchor."
+    },
+    {
+      "patch_id": "top_roles_focus",
+      "scales": [
+        0.5,
+        1.25,
+        2.5,
+        5.0
+      ],
+      "role_multipliers": {
+        "ligand": 2.4,
+        "additive": 0.2,
+        "base": 0.45,
+        "aryl_halide": 2.0
+      },
+      "gp_beta": 1.7,
+      "gp_beta_end": 1.1,
+      "source_prior_strength": 0.0,
+      "source_similarity_temperature": 0.35,
+      "source_neighbor_count": 10,
+      "calibration_mode": "off",
+      "min_cv_gain": 0.06,
+      "confidence": 0.74,
+      "reason": "Hypothesis: the two highest-confidence mappings, ligand and aryl_halide, carry most transferable structure; weak additive and base mappings are suppressed. Failure trigger: revealed-target validation favors balanced or target-only geometry."
+    },
+    {
+      "patch_id": "explore_then_cool",
+      "scales": [
+        0.0,
+        1.0,
+        2.0,
+        4.0,
+        7.0
+      ],
+      "role_multipliers": {
+        "ligand": 1.8,
+        "additive": 0.3,
+        "base": 0.75,
+        "aryl_halide": 1.45
+      },
+      "gp_beta": 2.8,
+      "gp_beta_end": 1.0,
+      "source_prior_strength": 0.0,
+      "source_similarity_temperature": 0.8,
+      "source_neighbor_count": 20,
+      "calibration_mode": "off",
+      "min_cv_gain": 0.08,
+      "confidence": 0.69,
+      "reason": "Hypothesis: broad early GP-UCB exploration can discover whether source-weighted categorical neighborhoods transfer before cooling toward exploitation. The target-only member and five scales hedge misspecification; fail if high-scale members remain poorly calibrated after reveals."
+    },
+    {
+      "patch_id": "conservative_ligand",
+      "scales": [
+        0.0,
+        0.5,
+        1.0,
+        2.0
+      ],
+      "role_multipliers": {
+        "ligand": 1.9,
+        "additive": 0.25,
+        "base": 0.65,
+        "aryl_halide": 1.1
+      },
+      "gp_beta": 1.3,
+      "gp_beta_end": 0.8,
+      "source_prior_strength": 0.0,
+      "source_similarity_temperature": 0.45,
+      "source_neighbor_count": 8,
+      "calibration_mode": "off",
+      "min_cv_gain": 0.04,
+      "confidence": 0.76,
+      "reason": "Hypothesis: modest ligand emphasis captures the strongest source evidence without overexploration or aggressive transfer. The counterweight is a scale-0 anchor; fail if leave-one-out target replay shows no gain over target-only ranking."
+    },
+    {
+      "patch_id": "aryl_counterweight",
+      "scales": [
+        0.75,
+        1.5,
+        3.0,
+        6.0
+      ],
+      "role_multipliers": {
+        "ligand": 1.05,
+        "additive": 0.25,
+        "base": 0.55,
+        "aryl_halide": 2.7
+      },
+      "gp_beta": 2.1,
+      "gp_beta_end": 1.2,
+      "source_prior_strength": 0.0,
+      "source_similarity_temperature": 0.3,
+      "source_neighbor_count": 14,
+      "calibration_mode": "off",
+      "min_cv_gain": 0.07,
+      "confidence": 0.61,
+      "reason": "Counter-hypothesis: substrate identity may dominate Buchwald-Hartwig behavior even though ligand has higher source confidence. Strong aryl-halide weighting tests that mechanism; fail if revealed-target validation instead supports ligand-led or uniform similarity."
+    },
+    {
+      "patch_id": "base_mapping_probe",
+      "scales": [
+        0.0,
+        0.8,
+        1.8,
+        3.5
+      ],
+      "role_multipliers": {
+        "ligand": 1.15,
+        "additive": 0.25,
+        "base": 2.6,
+        "aryl_halide": 0.9
+      },
+      "gp_beta": 2.3,
+      "gp_beta_end": 1.1,
+      "source_prior_strength": 0.0,
+      "source_similarity_temperature": 0.65,
+      "source_neighbor_count": 16,
+      "calibration_mode": "off",
+      "min_cv_gain": 0.1,
+      "confidence": 0.49,
+      "reason": "Counter-hypothesis: the reagent-to-base role mapping is more useful in the target chemistry than its confidence suggests. A target-only anchor and strict gain trigger contain the risk; fail if base-emphasized scales underperform during revealed-target replay."
+    },
+    {
+      "patch_id": "balanced_discounted",
+      "scales": [
+        0.0,
+        0.4,
+        1.0,
+        2.2,
+        4.5
+      ],
+      "role_multipliers": {
+        "ligand": 1.5,
+        "additive": 0.3,
+        "base": 0.9,
+        "aryl_halide": 1.25
+      },
+      "gp_beta": 1.9,
+      "gp_beta_end": 1.3,
+      "source_prior_strength": 0.0,
+      "source_similarity_temperature": 1.1,
+      "source_neighbor_count": 24,
+      "calibration_mode": "off",
+      "min_cv_gain": 0.05,
+      "confidence": 0.71,
+      "reason": "Hypothesis: smoothly discounted role weights are safer than concentrating all similarity on one field. A broad scale ensemble averages uncertain transfer strength; fail if target replay selects either uniform geometry or a single-role extreme."
+    },
+    {
+      "patch_id": "weak_role_stress_test",
+      "scales": [
+        0.0,
+        0.6,
+        1.2,
+        2.4
+      ],
+      "role_multipliers": {
+        "ligand": 0.85,
+        "additive": 1.8,
+        "base": 1.35,
+        "aryl_halide": 0.8
+      },
+      "gp_beta": 1.6,
+      "gp_beta_end": 1.0,
+      "source_prior_strength": 0.0,
+      "source_similarity_temperature": 1.5,
+      "source_neighbor_count": 32,
+      "calibration_mode": "off",
+      "min_cv_gain": 0.14,
+      "confidence": 0.38,
+      "reason": "Counter-hypothesis: target-specific additive and base structure may matter despite weak source mappings. High temperature, a target-only anchor, and a stringent gain threshold make this a controlled stress test; fail on absent cross-validated improvement."
+    }
+  ],
+  "strongest_target_mode_by_aggregate": "gp_ucb",
+  "evidence_boundary": "Frozen LLM skills see source evidence and public target schema. During replay, the router uses only target outcomes revealed before each selection. No hidden target row is used for routing.",
+  "aggregate": {
+    "fixed_scale_ensemble_0p5_1_1p5_2_3_4": {
+      "final_best_mean": 86.7831,
+      "final_best_std": 12.0535,
+      "best_so_far_auc_mean": 76.7579,
+      "best_so_far_auc_std": 14.3393,
+      "simple_regret_mean": 13.2169,
+      "simple_regret_std": 12.0535,
+      "top10_hit_mean": 0.1,
+      "top10_hit_std": 0.3,
+      "seed_count": 20.0
+    },
+    "gp_ucb": {
+      "final_best_mean": 86.7133,
+      "final_best_std": 12.3136,
+      "best_so_far_auc_mean": 75.6327,
+      "best_so_far_auc_std": 15.497,
+      "simple_regret_mean": 13.2867,
+      "simple_regret_std": 12.3136,
+      "top10_hit_mean": 0.15,
+      "top10_hit_std": 0.3571,
+      "seed_count": 20.0
+    },
+    "llm_transfer_router": {
+      "final_best_mean": 84.6787,
+      "final_best_std": 16.2778,
+      "best_so_far_auc_mean": 74.3079,
+      "best_so_far_auc_std": 17.1707,
+      "simple_regret_mean": 15.3213,
+      "simple_regret_std": 16.2778,
+      "top10_hit_mean": 0.15,
+      "top10_hit_std": 0.3571,
+      "seed_count": 20.0
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best_mean": 84.033,
+      "final_best_std": 16.2083,
+      "best_so_far_auc_mean": 72.7745,
+      "best_so_far_auc_std": 18.3307,
+      "simple_regret_mean": 15.967,
+      "simple_regret_std": 16.2083,
+      "top10_hit_mean": 0.2,
+      "top10_hit_std": 0.4,
+      "seed_count": 20.0
+    },
+    "target_acquisition_portfolio": {
+      "final_best_mean": 84.6787,
+      "final_best_std": 16.2778,
+      "best_so_far_auc_mean": 74.3079,
+      "best_so_far_auc_std": 17.1707,
+      "simple_regret_mean": 15.3213,
+      "simple_regret_std": 16.2778,
+      "top10_hit_mean": 0.15,
+      "top10_hit_std": 0.3571,
+      "seed_count": 20.0
+    }
+  },
+  "paired_vs_gp_ucb": {
+    "seed_count": 20,
+    "final_best": {
+      "mean_delta": -2.0346,
+      "std_delta": 10.0724,
+      "normal_95ci_low": -6.449,
+      "normal_95ci_high": 2.3798,
+      "win_rate": 0.15,
+      "non_loss_rate": 0.8
+    },
+    "best_so_far_auc": {
+      "mean_delta": -1.3248,
+      "std_delta": 5.7836,
+      "normal_95ci_low": -3.8596,
+      "normal_95ci_high": 1.21,
+      "win_rate": 0.25,
+      "non_loss_rate": 0.65
+    },
+    "top10_hit": {
+      "mean_delta": 0.0,
+      "std_delta": 0.3162,
+      "normal_95ci_low": -0.1386,
+      "normal_95ci_high": 0.1386,
+      "win_rate": 0.05,
+      "non_loss_rate": 0.95
+    }
+  },
+  "paired_vs_gp_ei": {
+    "seed_count": 20,
+    "final_best": {
+      "mean_delta": 0.6457,
+      "std_delta": 5.6712,
+      "normal_95ci_low": -1.8398,
+      "normal_95ci_high": 3.1312,
+      "win_rate": 0.25,
+      "non_loss_rate": 0.7
+    },
+    "best_so_far_auc": {
+      "mean_delta": 1.5334,
+      "std_delta": 6.4975,
+      "normal_95ci_low": -1.3142,
+      "normal_95ci_high": 4.381,
+      "win_rate": 0.35,
+      "non_loss_rate": 0.75
+    },
+    "top10_hit": {
+      "mean_delta": -0.05,
+      "std_delta": 0.3841,
+      "normal_95ci_low": -0.2183,
+      "normal_95ci_high": 0.1183,
+      "win_rate": 0.05,
+      "non_loss_rate": 0.9
+    }
+  },
+  "paired_vs_target_portfolio": {
+    "seed_count": 20,
+    "final_best": {
+      "mean_delta": 0.0,
+      "std_delta": 0.0,
+      "normal_95ci_low": 0.0,
+      "normal_95ci_high": 0.0,
+      "win_rate": 0.0,
+      "non_loss_rate": 1.0
+    },
+    "best_so_far_auc": {
+      "mean_delta": 0.0,
+      "std_delta": 0.0,
+      "normal_95ci_low": 0.0,
+      "normal_95ci_high": 0.0,
+      "win_rate": 0.0,
+      "non_loss_rate": 1.0
+    },
+    "top10_hit": {
+      "mean_delta": 0.0,
+      "std_delta": 0.0,
+      "normal_95ci_low": 0.0,
+      "normal_95ci_high": 0.0,
+      "win_rate": 0.0,
+      "non_loss_rate": 1.0
+    }
+  },
+  "paired_vs_fixed_transfer": {
+    "seed_count": 20,
+    "final_best": {
+      "mean_delta": -2.1044,
+      "std_delta": 12.2098,
+      "normal_95ci_low": -7.4556,
+      "normal_95ci_high": 3.2468,
+      "win_rate": 0.25,
+      "non_loss_rate": 0.75
+    },
+    "best_so_far_auc": {
+      "mean_delta": -2.45,
+      "std_delta": 7.9464,
+      "normal_95ci_low": -5.9326,
+      "normal_95ci_high": 1.0327,
+      "win_rate": 0.4,
+      "non_loss_rate": 0.6
+    },
+    "top10_hit": {
+      "mean_delta": 0.05,
+      "std_delta": 0.3841,
+      "normal_95ci_low": -0.1183,
+      "normal_95ci_high": 0.2183,
+      "win_rate": 0.1,
+      "non_loss_rate": 0.95
+    }
+  },
+  "paired_vs_strongest_target": {
+    "seed_count": 20,
+    "final_best": {
+      "mean_delta": -2.0346,
+      "std_delta": 10.0724,
+      "normal_95ci_low": -6.449,
+      "normal_95ci_high": 2.3798,
+      "win_rate": 0.15,
+      "non_loss_rate": 0.8
+    },
+    "best_so_far_auc": {
+      "mean_delta": -1.3248,
+      "std_delta": 5.7836,
+      "normal_95ci_low": -3.8596,
+      "normal_95ci_high": 1.21,
+      "win_rate": 0.25,
+      "non_loss_rate": 0.65
+    },
+    "top10_hit": {
+      "mean_delta": 0.0,
+      "std_delta": 0.3162,
+      "normal_95ci_low": -0.1386,
+      "normal_95ci_high": 0.1386,
+      "win_rate": 0.05,
+      "non_loss_rate": 0.95
+    }
+  }
+}
