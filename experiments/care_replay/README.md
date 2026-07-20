@@ -44,6 +44,13 @@ export CARE_LLM_API_KEY="..."
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset synthetic_materials_i --seeds 3 --rounds 6 --initial 5 --modes no_care_random,incumbent,llm_no_gate,llm_gate_v1 --llm-model openai/gpt-4o-mini --output-tag llm_commonstack
 ```
 
+The exploration-aware variants are `llm_explore_no_gate` and
+`llm_explore_gate_v1`. They expose public factor coverage, request explicit
+explore/exploit/avoid intents and a counter-hypothesis, calibrate confidence,
+and report whether the LLM actually changes Top-1. See
+`results/2026-07-19-exploration-aware-policy/` for the implementation preflight
+and its limitations.
+
 Run the nine-dataset LLM generalization sweep:
 
 ```bash
@@ -138,6 +145,12 @@ Outputs:
   handles for `gate_v2` seed 0.
 
 Tracked result snapshots:
+
+- `results/2026-07-19-exploration-aware-policy/`: July 20 exploration-deficit
+  follow-up with dynamic GP-UCB beta, an exploration prompt, probabilistic
+  gate, and target-only leave-one-out router validation. The included numeric
+  check is explicitly an offline policy preflight; live CommonStack inference
+  was blocked by zero available balance and is not reported as an LLM result.
 
 - `results/2026-06-28-doc-guided-sweep/`: aggregate summaries and metric tables
   for a six-adapter sweep guided by the CARE 2.0 / AI4Science notes.

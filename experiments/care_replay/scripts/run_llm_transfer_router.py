@@ -68,6 +68,70 @@ def leave_one_out_gain(xs: list[float], ys: list[float]) -> float:
     return max(-2.0, min(1.0, 1.0 - mean(model_errors) / baseline_mse))
 
 
+def weighted_kernel_loo_mae(
+    observed: list[replay.Candidate],
+    features_by_id: dict[str, surrogate.FeatureRecord],
+    weight_ensemble: list[tuple[float, ...]],
+    numeric_length_scale: float,
+    categorical_length_scale: float,
+    gp_noise: float,
+) -> float:
+    if len(observed) < 5 or not weight_ensemble:
+        return float("inf")
+    errors: list[float] = []
+    for heldout_index, heldout in enumerate(observed):
+        training = [
+            candidate
+            for index, candidate in enumerate(observed)
+            if index != heldout_index
+        ]
+        y_values = [candidate.objective_value / 100.0 for candidate in training]
+        y_mean = mean(y_values)
+        y_scale = max(pstdev(y_values), 0.05)
+        y_norm = [(value - y_mean) / y_scale for value in y_values]
+        predictions: list[float] = []
+        for categorical_weights in weight_ensemble:
+            size = len(training)
+            kernel_matrix = [[0.0] * size for _ in range(size)]
+            for i in range(size):
+                for j in range(i + 1):
+                    value = weighted.mixed_kernel_weighted(
+                        features_by_id[training[i].candidate_id],
+                        features_by_id[training[j].candidate_id],
+                        categorical_weights,
+                        numeric_length_scale,
+                        categorical_length_scale,
+                    )
+                    kernel_matrix[i][j] = value
+                    kernel_matrix[j][i] = value
+            for i in range(size):
+                kernel_matrix[i][i] += gp_noise
+            lower = surrogate.cholesky_spd(kernel_matrix)
+            alpha = surrogate.solve_cholesky(lower, y_norm)
+            heldout_feature = features_by_id[heldout.candidate_id]
+            k_vec = [
+                weighted.mixed_kernel_weighted(
+                    heldout_feature,
+                    features_by_id[candidate.candidate_id],
+                    categorical_weights,
+                    numeric_length_scale,
+                    categorical_length_scale,
+                )
+                for candidate in training
+            ]
+            mean_norm = sum(value * coefficient for value, coefficient in zip(k_vec, alpha))
+            predictions.append(y_mean + y_scale * mean_norm)
+        prediction = mean(predictions)
+        errors.append(abs(heldout.objective_value / 100.0 - prediction))
+    return mean(errors)
+
+
+def relative_loo_gain(baseline_mae: float, challenger_mae: float) -> float:
+    if not math.isfinite(baseline_mae) or baseline_mae <= 1e-12:
+        return 0.0
+    return max(-2.0, min(1.0, 1.0 - challenger_mae / baseline_mae))
+
+
 def aligned_source_prior(
     source_observed: list[replay.Candidate],
     target_adapter: replay.DatasetAdapter,
@@ -381,6 +445,14 @@ def run_router_policy(
         )
         anchor_scores = anchors["target_acquisition_portfolio"]
         zero_weights, _ = weighted.transfer_categorical_weights(target_adapter, card, 0.0, normalize)
+        baseline_loo_mae = weighted_kernel_loo_mae(
+            observed,
+            features_by_id,
+            [zero_weights],
+            numeric_length_scale,
+            categorical_length_scale,
+            gp_noise,
+        )
         _gp_scores, gp_kernel_diagnostics = weighted.weighted_gp_scores(
             target_adapter,
             observed_ids,
@@ -398,6 +470,12 @@ def run_router_policy(
         route_diagnostics: dict[str, Any] = {}
         for patch in patches:
             mode = evolution.patch_mode(patch)
+            current_patch_beta = weighted.scheduled_gp_beta(
+                patch.gp_beta,
+                patch.gp_beta_end,
+                round_index,
+                task.reveal_budget,
+            )
             base_scores, evidence, kernel_diagnostics = bma.score_scale_ensemble(
                 target_adapter,
                 observed_ids,
@@ -406,7 +484,7 @@ def run_router_policy(
                 card,
                 patch.scales,
                 patch.role_multipliers,
-                patch.gp_beta,
+                current_patch_beta,
                 normalize,
                 numeric_length_scale,
                 categorical_length_scale,
@@ -415,19 +493,38 @@ def run_router_policy(
             adjustments, calibration = calibrated_prior_adjustments(
                 source_priors[mode], observed, patch
             )
+            patch_weight_ensemble = [
+                weighted.transfer_categorical_weights(
+                    target_adapter,
+                    card,
+                    scale,
+                    normalize,
+                    patch.role_multipliers,
+                )[0]
+                for scale in patch.scales
+            ]
+            patch_loo_mae = weighted_kernel_loo_mae(
+                observed,
+                features_by_id,
+                patch_weight_ensemble,
+                numeric_length_scale,
+                categorical_length_scale,
+                gp_noise,
+            )
+            kernel_loo_gain = relative_loo_gain(baseline_loo_mae, patch_loo_mae)
             adjusted_scores = {
                 candidate_id: score + adjustments.get(candidate_id, 0.0)
                 for candidate_id, score in base_scores.items()
             }
             evidence_delta = evidence - gp_evidence
             cv_gain = float(calibration.get("cv_gain", -2.0))
-            prior_active = bool(calibration.get("active"))
-            kernel_active = evidence_delta >= 0.15
+            prior_active = bool(calibration.get("active")) and cv_gain >= 0.30
+            kernel_active = kernel_loo_gain >= 0.05 and evidence_delta >= 0.0
             if prior_active or kernel_active:
                 quality = max(
                     0.0,
                     cv_gain if prior_active else 0.0,
-                    math.tanh(max(0.0, evidence_delta) / 4.0),
+                    kernel_loo_gain if kernel_active else 0.0,
                 )
                 route_values[mode] = math.log(max(patch.confidence, 0.05)) + 3.0 * quality
                 expert_scores[mode] = weighted.rank_normalized(adjusted_scores)
@@ -437,6 +534,16 @@ def run_router_policy(
                 "calibration": calibration,
                 "kernel_log_marginal_likelihood": round(evidence, 6),
                 "kernel_evidence_delta_vs_gp": round(evidence_delta, 6),
+                "target_loo": {
+                    "baseline_mae": round(baseline_loo_mae, 6),
+                    "patch_mae": round(patch_loo_mae, 6),
+                    "relative_gain": round(kernel_loo_gain, 6),
+                },
+                "gp_beta_schedule": {
+                    "start": patch.gp_beta,
+                    "end": patch.gp_beta_end,
+                    "current": round(current_patch_beta, 6),
+                },
                 "active": prior_active or kernel_active,
             }
 
@@ -446,15 +553,15 @@ def run_router_policy(
                 max(
                     0.0,
                     float(route_diagnostics[mode]["calibration"].get("cv_gain", 0.0)),
-                    math.tanh(
-                        max(0.0, float(route_diagnostics[mode]["kernel_evidence_delta_vs_gp"])) / 4.0
-                    ),
+                    float(route_diagnostics[mode]["target_loo"]["relative_gain"]),
                 )
                 for mode in expert_weights
             ),
             default=0.0,
         )
-        transfer_mass = min(0.65, 0.15 + 0.55 * max_quality) if expert_weights else 0.0
+        # Weak evidence should converge to the target-only anchor, not receive a
+        # fixed minimum transfer weight.
+        transfer_mass = min(0.45, 0.55 * max_quality) if expert_weights else 0.0
         combined_scores = {
             candidate_id: (1.0 - transfer_mass) * anchor_scores[candidate_id]
             + transfer_mass
@@ -464,7 +571,22 @@ def run_router_policy(
             )
             for candidate_id in anchor_scores
         }
-        selected_id = replay.top_candidate(combined_scores)
+        anchor_selected_id = replay.top_candidate(anchor_scores)
+        router_selected_id = replay.top_candidate(combined_scores)
+        anchor_loss = max(
+            0.0,
+            anchor_scores[anchor_selected_id] - anchor_scores[router_selected_id],
+        )
+        router_risk_budget = max(0.025, 0.080 * math.exp(-0.22 * round_index))
+        router_authorized = (
+            router_selected_id == anchor_selected_id
+            or (
+                max_quality >= 0.08
+                and anchor_loss <= router_risk_budget
+                and transfer_mass <= 0.45
+            )
+        )
+        selected_id = router_selected_id if router_authorized else anchor_selected_id
         selected = by_id[selected_id]
         observed.append(selected)
         observed_ids.add(selected_id)
@@ -486,6 +608,15 @@ def run_router_policy(
                 "hypothesis_snapshot": {
                     "target_anchor": "equal_rank_gp_ucb_gp_ei",
                     "transfer_mass": round(transfer_mass, 6),
+                    "router_gate": {
+                        "anchor_candidate": anchor_selected_id,
+                        "router_candidate": router_selected_id,
+                        "selected_candidate": selected_id,
+                        "authorized": router_authorized,
+                        "anchor_acquisition_loss": round(anchor_loss, 6),
+                        "risk_budget": round(router_risk_budget, 6),
+                        "max_quality": round(max_quality, 6),
+                    },
                     "expert_weights": expert_weights,
                     "route_diagnostics": route_diagnostics,
                     "anchor_diagnostics": anchor_diagnostics,

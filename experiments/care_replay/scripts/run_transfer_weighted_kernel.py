@@ -308,6 +308,18 @@ def aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
     return out
 
 
+def scheduled_gp_beta(
+    beta_start: float,
+    beta_end: float | None,
+    round_index: int,
+    reveal_budget: int,
+) -> float:
+    if beta_end is None or reveal_budget <= 1:
+        return beta_start
+    progress = round_index / max(1, reveal_budget - 1)
+    return beta_start + (beta_end - beta_start) * progress
+
+
 def run_policy(
     adapter: replay.DatasetAdapter,
     task: replay.TaskSpec,
@@ -319,6 +331,7 @@ def run_policy(
     numeric_length_scale: float,
     categorical_length_scale: float,
     gp_noise: float,
+    gp_beta_end: float | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     rng = random.Random(seed)
     pool = adapter.candidates
@@ -334,13 +347,19 @@ def run_policy(
     audit: list[dict[str, Any]] = []
 
     for round_index in range(task.reveal_budget):
+        current_gp_beta = scheduled_gp_beta(
+            gp_beta,
+            gp_beta_end,
+            round_index,
+            task.reveal_budget,
+        )
         scores, gp_diagnostics = weighted_gp_scores(
             adapter,
             observed_ids,
             observed,
             features_by_id,
             categorical_weights,
-            gp_beta,
+            current_gp_beta,
             numeric_length_scale,
             categorical_length_scale,
             gp_noise,
@@ -368,6 +387,11 @@ def run_policy(
                     "skill_optimization": "transfer_weighted_categorical_kernel",
                     "weight_diagnostics": weight_diagnostics,
                     "gp_diagnostics": gp_diagnostics,
+                    "gp_beta_schedule": {
+                        "start": gp_beta,
+                        "end": gp_beta if gp_beta_end is None else gp_beta_end,
+                        "current": round(current_gp_beta, 6),
+                    },
                 },
             }
         )
@@ -395,6 +419,7 @@ def run_ensemble_policy(
     numeric_length_scale: float,
     categorical_length_scale: float,
     gp_noise: float,
+    gp_beta_end: float | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     rng = random.Random(seed)
     pool = adapter.candidates
@@ -410,13 +435,19 @@ def run_ensemble_policy(
     audit: list[dict[str, Any]] = []
 
     for round_index in range(task.reveal_budget):
+        current_gp_beta = scheduled_gp_beta(
+            gp_beta,
+            gp_beta_end,
+            round_index,
+            task.reveal_budget,
+        )
         scores, ensemble_diagnostics = ensemble_weighted_gp_scores(
             adapter,
             observed_ids,
             observed,
             features_by_id,
             scale_weights,
-            gp_beta,
+            current_gp_beta,
             numeric_length_scale,
             categorical_length_scale,
             gp_noise,
@@ -443,6 +474,11 @@ def run_ensemble_policy(
                     "base_acquisition": "mixed_kernel_gp_ucb",
                     "skill_optimization": "transfer_weighted_categorical_kernel_ensemble",
                     "ensemble_diagnostics": ensemble_diagnostics,
+                    "gp_beta_schedule": {
+                        "start": gp_beta,
+                        "end": gp_beta if gp_beta_end is None else gp_beta_end,
+                        "current": round(current_gp_beta, 6),
+                    },
                 },
             }
         )

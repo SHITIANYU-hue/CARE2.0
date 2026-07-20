@@ -72,9 +72,25 @@ REACTION_DESCRIPTOR_METADATA_FIELDS = {
 REACTION_DESCRIPTOR_CACHE: dict[tuple[str, str, str], dict[str, str]] | None = None
 
 SkillFamily = Literal["ranker", "constraint", "exploration", "data_analysis", "fallback"]
-Mode = Literal["no_care_random", "incumbent", "no_gate", "gate_v1", "gate_v2", "llm_no_gate", "llm_gate_v1"]
+Mode = Literal[
+    "no_care_random",
+    "incumbent",
+    "no_gate",
+    "gate_v1",
+    "gate_v2",
+    "llm_no_gate",
+    "llm_gate_v1",
+    "llm_explore_no_gate",
+    "llm_explore_gate_v1",
+]
 DEFAULT_MODES: tuple[Mode, ...] = ("no_care_random", "incumbent", "no_gate", "gate_v1", "gate_v2")
-ALL_MODES: tuple[Mode, ...] = (*DEFAULT_MODES, "llm_no_gate", "llm_gate_v1")
+ALL_MODES: tuple[Mode, ...] = (
+    *DEFAULT_MODES,
+    "llm_no_gate",
+    "llm_gate_v1",
+    "llm_explore_no_gate",
+    "llm_explore_gate_v1",
+)
 
 
 @dataclass(frozen=True)
@@ -1710,6 +1726,86 @@ def gate_decision(
     )
 
 
+def exploration_gate_decision(
+    gate_version: str,
+    base_scores: dict[str, float],
+    adjusted_scores: dict[str, float],
+    adjustments: dict[str, float],
+    novelty_scores: dict[str, float],
+    row_order_stable: bool,
+    active_skill_ids: tuple[str, ...],
+    seed: int,
+    round_index: int,
+    proposal_confidence: float = 0.5,
+) -> GateCertificate:
+    incumbent = top_candidate(base_scores)
+    challenger = top_candidate(adjusted_scores)
+    if challenger == incumbent:
+        return GateCertificate(
+            gate_version=gate_version,
+            incumbent_candidate=incumbent,
+            challenger_candidate=challenger,
+            selected_candidate=incumbent,
+            authorized=False,
+            gate_margin=0.0,
+            acquisition_loss=0.0,
+            row_order_stable=row_order_stable,
+            applied_skill_ids=active_skill_ids,
+            reason="challenger_matches_incumbent",
+        )
+
+    gate_margin = adjusted_scores[challenger] - base_scores[incumbent]
+    acquisition_loss = max(0.0, base_scores[incumbent] - base_scores[challenger])
+    max_adjustment = max((abs(value) for value in adjustments.values()), default=0.0)
+    novelty = max(0.0, min(1.0, novelty_scores.get(challenger, 0.0)))
+
+    # Exploration is most valuable early and should become increasingly expensive.
+    risk_budget = max(0.015, 0.060 * math.exp(-0.22 * round_index))
+    temperature = max(0.012, 0.040 * math.exp(-0.18 * round_index))
+    calibrated_confidence = max(0.0, min(1.0, proposal_confidence))
+    # A score margin created by the patch is not independent evidence. Only a
+    # near-tie can pass deterministically; other exploration spends risk budget.
+    evidence_authorized = acquisition_loss <= 0.004 and calibrated_confidence >= 0.50
+    acceptance_probability = min(
+        0.70,
+        (0.15 + 0.55 * novelty)
+        * (0.45 + 0.55 * calibrated_confidence)
+        * math.exp(-acquisition_loss / temperature),
+    )
+    deterministic_draw = random.Random(
+        (seed + 1) * 1_000_003 + (round_index + 1) * 9_176
+    ).random()
+    risk_authorized = (
+        acquisition_loss <= risk_budget
+        and deterministic_draw <= acceptance_probability
+    )
+    authorized = (
+        row_order_stable
+        and max_adjustment <= 0.20
+        and (evidence_authorized or risk_authorized)
+    )
+    if authorized and evidence_authorized:
+        reason = "authorized_exploration_with_positive_margin"
+    elif authorized:
+        reason = "authorized_exploration_risk_budget"
+    elif acquisition_loss > risk_budget:
+        reason = "rejected_exploration_loss_above_budget"
+    else:
+        reason = "rejected_exploration_probability"
+    return GateCertificate(
+        gate_version=gate_version,
+        incumbent_candidate=incumbent,
+        challenger_candidate=challenger,
+        selected_candidate=challenger if authorized else incumbent,
+        authorized=authorized,
+        gate_margin=round(gate_margin, 6),
+        acquisition_loss=round(acquisition_loss, 6),
+        row_order_stable=row_order_stable,
+        applied_skill_ids=active_skill_ids,
+        reason=reason,
+    )
+
+
 def no_gate_decision(
     base_scores: dict[str, float],
     adjusted_scores: dict[str, float],
@@ -1737,7 +1833,16 @@ def no_gate_decision(
 
 
 def is_llm_mode(mode: str) -> bool:
-    return mode in {"llm_no_gate", "llm_gate_v1"}
+    return mode in {
+        "llm_no_gate",
+        "llm_gate_v1",
+        "llm_explore_no_gate",
+        "llm_explore_gate_v1",
+    }
+
+
+def is_exploration_llm_mode(mode: str) -> bool:
+    return mode in {"llm_explore_no_gate", "llm_explore_gate_v1"}
 
 
 def compact_candidate(c: Candidate) -> dict[str, Any]:
@@ -1807,6 +1912,258 @@ def observed_evidence_payload(adapter: DatasetAdapter, observed: list[Candidate]
             "confidence": "number between 0 and 1",
         },
     }
+
+
+def factor_coverage_payload(
+    adapter: DatasetAdapter,
+    observed: list[Candidate],
+) -> list[dict[str, Any]]:
+    observed_summary = factor_stats(observed, adapter.decision_columns)
+    pool_counts: dict[tuple[str, str], int] = {}
+    for candidate in adapter.candidates:
+        for key in factor_values(candidate, adapter.decision_columns):
+            pool_counts[key] = pool_counts.get(key, 0) + 1
+    rows = []
+    for (field_name, value), pool_count in pool_counts.items():
+        observed_count = observed_summary.get((field_name, value), (0, 0.0))[0]
+        rows.append(
+            {
+                "field": field_name,
+                "value": value,
+                "observed_count": observed_count,
+                "pool_count": pool_count,
+                "coverage_ratio": round(observed_count / max(1, pool_count), 4),
+                "uncertainty_score": round(1.0 / math.sqrt(observed_count + 1.0), 4),
+                "coverage_state": (
+                    "unseen"
+                    if observed_count == 0
+                    else "low_support"
+                    if observed_count == 1
+                    else "covered"
+                ),
+            }
+        )
+    return sorted(
+        rows,
+        key=lambda item: (
+            item["observed_count"],
+            -item["pool_count"],
+            item["field"],
+            item["value"],
+        ),
+    )[:80]
+
+
+def exploration_evidence_payload(
+    adapter: DatasetAdapter,
+    observed: list[Candidate],
+    round_index: int,
+) -> dict[str, Any]:
+    payload = observed_evidence_payload(adapter, observed)
+    exploration_budget = max(
+        0.015,
+        min(0.055, 0.055 * math.exp(-0.12 * max(0, len(observed) - 8))),
+    )
+    payload["round_index"] = round_index
+    payload["factor_coverage"] = factor_coverage_payload(adapter, observed)
+    payload["exploration_budget"] = round(exploration_budget, 4)
+    payload["decision_goal"] = (
+        "Balance exploitation, uncertainty reduction, and failure avoidance. "
+        "A useful proposal should be capable of changing the next-candidate ranking."
+    )
+    payload["output_contract"] = {
+        "decision_summary": {
+            "hypothesis": "short testable hypothesis",
+            "counter_hypothesis": "short plausible alternative",
+            "uncertainty_target": "which low-support factor should be tested and why",
+            "evidence_for": "concise evidence summary",
+            "evidence_against": "concise contradictory evidence or risk",
+        },
+        "adjustments": [
+            {
+                "field": "one decision column",
+                "value": "one public factor value",
+                "direction": "prefer or penalize",
+                "intent": "explore, exploit, or avoid",
+                "weight": "number between 0.01 and 0.08",
+                "reason": "short auditable decision reason",
+            }
+        ],
+        "confidence": "evidence-calibrated number between 0 and 1",
+    }
+    return payload
+
+
+def candidate_novelty_scores(
+    adapter: DatasetAdapter,
+    observed_ids: set[str],
+    observed: list[Candidate],
+) -> dict[str, float]:
+    observed_summary = factor_stats(observed, adapter.decision_columns)
+    scores: dict[str, float] = {}
+    for candidate in adapter.candidates:
+        if candidate.candidate_id in observed_ids:
+            continue
+        signals = [
+            1.0 / math.sqrt(observed_summary.get(key, (0, 0.0))[0] + 1.0)
+            for key in factor_values(candidate, adapter.decision_columns)
+        ]
+        scores[candidate.candidate_id] = mean(signals) if signals else 0.0
+    return scores
+
+
+def calibrate_exploration_confidence(
+    raw_confidence: float,
+    specs: list[dict[str, Any]],
+) -> dict[str, Any]:
+    bounded_raw = max(0.0, min(1.0, raw_confidence))
+    if not specs:
+        return {
+            "raw": round(bounded_raw, 4),
+            "calibrated": 0.0,
+            "intent_coverage": 0.0,
+        }
+    evidence_strength = mean(float(spec["evidence_strength"]) for spec in specs)
+    intents = {str(spec["intent"]) for spec in specs}
+    intent_coverage = len(intents) / 3.0
+    calibrated = max(
+        0.05,
+        min(0.95, 0.25 * bounded_raw + 0.65 * evidence_strength + 0.10 * intent_coverage),
+    )
+    return {
+        "raw": round(bounded_raw, 4),
+        "calibrated": round(calibrated, 4),
+        "intent_coverage": round(intent_coverage, 4),
+        "evidence_strength": round(evidence_strength, 4),
+    }
+
+
+def normalize_llm_adjustments(
+    adapter: DatasetAdapter,
+    pool: tuple[Candidate, ...],
+    observed_ids: set[str],
+    observed: list[Candidate],
+    parsed: dict[str, Any],
+    exploration_mode: bool,
+) -> tuple[dict[str, float], list[dict[str, Any]], dict[str, Any]]:
+    adjustments = {
+        candidate.candidate_id: 0.0
+        for candidate in pool
+        if candidate.candidate_id not in observed_ids
+    }
+    allowed_fields = set(adapter.decision_columns)
+    public_values = {
+        key
+        for candidate in pool
+        for key in factor_values(candidate, adapter.decision_columns)
+    }
+    factor_summary = factor_stats(observed, adapter.decision_columns)
+    global_mean = observed_mean(observed)
+    exploration_budget = max(
+        0.015,
+        min(0.055, 0.055 * math.exp(-0.12 * max(0, len(observed) - 8))),
+    )
+    proposed_specs: list[dict[str, Any]] = []
+    max_specs = 6 if exploration_mode else 4
+    for item in list(parsed.get("adjustments", []))[:max_specs]:
+        if not isinstance(item, dict):
+            continue
+        field_name = str(item.get("field", ""))
+        value = str(item.get("value", ""))
+        direction = str(item.get("direction", "")).lower()
+        if field_name not in allowed_fields or direction not in {"prefer", "penalize"}:
+            continue
+        if exploration_mode and (field_name, value) not in public_values:
+            continue
+        try:
+            requested_weight = max(0.0, abs(float(item.get("weight", 0.0))))
+        except (TypeError, ValueError):
+            continue
+        if requested_weight <= 0.0:
+            continue
+
+        count, value_mean = factor_summary.get((field_name, value), (0, global_mean))
+        delta_vs_global = value_mean - global_mean if count else 0.0
+        intent = str(item.get("intent", "")).strip().lower()
+        if intent not in {"explore", "exploit", "avoid"}:
+            intent = "avoid" if direction == "penalize" else "exploit"
+
+        evidence_strength = 0.5
+        max_weight = 0.08
+        if exploration_mode:
+            if intent == "explore":
+                if direction != "prefer" or count > 1:
+                    continue
+                evidence_strength = 1.0 / math.sqrt(count + 1.0)
+                max_weight = exploration_budget
+            elif intent == "avoid":
+                if direction != "penalize" or count < 2 or delta_vs_global >= 0.0:
+                    continue
+                evidence_strength = min(1.0, count / 6.0) * min(1.0, abs(delta_vs_global) / 15.0)
+            else:
+                if direction != "prefer" or count < 2 or delta_vs_global <= 0.0:
+                    continue
+                evidence_strength = min(1.0, count / 6.0) * min(1.0, delta_vs_global / 15.0)
+        proposed_specs.append(
+            {
+                "field": field_name,
+                "value": value,
+                "direction": direction,
+                "intent": intent,
+                "requested_weight": min(max_weight, requested_weight),
+                "support_count": count,
+                "delta_vs_global": round(delta_vs_global, 4),
+                "evidence_strength": round(evidence_strength, 4),
+                "reason": str(item.get("reason", ""))[:240],
+            }
+        )
+
+    try:
+        raw_confidence = float(parsed.get("confidence", 0.0))
+    except (TypeError, ValueError):
+        raw_confidence = 0.0
+    confidence = (
+        calibrate_exploration_confidence(raw_confidence, proposed_specs)
+        if exploration_mode
+        else {
+            "raw": round(max(0.0, min(1.0, raw_confidence)), 4),
+            "calibrated": round(max(0.0, min(1.0, raw_confidence)), 4),
+            "intent_coverage": 0.0,
+        }
+    )
+    confidence_scale = (
+        0.55 + 0.45 * float(confidence["calibrated"])
+        if exploration_mode
+        else 1.0
+    )
+    applied_specs: list[dict[str, Any]] = []
+    for spec in proposed_specs:
+        evidence_scale = (
+            0.65 + 0.35 * float(spec["evidence_strength"])
+            if exploration_mode
+            else 1.0
+        )
+        magnitude = min(0.08, float(spec["requested_weight"])) * confidence_scale * evidence_scale
+        delta = magnitude if spec["direction"] == "prefer" else -magnitude
+        matched = 0
+        for candidate in pool:
+            if candidate.candidate_id not in adjustments:
+                continue
+            if str(candidate.metadata.get(spec["field"], "")) != spec["value"]:
+                continue
+            adjustments[candidate.candidate_id] += delta
+            matched += 1
+        applied_specs.append(
+            {
+                **spec,
+                "weight": round(delta, 6),
+                "matched_candidates": matched,
+            }
+        )
+
+    for candidate_id, value in list(adjustments.items()):
+        adjustments[candidate_id] = max(-0.12, min(0.12, value))
+    return adjustments, applied_specs, confidence
 
 
 def extract_json_object(text: str) -> dict[str, Any]:
@@ -2004,32 +2361,58 @@ def llm_skill_adjustments(
     mode: Mode,
     config: LLMConfig,
 ) -> tuple[dict[str, float], dict[str, Any], dict[str, Any]]:
+    exploration_mode = is_exploration_llm_mode(mode)
+    skill_id = "llm_exploration_policy" if exploration_mode else "llm_factor_policy"
     adjustments = {c.candidate_id: 0.0 for c in pool if c.candidate_id not in observed_ids}
     if len(observed) < 8:
         cert = {
-            "skills": {"llm_factor_policy": {"active": False, "reason": "observed_count_below_8"}},
+            "skills": {skill_id: {"active": False, "reason": "observed_count_below_8"}},
             "max_abs_adjustment": 0.0,
         }
-        record = {"called": False, "reason": "observed_count_below_8"}
+        record = {
+            "called": False,
+            "policy_variant": "exploration_aware" if exploration_mode else "legacy",
+            "reason": "observed_count_below_8",
+        }
         return adjustments, cert, record
 
-    prompt_payload = observed_evidence_payload(adapter, observed)
-    system = (
-        "You are a CARE policy proposer for scientific finite-pool replay. "
-        "Use only the revealed observations in the user JSON. "
-        "Do not assume hidden outcomes for unrevealed candidates. "
-        "Return only one JSON object with an adjustments array and confidence. "
-        "No markdown. No prose. No chain-of-thought."
-    )
-    user = (
-        "Propose bounded factor-level score adjustments for the next candidate selection. "
-        "Use fields only from decision_columns. Use values that are supported by factor_evidence "
-        "or shown in top_revealed/bottom_revealed. Prefer high-evidence factors and penalize "
-        "low-evidence factors. Max 4 adjustments. Return exactly this shape: "
-        "{\"adjustments\":[{\"field\":\"dopant\",\"value\":\"D4\",\"direction\":\"prefer\",\"weight\":0.05,\"reason\":\"short evidence reason\"}],\"confidence\":0.7}. "
-        "JSON input:\n"
-        + json.dumps(prompt_payload, ensure_ascii=False)
-    )
+    if exploration_mode:
+        prompt_payload = exploration_evidence_payload(adapter, observed, round_index)
+        system = (
+            "You are the exploration-aware policy proposer for CARE 2.0 finite-pool scientific optimization. "
+            "Use only revealed outcomes and the public factor coverage supplied in the user JSON. "
+            "Never infer or claim hidden outcomes for unrevealed candidates. Analyze the tradeoffs privately, "
+            "then return only a concise auditable JSON decision; do not return chain-of-thought or markdown."
+        )
+        user = (
+            "Propose a diversified factor-level policy for the next selection. The adjustments must be capable "
+            "of changing the ranking, but should respect the exploration_budget. Include one explore/prefer "
+            "adjustment for an unseen or low-support value when available, one avoid/penalize adjustment for a "
+            "supported negative factor when available, and no more than two exploit/prefer adjustments. "
+            "Do not give every adjustment the same weight. Use roughly 0.01-0.04 for uncertain exploration, "
+            "0.01-0.03 for weak evidence, and 0.06-0.08 only for strong repeated evidence. Calibrate confidence "
+            "from support, effect size, and contradictory evidence instead of using a default value. Return only "
+            "the JSON shape specified by output_contract. JSON input:\n"
+            + json.dumps(prompt_payload, ensure_ascii=False)
+        )
+    else:
+        prompt_payload = observed_evidence_payload(adapter, observed)
+        system = (
+            "You are a CARE policy proposer for scientific finite-pool replay. "
+            "Use only the revealed observations in the user JSON. "
+            "Do not assume hidden outcomes for unrevealed candidates. "
+            "Return only one JSON object with an adjustments array and confidence. "
+            "No markdown. No prose. No chain-of-thought."
+        )
+        user = (
+            "Propose bounded factor-level score adjustments for the next candidate selection. "
+            "Use fields only from decision_columns. Use values that are supported by factor_evidence "
+            "or shown in top_revealed/bottom_revealed. Prefer high-evidence factors and penalize "
+            "low-evidence factors. Max 4 adjustments. Return exactly this shape: "
+            "{\"adjustments\":[{\"field\":\"dopant\",\"value\":\"D4\",\"direction\":\"prefer\",\"weight\":0.05,\"reason\":\"short evidence reason\"}],\"confidence\":0.7}. "
+            "JSON input:\n"
+            + json.dumps(prompt_payload, ensure_ascii=False)
+        )
     content, response_meta = chat_completion_text(config, [{"role": "system", "content": system}, {"role": "user", "content": user}])
 
     parse_error = ""
@@ -2042,49 +2425,23 @@ def llm_skill_adjustments(
     if "adjustments" not in parsed and {"field", "value", "direction"} <= set(parsed):
         parsed = {"adjustments": [parsed], "confidence": parsed.get("confidence", 0.5)}
 
-    allowed_fields = set(adapter.decision_columns)
-    applied_specs = []
-    for item in list(parsed.get("adjustments", []))[:4]:
-        if not isinstance(item, dict):
-            continue
-        field_name = str(item.get("field", ""))
-        value = str(item.get("value", ""))
-        direction = str(item.get("direction", "")).lower()
-        if field_name not in allowed_fields or direction not in {"prefer", "penalize"}:
-            continue
-        try:
-            magnitude = min(0.08, max(0.0, abs(float(item.get("weight", 0.0)))))
-        except (TypeError, ValueError):
-            continue
-        delta = magnitude if direction == "prefer" else -magnitude
-        matched = 0
-        for c in pool:
-            if c.candidate_id not in adjustments:
-                continue
-            if str(c.metadata.get(field_name, "")) != value:
-                continue
-            adjustments[c.candidate_id] += delta
-            matched += 1
-        applied_specs.append(
-            {
-                "field": field_name,
-                "value": value,
-                "direction": direction,
-                "weight": round(delta, 6),
-                "matched_candidates": matched,
-                "reason": str(item.get("reason", ""))[:240],
-            }
-        )
-
-    for cid, value in list(adjustments.items()):
-        adjustments[cid] = max(-0.12, min(0.12, value))
+    adjustments, applied_specs, confidence_calibration = normalize_llm_adjustments(
+        adapter,
+        pool,
+        observed_ids,
+        observed,
+        parsed,
+        exploration_mode,
+    )
     max_abs = max((abs(v) for v in adjustments.values()), default=0.0)
     cert = {
         "skills": {
-            "llm_factor_policy": {
+            skill_id: {
                 "active": bool(applied_specs),
                 "model": response_meta["model"],
+                "policy_variant": "exploration_aware" if exploration_mode else "legacy",
                 "applied_specs": applied_specs,
+                "confidence_calibration": confidence_calibration,
                 "parse_error": parse_error,
             }
         },
@@ -2093,6 +2450,7 @@ def llm_skill_adjustments(
     record = {
         "called": True,
         "mode": mode,
+        "policy_variant": "exploration_aware" if exploration_mode else "legacy",
         "seed": seed,
         "round_index": round_index,
         "model": response_meta["model"],
@@ -2100,7 +2458,9 @@ def llm_skill_adjustments(
         "prompt_payload": prompt_payload,
         "raw_response": content,
         "parsed_response": parsed,
+        "decision_summary": parsed.get("decision_summary", {}),
         "applied_specs": applied_specs,
+        "confidence_calibration": confidence_calibration,
         "parse_error": parse_error,
     }
     return adjustments, cert, record
@@ -2153,6 +2513,11 @@ def run_policy(
     bad_interventions = 0
     rejected_good_challengers = 0
     llm_call_count = 0
+    challenger_change_count = 0
+    exploration_adjustment_count = 0
+    penalize_adjustment_count = 0
+    exploration_risk_accept_count = 0
+    llm_calibrated_confidence_total = 0.0
     selected_top10 = False
 
     for round_index in range(task.reveal_budget):
@@ -2202,16 +2567,49 @@ def run_policy(
                         llm_config,
                     )
                     llm_call_count += int(bool(llm_record.get("called")))
+                    if llm_record.get("called"):
+                        specs = llm_record.get("applied_specs", [])
+                        exploration_adjustment_count += sum(
+                            1 for spec in specs if spec.get("intent") == "explore"
+                        )
+                        penalize_adjustment_count += sum(
+                            1 for spec in specs if spec.get("direction") == "penalize"
+                        )
+                        llm_calibrated_confidence_total += float(
+                            llm_record.get("confidence_calibration", {}).get("calibrated", 0.0)
+                        )
                     row_order_stable = True
                 else:
                     adjustments, skill_cert = skill_adjustments(adapter, pool, observed_ids, observed, skills, round_index)
                     row_order_stable = row_order_stability_check(adapter, pool, observed_ids, observed, skills, round_index, adjustments)
                 adjusted_scores = {cid: base_scores[cid] + adjustments.get(cid, 0.0) for cid in base_scores}
                 active_skill_ids = tuple(k for k, v in skill_cert["skills"].items() if v.get("active"))
-                if mode in {"no_gate", "llm_no_gate"}:
+                if mode in {"no_gate", "llm_no_gate", "llm_explore_no_gate"}:
                     gate = no_gate_decision(base_scores, adjusted_scores, row_order_stable, active_skill_ids)
+                elif mode == "llm_explore_gate_v1":
+                    gate = exploration_gate_decision(
+                        mode,
+                        base_scores,
+                        adjusted_scores,
+                        adjustments,
+                        candidate_novelty_scores(adapter, observed_ids, observed),
+                        row_order_stable,
+                        active_skill_ids,
+                        seed,
+                        round_index,
+                        float(
+                            (llm_record or {}).get("confidence_calibration", {}).get(
+                                "calibrated",
+                                0.0,
+                            )
+                        ),
+                    )
                 else:
                     gate = gate_decision(mode, base_scores, adjusted_scores, adjustments, row_order_stable, active_skill_ids)
+                challenger_change_count += int(gate.challenger_candidate != gate.incumbent_candidate)
+                exploration_risk_accept_count += int(
+                    gate.reason == "authorized_exploration_risk_budget"
+                )
                 if gate.authorized:
                     intervention_count += 1
                     if by_id[gate.challenger_candidate].objective_value < by_id[gate.incumbent_candidate].objective_value:
@@ -2242,7 +2640,7 @@ def run_policy(
                 selected_by="no_care_random"
                 if mode == "no_care_random"
                 else "llm_no_gate_challenger"
-                if mode == "llm_no_gate"
+                if mode in {"llm_no_gate", "llm_explore_no_gate"}
                 else "llm_gate_authorized_challenger"
                 if is_llm_mode(mode) and gate.authorized
                 else "llm_gate_rejected_incumbent"
@@ -2271,6 +2669,15 @@ def run_policy(
         "bad_intervention_count": bad_interventions,
         "rejected_good_challenger_count": rejected_good_challengers,
         "llm_call_count": llm_call_count,
+        "challenger_change_count": challenger_change_count,
+        "challenger_change_rate": round(challenger_change_count / max(1, task.reveal_budget), 4),
+        "exploration_adjustment_count": exploration_adjustment_count,
+        "penalize_adjustment_count": penalize_adjustment_count,
+        "exploration_risk_accept_count": exploration_risk_accept_count,
+        "llm_mean_calibrated_confidence": round(
+            llm_calibrated_confidence_total / max(1, llm_call_count),
+            4,
+        ),
         "hypothesis_confidence": round(hypothesis.confidence, 4),
         "hypothesis_support_count": hypothesis.support_count,
     }
@@ -2291,6 +2698,12 @@ def aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "bad_intervention_count",
         "rejected_good_challenger_count",
         "llm_call_count",
+        "challenger_change_count",
+        "challenger_change_rate",
+        "exploration_adjustment_count",
+        "penalize_adjustment_count",
+        "exploration_risk_accept_count",
+        "llm_mean_calibrated_confidence",
         "hypothesis_confidence",
         "hypothesis_support_count",
     ]

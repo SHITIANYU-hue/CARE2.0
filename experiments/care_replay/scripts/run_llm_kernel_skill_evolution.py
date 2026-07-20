@@ -28,6 +28,7 @@ class KernelSkillPatch:
     scales: tuple[float, ...]
     role_multipliers: dict[str, float]
     gp_beta: float
+    gp_beta_end: float
     source_prior_strength: float
     source_similarity_temperature: float
     source_neighbor_count: int
@@ -99,6 +100,12 @@ def normalize_patches(
                 scales=scales,
                 role_multipliers=multipliers,
                 gp_beta=bounded_float(raw.get("gp_beta", 1.5), 1.5, 0.5, 3.0),
+                gp_beta_end=bounded_float(
+                    raw.get("gp_beta_end", raw.get("gp_beta", 1.5)),
+                    1.0,
+                    0.5,
+                    3.0,
+                ),
                 source_prior_strength=bounded_float(
                     raw.get("source_prior_strength", 0.0), 0.0, 0.0, 2.5
                 ),
@@ -178,6 +185,9 @@ def propose_kernel_skill_patches(
             "Return diverse executable patches, not candidate IDs and not review prose.",
             "At least one patch should include scale 0 as a target-only safety anchor in an ensemble.",
             "At least one patch should focus on the two highest-confidence roles.",
+            "Include an exploration-first patch with gp_beta above 2.2 and gp_beta_end at or below 1.2.",
+            "Include a conservative patch with gp_beta and gp_beta_end both at or below 1.5.",
+            "Make at least one patch test a counter-hypothesis rather than only reinforcing the strongest source role.",
             "Include at least two source-prior patches when mapped roles have shared vocabularies.",
             "Use signed calibration when source and target objectives can be inversely related.",
             "Use positive_only calibration only when the objective semantics support the same direction.",
@@ -190,7 +200,8 @@ def propose_kernel_skill_patches(
             "patch_count": max_patches,
             "scales": "1 to 6 numbers, each in [0, 8]",
             "role_multipliers": "map every target decision field to [0.20, 3.0]",
-            "gp_beta": "number in [0.5, 3.0]",
+            "gp_beta": "number in [0.5, 3.0] used at the first replay round",
+            "gp_beta_end": "number in [0.5, 3.0] reached linearly at the final replay round",
             "source_prior_strength": "number in [0, 2.5]",
             "source_similarity_temperature": "number in [0.08, 2.0]",
             "source_neighbor_count": "integer in [3, 48]",
@@ -204,13 +215,14 @@ def propose_kernel_skill_patches(
                     "scales": [0.0, 1.0, 2.0],
                     "role_multipliers": {field: 1.0 for field in target_adapter.decision_columns},
                     "gp_beta": 1.5,
+                    "gp_beta_end": 1.0,
                     "source_prior_strength": 0.8,
                     "source_similarity_temperature": 0.35,
                     "source_neighbor_count": 12,
                     "calibration_mode": "signed",
                     "min_cv_gain": 0.03,
-                    "confidence": 0.7,
-                    "reason": "brief mechanism and risk rationale",
+                    "confidence": "evidence-calibrated number in [0, 1]; do not reuse one default",
+                    "reason": "brief hypothesis, counter-hypothesis, mechanism, and failure trigger",
                 }
             ]
         },
@@ -294,6 +306,7 @@ def run_patch(
             numeric_length_scale,
             categorical_length_scale,
             gp_noise,
+            patch.gp_beta_end,
         )
     metrics, audit = weighted.run_ensemble_policy(
         adapter,
@@ -305,6 +318,7 @@ def run_patch(
         numeric_length_scale,
         categorical_length_scale,
         gp_noise,
+        patch.gp_beta_end,
     )
     for row in audit:
         row["hypothesis_snapshot"]["llm_patch"] = asdict(patch)
