@@ -1,0 +1,850 @@
+{
+  "experiment": "care_llm_kernel_skill_refinement",
+  "model": "openai/gpt-4o-mini",
+  "usage": {
+    "prompt_tokens": 4086,
+    "completion_tokens": 1338,
+    "total_tokens": 5424,
+    "tps": 54.32,
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "api_configuration": {
+    "base_url": "https://api.commonstack.ai/v1",
+    "api_mode": "chat",
+    "structured_mode": "json",
+    "temperature": 0.3,
+    "max_tokens": 2600
+  },
+  "prompt_payload": {
+    "task": "Evolve the first-round source-to-target kernel skills using calibration-only performance. Produce a frozen second-round portfolio for evaluation on unseen seeds.",
+    "source_dataset": "real_moleculenet_freesolv",
+    "target_dataset": "real_moleculenet_lipophilicity",
+    "target_schema": {
+      "dataset_id": "real_moleculenet_lipophilicity",
+      "decision_columns": [
+        "smiles_length_bin",
+        "hetero_atom_bin",
+        "halogen_bin",
+        "aromatic_bin",
+        "ring_token_bin",
+        "branch_bin",
+        "double_bond_bin"
+      ],
+      "field_cardinality": {
+        "smiles_length_bin": 4,
+        "hetero_atom_bin": 4,
+        "halogen_bin": 4,
+        "aromatic_bin": 4,
+        "ring_token_bin": 4,
+        "branch_bin": 4,
+        "double_bond_bin": 4
+      },
+      "pool_size": 4200,
+      "hidden_target": "normalized_lipophilicity_score",
+      "boundary": "Only public feature schema is exposed. No target outcomes are included."
+    },
+    "target_anchor_mode": "mixed_kernel_gp_ei",
+    "calibration_seed_count": 50,
+    "first_round_patches": [
+      {
+        "patch": {
+          "patch_id": "exploration_patch_1",
+          "scales": [
+            0.0,
+            2.0,
+            4.0
+          ],
+          "role_multipliers": {
+            "smiles_length_bin": 1.0,
+            "hetero_atom_bin": 2.0,
+            "halogen_bin": 0.5,
+            "aromatic_bin": 0.8,
+            "ring_token_bin": 0.5,
+            "branch_bin": 0.5,
+            "double_bond_bin": 1.0
+          },
+          "gp_beta": 2.5,
+          "gp_beta_end": 1.2,
+          "source_prior_strength": 1.5,
+          "source_similarity_temperature": 0.9,
+          "source_neighbor_count": 10,
+          "calibration_mode": "signed",
+          "min_cv_gain": 0.1,
+          "confidence": 0.6,
+          "reason": "Exploration-focused patch to leverage high-confidence hetero_atom_bin while downweighting weaker roles."
+        },
+        "calibration_only_diagnostics_vs_target_anchor": {
+          "final_best": {
+            "n": 50.0,
+            "mean": 0.3125,
+            "std": 4.862693,
+            "se": 0.687689,
+            "normal_95ci_low": -1.03537,
+            "normal_95ci_high": 1.66037,
+            "win_rate": 0.42,
+            "non_loss_rate": 0.72
+          },
+          "best_so_far_auc": {
+            "n": 50.0,
+            "mean": 0.8965,
+            "std": 4.246084,
+            "se": 0.600487,
+            "normal_95ci_low": -0.280455,
+            "normal_95ci_high": 2.073455,
+            "win_rate": 0.54,
+            "non_loss_rate": 0.62
+          },
+          "composite": {
+            "n": 50.0,
+            "mean": 1.209,
+            "std": 8.80054,
+            "se": 1.244584,
+            "normal_95ci_low": -1.230385,
+            "normal_95ci_high": 3.648385,
+            "win_rate": 0.54,
+            "non_loss_rate": 0.62
+          },
+          "positive_fold_rate": 0.8,
+          "fold_composite_means": [
+            1.0625,
+            4.03,
+            -0.67,
+            1.575,
+            0.0475
+          ],
+          "risk_adjusted_composite_gain": -0.035584
+        }
+      },
+      {
+        "patch": {
+          "patch_id": "conservative_patch_1",
+          "scales": [
+            1.0,
+            2.0,
+            3.0
+          ],
+          "role_multipliers": {
+            "smiles_length_bin": 1.0,
+            "hetero_atom_bin": 1.0,
+            "halogen_bin": 0.6,
+            "aromatic_bin": 0.6,
+            "ring_token_bin": 0.4,
+            "branch_bin": 0.4,
+            "double_bond_bin": 0.4
+          },
+          "gp_beta": 1.5,
+          "gp_beta_end": 1.5,
+          "source_prior_strength": 1.0,
+          "source_similarity_temperature": 0.5,
+          "source_neighbor_count": 8,
+          "calibration_mode": "positive_only",
+          "min_cv_gain": 0.02,
+          "confidence": 0.5,
+          "reason": "Conservative patch focusing on maintaining stability with low beta and downweighted uncertain roles."
+        },
+        "calibration_only_diagnostics_vs_target_anchor": {
+          "final_best": {
+            "n": 50.0,
+            "mean": -0.4925,
+            "std": 4.400029,
+            "se": 0.622258,
+            "normal_95ci_low": -1.712126,
+            "normal_95ci_high": 0.727126,
+            "win_rate": 0.2,
+            "non_loss_rate": 0.64
+          },
+          "best_so_far_auc": {
+            "n": 50.0,
+            "mean": -0.5485,
+            "std": 3.652482,
+            "se": 0.516539,
+            "normal_95ci_low": -1.560916,
+            "normal_95ci_high": 0.463916,
+            "win_rate": 0.22,
+            "non_loss_rate": 0.5
+          },
+          "composite": {
+            "n": 50.0,
+            "mean": -1.041,
+            "std": 7.625323,
+            "se": 1.078383,
+            "normal_95ci_low": -3.154632,
+            "normal_95ci_high": 1.072632,
+            "win_rate": 0.26,
+            "non_loss_rate": 0.54
+          },
+          "positive_fold_rate": 0.4,
+          "fold_composite_means": [
+            -4.17375,
+            0.615,
+            -1.51875,
+            0.89125,
+            -1.01875
+          ],
+          "risk_adjusted_composite_gain": -2.119383
+        }
+      },
+      {
+        "patch": {
+          "patch_id": "high_confidence_patch",
+          "scales": [
+            1.0,
+            3.0,
+            5.0
+          ],
+          "role_multipliers": {
+            "smiles_length_bin": 1.5,
+            "hetero_atom_bin": 1.5,
+            "halogen_bin": 0.5,
+            "aromatic_bin": 0.8,
+            "ring_token_bin": 0.5,
+            "branch_bin": 0.5,
+            "double_bond_bin": 0.5
+          },
+          "gp_beta": 1.8,
+          "gp_beta_end": 1.0,
+          "source_prior_strength": 1.2,
+          "source_similarity_temperature": 0.6,
+          "source_neighbor_count": 15,
+          "calibration_mode": "signed",
+          "min_cv_gain": 0.04,
+          "confidence": 0.7,
+          "reason": "Focus on high-confidence roles to maximize potential gain while maintaining a balanced approach."
+        },
+        "calibration_only_diagnostics_vs_target_anchor": {
+          "final_best": {
+            "n": 50.0,
+            "mean": -1.28,
+            "std": 4.581523,
+            "se": 0.647925,
+            "normal_95ci_low": -2.549933,
+            "normal_95ci_high": -0.010067,
+            "win_rate": 0.18,
+            "non_loss_rate": 0.54
+          },
+          "best_so_far_auc": {
+            "n": 50.0,
+            "mean": -0.382,
+            "std": 3.68494,
+            "se": 0.521129,
+            "normal_95ci_low": -1.403413,
+            "normal_95ci_high": 0.639413,
+            "win_rate": 0.3,
+            "non_loss_rate": 0.44
+          },
+          "composite": {
+            "n": 50.0,
+            "mean": -1.662,
+            "std": 7.928116,
+            "se": 1.121205,
+            "normal_95ci_low": -3.859562,
+            "normal_95ci_high": 0.535562,
+            "win_rate": 0.28,
+            "non_loss_rate": 0.42
+          },
+          "positive_fold_rate": 0.2,
+          "fold_composite_means": [
+            -2.605,
+            2.5875,
+            -3.87125,
+            -0.12125,
+            -4.3
+          ],
+          "risk_adjusted_composite_gain": -2.783205
+        }
+      },
+      {
+        "patch": {
+          "patch_id": "counter_hypothesis_patch",
+          "scales": [
+            1.0,
+            2.0,
+            3.0
+          ],
+          "role_multipliers": {
+            "smiles_length_bin": 0.8,
+            "hetero_atom_bin": 0.8,
+            "halogen_bin": 1.2,
+            "aromatic_bin": 1.0,
+            "ring_token_bin": 1.0,
+            "branch_bin": 1.0,
+            "double_bond_bin": 1.0
+          },
+          "gp_beta": 1.4,
+          "gp_beta_end": 1.4,
+          "source_prior_strength": 0.5,
+          "source_similarity_temperature": 0.4,
+          "source_neighbor_count": 12,
+          "calibration_mode": "signed",
+          "min_cv_gain": 0.03,
+          "confidence": 0.4,
+          "reason": "Testing a counter-hypothesis by emphasizing halogen_bin, which is less certain in the source."
+        },
+        "calibration_only_diagnostics_vs_target_anchor": {
+          "final_best": {
+            "n": 50.0,
+            "mean": -0.315,
+            "std": 4.346855,
+            "se": 0.614738,
+            "normal_95ci_low": -1.519887,
+            "normal_95ci_high": 0.889887,
+            "win_rate": 0.24,
+            "non_loss_rate": 0.7
+          },
+          "best_so_far_auc": {
+            "n": 50.0,
+            "mean": -0.362,
+            "std": 3.294478,
+            "se": 0.46591,
+            "normal_95ci_low": -1.275183,
+            "normal_95ci_high": 0.551183,
+            "win_rate": 0.3,
+            "non_loss_rate": 0.58
+          },
+          "composite": {
+            "n": 50.0,
+            "mean": -0.677,
+            "std": 7.195228,
+            "se": 1.017559,
+            "normal_95ci_low": -2.671415,
+            "normal_95ci_high": 1.317415,
+            "win_rate": 0.32,
+            "non_loss_rate": 0.6
+          },
+          "positive_fold_rate": 0.4,
+          "fold_composite_means": [
+            -4.43375,
+            0.44875,
+            -1.60375,
+            2.48375,
+            -0.28
+          ],
+          "risk_adjusted_composite_gain": -1.694559
+        }
+      },
+      {
+        "patch": {
+          "patch_id": "ensemble_patch_1",
+          "scales": [
+            0.0,
+            1.0,
+            2.0
+          ],
+          "role_multipliers": {
+            "smiles_length_bin": 1.0,
+            "hetero_atom_bin": 1.0,
+            "halogen_bin": 0.5,
+            "aromatic_bin": 0.5,
+            "ring_token_bin": 0.5,
+            "branch_bin": 0.5,
+            "double_bond_bin": 0.5
+          },
+          "gp_beta": 1.5,
+          "gp_beta_end": 1.2,
+          "source_prior_strength": 0.8,
+          "source_similarity_temperature": 0.3,
+          "source_neighbor_count": 10,
+          "calibration_mode": "positive_only",
+          "min_cv_gain": 0.02,
+          "confidence": 0.5,
+          "reason": "Using a safety anchor scale of 0 to ensure robustness while exploring other scales."
+        },
+        "calibration_only_diagnostics_vs_target_anchor": {
+          "final_best": {
+            "n": 50.0,
+            "mean": -0.7875,
+            "std": 4.080767,
+            "se": 0.577108,
+            "normal_95ci_low": -1.918631,
+            "normal_95ci_high": 0.343631,
+            "win_rate": 0.26,
+            "non_loss_rate": 0.7
+          },
+          "best_so_far_auc": {
+            "n": 50.0,
+            "mean": -0.51775,
+            "std": 3.011362,
+            "se": 0.425871,
+            "normal_95ci_low": -1.352457,
+            "normal_95ci_high": 0.316957,
+            "win_rate": 0.28,
+            "non_loss_rate": 0.54
+          },
+          "composite": {
+            "n": 50.0,
+            "mean": -1.30525,
+            "std": 6.586155,
+            "se": 0.931423,
+            "normal_95ci_low": -3.130839,
+            "normal_95ci_high": 0.520339,
+            "win_rate": 0.3,
+            "non_loss_rate": 0.56
+          },
+          "positive_fold_rate": 0.2,
+          "fold_composite_means": [
+            -2.3975,
+            0.59,
+            -3.07375,
+            -1.3075,
+            -0.3375
+          ],
+          "risk_adjusted_composite_gain": -2.236673
+        }
+      },
+      {
+        "patch": {
+          "patch_id": "multi_scale_patch",
+          "scales": [
+            1.0,
+            3.0,
+            5.0
+          ],
+          "role_multipliers": {
+            "smiles_length_bin": 1.0,
+            "hetero_atom_bin": 1.0,
+            "halogen_bin": 0.7,
+            "aromatic_bin": 0.5,
+            "ring_token_bin": 0.5,
+            "branch_bin": 0.5,
+            "double_bond_bin": 0.5
+          },
+          "gp_beta": 2.0,
+          "gp_beta_end": 1.5,
+          "source_prior_strength": 1.0,
+          "source_similarity_temperature": 0.7,
+          "source_neighbor_count": 15,
+          "calibration_mode": "signed",
+          "min_cv_gain": 0.05,
+          "confidence": 0.6,
+          "reason": "Multi-scale ensemble to balance exploration and exploitation with varied role weights."
+        },
+        "calibration_only_diagnostics_vs_target_anchor": {
+          "final_best": {
+            "n": 50.0,
+            "mean": -0.6675,
+            "std": 5.200037,
+            "se": 0.735396,
+            "normal_95ci_low": -2.108877,
+            "normal_95ci_high": 0.773877,
+            "win_rate": 0.3,
+            "non_loss_rate": 0.64
+          },
+          "best_so_far_auc": {
+            "n": 50.0,
+            "mean": -0.287,
+            "std": 3.751345,
+            "se": 0.53052,
+            "normal_95ci_low": -1.32682,
+            "normal_95ci_high": 0.75282,
+            "win_rate": 0.46,
+            "non_loss_rate": 0.6
+          },
+          "composite": {
+            "n": 50.0,
+            "mean": -0.9545,
+            "std": 8.473972,
+            "se": 1.198401,
+            "normal_95ci_low": -3.303365,
+            "normal_95ci_high": 1.394365,
+            "win_rate": 0.42,
+            "non_loss_rate": 0.56
+          },
+          "positive_fold_rate": 0.2,
+          "fold_composite_means": [
+            -3.56125,
+            1.445,
+            -0.31,
+            -0.05875,
+            -2.2875
+          ],
+          "risk_adjusted_composite_gain": -2.152901
+        }
+      }
+    ],
+    "evidence_boundary": "Only calibration diagnostics are present. Held-out metrics, candidate identities, and unrevealed target outcomes are excluded.",
+    "refinement_rules": [
+      "Optimize paired Final Best and Best-So-Far AUC together; do not trade a large final loss for a small AUC gain.",
+      "Preserve or gently mutate skills that are positive across calibration folds.",
+      "Reduce the transfer scale or add scale 0 when a skill has high variance or poor non-loss rate.",
+      "Use role multipliers below 0.8 for weak, uncertain, or failure-associated mappings.",
+      "Retain one exploration-first beta schedule, one conservative schedule, one counter-hypothesis, and one multi-scale anchor.",
+      "Do not reuse one confidence value across all patches; calibrate confidence from support, fold stability, and uncertainty.",
+      "Return executable parameter patches only. Do not select target candidates or discuss held-out results."
+    ],
+    "allowed_space": {
+      "patch_count": 6,
+      "scales": "1 to 6 numbers, each in [0, 8]",
+      "role_multipliers": "map every target decision field to [0.20, 3.0]",
+      "gp_beta": "number in [0.5, 3.0] used at the first replay round",
+      "gp_beta_end": "number in [0.5, 3.0] reached linearly at the final replay round",
+      "source_prior_strength": "number in [0, 2.5]",
+      "source_similarity_temperature": "number in [0.08, 2.0]",
+      "source_neighbor_count": "integer in [3, 48]",
+      "calibration_mode": "one of off, positive_only, signed",
+      "min_cv_gain": "leave-one-out gain threshold in [0, 0.35]"
+    },
+    "output_contract": {
+      "patches": [
+        {
+          "patch_id": "short_unique_name",
+          "scales": [
+            0.0,
+            1.0,
+            2.0
+          ],
+          "role_multipliers": {
+            "smiles_length_bin": 1.0,
+            "hetero_atom_bin": 1.0,
+            "halogen_bin": 1.0,
+            "aromatic_bin": 1.0,
+            "ring_token_bin": 1.0,
+            "branch_bin": 1.0,
+            "double_bond_bin": 1.0
+          },
+          "gp_beta": 1.5,
+          "gp_beta_end": 1.0,
+          "source_prior_strength": 0.8,
+          "source_similarity_temperature": 0.35,
+          "source_neighbor_count": 12,
+          "calibration_mode": "signed",
+          "min_cv_gain": 0.03,
+          "confidence": "evidence-calibrated number in [0, 1]; do not reuse one default",
+          "reason": "brief hypothesis, counter-hypothesis, mechanism, and failure trigger"
+        }
+      ]
+    },
+    "patch_count": 6
+  },
+  "raw_response": "```json\n{\n  \"patches\": [\n    {\n      \"patch_id\": \"exploration_patch_1\",\n      \"scales\": [0.0, 1.0, 2.0],\n      \"role_multipliers\": {\n        \"smiles_length_bin\": 1.0,\n        \"hetero_atom_bin\": 1.5,\n        \"halogen_bin\": 0.5,\n        \"aromatic_bin\": 0.8,\n        \"ring_token_bin\": 0.5,\n        \"branch_bin\": 0.5,\n        \"double_bond_bin\": 1.0\n      },\n      \"gp_beta\": 2.0,\n      \"gp_beta_end\": 1.2,\n      \"source_prior_strength\": 1.5,\n      \"source_similarity_temperature\": 0.9,\n      \"source_neighbor_count\": 10,\n      \"calibration_mode\": \"signed\",\n      \"min_cv_gain\": 0.1,\n      \"confidence\": 0.65,\n      \"reason\": \"Exploration-focused patch emphasizing high-confidence hetero_atom_bin.\"\n    },\n    {\n      \"patch_id\": \"conservative_patch_1\",\n      \"scales\": [1.0, 2.0, 3.0],\n      \"role_multipliers\": {\n        \"smiles_length_bin\": 1.0,\n        \"hetero_atom_bin\": 1.0,\n        \"halogen_bin\": 0.6,\n        \"aromatic_bin\": 0.6,\n        \"ring_token_bin\": 0.4,\n        \"branch_bin\": 0.4,\n        \"double_bond_bin\": 0.4\n      },\n      \"gp_beta\": 1.5,\n      \"gp_beta_end\": 1.5,\n      \"source_prior_strength\": 1.0,\n      \"source_similarity_temperature\": 0.5,\n      \"source_neighbor_count\": 8,\n      \"calibration_mode\": \"positive_only\",\n      \"min_cv_gain\": 0.02,\n      \"confidence\": 0.55,\n      \"reason\": \"Conservative patch maintaining stability with low beta.\"\n    },\n    {\n      \"patch_id\": \"high_confidence_patch\",\n      \"scales\": [1.0, 3.0, 5.0],\n      \"role_multipliers\": {\n        \"smiles_length_bin\": 1.5,\n        \"hetero_atom_bin\": 1.5,\n        \"halogen_bin\": 0.5,\n        \"aromatic_bin\": 0.8,\n        \"ring_token_bin\": 0.5,\n        \"branch_bin\": 0.5,\n        \"double_bond_bin\": 0.5\n      },\n      \"gp_beta\": 1.8,\n      \"gp_beta_end\": 1.0,\n      \"source_prior_strength\": 1.2,\n      \"source_similarity_temperature\": 0.6,\n      \"source_neighbor_count\": 15,\n      \"calibration_mode\": \"signed\",\n      \"min_cv_gain\": 0.04,\n      \"confidence\": 0.7,\n      \"reason\": \"Focus on high-confidence roles for potential gain.\"\n    },\n    {\n      \"patch_id\": \"counter_hypothesis_patch\",\n      \"scales\": [1.0, 2.0, 3.0],\n      \"role_multipliers\": {\n        \"smiles_length_bin\": 0.8,\n        \"hetero_atom_bin\": 0.8,\n        \"halogen_bin\": 1.2,\n        \"aromatic_bin\": 1.0,\n        \"ring_token_bin\": 1.0,\n        \"branch_bin\": 1.0,\n        \"double_bond_bin\": 1.0\n      },\n      \"gp_beta\": 1.4,\n      \"gp_beta_end\": 1.4,\n      \"source_prior_strength\": 0.5,\n      \"source_similarity_temperature\": 0.4,\n      \"source_neighbor_count\": 12,\n      \"calibration_mode\": \"signed\",\n      \"min_cv_gain\": 0.03,\n      \"confidence\": 0.45,\n      \"reason\": \"Testing a counter-hypothesis by emphasizing halogen_bin.\"\n    },\n    {\n      \"patch_id\": \"ensemble_patch_1\",\n      \"scales\": [0.0, 1.0, 2.0],\n      \"role_multipliers\": {\n        \"smiles_length_bin\": 1.0,\n        \"hetero_atom_bin\": 1.0,\n        \"halogen_bin\": 0.5,\n        \"aromatic_bin\": 0.5,\n        \"ring_token_bin\": 0.5,\n        \"branch_bin\": 0.5,\n        \"double_bond_bin\": 0.5\n      },\n      \"gp_beta\": 1.5,\n      \"gp_beta_end\": 1.2,\n      \"source_prior_strength\": 0.8,\n      \"source_similarity_temperature\": 0.3,\n      \"source_neighbor_count\": 10,\n      \"calibration_mode\": \"positive_only\",\n      \"min_cv_gain\": 0.02,\n      \"confidence\": 0.5,\n      \"reason\": \"Using a safety anchor scale for robustness.\"\n    },\n    {\n      \"patch_id\": \"multi_scale_patch\",\n      \"scales\": [1.0, 3.0, 5.0],\n      \"role_multipliers\": {\n        \"smiles_length_bin\": 1.0,\n        \"hetero_atom_bin\": 1.0,\n        \"halogen_bin\": 0.7,\n        \"aromatic_bin\": 0.5,\n        \"ring_token_bin\": 0.5,\n        \"branch_bin\": 0.5,\n        \"double_bond_bin\": 0.5\n      },\n      \"gp_beta\": 2.0,\n      \"gp_beta_end\": 1.5,\n      \"source_prior_strength\": 1.0,\n      \"source_similarity_temperature\": 0.7,\n      \"source_neighbor_count\": 15,\n      \"calibration_mode\": \"signed\",\n      \"min_cv_gain\": 0.05,\n      \"confidence\": 0.6,\n      \"reason\": \"Multi-scale ensemble to balance exploration and exploitation.\"\n    }\n  ]\n}\n```",
+  "parsed_response": {
+    "patches": [
+      {
+        "patch_id": "exploration_patch_1",
+        "scales": [
+          0.0,
+          1.0,
+          2.0
+        ],
+        "role_multipliers": {
+          "smiles_length_bin": 1.0,
+          "hetero_atom_bin": 1.5,
+          "halogen_bin": 0.5,
+          "aromatic_bin": 0.8,
+          "ring_token_bin": 0.5,
+          "branch_bin": 0.5,
+          "double_bond_bin": 1.0
+        },
+        "gp_beta": 2.0,
+        "gp_beta_end": 1.2,
+        "source_prior_strength": 1.5,
+        "source_similarity_temperature": 0.9,
+        "source_neighbor_count": 10,
+        "calibration_mode": "signed",
+        "min_cv_gain": 0.1,
+        "confidence": 0.65,
+        "reason": "Exploration-focused patch emphasizing high-confidence hetero_atom_bin."
+      },
+      {
+        "patch_id": "conservative_patch_1",
+        "scales": [
+          1.0,
+          2.0,
+          3.0
+        ],
+        "role_multipliers": {
+          "smiles_length_bin": 1.0,
+          "hetero_atom_bin": 1.0,
+          "halogen_bin": 0.6,
+          "aromatic_bin": 0.6,
+          "ring_token_bin": 0.4,
+          "branch_bin": 0.4,
+          "double_bond_bin": 0.4
+        },
+        "gp_beta": 1.5,
+        "gp_beta_end": 1.5,
+        "source_prior_strength": 1.0,
+        "source_similarity_temperature": 0.5,
+        "source_neighbor_count": 8,
+        "calibration_mode": "positive_only",
+        "min_cv_gain": 0.02,
+        "confidence": 0.55,
+        "reason": "Conservative patch maintaining stability with low beta."
+      },
+      {
+        "patch_id": "high_confidence_patch",
+        "scales": [
+          1.0,
+          3.0,
+          5.0
+        ],
+        "role_multipliers": {
+          "smiles_length_bin": 1.5,
+          "hetero_atom_bin": 1.5,
+          "halogen_bin": 0.5,
+          "aromatic_bin": 0.8,
+          "ring_token_bin": 0.5,
+          "branch_bin": 0.5,
+          "double_bond_bin": 0.5
+        },
+        "gp_beta": 1.8,
+        "gp_beta_end": 1.0,
+        "source_prior_strength": 1.2,
+        "source_similarity_temperature": 0.6,
+        "source_neighbor_count": 15,
+        "calibration_mode": "signed",
+        "min_cv_gain": 0.04,
+        "confidence": 0.7,
+        "reason": "Focus on high-confidence roles for potential gain."
+      },
+      {
+        "patch_id": "counter_hypothesis_patch",
+        "scales": [
+          1.0,
+          2.0,
+          3.0
+        ],
+        "role_multipliers": {
+          "smiles_length_bin": 0.8,
+          "hetero_atom_bin": 0.8,
+          "halogen_bin": 1.2,
+          "aromatic_bin": 1.0,
+          "ring_token_bin": 1.0,
+          "branch_bin": 1.0,
+          "double_bond_bin": 1.0
+        },
+        "gp_beta": 1.4,
+        "gp_beta_end": 1.4,
+        "source_prior_strength": 0.5,
+        "source_similarity_temperature": 0.4,
+        "source_neighbor_count": 12,
+        "calibration_mode": "signed",
+        "min_cv_gain": 0.03,
+        "confidence": 0.45,
+        "reason": "Testing a counter-hypothesis by emphasizing halogen_bin."
+      },
+      {
+        "patch_id": "ensemble_patch_1",
+        "scales": [
+          0.0,
+          1.0,
+          2.0
+        ],
+        "role_multipliers": {
+          "smiles_length_bin": 1.0,
+          "hetero_atom_bin": 1.0,
+          "halogen_bin": 0.5,
+          "aromatic_bin": 0.5,
+          "ring_token_bin": 0.5,
+          "branch_bin": 0.5,
+          "double_bond_bin": 0.5
+        },
+        "gp_beta": 1.5,
+        "gp_beta_end": 1.2,
+        "source_prior_strength": 0.8,
+        "source_similarity_temperature": 0.3,
+        "source_neighbor_count": 10,
+        "calibration_mode": "positive_only",
+        "min_cv_gain": 0.02,
+        "confidence": 0.5,
+        "reason": "Using a safety anchor scale for robustness."
+      },
+      {
+        "patch_id": "multi_scale_patch",
+        "scales": [
+          1.0,
+          3.0,
+          5.0
+        ],
+        "role_multipliers": {
+          "smiles_length_bin": 1.0,
+          "hetero_atom_bin": 1.0,
+          "halogen_bin": 0.7,
+          "aromatic_bin": 0.5,
+          "ring_token_bin": 0.5,
+          "branch_bin": 0.5,
+          "double_bond_bin": 0.5
+        },
+        "gp_beta": 2.0,
+        "gp_beta_end": 1.5,
+        "source_prior_strength": 1.0,
+        "source_similarity_temperature": 0.7,
+        "source_neighbor_count": 15,
+        "calibration_mode": "signed",
+        "min_cv_gain": 0.05,
+        "confidence": 0.6,
+        "reason": "Multi-scale ensemble to balance exploration and exploitation."
+      }
+    ]
+  },
+  "normalized_patches": [
+    {
+      "patch_id": "exploration_patch_1",
+      "scales": [
+        0.0,
+        1.0,
+        2.0
+      ],
+      "role_multipliers": {
+        "smiles_length_bin": 1.0,
+        "hetero_atom_bin": 1.5,
+        "halogen_bin": 0.5,
+        "aromatic_bin": 0.8,
+        "ring_token_bin": 0.5,
+        "branch_bin": 0.5,
+        "double_bond_bin": 1.0
+      },
+      "gp_beta": 2.0,
+      "gp_beta_end": 1.2,
+      "source_prior_strength": 1.5,
+      "source_similarity_temperature": 0.9,
+      "source_neighbor_count": 10,
+      "calibration_mode": "signed",
+      "min_cv_gain": 0.1,
+      "confidence": 0.65,
+      "reason": "Exploration-focused patch emphasizing high-confidence hetero_atom_bin."
+    },
+    {
+      "patch_id": "conservative_patch_1",
+      "scales": [
+        1.0,
+        2.0,
+        3.0
+      ],
+      "role_multipliers": {
+        "smiles_length_bin": 1.0,
+        "hetero_atom_bin": 1.0,
+        "halogen_bin": 0.6,
+        "aromatic_bin": 0.6,
+        "ring_token_bin": 0.4,
+        "branch_bin": 0.4,
+        "double_bond_bin": 0.4
+      },
+      "gp_beta": 1.5,
+      "gp_beta_end": 1.5,
+      "source_prior_strength": 1.0,
+      "source_similarity_temperature": 0.5,
+      "source_neighbor_count": 8,
+      "calibration_mode": "positive_only",
+      "min_cv_gain": 0.02,
+      "confidence": 0.55,
+      "reason": "Conservative patch maintaining stability with low beta."
+    },
+    {
+      "patch_id": "high_confidence_patch",
+      "scales": [
+        1.0,
+        3.0,
+        5.0
+      ],
+      "role_multipliers": {
+        "smiles_length_bin": 1.5,
+        "hetero_atom_bin": 1.5,
+        "halogen_bin": 0.5,
+        "aromatic_bin": 0.8,
+        "ring_token_bin": 0.5,
+        "branch_bin": 0.5,
+        "double_bond_bin": 0.5
+      },
+      "gp_beta": 1.8,
+      "gp_beta_end": 1.0,
+      "source_prior_strength": 1.2,
+      "source_similarity_temperature": 0.6,
+      "source_neighbor_count": 15,
+      "calibration_mode": "signed",
+      "min_cv_gain": 0.04,
+      "confidence": 0.7,
+      "reason": "Focus on high-confidence roles for potential gain."
+    },
+    {
+      "patch_id": "counter_hypothesis_patch",
+      "scales": [
+        1.0,
+        2.0,
+        3.0
+      ],
+      "role_multipliers": {
+        "smiles_length_bin": 0.8,
+        "hetero_atom_bin": 0.8,
+        "halogen_bin": 1.2,
+        "aromatic_bin": 1.0,
+        "ring_token_bin": 1.0,
+        "branch_bin": 1.0,
+        "double_bond_bin": 1.0
+      },
+      "gp_beta": 1.4,
+      "gp_beta_end": 1.4,
+      "source_prior_strength": 0.5,
+      "source_similarity_temperature": 0.4,
+      "source_neighbor_count": 12,
+      "calibration_mode": "signed",
+      "min_cv_gain": 0.03,
+      "confidence": 0.45,
+      "reason": "Testing a counter-hypothesis by emphasizing halogen_bin."
+    },
+    {
+      "patch_id": "ensemble_patch_1",
+      "scales": [
+        0.0,
+        1.0,
+        2.0
+      ],
+      "role_multipliers": {
+        "smiles_length_bin": 1.0,
+        "hetero_atom_bin": 1.0,
+        "halogen_bin": 0.5,
+        "aromatic_bin": 0.5,
+        "ring_token_bin": 0.5,
+        "branch_bin": 0.5,
+        "double_bond_bin": 0.5
+      },
+      "gp_beta": 1.5,
+      "gp_beta_end": 1.2,
+      "source_prior_strength": 0.8,
+      "source_similarity_temperature": 0.3,
+      "source_neighbor_count": 10,
+      "calibration_mode": "positive_only",
+      "min_cv_gain": 0.02,
+      "confidence": 0.5,
+      "reason": "Using a safety anchor scale for robustness."
+    },
+    {
+      "patch_id": "multi_scale_patch",
+      "scales": [
+        1.0,
+        3.0,
+        5.0
+      ],
+      "role_multipliers": {
+        "smiles_length_bin": 1.0,
+        "hetero_atom_bin": 1.0,
+        "halogen_bin": 0.7,
+        "aromatic_bin": 0.5,
+        "ring_token_bin": 0.5,
+        "branch_bin": 0.5,
+        "double_bond_bin": 0.5
+      },
+      "gp_beta": 2.0,
+      "gp_beta_end": 1.5,
+      "source_prior_strength": 1.0,
+      "source_similarity_temperature": 0.7,
+      "source_neighbor_count": 15,
+      "calibration_mode": "signed",
+      "min_cv_gain": 0.05,
+      "confidence": 0.6,
+      "reason": "Multi-scale ensemble to balance exploration and exploitation."
+    }
+  ],
+  "parse_error": "",
+  "source_llm_record_sha256": "2e5388564ca614627383e5fc850cb7ae32927f2d91ab2f2b4c6b44b8bf4140fe",
+  "calibration_summary_sha256": "41e36a4597f39fefe6c31edb462723c10be97070e10d51877c5f277d99323e49",
+  "llm_generation_call_count": 2
+}

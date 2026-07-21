@@ -2871,6 +2871,8 @@ def llm_config_from_args(args: argparse.Namespace, modes: tuple[TransferMode, ..
         model=args.llm_model,
         temperature=args.llm_temperature,
         max_tokens=args.llm_max_tokens,
+        api_mode=args.llm_api_mode,
+        structured_mode=args.llm_structured_mode,
     )
 
 
@@ -3052,6 +3054,16 @@ def main() -> None:
     parser.add_argument("--llm-base-url", default=os.environ.get("CARE_LLM_BASE_URL", "https://api.commonstack.ai/v1"))
     parser.add_argument("--llm-model", default=os.environ.get("CARE_LLM_MODEL", "moonshotai/kimi-k2.7-code"))
     parser.add_argument("--llm-api-key-env", default="CARE_LLM_API_KEY")
+    parser.add_argument(
+        "--llm-api-mode",
+        choices=("chat", "completion"),
+        default=os.environ.get("CARE_LLM_API_MODE", "chat"),
+    )
+    parser.add_argument(
+        "--llm-structured-mode",
+        choices=("tool", "json"),
+        default=os.environ.get("CARE_LLM_STRUCTURED_MODE", "tool"),
+    )
     parser.add_argument("--llm-temperature", type=float, default=0.0)
     parser.add_argument("--llm-max-tokens", type=int, default=500)
     parser.add_argument("--output-tag", default="", help="Optional suffix for output filenames.")

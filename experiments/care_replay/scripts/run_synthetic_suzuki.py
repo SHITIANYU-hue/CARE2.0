@@ -150,6 +150,8 @@ class LLMConfig:
     model: str
     temperature: float
     max_tokens: int
+    api_mode: Literal["chat", "completion"] = "chat"
+    structured_mode: Literal["tool", "json"] = "tool"
 
 
 @dataclass
@@ -2235,27 +2237,49 @@ def trace_llm_event(event: dict[str, Any]) -> None:
 
 
 def chat_completion_text(config: LLMConfig, messages: list[dict[str, str]]) -> tuple[str, dict[str, Any]]:
-    payload = {
-        "model": config.model,
-        "messages": messages,
-        "temperature": config.temperature,
-        "max_tokens": config.max_tokens,
-        "response_format": {"type": "json_object"},
-        "tools": [
-            {
-                "type": "function",
-                "function": {
-                    "name": "return_json",
-                    "description": "Return exactly the JSON object requested by the prompt.",
-                    "parameters": {
-                        "type": "object",
-                        "additionalProperties": True,
+    if config.api_mode not in {"chat", "completion"}:
+        raise ValueError(f"Unknown LLM API mode: {config.api_mode}")
+    if config.api_mode == "chat":
+        payload = {
+            "model": config.model,
+            "messages": messages,
+            "temperature": config.temperature,
+            "max_tokens": config.max_tokens,
+            "response_format": {"type": "json_object"},
+        }
+        if config.structured_mode == "tool":
+            payload["tools"] = [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "return_json",
+                        "description": "Return exactly the JSON object requested by the prompt.",
+                        "parameters": {
+                            "type": "object",
+                            "additionalProperties": True,
+                        },
                     },
-                },
+                }
+            ]
+            payload["tool_choice"] = {
+                "type": "function",
+                "function": {"name": "return_json"},
             }
-        ],
-        "tool_choice": {"type": "function", "function": {"name": "return_json"}},
-    }
+        elif config.structured_mode != "json":
+            raise ValueError(f"Unknown structured output mode: {config.structured_mode}")
+        endpoint = "/chat/completions"
+    else:
+        prompt = "\n\n".join(
+            f"{message['role'].upper()}:\n{message['content']}"
+            for message in messages
+        )
+        payload = {
+            "model": config.model,
+            "prompt": prompt + "\n\nASSISTANT:\n",
+            "temperature": config.temperature,
+            "max_tokens": config.max_tokens,
+        }
+        endpoint = "/completions"
     retryable_http = {408, 409, 425, 429, 500, 502, 503, 504}
     retryable_errors = (
         TimeoutError,
@@ -2273,15 +2297,17 @@ def chat_completion_text(config: LLMConfig, messages: list[dict[str, str]]) -> t
             "call_id": call_id,
             "model": config.model,
             "base_url": config.base_url.rstrip("/"),
+            "api_mode": config.api_mode,
+            "structured_mode": config.structured_mode,
             "message_count": len(messages),
             "max_tokens": config.max_tokens,
-            "response_format": payload["response_format"],
-            "tool_choice": payload["tool_choice"],
+            "response_format": payload.get("response_format"),
+            "tool_choice": payload.get("tool_choice"),
         }
     )
     for attempt in range(4):
         req = urllib.request.Request(
-            config.base_url.rstrip("/") + "/chat/completions",
+            config.base_url.rstrip("/") + endpoint,
             data=json.dumps(payload).encode("utf-8"),
             headers={
                 "Authorization": "Bearer " + config.api_key,
@@ -2371,11 +2397,15 @@ def chat_completion_text(config: LLMConfig, messages: list[dict[str, str]]) -> t
             }
         )
         raise RuntimeError(f"LLM endpoint request failed after retries: {last_error}")
-    message = data["choices"][0]["message"]
-    content = message.get("content", "")
-    tool_calls = message.get("tool_calls") or []
-    if tool_calls:
-        content = tool_calls[0].get("function", {}).get("arguments", "") or content
+    if config.api_mode == "chat":
+        message = data["choices"][0]["message"]
+        content = message.get("content", "")
+        tool_calls = message.get("tool_calls") or []
+        if tool_calls:
+            content = tool_calls[0].get("function", {}).get("arguments", "") or content
+    else:
+        content = data["choices"][0].get("text", "")
+        tool_calls = []
     usage = data.get("usage", {})
     trace_llm_event(
         {
@@ -2832,6 +2862,8 @@ def llm_config_from_args(args: argparse.Namespace, modes: tuple[Mode, ...]) -> L
         model=args.llm_model,
         temperature=args.llm_temperature,
         max_tokens=args.llm_max_tokens,
+        api_mode=args.llm_api_mode,
+        structured_mode=args.llm_structured_mode,
     )
 
 
@@ -2880,6 +2912,8 @@ def run_dataset(
             "model": llm_config.model,
             "temperature": llm_config.temperature,
             "max_tokens": llm_config.max_tokens,
+            "api_mode": llm_config.api_mode,
+            "structured_mode": llm_config.structured_mode,
         },
         "aggregate": aggregate(rows),
     }
@@ -2898,6 +2932,16 @@ def main() -> None:
     parser.add_argument("--llm-base-url", default=os.environ.get("CARE_LLM_BASE_URL", "https://api.commonstack.ai/v1"))
     parser.add_argument("--llm-model", default=os.environ.get("CARE_LLM_MODEL", "moonshotai/kimi-k2.7-code"))
     parser.add_argument("--llm-api-key-env", default="CARE_LLM_API_KEY")
+    parser.add_argument(
+        "--llm-api-mode",
+        choices=("chat", "completion"),
+        default=os.environ.get("CARE_LLM_API_MODE", "chat"),
+    )
+    parser.add_argument(
+        "--llm-structured-mode",
+        choices=("tool", "json"),
+        default=os.environ.get("CARE_LLM_STRUCTURED_MODE", "tool"),
+    )
     parser.add_argument("--llm-temperature", type=float, default=0.0)
     parser.add_argument("--llm-max-tokens", type=int, default=500)
     parser.add_argument("--output-tag", default="", help="Optional suffix for output filenames, e.g. llm_commonstack.")

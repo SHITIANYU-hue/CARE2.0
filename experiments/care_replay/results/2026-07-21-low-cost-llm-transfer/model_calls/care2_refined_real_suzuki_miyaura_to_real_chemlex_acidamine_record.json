@@ -1,0 +1,784 @@
+{
+  "experiment": "care_llm_kernel_skill_refinement",
+  "model": "openai/gpt-4o-mini",
+  "usage": {
+    "prompt_tokens": 3811,
+    "completion_tokens": 1091,
+    "total_tokens": 4902,
+    "tps": 69.01,
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "api_configuration": {
+    "base_url": "https://api.commonstack.ai/v1",
+    "api_mode": "chat",
+    "structured_mode": "json",
+    "temperature": 0.3,
+    "max_tokens": 2600
+  },
+  "prompt_payload": {
+    "task": "Evolve the first-round source-to-target kernel skills using calibration-only performance. Produce a frozen second-round portfolio for evaluation on unseen seeds.",
+    "source_dataset": "real_suzuki_miyaura",
+    "target_dataset": "real_chemlex_acidamine",
+    "target_schema": {
+      "dataset_id": "real_chemlex_acidamine",
+      "decision_columns": [
+        "acid",
+        "amine",
+        "reagent",
+        "solvent"
+      ],
+      "field_cardinality": {
+        "acid": 272,
+        "amine": 231,
+        "reagent": 10,
+        "solvent": 1
+      },
+      "pool_size": 11669,
+      "hidden_target": "conversion_value",
+      "boundary": "Only public feature schema is exposed. No target outcomes are included."
+    },
+    "target_anchor_mode": "gp_ucb",
+    "calibration_seed_count": 50,
+    "first_round_patches": [
+      {
+        "patch": {
+          "patch_id": "exploration_patch_1",
+          "scales": [
+            1.0,
+            2.0,
+            3.0
+          ],
+          "role_multipliers": {
+            "acid": 1.5,
+            "amine": 0.5,
+            "reagent": 1.0,
+            "solvent": 0.5
+          },
+          "gp_beta": 2.5,
+          "gp_beta_end": 1.2,
+          "source_prior_strength": 1.5,
+          "source_similarity_temperature": 0.15,
+          "source_neighbor_count": 20,
+          "calibration_mode": "signed",
+          "min_cv_gain": 0.1,
+          "confidence": 0.6,
+          "reason": "Exploration-focused patch to enhance performance through higher beta; emphasizes acid role while downweighting amine and solvent due to uncertainty."
+        },
+        "calibration_only_diagnostics_vs_target_anchor": {
+          "final_best": {
+            "n": 50.0,
+            "mean": -2.2138,
+            "std": 11.338909,
+            "se": 1.603564,
+            "normal_95ci_low": -5.356785,
+            "normal_95ci_high": 0.929185,
+            "win_rate": 0.18,
+            "non_loss_rate": 0.56
+          },
+          "best_so_far_auc": {
+            "n": 50.0,
+            "mean": -2.782196,
+            "std": 13.976011,
+            "se": 1.976506,
+            "normal_95ci_low": -6.656149,
+            "normal_95ci_high": 1.091757,
+            "win_rate": 0.32,
+            "non_loss_rate": 0.5
+          },
+          "composite": {
+            "n": 50.0,
+            "mean": -4.995996,
+            "std": 22.832213,
+            "se": 3.228963,
+            "normal_95ci_low": -11.324763,
+            "normal_95ci_high": 1.332771,
+            "win_rate": 0.32,
+            "non_loss_rate": 0.5
+          },
+          "positive_fold_rate": 0.2,
+          "fold_composite_means": [
+            -2.77198,
+            -0.3193,
+            -14.4512,
+            5.7578,
+            -13.1953
+          ],
+          "risk_adjusted_composite_gain": -8.224959
+        }
+      },
+      {
+        "patch": {
+          "patch_id": "conservative_patch_1",
+          "scales": [
+            0.0,
+            1.0,
+            2.0
+          ],
+          "role_multipliers": {
+            "acid": 1.0,
+            "amine": 0.8,
+            "reagent": 1.0,
+            "solvent": 0.5
+          },
+          "gp_beta": 1.2,
+          "gp_beta_end": 1.0,
+          "source_prior_strength": 0.5,
+          "source_similarity_temperature": 0.5,
+          "source_neighbor_count": 10,
+          "calibration_mode": "positive_only",
+          "min_cv_gain": 0.02,
+          "confidence": 0.4,
+          "reason": "Conservative approach to minimize risk; maintains stability in performance by focusing on reliable roles and downweighting solvent."
+        },
+        "calibration_only_diagnostics_vs_target_anchor": {
+          "final_best": {
+            "n": 50.0,
+            "mean": -1.806,
+            "std": 12.89532,
+            "se": 1.823674,
+            "normal_95ci_low": -5.3804,
+            "normal_95ci_high": 1.7684,
+            "win_rate": 0.22,
+            "non_loss_rate": 0.64
+          },
+          "best_so_far_auc": {
+            "n": 50.0,
+            "mean": -1.988716,
+            "std": 9.020739,
+            "se": 1.275725,
+            "normal_95ci_low": -4.489137,
+            "normal_95ci_high": 0.511705,
+            "win_rate": 0.32,
+            "non_loss_rate": 0.54
+          },
+          "composite": {
+            "n": 50.0,
+            "mean": -3.794716,
+            "std": 19.970362,
+            "se": 2.824236,
+            "normal_95ci_low": -9.330218,
+            "normal_95ci_high": 1.740786,
+            "win_rate": 0.32,
+            "non_loss_rate": 0.54
+          },
+          "positive_fold_rate": 0.0,
+          "fold_composite_means": [
+            -1.60868,
+            -9.3754,
+            -1.3869,
+            -6.3379,
+            -0.2647
+          ],
+          "risk_adjusted_composite_gain": -6.618952
+        }
+      },
+      {
+        "patch": {
+          "patch_id": "high_confidence_patch",
+          "scales": [
+            1.0,
+            2.0,
+            3.0
+          ],
+          "role_multipliers": {
+            "acid": 1.2,
+            "amine": 1.0,
+            "reagent": 1.5,
+            "solvent": 0.8
+          },
+          "gp_beta": 1.5,
+          "gp_beta_end": 1.5,
+          "source_prior_strength": 1.0,
+          "source_similarity_temperature": 0.25,
+          "source_neighbor_count": 15,
+          "calibration_mode": "signed",
+          "min_cv_gain": 0.05,
+          "confidence": 0.7,
+          "reason": "Focuses on the two highest-confidence roles (acid and reagent) to maximize yield; uses signed calibration to account for potential inverse relationships."
+        },
+        "calibration_only_diagnostics_vs_target_anchor": {
+          "final_best": {
+            "n": 50.0,
+            "mean": -2.9882,
+            "std": 11.383807,
+            "se": 1.609913,
+            "normal_95ci_low": -6.14363,
+            "normal_95ci_high": 0.16723,
+            "win_rate": 0.14,
+            "non_loss_rate": 0.68
+          },
+          "best_so_far_auc": {
+            "n": 50.0,
+            "mean": -2.957816,
+            "std": 10.44184,
+            "se": 1.476699,
+            "normal_95ci_low": -5.852146,
+            "normal_95ci_high": -0.063486,
+            "win_rate": 0.26,
+            "non_loss_rate": 0.6
+          },
+          "composite": {
+            "n": 50.0,
+            "mean": -5.946016,
+            "std": 20.962788,
+            "se": 2.964586,
+            "normal_95ci_low": -11.756604,
+            "normal_95ci_high": -0.135428,
+            "win_rate": 0.24,
+            "non_loss_rate": 0.58
+          },
+          "positive_fold_rate": 0.2,
+          "fold_composite_means": [
+            -3.83248,
+            2.1919,
+            -15.0596,
+            -2.8552,
+            -10.1747
+          ],
+          "risk_adjusted_composite_gain": -8.910602
+        }
+      },
+      {
+        "patch": {
+          "patch_id": "counter_hypothesis_patch",
+          "scales": [
+            1.0,
+            2.0,
+            4.0
+          ],
+          "role_multipliers": {
+            "acid": 0.8,
+            "amine": 1.2,
+            "reagent": 1.0,
+            "solvent": 1.0
+          },
+          "gp_beta": 1.5,
+          "gp_beta_end": 1.5,
+          "source_prior_strength": 0.0,
+          "source_similarity_temperature": 0.4,
+          "source_neighbor_count": 8,
+          "calibration_mode": "positive_only",
+          "min_cv_gain": 0.04,
+          "confidence": 0.5,
+          "reason": "Tests a counter-hypothesis by downweighting the strong acid role; explores the effect of amine on conversion value."
+        },
+        "calibration_only_diagnostics_vs_target_anchor": {
+          "final_best": {
+            "n": 50.0,
+            "mean": -1.51152,
+            "std": 8.946983,
+            "se": 1.265294,
+            "normal_95ci_low": -3.991497,
+            "normal_95ci_high": 0.968457,
+            "win_rate": 0.14,
+            "non_loss_rate": 0.68
+          },
+          "best_so_far_auc": {
+            "n": 50.0,
+            "mean": -0.686584,
+            "std": 6.987985,
+            "se": 0.98825,
+            "normal_95ci_low": -2.623555,
+            "normal_95ci_high": 1.250387,
+            "win_rate": 0.38,
+            "non_loss_rate": 0.7
+          },
+          "composite": {
+            "n": 50.0,
+            "mean": -2.198104,
+            "std": 15.194134,
+            "se": 2.148775,
+            "normal_95ci_low": -6.409703,
+            "normal_95ci_high": 2.013495,
+            "win_rate": 0.32,
+            "non_loss_rate": 0.64
+          },
+          "positive_fold_rate": 0.2,
+          "fold_composite_means": [
+            -2.53928,
+            2.0669,
+            -5.062,
+            -1.11234,
+            -4.3438
+          ],
+          "risk_adjusted_composite_gain": -4.346879
+        }
+      },
+      {
+        "patch": {
+          "patch_id": "multi_scale_ensemble_patch",
+          "scales": [
+            0.5,
+            1.5,
+            2.5
+          ],
+          "role_multipliers": {
+            "acid": 1.0,
+            "amine": 0.6,
+            "reagent": 1.2,
+            "solvent": 0.5
+          },
+          "gp_beta": 1.8,
+          "gp_beta_end": 1.5,
+          "source_prior_strength": 1.2,
+          "source_similarity_temperature": 0.3,
+          "source_neighbor_count": 25,
+          "calibration_mode": "signed",
+          "min_cv_gain": 0.06,
+          "confidence": 0.65,
+          "reason": "Utilizes a multi-scale ensemble approach to aggregate diverse evidence; balances roles while focusing on the most impactful features."
+        },
+        "calibration_only_diagnostics_vs_target_anchor": {
+          "final_best": {
+            "n": 50.0,
+            "mean": -2.745,
+            "std": 10.691924,
+            "se": 1.512066,
+            "normal_95ci_low": -5.70865,
+            "normal_95ci_high": 0.21865,
+            "win_rate": 0.2,
+            "non_loss_rate": 0.7
+          },
+          "best_so_far_auc": {
+            "n": 50.0,
+            "mean": -2.601576,
+            "std": 9.44556,
+            "se": 1.335804,
+            "normal_95ci_low": -5.219752,
+            "normal_95ci_high": 0.0166,
+            "win_rate": 0.32,
+            "non_loss_rate": 0.58
+          },
+          "composite": {
+            "n": 50.0,
+            "mean": -5.346576,
+            "std": 19.355695,
+            "se": 2.737309,
+            "normal_95ci_low": -10.711701,
+            "normal_95ci_high": 0.018549,
+            "win_rate": 0.32,
+            "non_loss_rate": 0.58
+          },
+          "positive_fold_rate": 0.0,
+          "fold_composite_means": [
+            -3.41778,
+            -0.0,
+            -14.0078,
+            -3.3327,
+            -5.9746
+          ],
+          "risk_adjusted_composite_gain": -8.083885
+        }
+      },
+      {
+        "patch": {
+          "patch_id": "safety_anchor_patch",
+          "scales": [
+            0.0,
+            1.0
+          ],
+          "role_multipliers": {
+            "acid": 1.0,
+            "amine": 0.5,
+            "reagent": 1.0,
+            "solvent": 1.0
+          },
+          "gp_beta": 1.5,
+          "gp_beta_end": 1.5,
+          "source_prior_strength": 0.8,
+          "source_similarity_temperature": 0.2,
+          "source_neighbor_count": 5,
+          "calibration_mode": "positive_only",
+          "min_cv_gain": 0.01,
+          "confidence": 0.3,
+          "reason": "Includes scale 0 as a safety anchor to ensure stability; emphasizes solvent role due to its consistent presence in the target schema."
+        },
+        "calibration_only_diagnostics_vs_target_anchor": {
+          "final_best": {
+            "n": 50.0,
+            "mean": -0.6426,
+            "std": 6.905722,
+            "se": 0.976617,
+            "normal_95ci_low": -2.556769,
+            "normal_95ci_high": 1.271569,
+            "win_rate": 0.12,
+            "non_loss_rate": 0.76
+          },
+          "best_so_far_auc": {
+            "n": 50.0,
+            "mean": -1.749856,
+            "std": 6.649452,
+            "se": 0.940375,
+            "normal_95ci_low": -3.59299,
+            "normal_95ci_high": 0.093278,
+            "win_rate": 0.24,
+            "non_loss_rate": 0.7
+          },
+          "composite": {
+            "n": 50.0,
+            "mean": -2.392456,
+            "std": 12.119562,
+            "se": 1.713965,
+            "normal_95ci_low": -5.751827,
+            "normal_95ci_high": 0.966915,
+            "win_rate": 0.24,
+            "non_loss_rate": 0.7
+          },
+          "positive_fold_rate": 0.2,
+          "fold_composite_means": [
+            0.61492,
+            -0.3401,
+            -1.0025,
+            -3.227,
+            -8.0076
+          ],
+          "risk_adjusted_composite_gain": -4.106421
+        }
+      }
+    ],
+    "evidence_boundary": "Only calibration diagnostics are present. Held-out metrics, candidate identities, and unrevealed target outcomes are excluded.",
+    "refinement_rules": [
+      "Optimize paired Final Best and Best-So-Far AUC together; do not trade a large final loss for a small AUC gain.",
+      "Preserve or gently mutate skills that are positive across calibration folds.",
+      "Reduce the transfer scale or add scale 0 when a skill has high variance or poor non-loss rate.",
+      "Use role multipliers below 0.8 for weak, uncertain, or failure-associated mappings.",
+      "Retain one exploration-first beta schedule, one conservative schedule, one counter-hypothesis, and one multi-scale anchor.",
+      "Do not reuse one confidence value across all patches; calibrate confidence from support, fold stability, and uncertainty.",
+      "Return executable parameter patches only. Do not select target candidates or discuss held-out results."
+    ],
+    "allowed_space": {
+      "patch_count": 6,
+      "scales": "1 to 6 numbers, each in [0, 8]",
+      "role_multipliers": "map every target decision field to [0.20, 3.0]",
+      "gp_beta": "number in [0.5, 3.0] used at the first replay round",
+      "gp_beta_end": "number in [0.5, 3.0] reached linearly at the final replay round",
+      "source_prior_strength": "number in [0, 2.5]",
+      "source_similarity_temperature": "number in [0.08, 2.0]",
+      "source_neighbor_count": "integer in [3, 48]",
+      "calibration_mode": "one of off, positive_only, signed",
+      "min_cv_gain": "leave-one-out gain threshold in [0, 0.35]"
+    },
+    "output_contract": {
+      "patches": [
+        {
+          "patch_id": "short_unique_name",
+          "scales": [
+            0.0,
+            1.0,
+            2.0
+          ],
+          "role_multipliers": {
+            "acid": 1.0,
+            "amine": 1.0,
+            "reagent": 1.0,
+            "solvent": 1.0
+          },
+          "gp_beta": 1.5,
+          "gp_beta_end": 1.0,
+          "source_prior_strength": 0.8,
+          "source_similarity_temperature": 0.35,
+          "source_neighbor_count": 12,
+          "calibration_mode": "signed",
+          "min_cv_gain": 0.03,
+          "confidence": "evidence-calibrated number in [0, 1]; do not reuse one default",
+          "reason": "brief hypothesis, counter-hypothesis, mechanism, and failure trigger"
+        }
+      ]
+    },
+    "patch_count": 6
+  },
+  "raw_response": "```json\n{\n  \"patches\": [\n    {\n      \"patch_id\": \"exploration_patch_optimized\",\n      \"scales\": [1.0, 2.0, 3.0],\n      \"role_multipliers\": {\n        \"acid\": 1.5,\n        \"amine\": 0.5,\n        \"reagent\": 1.0,\n        \"solvent\": 0.5\n      },\n      \"gp_beta\": 2.0,\n      \"gp_beta_end\": 1.2,\n      \"source_prior_strength\": 1.5,\n      \"source_similarity_temperature\": 0.15,\n      \"source_neighbor_count\": 20,\n      \"calibration_mode\": \"signed\",\n      \"min_cv_gain\": 0.1,\n      \"confidence\": 0.65,\n      \"reason\": \"Enhanced exploration while stabilizing performance.\"\n    },\n    {\n      \"patch_id\": \"conservative_patch_optimized\",\n      \"scales\": [0.0, 1.0, 2.0],\n      \"role_multipliers\": {\n        \"acid\": 1.0,\n        \"amine\": 0.8,\n        \"reagent\": 1.0,\n        \"solvent\": 0.5\n      },\n      \"gp_beta\": 1.2,\n      \"gp_beta_end\": 1.0,\n      \"source_prior_strength\": 0.5,\n      \"source_similarity_temperature\": 0.5,\n      \"source_neighbor_count\": 10,\n      \"calibration_mode\": \"positive_only\",\n      \"min_cv_gain\": 0.02,\n      \"confidence\": 0.4,\n      \"reason\": \"Minimized risk while maintaining reliable performance.\"\n    },\n    {\n      \"patch_id\": \"high_confidence_patch_optimized\",\n      \"scales\": [1.0, 2.0, 3.0],\n      \"role_multipliers\": {\n        \"acid\": 1.2,\n        \"amine\": 1.0,\n        \"reagent\": 1.5,\n        \"solvent\": 0.8\n      },\n      \"gp_beta\": 1.5,\n      \"gp_beta_end\": 1.5,\n      \"source_prior_strength\": 1.0,\n      \"source_similarity_temperature\": 0.25,\n      \"source_neighbor_count\": 15,\n      \"calibration_mode\": \"signed\",\n      \"min_cv_gain\": 0.05,\n      \"confidence\": 0.7,\n      \"reason\": \"Maximized yield by focusing on high-confidence roles.\"\n    },\n    {\n      \"patch_id\": \"counter_hypothesis_patch_optimized\",\n      \"scales\": [1.0, 2.0, 4.0],\n      \"role_multipliers\": {\n        \"acid\": 0.8,\n        \"amine\": 1.2,\n        \"reagent\": 1.0,\n        \"solvent\": 1.0\n      },\n      \"gp_beta\": 1.5,\n      \"gp_beta_end\": 1.5,\n      \"source_prior_strength\": 0.0,\n      \"source_similarity_temperature\": 0.4,\n      \"source_neighbor_count\": 8,\n      \"calibration_mode\": \"positive_only\",\n      \"min_cv_gain\": 0.04,\n      \"confidence\": 0.5,\n      \"reason\": \"Explored the effect of amine on conversion value.\"\n    },\n    {\n      \"patch_id\": \"multi_scale_ensemble_patch_optimized\",\n      \"scales\": [0.5, 1.5, 2.5],\n      \"role_multipliers\": {\n        \"acid\": 1.0,\n        \"amine\": 0.6,\n        \"reagent\": 1.2,\n        \"solvent\": 0.5\n      },\n      \"gp_beta\": 1.8,\n      \"gp_beta_end\": 1.5,\n      \"source_prior_strength\": 1.2,\n      \"source_similarity_temperature\": 0.3,\n      \"source_neighbor_count\": 25,\n      \"calibration_mode\": \"signed\",\n      \"min_cv_gain\": 0.06,\n      \"confidence\": 0.65,\n      \"reason\": \"Aggregated diverse evidence for balanced performance.\"\n    },\n    {\n      \"patch_id\": \"safety_anchor_patch_optimized\",\n      \"scales\": [0.0, 1.0],\n      \"role_multipliers\": {\n        \"acid\": 1.0,\n        \"amine\": 0.5,\n        \"reagent\": 1.0,\n        \"solvent\": 1.0\n      },\n      \"gp_beta\": 1.5,\n      \"gp_beta_end\": 1.5,\n      \"source_prior_strength\": 0.8,\n      \"source_similarity_temperature\": 0.2,\n      \"source_neighbor_count\": 5,\n      \"calibration_mode\": \"positive_only\",\n      \"min_cv_gain\": 0.01,\n      \"confidence\": 0.3,\n      \"reason\": \"Ensured stability with a safety anchor.\"\n    }\n  ]\n}\n```",
+  "parsed_response": {
+    "patches": [
+      {
+        "patch_id": "exploration_patch_optimized",
+        "scales": [
+          1.0,
+          2.0,
+          3.0
+        ],
+        "role_multipliers": {
+          "acid": 1.5,
+          "amine": 0.5,
+          "reagent": 1.0,
+          "solvent": 0.5
+        },
+        "gp_beta": 2.0,
+        "gp_beta_end": 1.2,
+        "source_prior_strength": 1.5,
+        "source_similarity_temperature": 0.15,
+        "source_neighbor_count": 20,
+        "calibration_mode": "signed",
+        "min_cv_gain": 0.1,
+        "confidence": 0.65,
+        "reason": "Enhanced exploration while stabilizing performance."
+      },
+      {
+        "patch_id": "conservative_patch_optimized",
+        "scales": [
+          0.0,
+          1.0,
+          2.0
+        ],
+        "role_multipliers": {
+          "acid": 1.0,
+          "amine": 0.8,
+          "reagent": 1.0,
+          "solvent": 0.5
+        },
+        "gp_beta": 1.2,
+        "gp_beta_end": 1.0,
+        "source_prior_strength": 0.5,
+        "source_similarity_temperature": 0.5,
+        "source_neighbor_count": 10,
+        "calibration_mode": "positive_only",
+        "min_cv_gain": 0.02,
+        "confidence": 0.4,
+        "reason": "Minimized risk while maintaining reliable performance."
+      },
+      {
+        "patch_id": "high_confidence_patch_optimized",
+        "scales": [
+          1.0,
+          2.0,
+          3.0
+        ],
+        "role_multipliers": {
+          "acid": 1.2,
+          "amine": 1.0,
+          "reagent": 1.5,
+          "solvent": 0.8
+        },
+        "gp_beta": 1.5,
+        "gp_beta_end": 1.5,
+        "source_prior_strength": 1.0,
+        "source_similarity_temperature": 0.25,
+        "source_neighbor_count": 15,
+        "calibration_mode": "signed",
+        "min_cv_gain": 0.05,
+        "confidence": 0.7,
+        "reason": "Maximized yield by focusing on high-confidence roles."
+      },
+      {
+        "patch_id": "counter_hypothesis_patch_optimized",
+        "scales": [
+          1.0,
+          2.0,
+          4.0
+        ],
+        "role_multipliers": {
+          "acid": 0.8,
+          "amine": 1.2,
+          "reagent": 1.0,
+          "solvent": 1.0
+        },
+        "gp_beta": 1.5,
+        "gp_beta_end": 1.5,
+        "source_prior_strength": 0.0,
+        "source_similarity_temperature": 0.4,
+        "source_neighbor_count": 8,
+        "calibration_mode": "positive_only",
+        "min_cv_gain": 0.04,
+        "confidence": 0.5,
+        "reason": "Explored the effect of amine on conversion value."
+      },
+      {
+        "patch_id": "multi_scale_ensemble_patch_optimized",
+        "scales": [
+          0.5,
+          1.5,
+          2.5
+        ],
+        "role_multipliers": {
+          "acid": 1.0,
+          "amine": 0.6,
+          "reagent": 1.2,
+          "solvent": 0.5
+        },
+        "gp_beta": 1.8,
+        "gp_beta_end": 1.5,
+        "source_prior_strength": 1.2,
+        "source_similarity_temperature": 0.3,
+        "source_neighbor_count": 25,
+        "calibration_mode": "signed",
+        "min_cv_gain": 0.06,
+        "confidence": 0.65,
+        "reason": "Aggregated diverse evidence for balanced performance."
+      },
+      {
+        "patch_id": "safety_anchor_patch_optimized",
+        "scales": [
+          0.0,
+          1.0
+        ],
+        "role_multipliers": {
+          "acid": 1.0,
+          "amine": 0.5,
+          "reagent": 1.0,
+          "solvent": 1.0
+        },
+        "gp_beta": 1.5,
+        "gp_beta_end": 1.5,
+        "source_prior_strength": 0.8,
+        "source_similarity_temperature": 0.2,
+        "source_neighbor_count": 5,
+        "calibration_mode": "positive_only",
+        "min_cv_gain": 0.01,
+        "confidence": 0.3,
+        "reason": "Ensured stability with a safety anchor."
+      }
+    ]
+  },
+  "normalized_patches": [
+    {
+      "patch_id": "exploration_patch_optimized",
+      "scales": [
+        1.0,
+        2.0,
+        3.0
+      ],
+      "role_multipliers": {
+        "acid": 1.5,
+        "amine": 0.5,
+        "reagent": 1.0,
+        "solvent": 0.5
+      },
+      "gp_beta": 2.0,
+      "gp_beta_end": 1.2,
+      "source_prior_strength": 1.5,
+      "source_similarity_temperature": 0.15,
+      "source_neighbor_count": 20,
+      "calibration_mode": "signed",
+      "min_cv_gain": 0.1,
+      "confidence": 0.65,
+      "reason": "Enhanced exploration while stabilizing performance."
+    },
+    {
+      "patch_id": "conservative_patch_optimized",
+      "scales": [
+        0.0,
+        1.0,
+        2.0
+      ],
+      "role_multipliers": {
+        "acid": 1.0,
+        "amine": 0.8,
+        "reagent": 1.0,
+        "solvent": 0.5
+      },
+      "gp_beta": 1.2,
+      "gp_beta_end": 1.0,
+      "source_prior_strength": 0.5,
+      "source_similarity_temperature": 0.5,
+      "source_neighbor_count": 10,
+      "calibration_mode": "positive_only",
+      "min_cv_gain": 0.02,
+      "confidence": 0.4,
+      "reason": "Minimized risk while maintaining reliable performance."
+    },
+    {
+      "patch_id": "high_confidence_patch_optimized",
+      "scales": [
+        1.0,
+        2.0,
+        3.0
+      ],
+      "role_multipliers": {
+        "acid": 1.2,
+        "amine": 1.0,
+        "reagent": 1.5,
+        "solvent": 0.8
+      },
+      "gp_beta": 1.5,
+      "gp_beta_end": 1.5,
+      "source_prior_strength": 1.0,
+      "source_similarity_temperature": 0.25,
+      "source_neighbor_count": 15,
+      "calibration_mode": "signed",
+      "min_cv_gain": 0.05,
+      "confidence": 0.7,
+      "reason": "Maximized yield by focusing on high-confidence roles."
+    },
+    {
+      "patch_id": "counter_hypothesis_patch_optimized",
+      "scales": [
+        1.0,
+        2.0,
+        4.0
+      ],
+      "role_multipliers": {
+        "acid": 0.8,
+        "amine": 1.2,
+        "reagent": 1.0,
+        "solvent": 1.0
+      },
+      "gp_beta": 1.5,
+      "gp_beta_end": 1.5,
+      "source_prior_strength": 0.0,
+      "source_similarity_temperature": 0.4,
+      "source_neighbor_count": 8,
+      "calibration_mode": "positive_only",
+      "min_cv_gain": 0.04,
+      "confidence": 0.5,
+      "reason": "Explored the effect of amine on conversion value."
+    },
+    {
+      "patch_id": "multi_scale_ensemble_patch_optimized",
+      "scales": [
+        0.5,
+        1.5,
+        2.5
+      ],
+      "role_multipliers": {
+        "acid": 1.0,
+        "amine": 0.6,
+        "reagent": 1.2,
+        "solvent": 0.5
+      },
+      "gp_beta": 1.8,
+      "gp_beta_end": 1.5,
+      "source_prior_strength": 1.2,
+      "source_similarity_temperature": 0.3,
+      "source_neighbor_count": 25,
+      "calibration_mode": "signed",
+      "min_cv_gain": 0.06,
+      "confidence": 0.65,
+      "reason": "Aggregated diverse evidence for balanced performance."
+    },
+    {
+      "patch_id": "safety_anchor_patch_optimized",
+      "scales": [
+        0.0,
+        1.0
+      ],
+      "role_multipliers": {
+        "acid": 1.0,
+        "amine": 0.5,
+        "reagent": 1.0,
+        "solvent": 1.0
+      },
+      "gp_beta": 1.5,
+      "gp_beta_end": 1.5,
+      "source_prior_strength": 0.8,
+      "source_similarity_temperature": 0.2,
+      "source_neighbor_count": 5,
+      "calibration_mode": "positive_only",
+      "min_cv_gain": 0.01,
+      "confidence": 0.3,
+      "reason": "Ensured stability with a safety anchor."
+    }
+  ],
+  "parse_error": "",
+  "source_llm_record_sha256": "b276ea8c876789845dc3dfca0ea18848c7e59da67a659e3ff24298d3e1cc8ecd",
+  "calibration_summary_sha256": "8cb9175bd5198c47bf8a6e2651cd9dacc844e676edac23d60c6c656c5d960a1d",
+  "llm_generation_call_count": 2
+}

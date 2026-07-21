@@ -75,6 +75,83 @@ The default LLM base URL is `https://api.commonstack.ai/v1`. The API key is read
 from `CARE_LLM_API_KEY` or `COMMONSTACK_API_KEY`; it is never stored in the
 repository.
 
+For lower-cost models, use native JSON mode instead of forcing a function call:
+
+```bash
+export CARE_LLM_API_KEY="..."
+export CARE_LLM_TRACE_LOG="experiments/care_replay/outputs/logs/cheap_skill_generation.jsonl"
+python3 experiments/care_replay/scripts/run_llm_kernel_skill_evolution.py \
+  --source-dataset real_suzuki_miyaura \
+  --target-dataset real_buchwald_hartwig \
+  --llm-model openai/gpt-4o-mini \
+  --llm-structured-mode json \
+  --patch-count 6 --seeds 10 --calibration-seeds 5
+```
+
+`--llm-api-mode completion` is also available for providers that expose only
+`/completions`. API traces contain model, timing, usage, and success/failure
+events, but never the API key.
+
+Refine a generated portfolio from calibration-only diagnostics, then freeze the
+selector before evaluating independent seeds:
+
+```bash
+python3 experiments/care_replay/scripts/generate_refined_llm_kernel_skills.py \
+  --llm-record first_round_llm_record.json \
+  --calibration-summary first_round_summary.json \
+  --target-dataset real_buchwald_hartwig \
+  --output refined_llm_record.json
+
+python3 experiments/care_replay/scripts/run_calibrated_frozen_llm_selector.py \
+  --llm-record refined_llm_record.json \
+  --source-dataset real_suzuki_miyaura \
+  --target-dataset real_buchwald_hartwig \
+  --calibration-seeds 100 --heldout-seeds 100
+```
+
+The refinement prompt receives patch-level calibration means, uncertainty, and
+fold stability only. Held-out outcomes are excluded by construction. If no LLM
+patch clears the frozen rule, the selector exactly falls back to the strongest
+calibrated target-only baseline.
+
+To execute both the LLM-shaped kernel and its source prior, use the calibrated
+prior selector:
+
+```bash
+python3 experiments/care_replay/scripts/run_calibrated_llm_prior_selector.py \
+  --llm-record frozen_llm_record.json \
+  --source-dataset real_moleculenet_esol \
+  --target-dataset real_moleculenet_freesolv \
+  --source-observations 1123 \
+  --calibration-seed-start 1000 --calibration-seeds 50 \
+  --heldout-seed-start 1200 --heldout-seeds 100
+```
+
+The source prior uses only fields with an explicitly declared shared public
+vocabulary. Reaction-internal labels are excluded from neighbor matching.
+MoleculeNet may use exact SMILES identity and Matbench may use exact composition
+identity when the same public object occurs in both tasks; unmatched candidates
+fall back to descriptor neighbors. Exact identity supplies a source-task value,
+never an unrevealed target value. Each round fits the sign and magnitude from
+the target outcomes revealed so far and disables the prior when leave-one-out
+gain is below the LLM patch threshold. The summary records separate kernel and
+source-prior role maps, while per-seed audits retain identity coverage, online
+calibration, chosen candidates, and the frozen LLM patch.
+
+`--enable-identity-cold-start` is an explicit ablation. It lets a frozen
+`positive_only` LLM patch apply a capped exact-identity prior before online
+leave-one-out calibration is available. It is disabled by default because the
+paired July 21 confirmation did not improve over the calibrated-only path.
+
+The July 21 low-cost evaluation, including 500-seed confirmation, universal
+schedule checks, complete LLM traces, per-seed metrics, and compressed audit
+logs, is archived under
+[`results/2026-07-21-low-cost-llm-transfer`](results/2026-07-21-low-cost-llm-transfer/README.md).
+The confirmed claim is molecular-property domain generalization: one frozen
+cheap-model acquisition skill improves AUC on both FreeSolv and Lipophilicity.
+Reaction and materials transfer remain boundary results rather than positive
+claims.
+
 Run a strong-model LLM transfer follow-up:
 
 ```bash

@@ -26,6 +26,21 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_RUNS = ROOT / "outputs" / "runs"
 OUTPUT_TABLES = ROOT / "outputs" / "tables"
 
+MOLECULAR_DATASETS = (
+    "real_moleculenet_esol",
+    "real_moleculenet_freesolv",
+    "real_moleculenet_lipophilicity",
+)
+EXACT_IDENTITY_FIELDS: dict[tuple[str, str], tuple[tuple[str, str], ...]] = {}
+for _source_dataset in MOLECULAR_DATASETS:
+    for _target_dataset in MOLECULAR_DATASETS:
+        if _source_dataset != _target_dataset:
+            EXACT_IDENTITY_FIELDS[(_source_dataset, _target_dataset)] = (("smiles", "smiles"),)
+for _source_dataset in transfer.MATERIAL_DATASETS:
+    for _target_dataset in transfer.MATERIAL_DATASETS:
+        if _source_dataset != _target_dataset:
+            EXACT_IDENTITY_FIELDS[(_source_dataset, _target_dataset)] = (("composition", "composition"),)
+
 
 def pearson(xs: list[float], ys: list[float]) -> float:
     if len(xs) < 3 or len(xs) != len(ys):
@@ -138,13 +153,17 @@ def aligned_source_prior(
     card: transfer.TransferCard,
     patch: evolution.KernelSkillPatch,
 ) -> tuple[dict[str, float], dict[str, Any]]:
+    identity_fields = EXACT_IDENTITY_FIELDS.get(
+        (card.source_dataset, card.target_dataset),
+        (),
+    )
     active_roles = [
         role
         for role in card.roles
         if role.transfer_weight > 0.0
         and patch.role_multipliers.get(role.target_field, 1.0) > 0.0
     ]
-    if patch.source_prior_strength <= 0.0 or not active_roles:
+    if patch.source_prior_strength <= 0.0 or (not active_roles and not identity_fields):
         return {}, {"active": False, "reason": "source_prior_disabled_or_no_roles"}
 
     source_values = [candidate.objective_value / 100.0 for candidate in source_observed]
@@ -163,13 +182,38 @@ def aligned_source_prior(
         for role in active_roles
     }
     total_role_weight = sum(role_weights.values())
-    neighbor_count = min(patch.source_neighbor_count, len(source_observed))
+    neighbor_source_observed = source_observed[: min(256, len(source_observed))]
+    neighbor_count = min(patch.source_neighbor_count, len(neighbor_source_observed))
+    exact_values: dict[tuple[str, str], list[float]] = {}
+    for source_field, target_field in identity_fields:
+        for source_candidate in source_observed:
+            value = str(source_candidate.metadata.get(source_field, "")).strip()
+            if value:
+                exact_values.setdefault((target_field, value), []).append(
+                    source_z[source_candidate.candidate_id]
+                )
     prior_by_id: dict[str, float] = {}
     nearest_distance_values: list[float] = []
+    exact_match_count = 0
+    exact_match_candidate_ids: list[str] = []
 
     for target_candidate in target_adapter.candidates:
+        identity_predictions = [
+            mean(exact_values[(target_field, target_value)])
+            for _source_field, target_field in identity_fields
+            if (target_value := str(target_candidate.metadata.get(target_field, "")).strip())
+            and (target_field, target_value) in exact_values
+        ]
+        if identity_predictions:
+            prior_by_id[target_candidate.candidate_id] = mean(identity_predictions)
+            exact_match_count += 1
+            exact_match_candidate_ids.append(target_candidate.candidate_id)
+            continue
+        if not active_roles:
+            prior_by_id[target_candidate.candidate_id] = 0.0
+            continue
         neighbors: list[tuple[float, float]] = []
-        for source_candidate in source_observed:
+        for source_candidate in neighbor_source_observed:
             mismatch = 0.0
             for role in active_roles:
                 source_value = str(source_candidate.metadata.get(role.source_field, ""))
@@ -205,9 +249,55 @@ def aligned_source_prior(
             for role in active_roles
         ],
         "source_observation_count": len(source_observed),
+        "neighbor_source_observation_count": len(neighbor_source_observed),
         "neighbor_count": neighbor_count,
         "temperature": patch.source_similarity_temperature,
-        "nearest_distance_mean": round(mean(nearest_distance_values), 6),
+        "nearest_distance_mean": (
+            round(mean(nearest_distance_values), 6)
+            if nearest_distance_values
+            else None
+        ),
+        "exact_identity_fields": [list(pair) for pair in identity_fields],
+        "exact_match_count": exact_match_count,
+        "exact_match_fraction": round(
+            exact_match_count / max(1, len(target_adapter.candidates)),
+            6,
+        ),
+        "_exact_match_candidate_ids": exact_match_candidate_ids,
+    }
+
+
+def exact_identity_cold_start_adjustments(
+    prior_by_id: dict[str, float],
+    exact_match_candidate_ids: set[str],
+    observed: list[replay.Candidate],
+    patch: evolution.KernelSkillPatch,
+) -> tuple[dict[str, float], dict[str, Any]]:
+    if (
+        patch.calibration_mode != "positive_only"
+        or not exact_match_candidate_ids
+        or len(observed) >= 10
+    ):
+        return {}, {"active": False, "reason": "cold_start_not_authorized_or_complete"}
+    cap = min(0.08, 0.04 * patch.source_prior_strength * patch.confidence)
+    if cap <= 0.0:
+        return {}, {"active": False, "reason": "zero_cold_start_cap"}
+    observed_ids = {candidate.candidate_id for candidate in observed}
+    adjustments = {
+        candidate_id: cap * max(-1.5, min(1.5, prior_by_id[candidate_id])) / 1.5
+        for candidate_id in exact_match_candidate_ids
+        if candidate_id not in observed_ids and candidate_id in prior_by_id
+    }
+    return adjustments, {
+        "active": bool(adjustments),
+        "mode": "llm_authorized_exact_identity_cold_start",
+        "adjustment_cap": round(cap, 6),
+        "eligible_candidate_count": len(adjustments),
+        "observed_count": len(observed),
+        "evidence_boundary": (
+            "The frozen LLM patch authorizes a positive source direction for exact public "
+            "identity matches only. The cold-start cap expires after 10 target observations."
+        ),
     }
 
 

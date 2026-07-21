@@ -189,11 +189,14 @@ def propose_kernel_skill_patches(
             "Include an exploration-first patch with gp_beta above 2.2 and gp_beta_end at or below 1.2.",
             "Include a conservative patch with gp_beta and gp_beta_end both at or below 1.5.",
             "Make at least one patch test a counter-hypothesis rather than only reinforcing the strongest source role.",
+            "At least two patches must downweight a weak, uncertain, or failure-associated role below 0.8; do not make every role multiplier at least 1.",
+            "Separate exploitation patches from exploration patches instead of giving every patch the same beta schedule.",
             "Include at least two source-prior patches when mapped roles have shared vocabularies.",
             "Use signed calibration when source and target objectives can be inversely related.",
             "Use positive_only calibration only when the objective semantics support the same direction.",
             "Set source_prior_strength to 0 when role vocabularies are not meaningfully comparable.",
             "Downweight weak or semantically uncertain role mappings instead of treating all roles equally.",
+            "Vary confidence according to support and uncertainty; do not reuse a fixed value such as 0.7 across patches.",
             "Use multi-scale ensembles when transfer strength is uncertain.",
             "Do not claim access to target outcomes. Calibration and held-out evaluation happen after generation.",
         ],
@@ -257,6 +260,14 @@ def propose_kernel_skill_patches(
     record = {
         "model": response_meta["model"],
         "usage": response_meta["usage"],
+        "llm_generation_call_count": 1,
+        "api_configuration": {
+            "base_url": config.base_url,
+            "api_mode": config.api_mode,
+            "structured_mode": config.structured_mode,
+            "temperature": config.temperature,
+            "max_tokens": config.max_tokens,
+        },
         "prompt_payload": prompt_payload,
         "raw_response": content,
         "parsed_response": parsed,
@@ -544,7 +555,10 @@ def run_seed_evaluation(
 def run_experiment(args: argparse.Namespace) -> dict[str, Any]:
     source_adapter = replay.DATASET_BUILDERS[args.source_dataset]()
     target_adapter = replay.DATASET_BUILDERS[args.target_dataset]()
-    role_map = transfer.role_map_for(args.source_dataset, args.target_dataset)
+    role_map = transfer.descriptor_transfer_role_map_for(
+        args.source_dataset,
+        args.target_dataset,
+    )
     proposal_source = transfer.source_observations(source_adapter, 0, args.source_observations)
     proposal_card = transfer.compile_transfer_card(
         source_adapter,
@@ -567,6 +581,8 @@ def run_experiment(args: argparse.Namespace) -> dict[str, Any]:
         model=args.llm_model,
         temperature=args.llm_temperature,
         max_tokens=args.llm_max_tokens,
+        api_mode=args.llm_api_mode,
+        structured_mode=args.llm_structured_mode,
     )
     patches, llm_record = propose_kernel_skill_patches(
         source_adapter,
@@ -682,6 +698,16 @@ def main() -> None:
     parser.add_argument("--llm-base-url", default=os.environ.get("CARE_LLM_BASE_URL", "https://api.commonstack.ai/v1"))
     parser.add_argument("--llm-model", default=os.environ.get("CARE_LLM_MODEL", "openai/gpt-5.5"))
     parser.add_argument("--llm-api-key-env", default="CARE_LLM_API_KEY")
+    parser.add_argument(
+        "--llm-api-mode",
+        choices=("chat", "completion"),
+        default=os.environ.get("CARE_LLM_API_MODE", "chat"),
+    )
+    parser.add_argument(
+        "--llm-structured-mode",
+        choices=("tool", "json"),
+        default=os.environ.get("CARE_LLM_STRUCTURED_MODE", "tool"),
+    )
     parser.add_argument("--llm-temperature", type=float, default=0.4)
     parser.add_argument("--llm-max-tokens", type=int, default=2200)
     parser.add_argument("--output-tag", default="")

@@ -1,0 +1,773 @@
+{
+  "experiment": "care_llm_kernel_skill_refinement",
+  "model": "openai/gpt-4o-mini",
+  "usage": {
+    "prompt_tokens": 3797,
+    "completion_tokens": 1110,
+    "total_tokens": 4907,
+    "tps": 64.06,
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "api_configuration": {
+    "base_url": "https://api.commonstack.ai/v1",
+    "api_mode": "chat",
+    "structured_mode": "json",
+    "temperature": 0.3,
+    "max_tokens": 2600
+  },
+  "prompt_payload": {
+    "task": "Evolve the first-round source-to-target kernel skills using calibration-only performance. Produce a frozen second-round portfolio for evaluation on unseen seeds.",
+    "source_dataset": "real_suzuki_miyaura",
+    "target_dataset": "real_buchwald_hartwig",
+    "target_schema": {
+      "dataset_id": "real_buchwald_hartwig",
+      "decision_columns": [
+        "ligand",
+        "additive",
+        "base",
+        "aryl_halide"
+      ],
+      "field_cardinality": {
+        "ligand": 4,
+        "additive": 22,
+        "base": 3,
+        "aryl_halide": 15
+      },
+      "pool_size": 3955,
+      "hidden_target": "yield_value",
+      "boundary": "Only public feature schema is exposed. No target outcomes are included."
+    },
+    "target_anchor_mode": "mixed_kernel_gp_ei",
+    "calibration_seed_count": 50,
+    "first_round_patches": [
+      {
+        "patch": {
+          "patch_id": "exploration_patch_1",
+          "scales": [
+            2.5,
+            3.0,
+            4.0
+          ],
+          "role_multipliers": {
+            "ligand": 1.0,
+            "additive": 0.5,
+            "base": 0.5,
+            "aryl_halide": 1.5
+          },
+          "gp_beta": 2.5,
+          "gp_beta_end": 1.2,
+          "source_prior_strength": 0.0,
+          "source_similarity_temperature": 1.0,
+          "source_neighbor_count": 20,
+          "calibration_mode": "off",
+          "min_cv_gain": 0.1,
+          "confidence": 0.75,
+          "reason": "Exploration-focused patch with high beta for diverse sampling; downweights uncertain roles to prioritize strong predictors."
+        },
+        "calibration_only_diagnostics_vs_target_anchor": {
+          "final_best": {
+            "n": 50.0,
+            "mean": -1.886778,
+            "std": 9.498926,
+            "se": 1.343351,
+            "normal_95ci_low": -4.519746,
+            "normal_95ci_high": 0.74619,
+            "win_rate": 0.32,
+            "non_loss_rate": 0.56
+          },
+          "best_so_far_auc": {
+            "n": 50.0,
+            "mean": 0.390124,
+            "std": 7.795869,
+            "se": 1.102502,
+            "normal_95ci_low": -1.770781,
+            "normal_95ci_high": 2.551029,
+            "win_rate": 0.5,
+            "non_loss_rate": 0.6
+          },
+          "composite": {
+            "n": 50.0,
+            "mean": -1.496654,
+            "std": 14.848559,
+            "se": 2.099903,
+            "normal_95ci_low": -5.612465,
+            "normal_95ci_high": 2.619157,
+            "win_rate": 0.5,
+            "non_loss_rate": 0.6
+          },
+          "positive_fold_rate": 0.6,
+          "fold_composite_means": [
+            -5.96973,
+            0.2395,
+            -7.26151,
+            2.05962,
+            3.44885
+          ],
+          "risk_adjusted_composite_gain": -3.596557
+        }
+      },
+      {
+        "patch": {
+          "patch_id": "conservative_patch_1",
+          "scales": [
+            1.0
+          ],
+          "role_multipliers": {
+            "ligand": 1.0,
+            "additive": 0.7,
+            "base": 0.8,
+            "aryl_halide": 1.0
+          },
+          "gp_beta": 1.5,
+          "gp_beta_end": 1.5,
+          "source_prior_strength": 0.5,
+          "source_similarity_temperature": 0.5,
+          "source_neighbor_count": 10,
+          "calibration_mode": "signed",
+          "min_cv_gain": 0.05,
+          "confidence": 0.65,
+          "reason": "Conservative patch maintaining low beta for stability; uses signed calibration to reflect potential inverse relationships."
+        },
+        "calibration_only_diagnostics_vs_target_anchor": {
+          "final_best": {
+            "n": 50.0,
+            "mean": -0.349286,
+            "std": 5.81359,
+            "se": 0.822166,
+            "normal_95ci_low": -1.960731,
+            "normal_95ci_high": 1.262159,
+            "win_rate": 0.3,
+            "non_loss_rate": 0.64
+          },
+          "best_so_far_auc": {
+            "n": 50.0,
+            "mean": 0.344676,
+            "std": 6.448472,
+            "se": 0.911952,
+            "normal_95ci_low": -1.442749,
+            "normal_95ci_high": 2.132101,
+            "win_rate": 0.46,
+            "non_loss_rate": 0.58
+          },
+          "composite": {
+            "n": 50.0,
+            "mean": -0.00461,
+            "std": 10.282448,
+            "se": 1.454158,
+            "normal_95ci_low": -2.854759,
+            "normal_95ci_high": 2.845539,
+            "win_rate": 0.5,
+            "non_loss_rate": 0.62
+          },
+          "positive_fold_rate": 0.4,
+          "fold_composite_means": [
+            -4.39155,
+            3.70592,
+            -0.82086,
+            -0.72796,
+            2.2114
+          ],
+          "risk_adjusted_composite_gain": -1.458768
+        }
+      },
+      {
+        "patch": {
+          "patch_id": "high_confidence_patch",
+          "scales": [
+            1.0,
+            2.0,
+            3.0
+          ],
+          "role_multipliers": {
+            "ligand": 1.5,
+            "additive": 1.0,
+            "base": 0.6,
+            "aryl_halide": 1.0
+          },
+          "gp_beta": 1.8,
+          "gp_beta_end": 1.0,
+          "source_prior_strength": 1.0,
+          "source_similarity_temperature": 0.3,
+          "source_neighbor_count": 15,
+          "calibration_mode": "positive_only",
+          "min_cv_gain": 0.02,
+          "confidence": 0.8,
+          "reason": "Focuses on high-confidence roles with positive outcomes; leverages strong source priors for effective prediction."
+        },
+        "calibration_only_diagnostics_vs_target_anchor": {
+          "final_best": {
+            "n": 50.0,
+            "mean": -0.145206,
+            "std": 10.010284,
+            "se": 1.415668,
+            "normal_95ci_low": -2.919915,
+            "normal_95ci_high": 2.629503,
+            "win_rate": 0.3,
+            "non_loss_rate": 0.58
+          },
+          "best_so_far_auc": {
+            "n": 50.0,
+            "mean": 1.669696,
+            "std": 7.546063,
+            "se": 1.067174,
+            "normal_95ci_low": -0.421966,
+            "normal_95ci_high": 3.761358,
+            "win_rate": 0.48,
+            "non_loss_rate": 0.58
+          },
+          "composite": {
+            "n": 50.0,
+            "mean": 1.52449,
+            "std": 16.040051,
+            "se": 2.268406,
+            "normal_95ci_low": -2.921585,
+            "normal_95ci_high": 5.970565,
+            "win_rate": 0.48,
+            "non_loss_rate": 0.58
+          },
+          "positive_fold_rate": 0.8,
+          "fold_composite_means": [
+            -6.89925,
+            7.53107,
+            3.71159,
+            0.30455,
+            2.97449
+          ],
+          "risk_adjusted_composite_gain": -0.743916
+        }
+      },
+      {
+        "patch": {
+          "patch_id": "counter_hypothesis_patch",
+          "scales": [
+            1.0,
+            1.5,
+            2.0
+          ],
+          "role_multipliers": {
+            "ligand": 0.8,
+            "additive": 1.0,
+            "base": 1.5,
+            "aryl_halide": 0.5
+          },
+          "gp_beta": 1.4,
+          "gp_beta_end": 1.2,
+          "source_prior_strength": 0.0,
+          "source_similarity_temperature": 0.4,
+          "source_neighbor_count": 12,
+          "calibration_mode": "off",
+          "min_cv_gain": 0.04,
+          "confidence": 0.6,
+          "reason": "Tests counter-hypothesis by downweighting the strongest predictors and emphasizing alternative roles."
+        },
+        "calibration_only_diagnostics_vs_target_anchor": {
+          "final_best": {
+            "n": 50.0,
+            "mean": -2.782232,
+            "std": 7.898784,
+            "se": 1.117057,
+            "normal_95ci_low": -4.971663,
+            "normal_95ci_high": -0.592801,
+            "win_rate": 0.18,
+            "non_loss_rate": 0.46
+          },
+          "best_so_far_auc": {
+            "n": 50.0,
+            "mean": -0.69868,
+            "std": 5.388896,
+            "se": 0.762105,
+            "normal_95ci_low": -2.192406,
+            "normal_95ci_high": 0.795046,
+            "win_rate": 0.26,
+            "non_loss_rate": 0.44
+          },
+          "composite": {
+            "n": 50.0,
+            "mean": -3.480912,
+            "std": 11.521996,
+            "se": 1.629456,
+            "normal_95ci_low": -6.674646,
+            "normal_95ci_high": -0.287178,
+            "win_rate": 0.24,
+            "non_loss_rate": 0.42
+          },
+          "positive_fold_rate": 0.0,
+          "fold_composite_means": [
+            -8.89767,
+            -0.64507,
+            -1.14891,
+            -6.21355,
+            -0.49936
+          ],
+          "risk_adjusted_composite_gain": -5.110368
+        }
+      },
+      {
+        "patch": {
+          "patch_id": "multi_scale_ensemble_patch",
+          "scales": [
+            1.0,
+            2.0,
+            3.0
+          ],
+          "role_multipliers": {
+            "ligand": 0.6,
+            "additive": 0.5,
+            "base": 0.7,
+            "aryl_halide": 1.0
+          },
+          "gp_beta": 1.5,
+          "gp_beta_end": 1.5,
+          "source_prior_strength": 0.0,
+          "source_similarity_temperature": 0.5,
+          "source_neighbor_count": 18,
+          "calibration_mode": "signed",
+          "min_cv_gain": 0.03,
+          "confidence": 0.55,
+          "reason": "Employs a multi-scale ensemble approach to balance uncertainty; downweights weaker roles to enhance predictive power."
+        },
+        "calibration_only_diagnostics_vs_target_anchor": {
+          "final_best": {
+            "n": 50.0,
+            "mean": 0.161192,
+            "std": 5.562287,
+            "se": 0.786626,
+            "normal_95ci_low": -1.380595,
+            "normal_95ci_high": 1.702979,
+            "win_rate": 0.3,
+            "non_loss_rate": 0.62
+          },
+          "best_so_far_auc": {
+            "n": 50.0,
+            "mean": 0.695456,
+            "std": 6.952415,
+            "se": 0.98322,
+            "normal_95ci_low": -1.231655,
+            "normal_95ci_high": 2.622567,
+            "win_rate": 0.48,
+            "non_loss_rate": 0.54
+          },
+          "composite": {
+            "n": 50.0,
+            "mean": 0.856648,
+            "std": 11.382331,
+            "se": 1.609705,
+            "normal_95ci_low": -2.298373,
+            "normal_95ci_high": 4.011669,
+            "win_rate": 0.5,
+            "non_loss_rate": 0.56
+          },
+          "positive_fold_rate": 0.6,
+          "fold_composite_means": [
+            -2.81647,
+            3.20748,
+            0.67463,
+            -0.28122,
+            3.49882
+          ],
+          "risk_adjusted_composite_gain": -0.753057
+        }
+      },
+      {
+        "patch": {
+          "patch_id": "safety_anchor_patch",
+          "scales": [
+            0.0,
+            1.0,
+            2.0
+          ],
+          "role_multipliers": {
+            "ligand": 1.0,
+            "additive": 0.8,
+            "base": 0.5,
+            "aryl_halide": 1.0
+          },
+          "gp_beta": 1.5,
+          "gp_beta_end": 1.5,
+          "source_prior_strength": 0.0,
+          "source_similarity_temperature": 0.6,
+          "source_neighbor_count": 10,
+          "calibration_mode": "positive_only",
+          "min_cv_gain": 0.01,
+          "confidence": 0.7,
+          "reason": "Includes a scale 0 for safety; relies on robust roles while minimizing risk from uncertain predictors."
+        },
+        "calibration_only_diagnostics_vs_target_anchor": {
+          "final_best": {
+            "n": 50.0,
+            "mean": -0.738798,
+            "std": 4.476555,
+            "se": 0.63308,
+            "normal_95ci_low": -1.979636,
+            "normal_95ci_high": 0.50204,
+            "win_rate": 0.18,
+            "non_loss_rate": 0.56
+          },
+          "best_so_far_auc": {
+            "n": 50.0,
+            "mean": 0.831592,
+            "std": 7.639763,
+            "se": 1.080426,
+            "normal_95ci_low": -1.286042,
+            "normal_95ci_high": 2.949226,
+            "win_rate": 0.48,
+            "non_loss_rate": 0.62
+          },
+          "composite": {
+            "n": 50.0,
+            "mean": 0.092794,
+            "std": 10.550601,
+            "se": 1.49208,
+            "normal_95ci_low": -2.831683,
+            "normal_95ci_high": 3.017271,
+            "win_rate": 0.46,
+            "non_loss_rate": 0.6
+          },
+          "positive_fold_rate": 0.6,
+          "fold_composite_means": [
+            -5.77625,
+            -1.26363,
+            1.53914,
+            1.39412,
+            4.57059
+          ],
+          "risk_adjusted_composite_gain": -1.399286
+        }
+      }
+    ],
+    "evidence_boundary": "Only calibration diagnostics are present. Held-out metrics, candidate identities, and unrevealed target outcomes are excluded.",
+    "refinement_rules": [
+      "Optimize paired Final Best and Best-So-Far AUC together; do not trade a large final loss for a small AUC gain.",
+      "Preserve or gently mutate skills that are positive across calibration folds.",
+      "Reduce the transfer scale or add scale 0 when a skill has high variance or poor non-loss rate.",
+      "Use role multipliers below 0.8 for weak, uncertain, or failure-associated mappings.",
+      "Retain one exploration-first beta schedule, one conservative schedule, one counter-hypothesis, and one multi-scale anchor.",
+      "Do not reuse one confidence value across all patches; calibrate confidence from support, fold stability, and uncertainty.",
+      "Return executable parameter patches only. Do not select target candidates or discuss held-out results."
+    ],
+    "allowed_space": {
+      "patch_count": 6,
+      "scales": "1 to 6 numbers, each in [0, 8]",
+      "role_multipliers": "map every target decision field to [0.20, 3.0]",
+      "gp_beta": "number in [0.5, 3.0] used at the first replay round",
+      "gp_beta_end": "number in [0.5, 3.0] reached linearly at the final replay round",
+      "source_prior_strength": "number in [0, 2.5]",
+      "source_similarity_temperature": "number in [0.08, 2.0]",
+      "source_neighbor_count": "integer in [3, 48]",
+      "calibration_mode": "one of off, positive_only, signed",
+      "min_cv_gain": "leave-one-out gain threshold in [0, 0.35]"
+    },
+    "output_contract": {
+      "patches": [
+        {
+          "patch_id": "short_unique_name",
+          "scales": [
+            0.0,
+            1.0,
+            2.0
+          ],
+          "role_multipliers": {
+            "ligand": 1.0,
+            "additive": 1.0,
+            "base": 1.0,
+            "aryl_halide": 1.0
+          },
+          "gp_beta": 1.5,
+          "gp_beta_end": 1.0,
+          "source_prior_strength": 0.8,
+          "source_similarity_temperature": 0.35,
+          "source_neighbor_count": 12,
+          "calibration_mode": "signed",
+          "min_cv_gain": 0.03,
+          "confidence": "evidence-calibrated number in [0, 1]; do not reuse one default",
+          "reason": "brief hypothesis, counter-hypothesis, mechanism, and failure trigger"
+        }
+      ]
+    },
+    "patch_count": 6
+  },
+  "raw_response": "```json\n{\n  \"patches\": [\n    {\n      \"patch_id\": \"exploration_patch_1_refined\",\n      \"scales\": [2.0, 3.0, 4.0],\n      \"role_multipliers\": {\n        \"ligand\": 1.0,\n        \"additive\": 0.5,\n        \"base\": 0.5,\n        \"aryl_halide\": 1.5\n      },\n      \"gp_beta\": 2.0,\n      \"gp_beta_end\": 1.0,\n      \"source_prior_strength\": 0.0,\n      \"source_similarity_temperature\": 1.0,\n      \"source_neighbor_count\": 20,\n      \"calibration_mode\": \"off\",\n      \"min_cv_gain\": 0.1,\n      \"confidence\": 0.75,\n      \"reason\": \"Refined exploration patch with reduced beta for stability while maintaining diverse sampling.\"\n    },\n    {\n      \"patch_id\": \"conservative_patch_1_refined\",\n      \"scales\": [1.0],\n      \"role_multipliers\": {\n        \"ligand\": 1.0,\n        \"additive\": 0.7,\n        \"base\": 0.8,\n        \"aryl_halide\": 1.0\n      },\n      \"gp_beta\": 1.5,\n      \"gp_beta_end\": 1.5,\n      \"source_prior_strength\": 0.5,\n      \"source_similarity_temperature\": 0.5,\n      \"source_neighbor_count\": 10,\n      \"calibration_mode\": \"signed\",\n      \"min_cv_gain\": 0.05,\n      \"confidence\": 0.65,\n      \"reason\": \"Maintains conservative approach with stable parameters to ensure reliability.\"\n    },\n    {\n      \"patch_id\": \"high_confidence_patch_refined\",\n      \"scales\": [1.0, 2.0],\n      \"role_multipliers\": {\n        \"ligand\": 1.5,\n        \"additive\": 1.0,\n        \"base\": 0.6,\n        \"aryl_halide\": 1.0\n      },\n      \"gp_beta\": 1.5,\n      \"gp_beta_end\": 1.0,\n      \"source_prior_strength\": 1.0,\n      \"source_similarity_temperature\": 0.3,\n      \"source_neighbor_count\": 15,\n      \"calibration_mode\": \"positive_only\",\n      \"min_cv_gain\": 0.02,\n      \"confidence\": 0.8,\n      \"reason\": \"Focuses on high-confidence roles while reducing the number of scales for simplicity.\"\n    },\n    {\n      \"patch_id\": \"counter_hypothesis_patch_refined\",\n      \"scales\": [1.0, 1.5],\n      \"role_multipliers\": {\n        \"ligand\": 0.8,\n        \"additive\": 1.0,\n        \"base\": 1.5,\n        \"aryl_halide\": 0.5\n      },\n      \"gp_beta\": 1.4,\n      \"gp_beta_end\": 1.2,\n      \"source_prior_strength\": 0.0,\n      \"source_similarity_temperature\": 0.4,\n      \"source_neighbor_count\": 12,\n      \"calibration_mode\": \"off\",\n      \"min_cv_gain\": 0.04,\n      \"confidence\": 0.6,\n      \"reason\": \"Tests counter-hypothesis while maintaining a balance between exploration and exploitation.\"\n    },\n    {\n      \"patch_id\": \"multi_scale_ensemble_patch_refined\",\n      \"scales\": [1.0, 2.0],\n      \"role_multipliers\": {\n        \"ligand\": 0.6,\n        \"additive\": 0.5,\n        \"base\": 0.7,\n        \"aryl_halide\": 1.0\n      },\n      \"gp_beta\": 1.5,\n      \"gp_beta_end\": 1.5,\n      \"source_prior_strength\": 0.0,\n      \"source_similarity_temperature\": 0.5,\n      \"source_neighbor_count\": 18,\n      \"calibration_mode\": \"signed\",\n      \"min_cv_gain\": 0.03,\n      \"confidence\": 0.55,\n      \"reason\": \"Employs a multi-scale approach while reducing complexity for better interpretability.\"\n    },\n    {\n      \"patch_id\": \"safety_anchor_patch_refined\",\n      \"scales\": [0.0, 1.0],\n      \"role_multipliers\": {\n        \"ligand\": 1.0,\n        \"additive\": 0.8,\n        \"base\": 0.5,\n        \"aryl_halide\": 1.0\n      },\n      \"gp_beta\": 1.5,\n      \"gp_beta_end\": 1.5,\n      \"source_prior_strength\": 0.0,\n      \"source_similarity_temperature\": 0.6,\n      \"source_neighbor_count\": 10,\n      \"calibration_mode\": \"positive_only\",\n      \"min_cv_gain\": 0.01,\n      \"confidence\": 0.7,\n      \"reason\": \"Includes scale 0 for safety while ensuring robust roles are prioritized.\"\n    }\n  ]\n}\n```",
+  "parsed_response": {
+    "patches": [
+      {
+        "patch_id": "exploration_patch_1_refined",
+        "scales": [
+          2.0,
+          3.0,
+          4.0
+        ],
+        "role_multipliers": {
+          "ligand": 1.0,
+          "additive": 0.5,
+          "base": 0.5,
+          "aryl_halide": 1.5
+        },
+        "gp_beta": 2.0,
+        "gp_beta_end": 1.0,
+        "source_prior_strength": 0.0,
+        "source_similarity_temperature": 1.0,
+        "source_neighbor_count": 20,
+        "calibration_mode": "off",
+        "min_cv_gain": 0.1,
+        "confidence": 0.75,
+        "reason": "Refined exploration patch with reduced beta for stability while maintaining diverse sampling."
+      },
+      {
+        "patch_id": "conservative_patch_1_refined",
+        "scales": [
+          1.0
+        ],
+        "role_multipliers": {
+          "ligand": 1.0,
+          "additive": 0.7,
+          "base": 0.8,
+          "aryl_halide": 1.0
+        },
+        "gp_beta": 1.5,
+        "gp_beta_end": 1.5,
+        "source_prior_strength": 0.5,
+        "source_similarity_temperature": 0.5,
+        "source_neighbor_count": 10,
+        "calibration_mode": "signed",
+        "min_cv_gain": 0.05,
+        "confidence": 0.65,
+        "reason": "Maintains conservative approach with stable parameters to ensure reliability."
+      },
+      {
+        "patch_id": "high_confidence_patch_refined",
+        "scales": [
+          1.0,
+          2.0
+        ],
+        "role_multipliers": {
+          "ligand": 1.5,
+          "additive": 1.0,
+          "base": 0.6,
+          "aryl_halide": 1.0
+        },
+        "gp_beta": 1.5,
+        "gp_beta_end": 1.0,
+        "source_prior_strength": 1.0,
+        "source_similarity_temperature": 0.3,
+        "source_neighbor_count": 15,
+        "calibration_mode": "positive_only",
+        "min_cv_gain": 0.02,
+        "confidence": 0.8,
+        "reason": "Focuses on high-confidence roles while reducing the number of scales for simplicity."
+      },
+      {
+        "patch_id": "counter_hypothesis_patch_refined",
+        "scales": [
+          1.0,
+          1.5
+        ],
+        "role_multipliers": {
+          "ligand": 0.8,
+          "additive": 1.0,
+          "base": 1.5,
+          "aryl_halide": 0.5
+        },
+        "gp_beta": 1.4,
+        "gp_beta_end": 1.2,
+        "source_prior_strength": 0.0,
+        "source_similarity_temperature": 0.4,
+        "source_neighbor_count": 12,
+        "calibration_mode": "off",
+        "min_cv_gain": 0.04,
+        "confidence": 0.6,
+        "reason": "Tests counter-hypothesis while maintaining a balance between exploration and exploitation."
+      },
+      {
+        "patch_id": "multi_scale_ensemble_patch_refined",
+        "scales": [
+          1.0,
+          2.0
+        ],
+        "role_multipliers": {
+          "ligand": 0.6,
+          "additive": 0.5,
+          "base": 0.7,
+          "aryl_halide": 1.0
+        },
+        "gp_beta": 1.5,
+        "gp_beta_end": 1.5,
+        "source_prior_strength": 0.0,
+        "source_similarity_temperature": 0.5,
+        "source_neighbor_count": 18,
+        "calibration_mode": "signed",
+        "min_cv_gain": 0.03,
+        "confidence": 0.55,
+        "reason": "Employs a multi-scale approach while reducing complexity for better interpretability."
+      },
+      {
+        "patch_id": "safety_anchor_patch_refined",
+        "scales": [
+          0.0,
+          1.0
+        ],
+        "role_multipliers": {
+          "ligand": 1.0,
+          "additive": 0.8,
+          "base": 0.5,
+          "aryl_halide": 1.0
+        },
+        "gp_beta": 1.5,
+        "gp_beta_end": 1.5,
+        "source_prior_strength": 0.0,
+        "source_similarity_temperature": 0.6,
+        "source_neighbor_count": 10,
+        "calibration_mode": "positive_only",
+        "min_cv_gain": 0.01,
+        "confidence": 0.7,
+        "reason": "Includes scale 0 for safety while ensuring robust roles are prioritized."
+      }
+    ]
+  },
+  "normalized_patches": [
+    {
+      "patch_id": "exploration_patch_1_refined",
+      "scales": [
+        2.0,
+        3.0,
+        4.0
+      ],
+      "role_multipliers": {
+        "ligand": 1.0,
+        "additive": 0.5,
+        "base": 0.5,
+        "aryl_halide": 1.5
+      },
+      "gp_beta": 2.0,
+      "gp_beta_end": 1.0,
+      "source_prior_strength": 0.0,
+      "source_similarity_temperature": 1.0,
+      "source_neighbor_count": 20,
+      "calibration_mode": "off",
+      "min_cv_gain": 0.1,
+      "confidence": 0.75,
+      "reason": "Refined exploration patch with reduced beta for stability while maintaining diverse sampling."
+    },
+    {
+      "patch_id": "conservative_patch_1_refined",
+      "scales": [
+        1.0
+      ],
+      "role_multipliers": {
+        "ligand": 1.0,
+        "additive": 0.7,
+        "base": 0.8,
+        "aryl_halide": 1.0
+      },
+      "gp_beta": 1.5,
+      "gp_beta_end": 1.5,
+      "source_prior_strength": 0.5,
+      "source_similarity_temperature": 0.5,
+      "source_neighbor_count": 10,
+      "calibration_mode": "signed",
+      "min_cv_gain": 0.05,
+      "confidence": 0.65,
+      "reason": "Maintains conservative approach with stable parameters to ensure reliability."
+    },
+    {
+      "patch_id": "high_confidence_patch_refined",
+      "scales": [
+        1.0,
+        2.0
+      ],
+      "role_multipliers": {
+        "ligand": 1.5,
+        "additive": 1.0,
+        "base": 0.6,
+        "aryl_halide": 1.0
+      },
+      "gp_beta": 1.5,
+      "gp_beta_end": 1.0,
+      "source_prior_strength": 1.0,
+      "source_similarity_temperature": 0.3,
+      "source_neighbor_count": 15,
+      "calibration_mode": "positive_only",
+      "min_cv_gain": 0.02,
+      "confidence": 0.8,
+      "reason": "Focuses on high-confidence roles while reducing the number of scales for simplicity."
+    },
+    {
+      "patch_id": "counter_hypothesis_patch_refined",
+      "scales": [
+        1.0,
+        1.5
+      ],
+      "role_multipliers": {
+        "ligand": 0.8,
+        "additive": 1.0,
+        "base": 1.5,
+        "aryl_halide": 0.5
+      },
+      "gp_beta": 1.4,
+      "gp_beta_end": 1.2,
+      "source_prior_strength": 0.0,
+      "source_similarity_temperature": 0.4,
+      "source_neighbor_count": 12,
+      "calibration_mode": "off",
+      "min_cv_gain": 0.04,
+      "confidence": 0.6,
+      "reason": "Tests counter-hypothesis while maintaining a balance between exploration and exploitation."
+    },
+    {
+      "patch_id": "multi_scale_ensemble_patch_refined",
+      "scales": [
+        1.0,
+        2.0
+      ],
+      "role_multipliers": {
+        "ligand": 0.6,
+        "additive": 0.5,
+        "base": 0.7,
+        "aryl_halide": 1.0
+      },
+      "gp_beta": 1.5,
+      "gp_beta_end": 1.5,
+      "source_prior_strength": 0.0,
+      "source_similarity_temperature": 0.5,
+      "source_neighbor_count": 18,
+      "calibration_mode": "signed",
+      "min_cv_gain": 0.03,
+      "confidence": 0.55,
+      "reason": "Employs a multi-scale approach while reducing complexity for better interpretability."
+    },
+    {
+      "patch_id": "safety_anchor_patch_refined",
+      "scales": [
+        0.0,
+        1.0
+      ],
+      "role_multipliers": {
+        "ligand": 1.0,
+        "additive": 0.8,
+        "base": 0.5,
+        "aryl_halide": 1.0
+      },
+      "gp_beta": 1.5,
+      "gp_beta_end": 1.5,
+      "source_prior_strength": 0.0,
+      "source_similarity_temperature": 0.6,
+      "source_neighbor_count": 10,
+      "calibration_mode": "positive_only",
+      "min_cv_gain": 0.01,
+      "confidence": 0.7,
+      "reason": "Includes scale 0 for safety while ensuring robust roles are prioritized."
+    }
+  ],
+  "parse_error": "",
+  "source_llm_record_sha256": "33a23127382219e4d1f51d2b8b18c2c07254915a3822d6b9e92b5f7ca8852b26",
+  "calibration_summary_sha256": "5fabe2fb69b53370b21c35b4d9e529f90aad2a7af0bfa473ab23ac1000f0abf7",
+  "llm_generation_call_count": 2
+}

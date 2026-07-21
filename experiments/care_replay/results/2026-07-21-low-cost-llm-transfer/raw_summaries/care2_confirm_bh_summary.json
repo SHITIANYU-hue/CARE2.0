@@ -1,0 +1,285 @@
+{
+  "experiment": "care_calibrated_llm_kernel_plus_source_prior_selector",
+  "source_dataset": "real_suzuki_miyaura",
+  "target_dataset": "real_buchwald_hartwig",
+  "llm_model": "openai/gpt-4o-mini",
+  "llm_generation_call_count": 2,
+  "new_llm_call_count": 0,
+  "patch_execution": "kernel_plus_target_calibrated_source_prior",
+  "patches": [
+    {
+      "patch_id": "high_confidence_patch_refined",
+      "scales": [
+        1.0,
+        2.0
+      ],
+      "role_multipliers": {
+        "ligand": 1.5,
+        "additive": 1.0,
+        "base": 0.6,
+        "aryl_halide": 1.0
+      },
+      "gp_beta": 1.5,
+      "gp_beta_end": 1.0,
+      "source_prior_strength": 1.0,
+      "source_similarity_temperature": 0.3,
+      "source_neighbor_count": 15,
+      "calibration_mode": "positive_only",
+      "min_cv_gain": 0.02,
+      "confidence": 0.8,
+      "reason": "Focuses on high-confidence roles while reducing the number of scales for simplicity."
+    }
+  ],
+  "calibration_seed_start": 900,
+  "calibration_seed_count": 50,
+  "heldout_seed_start": 1300,
+  "heldout_seed_count": 200,
+  "selection": {
+    "rule": "Choose the best target-only anchor on calibration composite (final_best + AUC). Authorize an LLM patch only when paired mean final and AUC are non-negative, final non-loss rate is sufficiently high, the composite gain is positive in enough calibration folds, and the risk-adjusted composite gain clears its threshold.",
+    "calibration_seed_count": 50,
+    "target_anchor_mode": "target_acquisition_portfolio",
+    "target_anchor_summary": {
+      "gp_ucb": {
+        "final_best": 90.748912,
+        "best_so_far_auc": 84.46294,
+        "top10_hit": 0.22,
+        "composite": 175.211852
+      },
+      "mixed_kernel_gp_ei": {
+        "final_best": 90.409862,
+        "best_so_far_auc": 84.19635,
+        "top10_hit": 0.18,
+        "composite": 174.606212
+      },
+      "target_acquisition_portfolio": {
+        "final_best": 90.977578,
+        "best_so_far_auc": 84.296882,
+        "top10_hit": 0.18,
+        "composite": 175.27446
+      }
+    },
+    "eligible_patch_modes": [
+      "llm_evolved_kernel_high_confidence_patch_refined"
+    ],
+    "selected_mode": "llm_evolved_kernel_high_confidence_patch_refined",
+    "selected_llm_patch": true,
+    "thresholds": {
+      "min_auc_gain": 0.0,
+      "max_final_loss": 0.0,
+      "min_risk_adjusted_composite_gain": 0.0,
+      "calibration_folds": 5,
+      "min_positive_fold_rate": 0.6,
+      "min_final_non_loss_rate": 0.55,
+      "risk_se_multiplier": 0.5
+    },
+    "patch_diagnostics": {
+      "llm_evolved_kernel_high_confidence_patch_refined": {
+        "final_best": {
+          "n": 50.0,
+          "mean": 1.57283,
+          "std": 6.713171,
+          "se": 0.949386,
+          "normal_95ci_low": -0.287966,
+          "normal_95ci_high": 3.433626,
+          "win_rate": 0.48,
+          "non_loss_rate": 0.8
+        },
+        "best_so_far_auc": {
+          "n": 50.0,
+          "mean": 0.842616,
+          "std": 5.487014,
+          "se": 0.775981,
+          "normal_95ci_low": -0.678307,
+          "normal_95ci_high": 2.363539,
+          "win_rate": 0.58,
+          "non_loss_rate": 0.72
+        },
+        "composite": {
+          "n": 50.0,
+          "mean": 2.415446,
+          "std": 11.108191,
+          "se": 1.570935,
+          "normal_95ci_low": -0.663588,
+          "normal_95ci_high": 5.49448,
+          "win_rate": 0.56,
+          "non_loss_rate": 0.7
+        },
+        "fold_composite_means": [
+          1.35159,
+          5.38786,
+          -0.06022,
+          2.6025,
+          2.7955
+        ],
+        "positive_fold_rate": 0.8,
+        "risk_adjusted_composite_gain": 1.629979,
+        "eligible": true
+      }
+    }
+  },
+  "calibration": {
+    "gp_ucb": {
+      "final_best": 90.748912,
+      "best_so_far_auc": 84.46294,
+      "top10_hit": 0.22,
+      "composite": 175.211852
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 90.409862,
+      "best_so_far_auc": 84.19635,
+      "top10_hit": 0.18,
+      "composite": 174.606212
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 90.977578,
+      "best_so_far_auc": 84.296882,
+      "top10_hit": 0.18,
+      "composite": 175.27446
+    },
+    "llm_evolved_kernel_high_confidence_patch_refined": {
+      "final_best": 92.550408,
+      "best_so_far_auc": 85.139498,
+      "top10_hit": 0.26,
+      "composite": 177.689906
+    }
+  },
+  "heldout": {
+    "gp_ucb": {
+      "final_best": 90.180475,
+      "best_so_far_auc": 83.754684,
+      "top10_hit": 0.18,
+      "composite": 173.935159
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 90.747499,
+      "best_so_far_auc": 83.806736,
+      "top10_hit": 0.25,
+      "composite": 174.554235
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 89.988341,
+      "best_so_far_auc": 83.775223,
+      "top10_hit": 0.2,
+      "composite": 173.763564
+    },
+    "llm_evolved_kernel_high_confidence_patch_refined": {
+      "final_best": 90.633042,
+      "best_so_far_auc": 84.076382,
+      "top10_hit": 0.215,
+      "composite": 174.709424
+    },
+    "llm_calibrated_selector": {
+      "final_best": 90.633042,
+      "best_so_far_auc": 84.076382,
+      "top10_hit": 0.215,
+      "composite": 174.709424
+    }
+  },
+  "heldout_strongest_target_mode_descriptive_only": "mixed_kernel_gp_ei",
+  "heldout_pairwise": {
+    "gp_ucb": {
+      "final_best": {
+        "n": 200.0,
+        "mean": 0.452567,
+        "std": 8.639638,
+        "se": 0.610915,
+        "normal_95ci_low": -0.744826,
+        "normal_95ci_high": 1.64996,
+        "win_rate": 0.375,
+        "non_loss_rate": 0.71
+      },
+      "best_so_far_auc": {
+        "n": 200.0,
+        "mean": 0.321699,
+        "std": 5.069364,
+        "se": 0.358458,
+        "normal_95ci_low": -0.38088,
+        "normal_95ci_high": 1.024277,
+        "win_rate": 0.415,
+        "non_loss_rate": 0.57
+      },
+      "top10_hit": {
+        "n": 200.0,
+        "mean": 0.035,
+        "std": 0.42869,
+        "se": 0.030313,
+        "normal_95ci_low": -0.024413,
+        "normal_95ci_high": 0.094413,
+        "win_rate": 0.11,
+        "non_loss_rate": 0.925
+      }
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": {
+        "n": 200.0,
+        "mean": -0.114457,
+        "std": 8.353935,
+        "se": 0.590712,
+        "normal_95ci_low": -1.272253,
+        "normal_95ci_high": 1.04334,
+        "win_rate": 0.365,
+        "non_loss_rate": 0.62
+      },
+      "best_so_far_auc": {
+        "n": 200.0,
+        "mean": 0.269646,
+        "std": 5.343906,
+        "se": 0.377871,
+        "normal_95ci_low": -0.470981,
+        "normal_95ci_high": 1.010274,
+        "win_rate": 0.47,
+        "non_loss_rate": 0.575
+      },
+      "top10_hit": {
+        "n": 200.0,
+        "mean": -0.035,
+        "std": 0.451414,
+        "se": 0.03192,
+        "normal_95ci_low": -0.097563,
+        "normal_95ci_high": 0.027563,
+        "win_rate": 0.085,
+        "non_loss_rate": 0.88
+      }
+    },
+    "target_acquisition_portfolio": {
+      "final_best": {
+        "n": 200.0,
+        "mean": 0.644701,
+        "std": 8.053221,
+        "se": 0.569449,
+        "normal_95ci_low": -0.471418,
+        "normal_95ci_high": 1.76082,
+        "win_rate": 0.37,
+        "non_loss_rate": 0.69
+      },
+      "best_so_far_auc": {
+        "n": 200.0,
+        "mean": 0.30116,
+        "std": 5.037278,
+        "se": 0.356189,
+        "normal_95ci_low": -0.396972,
+        "normal_95ci_high": 0.999291,
+        "win_rate": 0.425,
+        "non_loss_rate": 0.58
+      },
+      "top10_hit": {
+        "n": 200.0,
+        "mean": 0.015,
+        "std": 0.405925,
+        "se": 0.028703,
+        "normal_95ci_low": -0.041258,
+        "normal_95ci_high": 0.071258,
+        "win_rate": 0.09,
+        "non_loss_rate": 0.925
+      }
+    }
+  },
+  "heldout_validation": {
+    "target_anchor_mode": "target_acquisition_portfolio",
+    "selected_llm_patch": true,
+    "mean_final_and_auc_positive": true,
+    "at_least_one_metric_95ci_positive": false,
+    "confirmed_llm_gain": false
+  },
+  "evidence_boundary": "The LLM patches are frozen before replay. Calibration seeds select one patch or a target-only fallback. Held-out outcomes never affect selection. Within a replay, source-prior calibration uses only target outcomes revealed before that round."
+}
