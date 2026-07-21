@@ -12,6 +12,7 @@ import run_synthetic_suzuki as replay  # noqa: E402
 import run_llm_kernel_skill_evolution as evolution  # noqa: E402
 import run_llm_transfer_router as router  # noqa: E402
 import run_transfer_weighted_kernel as weighted  # noqa: E402
+import run_exploration_batch as batch  # noqa: E402
 
 
 def make_adapter() -> replay.DatasetAdapter:
@@ -245,6 +246,95 @@ class ExplorationPolicyTest(unittest.TestCase):
         self.assertFalse(
             diagnostics["modes"]["llm_evolved_kernel_clearly_worse"]["eligible"]
         )
+
+    def test_batch_distance_uses_public_factor_mismatch(self) -> None:
+        distance = batch.candidate_factor_distance(
+            self.adapter,
+            self.adapter.candidates[0],
+            self.adapter.candidates[3],
+        )
+        self.assertEqual(distance, 0.5)
+        self.assertEqual(
+            batch.candidate_factor_distance(
+                self.adapter,
+                self.adapter.candidates[0],
+                self.adapter.candidates[1],
+            ),
+            0.0,
+        )
+
+    def test_batch_constraint_prefers_different_public_factors(self) -> None:
+        eligible = batch.diversity_eligible_ids(
+            self.adapter,
+            {candidate.candidate_id for candidate in self.adapter.candidates[1:]},
+            [self.adapter.candidates[0]],
+            min_distance=0.5,
+        )
+        self.assertNotIn("a2", eligible)
+        self.assertIn("b1", eligible)
+        self.assertIn("c1", eligible)
+
+    def test_historical_novelty_rewards_unseen_factor(self) -> None:
+        scores = batch.historical_novelty_scores(
+            self.adapter,
+            {"a3", "c1"},
+            self.observed,
+        )
+        self.assertGreater(scores["c1"], scores["a3"])
+
+    def test_target_diversity_gate_accepts_low_cost_novel_candidate(self) -> None:
+        gate = batch.target_diversity_gate_decision(
+            {"incumbent": 0.80, "challenger": 0.79},
+            {"incumbent": 0.20, "challenger": 0.70},
+            "challenger",
+            max_acquisition_loss=0.02,
+        )
+        self.assertTrue(gate.authorized)
+        self.assertEqual(gate.selected_candidate, "challenger")
+
+    def test_target_diversity_gate_rejects_high_cost_candidate(self) -> None:
+        gate = batch.target_diversity_gate_decision(
+            {"incumbent": 0.80, "challenger": 0.70},
+            {"incumbent": 0.20, "challenger": 0.90},
+            "challenger",
+            max_acquisition_loss=0.02,
+        )
+        self.assertFalse(gate.authorized)
+        self.assertEqual(gate.selected_candidate, "incumbent")
+
+    def test_gated_batch_can_audit_fallback_outside_diversity_set(self) -> None:
+        task = replay.make_task(self.adapter, initial_observations=2, reveal_budget=2)
+        metrics, events = batch.run_policy(
+            self.adapter,
+            task,
+            seed=3,
+            mode="target_diverse_batch_gate",
+            batch_size=2,
+            novelty_weight=0.04,
+            min_batch_distance=1.0,
+            max_acquisition_loss=0.0,
+            llm_config=None,
+        )
+        self.assertEqual(len(events), 2)
+        self.assertEqual(metrics["mode"], "target_diverse_batch_gate")
+        self.assertTrue(all("selected_score" in event for event in events))
+
+    def test_ungated_batch_can_audit_unconstrained_incumbent(self) -> None:
+        task = replay.make_task(self.adapter, initial_observations=2, reveal_budget=2)
+        metrics, events = batch.run_policy(
+            self.adapter,
+            task,
+            seed=3,
+            mode="target_diverse_batch",
+            batch_size=2,
+            novelty_weight=0.04,
+            min_batch_distance=1.0,
+            max_acquisition_loss=0.02,
+            llm_config=None,
+        )
+        self.assertEqual(len(events), 2)
+        self.assertEqual(metrics["mode"], "target_diverse_batch")
+        self.assertTrue(all("acquisition_loss" in event["gate"] for event in events))
 
 
 if __name__ == "__main__":

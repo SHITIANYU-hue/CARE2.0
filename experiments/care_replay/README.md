@@ -51,6 +51,19 @@ and report whether the LLM actually changes Top-1. See
 `results/2026-07-19-exploration-aware-policy/` for the implementation preflight
 and its limitations.
 
+Run the strict batch-diversity ablation:
+
+```bash
+python3 experiments/care_replay/scripts/run_exploration_batch.py --dataset real_buchwald_hartwig --seeds 30 --seed-start 50 --rounds 6 --initial 8 --batch-size 2 --novelty-weight 0.04 --min-batch-distance 0.34 --max-acquisition-loss 0.02 --modes incumbent_batch,target_diverse_batch,target_diverse_batch_gate --output-tag batch30
+```
+
+Here `--rounds` is the total reveal budget, not the number of batches. Every
+candidate in a batch is selected from the same pre-batch observations, and all
+hidden target values are revealed only after the batch is complete. The gated
+variant permits a diverse candidate only when its public acquisition loss is
+within the configured bound. Add `llm_explore_batch_gate` to `--modes` only
+when a live API key is available.
+
 Run the nine-dataset LLM generalization sweep:
 
 ```bash
@@ -146,11 +159,16 @@ Outputs:
 
 Tracked result snapshots:
 
-- `results/2026-07-19-exploration-aware-policy/`: July 20 exploration-deficit
-  follow-up with dynamic GP-UCB beta, an exploration prompt, probabilistic
-  gate, and target-only leave-one-out router validation. The included numeric
-  check is explicitly an offline policy preflight; live CommonStack inference
-  was blocked by zero available balance and is not reported as an LLM result.
+- `results/2026-07-20-batch-diverse-exploration/`: server-side 30-seed
+  batch-diversity ablation on four real datasets. It includes strict pre-batch
+  evidence boundaries, public-factor novelty, a minimum within-batch distance,
+  an acquisition-loss gate, summaries, metrics, and per-seed audit traces.
+- `results/2026-07-19-exploration-aware-policy/`: live CommonStack
+  `openai/gpt-5.6-sol` follow-up with dynamic GP-UCB beta, explicit
+  explore/exploit/avoid decisions, a probabilistic gate, counter-hypotheses,
+  LLM-generated kernel skills, and a frozen online router. The held-out results
+  verify executable LLM policies but do not establish a consistent advantage
+  over the strongest target-only baseline.
 
 - `results/2026-06-28-doc-guided-sweep/`: aggregate summaries and metric tables
   for a six-adapter sweep guided by the CARE 2.0 / AI4Science notes.
