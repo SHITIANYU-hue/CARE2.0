@@ -1,0 +1,600 @@
+{
+  "model": "openai/gpt-4o-mini",
+  "usage": {
+    "prompt_tokens": 1280,
+    "completion_tokens": 1591,
+    "total_tokens": 2871,
+    "tps": 82.23,
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "llm_generation_call_count": 1,
+  "api_configuration": {
+    "base_url": "https://api.commonstack.ai/v1",
+    "api_mode": "chat",
+    "structured_mode": "json",
+    "temperature": 0.0,
+    "max_tokens": 4000
+  },
+  "source_dataset": "real_matbench_dielectric",
+  "target_dataset": "real_matbench_expt_gap",
+  "evidence_mode": "source_schema_only",
+  "prompt_payload": {
+    "task": "Design a diverse library of executable semantic optimization skills for finite-pool scientific search. Each skill defines interpretable rule features plus a conservative Bayesian linear surrogate blended with strong target-only GP-UCB and GP-EI anchors.",
+    "target": {
+      "dataset": "real_matbench_expt_gap",
+      "title": "Matbench experimental band gap replay",
+      "objective": "maximize_normalized_experimental_band_gap",
+      "candidate_count": 4604,
+      "public_semantic_fields": {
+        "anion_family": {
+          "carbide_or_carbon": 85,
+          "chalcogenide": 1485,
+          "halide": 177,
+          "other": 1307,
+          "oxide": 1090,
+          "pnictide": 460
+        },
+        "element_count_bin": {
+          "binary": 1041,
+          "ternary_quaternary": 3563
+        },
+        "dominant_family": {
+          "alkali": 95,
+          "alkaline_earth": 114,
+          "chalcogen": 2044,
+          "halogen": 169,
+          "lanthanide": 229,
+          "light_nonmetal": 47,
+          "metalloid": 570,
+          "other": 31,
+          "pnictogen": 114,
+          "post_transition": 319,
+          "transition_metal": 872
+        },
+        "transition_metal_flag": {
+          "has_transition_metal": 2999,
+          "no_transition_metal": 1605
+        },
+        "lanthanide_flag": {
+          "has_lanthanide": 1285,
+          "no_lanthanide": 3319
+        },
+        "mean_atomic_number_bin": {
+          "mean_z_high": 1227,
+          "mean_z_low": 903,
+          "mean_z_mid": 2175,
+          "mean_z_very_high": 299
+        },
+        "max_element_fraction_bin": {
+          "balanced": 302,
+          "concentrated": 2411,
+          "dominant_element_heavy": 147,
+          "moderately_concentrated": 1744
+        }
+      },
+      "hidden_target": "normalized_band_gap_score",
+      "boundary": "Field values and counts are public; target outcomes are not included."
+    },
+    "source_transfer_evidence": {
+      "evidence_mode": "source_schema_only",
+      "source_dataset": "real_matbench_dielectric",
+      "source_objective": "maximize_refractive_index",
+      "mapped_roles": [
+        {
+          "source_field": "anion_family",
+          "target_field": "anion_family"
+        },
+        {
+          "source_field": "dominant_family",
+          "target_field": "dominant_family"
+        },
+        {
+          "source_field": "element_count_bin",
+          "target_field": "element_count_bin"
+        },
+        {
+          "source_field": "lanthanide_flag",
+          "target_field": "lanthanide_flag"
+        },
+        {
+          "source_field": "max_element_fraction_bin",
+          "target_field": "max_element_fraction_bin"
+        },
+        {
+          "source_field": "mean_atomic_number_bin",
+          "target_field": "mean_atomic_number_bin"
+        },
+        {
+          "source_field": "transition_metal_flag",
+          "target_field": "transition_metal_flag"
+        }
+      ],
+      "source_outcome_statistics": null,
+      "shared_value_priors": [],
+      "boundary": "Only source identity, objective, and public source-target field alignment are provided. Source outcomes, effects, support counts, and value priors are withheld."
+    },
+    "executor": {
+      "semantic_model": "Rules become binary features. Revealed target outcomes fit a ridge Bayesian linear surrogate whose coefficient prior follows rule weights.",
+      "anchor": "A rank blend of target-only GP-UCB and GP-EI.",
+      "fusion": "semantic_mass_start/end controls the rank mass assigned to the semantic surrogate; the remaining mass stays on the target-only anchor.",
+      "selection": "Independent calibration seeds select one frozen skill. Independent held-out seeds are evaluated only after selection."
+    },
+    "design_requirements": [
+      "Return exactly 8 diverse skills.",
+      "Use only exact field/value pairs in public_semantic_fields.",
+      "Each conditions object must map a real catalog field name directly to one exact catalog value, for example {\"dominant_family\": \"oxide\"}. Never use literal placeholder keys such as exact_field, field_name, field, or value.",
+      "Give every skill 3-10 rules; use two-condition interactions only when scientifically meaningful.",
+      "Include at least one conservative low-semantic-mass skill.",
+      "Include at least one skill grounded only in the supplied source-target field alignment; do not imply that source outcome effects were observed.",
+      "Include at least one domain-knowledge skill.",
+      "Include a counter-hypothesis skill that reverses or downweights an uncertain source relation.",
+      "Prefer mechanistic, chemically or physically interpretable rules over arbitrary coverage rules.",
+      "Use positive weights for conditions expected to improve the target objective and negative weights for risks.",
+      "Do not claim access to target outcomes and do not output candidate identifiers."
+    ],
+    "allowed_ranges": {
+      "rule_weight": "[-1, 1]",
+      "ridge": "[0.05, 20]",
+      "prior_scale": "[0, 1.5]",
+      "semantic_mass_start_end": "[0, 0.85]",
+      "ucb_weight": "[0, 1]; EI weight is 1 - ucb_weight",
+      "gp_beta_start_end": "[0.2, 4]",
+      "gp_xi": "[0, 0.2]",
+      "confidence": "[0.05, 1]"
+    },
+    "output_contract": {
+      "skills": [
+        {
+          "skill_id": "short_unique_name",
+          "rules": [
+            {
+              "rule_id": "mechanistic_rule",
+              "conditions": {
+                "field_name_from_public_semantic_fields": "exact_catalog_value"
+              },
+              "weight": 0.5,
+              "rationale": "short scientific rationale"
+            }
+          ],
+          "ridge": 1.0,
+          "prior_scale": 0.25,
+          "semantic_mass_start": 0.3,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.7,
+          "hypothesis": "what this skill transfers and when it may fail"
+        }
+      ]
+    }
+  },
+  "raw_response": "```json\n{\n  \"skills\": [\n    {\n      \"skill_id\": \"high_transition_metal\",\n      \"rules\": [\n        {\n          \"rule_id\": \"transition_metal_rule\",\n          \"conditions\": {\n            \"transition_metal_flag\": \"has_transition_metal\"\n          },\n          \"weight\": 0.7,\n          \"rationale\": \"Transition metals often enhance electronic properties.\"\n        },\n        {\n          \"rule_id\": \"dominant_family_rule\",\n          \"conditions\": {\n            \"dominant_family\": \"transition_metal\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Dominant transition metals can improve band gap.\"\n        }\n      ],\n      \"ridge\": 1.5,\n      \"prior_scale\": 0.5,\n      \"semantic_mass_start\": 0.6,\n      \"semantic_mass_end\": 0.2,\n      \"ucb_weight\": 0.7,\n      \"gp_beta_start\": 2.5,\n      \"gp_beta_end\": 1.5,\n      \"gp_xi\": 0.05,\n      \"confidence\": 0.8,\n      \"hypothesis\": \"This skill is effective when transition metals are present.\"\n    },\n    {\n      \"skill_id\": \"low_semantic_mass\",\n      \"rules\": [\n        {\n          \"rule_id\": \"lanthanide_rule\",\n          \"conditions\": {\n            \"lanthanide_flag\": \"has_lanthanide\"\n          },\n          \"weight\": -0.3,\n          \"rationale\": \"Lanthanides may not contribute positively to band gap.\"\n        }\n      ],\n      \"ridge\": 0.8,\n      \"prior_scale\": 0.1,\n      \"semantic_mass_start\": 0.1,\n      \"semantic_mass_end\": 0.05,\n      \"ucb_weight\": 0.4,\n      \"gp_beta_start\": 1.0,\n      \"gp_beta_end\": 0.5,\n      \"gp_xi\": 0.02,\n      \"confidence\": 0.6,\n      \"hypothesis\": \"This skill may underperform when lanthanides are present.\"\n    },\n    {\n      \"skill_id\": \"balanced_element_fraction\",\n      \"rules\": [\n        {\n          \"rule_id\": \"element_fraction_rule\",\n          \"conditions\": {\n            \"max_element_fraction_bin\": \"balanced\"\n          },\n          \"weight\": 0.6,\n          \"rationale\": \"Balanced compositions can lead to optimal band gap.\"\n        }\n      ],\n      \"ridge\": 1.2,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.4,\n      \"semantic_mass_end\": 0.2,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 2.0,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.01,\n      \"confidence\": 0.75,\n      \"hypothesis\": \"This skill is effective for balanced compositions.\"\n    },\n    {\n      \"skill_id\": \"high_mean_atomic_number\",\n      \"rules\": [\n        {\n          \"rule_id\": \"mean_atomic_number_high_rule\",\n          \"conditions\": {\n            \"mean_atomic_number_bin\": \"mean_z_high\"\n          },\n          \"weight\": 0.8,\n          \"rationale\": \"Higher atomic numbers can enhance electronic properties.\"\n        }\n      ],\n      \"ridge\": 1.7,\n      \"prior_scale\": 0.4,\n      \"semantic_mass_start\": 0.5,\n      \"semantic_mass_end\": 0.3,\n      \"ucb_weight\": 0.6,\n      \"gp_beta_start\": 2.2,\n      \"gp_beta_end\": 1.2,\n      \"gp_xi\": 0.03,\n      \"confidence\": 0.85,\n      \"hypothesis\": \"This skill is effective when mean atomic number is high.\"\n    },\n    {\n      \"skill_id\": \"chalcogen_family\",\n      \"rules\": [\n        {\n          \"rule_id\": \"chalcogen_family_rule\",\n          \"conditions\": {\n            \"dominant_family\": \"chalcogen\"\n          },\n          \"weight\": 0.9,\n          \"rationale\": \"Chalcogens are known to improve band gap properties.\"\n        }\n      ],\n      \"ridge\": 1.3,\n      \"prior_scale\": 0.2,\n      \"semantic_mass_start\": 0.4,\n      \"semantic_mass_end\": 0.1,\n      \"ucb_weight\": 0.8,\n      \"gp_beta_start\": 2.0,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.01,\n      \"confidence\": 0.9,\n      \"hypothesis\": \"This skill is effective for materials dominated by chalcogens.\"\n    },\n    {\n      \"skill_id\": \"low_element_count\",\n      \"rules\": [\n        {\n          \"rule_id\": \"element_count_rule\",\n          \"conditions\": {\n            \"element_count_bin\": \"binary\"\n          },\n          \"weight\": -0.4,\n          \"rationale\": \"Binary compounds may limit band gap variability.\"\n        }\n      ],\n      \"ridge\": 1.0,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.2,\n      \"semantic_mass_end\": 0.1,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 1.5,\n      \"gp_beta_end\": 0.8,\n      \"gp_xi\": 0.02,\n      \"confidence\": 0.65,\n      \"hypothesis\": \"This skill may underperform for binary compounds.\"\n    },\n    {\n      \"skill_id\": \"high_anion_family\",\n      \"rules\": [\n        {\n          \"rule_id\": \"anion_family_rule\",\n          \"conditions\": {\n            \"anion_family\": \"chalcogenide\"\n          },\n          \"weight\": 0.7,\n          \"rationale\": \"Chalcogenides are known to enhance electronic properties.\"\n        }\n      ],\n      \"ridge\": 1.4,\n      \"prior_scale\": 0.5,\n      \"semantic_mass_start\": 0.5,\n      \"semantic_mass_end\": 0.2,\n      \"ucb_weight\": 0.6,\n      \"gp_beta_start\": 2.0,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.01,\n      \"confidence\": 0.8,\n      \"hypothesis\": \"This skill is effective for materials with chalcogenide anions.\"\n    },\n    {\n      \"skill_id\": \"high_dominant_family\",\n      \"rules\": [\n        {\n          \"rule_id\": \"dominant_family_rule\",\n          \"conditions\": {\n            \"dominant_family\": \"halogen\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Halogens can influence band gap positively.\"\n        }\n      ],\n      \"ridge\": 1.1,\n      \"prior_scale\": 0.2,\n      \"semantic_mass_start\": 0.3,\n      \"semantic_mass_end\": 0.1,\n      \"ucb_weight\": 0.4,\n      \"gp_beta_start\": 1.8,\n      \"gp_beta_end\": 0.9,\n      \"gp_xi\": 0.02,\n      \"confidence\": 0.7,\n      \"hypothesis\": \"This skill is effective for materials dominated by halogens.\"\n    }\n  ]\n}\n```",
+  "parsed_response": {
+    "skills": [
+      {
+        "skill_id": "high_transition_metal",
+        "rules": [
+          {
+            "rule_id": "transition_metal_rule",
+            "conditions": {
+              "transition_metal_flag": "has_transition_metal"
+            },
+            "weight": 0.7,
+            "rationale": "Transition metals often enhance electronic properties."
+          },
+          {
+            "rule_id": "dominant_family_rule",
+            "conditions": {
+              "dominant_family": "transition_metal"
+            },
+            "weight": 0.5,
+            "rationale": "Dominant transition metals can improve band gap."
+          }
+        ],
+        "ridge": 1.5,
+        "prior_scale": 0.5,
+        "semantic_mass_start": 0.6,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.7,
+        "gp_beta_start": 2.5,
+        "gp_beta_end": 1.5,
+        "gp_xi": 0.05,
+        "confidence": 0.8,
+        "hypothesis": "This skill is effective when transition metals are present."
+      },
+      {
+        "skill_id": "low_semantic_mass",
+        "rules": [
+          {
+            "rule_id": "lanthanide_rule",
+            "conditions": {
+              "lanthanide_flag": "has_lanthanide"
+            },
+            "weight": -0.3,
+            "rationale": "Lanthanides may not contribute positively to band gap."
+          }
+        ],
+        "ridge": 0.8,
+        "prior_scale": 0.1,
+        "semantic_mass_start": 0.1,
+        "semantic_mass_end": 0.05,
+        "ucb_weight": 0.4,
+        "gp_beta_start": 1.0,
+        "gp_beta_end": 0.5,
+        "gp_xi": 0.02,
+        "confidence": 0.6,
+        "hypothesis": "This skill may underperform when lanthanides are present."
+      },
+      {
+        "skill_id": "balanced_element_fraction",
+        "rules": [
+          {
+            "rule_id": "element_fraction_rule",
+            "conditions": {
+              "max_element_fraction_bin": "balanced"
+            },
+            "weight": 0.6,
+            "rationale": "Balanced compositions can lead to optimal band gap."
+          }
+        ],
+        "ridge": 1.2,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.4,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.01,
+        "confidence": 0.75,
+        "hypothesis": "This skill is effective for balanced compositions."
+      },
+      {
+        "skill_id": "high_mean_atomic_number",
+        "rules": [
+          {
+            "rule_id": "mean_atomic_number_high_rule",
+            "conditions": {
+              "mean_atomic_number_bin": "mean_z_high"
+            },
+            "weight": 0.8,
+            "rationale": "Higher atomic numbers can enhance electronic properties."
+          }
+        ],
+        "ridge": 1.7,
+        "prior_scale": 0.4,
+        "semantic_mass_start": 0.5,
+        "semantic_mass_end": 0.3,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 1.2,
+        "gp_xi": 0.03,
+        "confidence": 0.85,
+        "hypothesis": "This skill is effective when mean atomic number is high."
+      },
+      {
+        "skill_id": "chalcogen_family",
+        "rules": [
+          {
+            "rule_id": "chalcogen_family_rule",
+            "conditions": {
+              "dominant_family": "chalcogen"
+            },
+            "weight": 0.9,
+            "rationale": "Chalcogens are known to improve band gap properties."
+          }
+        ],
+        "ridge": 1.3,
+        "prior_scale": 0.2,
+        "semantic_mass_start": 0.4,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.8,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.01,
+        "confidence": 0.9,
+        "hypothesis": "This skill is effective for materials dominated by chalcogens."
+      },
+      {
+        "skill_id": "low_element_count",
+        "rules": [
+          {
+            "rule_id": "element_count_rule",
+            "conditions": {
+              "element_count_bin": "binary"
+            },
+            "weight": -0.4,
+            "rationale": "Binary compounds may limit band gap variability."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.2,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 1.5,
+        "gp_beta_end": 0.8,
+        "gp_xi": 0.02,
+        "confidence": 0.65,
+        "hypothesis": "This skill may underperform for binary compounds."
+      },
+      {
+        "skill_id": "high_anion_family",
+        "rules": [
+          {
+            "rule_id": "anion_family_rule",
+            "conditions": {
+              "anion_family": "chalcogenide"
+            },
+            "weight": 0.7,
+            "rationale": "Chalcogenides are known to enhance electronic properties."
+          }
+        ],
+        "ridge": 1.4,
+        "prior_scale": 0.5,
+        "semantic_mass_start": 0.5,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.01,
+        "confidence": 0.8,
+        "hypothesis": "This skill is effective for materials with chalcogenide anions."
+      },
+      {
+        "skill_id": "high_dominant_family",
+        "rules": [
+          {
+            "rule_id": "dominant_family_rule",
+            "conditions": {
+              "dominant_family": "halogen"
+            },
+            "weight": 0.5,
+            "rationale": "Halogens can influence band gap positively."
+          }
+        ],
+        "ridge": 1.1,
+        "prior_scale": 0.2,
+        "semantic_mass_start": 0.3,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.4,
+        "gp_beta_start": 1.8,
+        "gp_beta_end": 0.9,
+        "gp_xi": 0.02,
+        "confidence": 0.7,
+        "hypothesis": "This skill is effective for materials dominated by halogens."
+      }
+    ]
+  },
+  "normalized_skills": [
+    {
+      "skill_id": "high_transition_metal",
+      "rules": [
+        {
+          "rule_id": "transition_metal_rule",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Transition metals often enhance electronic properties."
+        },
+        {
+          "rule_id": "dominant_family_rule",
+          "conditions": [
+            [
+              "dominant_family",
+              "transition_metal"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Dominant transition metals can improve band gap."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.5,
+      "semantic_mass_start": 0.6,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.05,
+      "confidence": 0.8,
+      "hypothesis": "This skill is effective when transition metals are present."
+    },
+    {
+      "skill_id": "low_semantic_mass",
+      "rules": [
+        {
+          "rule_id": "lanthanide_rule",
+          "conditions": [
+            [
+              "lanthanide_flag",
+              "has_lanthanide"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "Lanthanides may not contribute positively to band gap."
+        }
+      ],
+      "ridge": 0.8,
+      "prior_scale": 0.1,
+      "semantic_mass_start": 0.1,
+      "semantic_mass_end": 0.05,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 1.0,
+      "gp_beta_end": 0.5,
+      "gp_xi": 0.02,
+      "confidence": 0.6,
+      "hypothesis": "This skill may underperform when lanthanides are present."
+    },
+    {
+      "skill_id": "balanced_element_fraction",
+      "rules": [
+        {
+          "rule_id": "element_fraction_rule",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "balanced"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Balanced compositions can lead to optimal band gap."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.75,
+      "hypothesis": "This skill is effective for balanced compositions."
+    },
+    {
+      "skill_id": "high_mean_atomic_number",
+      "rules": [
+        {
+          "rule_id": "mean_atomic_number_high_rule",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_high"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Higher atomic numbers can enhance electronic properties."
+        }
+      ],
+      "ridge": 1.7,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.3,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.03,
+      "confidence": 0.85,
+      "hypothesis": "This skill is effective when mean atomic number is high."
+    },
+    {
+      "skill_id": "chalcogen_family",
+      "rules": [
+        {
+          "rule_id": "chalcogen_family_rule",
+          "conditions": [
+            [
+              "dominant_family",
+              "chalcogen"
+            ]
+          ],
+          "weight": 0.9,
+          "rationale": "Chalcogens are known to improve band gap properties."
+        }
+      ],
+      "ridge": 1.3,
+      "prior_scale": 0.2,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.8,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.9,
+      "hypothesis": "This skill is effective for materials dominated by chalcogens."
+    },
+    {
+      "skill_id": "low_element_count",
+      "rules": [
+        {
+          "rule_id": "element_count_rule",
+          "conditions": [
+            [
+              "element_count_bin",
+              "binary"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "Binary compounds may limit band gap variability."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 0.8,
+      "gp_xi": 0.02,
+      "confidence": 0.65,
+      "hypothesis": "This skill may underperform for binary compounds."
+    },
+    {
+      "skill_id": "high_anion_family",
+      "rules": [
+        {
+          "rule_id": "anion_family_rule",
+          "conditions": [
+            [
+              "anion_family",
+              "chalcogenide"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Chalcogenides are known to enhance electronic properties."
+        }
+      ],
+      "ridge": 1.4,
+      "prior_scale": 0.5,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.8,
+      "hypothesis": "This skill is effective for materials with chalcogenide anions."
+    },
+    {
+      "skill_id": "high_dominant_family",
+      "rules": [
+        {
+          "rule_id": "dominant_family_rule",
+          "conditions": [
+            [
+              "dominant_family",
+              "halogen"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Halogens can influence band gap positively."
+        }
+      ],
+      "ridge": 1.1,
+      "prior_scale": 0.2,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 1.8,
+      "gp_beta_end": 0.9,
+      "gp_xi": 0.02,
+      "confidence": 0.7,
+      "hypothesis": "This skill is effective for materials dominated by halogens."
+    }
+  ]
+}

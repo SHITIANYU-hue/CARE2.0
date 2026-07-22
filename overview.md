@@ -1,5 +1,27 @@
 # Overview
 
+## 2026-07-21：LLM 证据来源和实验轮数审计
+
+这一轮把过去混在一起的两个问题拆开了：一是收益到底来自 source task，还是 LLM 只看 target schema 也能写出有用的 skill；二是 LLM 加进来以后，是否能更早找到高价值候选，而不只是最终分数略高。
+
+实验为每个 source-target pair 独立生成三套 skill：`full` 包含源任务结果和统计量，`source_schema_only` 只保留源任务身份、目标和字段映射，`target_only` 完全不告诉 LLM 源任务。三套 skill 使用相同的 calibration/held-out seeds。开发阶段用 30+100 seeds，选中的 skill 冻结后再用 50+500 个新 seeds 确认。LLM 只负责把公开 schema 编译成规则特征和 acquisition schedule；每轮规则系数仍只用已经 reveal 的 target observation 在线拟合，校准不通过就退回 target-only optimizer。
+
+目前有三条 500-seed 结果：
+
+| Target | 结论 | 强 baseline | Final best delta | AUC delta | Top-10 hit delta |
+| --- | --- | --- | ---: | ---: | ---: |
+| Matbench band gap | target-only LLM 规则划分有效；不使用 LLM 给的系数方向 | target portfolio | +7.0090 | +6.1666 | +0.170 |
+| FreeSolv | ESOL 的任务身份和字段映射产生了可确认的 source-schema transfer | target portfolio | +3.3023 | +0.8524（CI 跨 0） | +0.138 |
+| Lipophilicity | target-only LLM 规则划分有效；不使用 LLM 给的系数方向 | GP-UCB | +1.5660 | +1.2607 | +0.068 |
+
+Band gap 和 Lipophilicity 都是在 `target_only` 条件下成立的，因此它们证明的是 LLM 能根据陌生 target 的公开 schema 提出可用表征，不能算 source-to-target transfer。FreeSolv 的正结果来自 `source_schema_only`：LLM 知道 source 是 ESOL，并看到 rotatable bond、ring、SMILES length 等字段如何映射到 FreeSolv，但没有看到任何 source outcome。这是目前较干净的一条迁移信号。反过来，源任务 outcome statistics 在四组对照里都没有带来额外收益；Suzuki -> Buchwald-Hartwig 三个条件全部被校准拒绝。
+
+组件 ablation 的结论也很一致。材料和 Lipophilicity 上，把 LLM 给出的初始正负权重清零以后结果更强；但如果把语义规则整个拿掉、只保留 acquisition schedule，收益会明显下降。也就是说，当前 LLM 最有价值的作用不是直接决定方向和权重，而是提出一个可以执行的特征划分，再由 target 数据在线学习系数。
+
+实验轮数方面，材料任务平均提前 1.354 轮命中全局 top-10，FreeSolv 提前 0.478 轮，置信区间均为正。Lipophilicity 没有显著提前首次 top-10 命中，但第 5 轮的 best-so-far 已经比 GP-UCB 高 1.0783。需要保留一个限制：如果阈值定义成“达到同一个 seed 下 baseline 最终找到的值”，三组都没有节省轮数。因此现在可以说 LLM 在部分任务上更早进入高价值区域，不能说它对所有质量阈值都降低了 sample complexity。
+
+完整结果、模型调用、每个 seed 的 metrics、round-efficiency JSON 和压缩 audit log 在 `experiments/care_replay/results/2026-07-21-llm-evidence-causality/`。这一版仍不是和外部 AI Scientist 的同协议 leaderboard；可以主张的是，我们已经在材料和分子性质两个不同领域确认了 LLM schema-to-skill 的泛化能力，并在 FreeSolv 上看到 source-schema transfer，但还没有证明 source outcome transfer 或全领域稳定优势。
+
 ## 1. 这轮实验想验证什么
 
 这轮实验不是在复现 CARE 1.0 论文的最终数字。我们做的是 CARE 2.0 的 replay harness 和跨领域 transfer 验证：先把不同领域的数据统一成有限候选池搜索，再看源领域沉淀下来的 skill / prior 能不能在目标领域带来真实收益。

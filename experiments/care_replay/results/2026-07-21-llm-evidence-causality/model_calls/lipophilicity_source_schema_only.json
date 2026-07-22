@@ -1,0 +1,560 @@
+{
+  "model": "openai/gpt-4o-mini",
+  "usage": {
+    "prompt_tokens": 1243,
+    "completion_tokens": 1673,
+    "total_tokens": 2916,
+    "tps": 87.59,
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "llm_generation_call_count": 1,
+  "api_configuration": {
+    "base_url": "https://api.commonstack.ai/v1",
+    "api_mode": "chat",
+    "structured_mode": "json",
+    "temperature": 0.0,
+    "max_tokens": 5000
+  },
+  "source_dataset": "real_moleculenet_esol",
+  "target_dataset": "real_moleculenet_lipophilicity",
+  "evidence_mode": "source_schema_only",
+  "prompt_payload": {
+    "task": "Design a diverse library of executable semantic optimization skills for finite-pool scientific search. Each skill defines interpretable rule features plus a conservative Bayesian linear surrogate blended with strong target-only GP-UCB and GP-EI anchors.",
+    "target": {
+      "dataset": "real_moleculenet_lipophilicity",
+      "title": "MoleculeNet Lipophilicity replay",
+      "objective": "maximize_normalized_lipophilicity",
+      "candidate_count": 4200,
+      "public_semantic_fields": {
+        "smiles_length_bin": {
+          "smiles_long": 2265,
+          "smiles_mid": 1764,
+          "smiles_short": 93,
+          "smiles_very_long": 78
+        },
+        "hetero_atom_bin": {
+          "hetero_high": 2661,
+          "hetero_low": 194,
+          "hetero_mid": 1344,
+          "hetero_none": 1
+        },
+        "halogen_bin": {
+          "halogen_high": 98,
+          "halogen_low": 961,
+          "halogen_mid": 743,
+          "halogen_none": 2398
+        },
+        "aromatic_bin": {
+          "aromatic_high": 1982,
+          "aromatic_low": 545,
+          "aromatic_mid": 1619,
+          "aromatic_none": 54
+        },
+        "ring_token_bin": {
+          "ring_token_high": 1976,
+          "ring_token_low": 113,
+          "ring_token_mid": 2106,
+          "ring_token_none": 5
+        },
+        "branch_bin": {
+          "branch_high": 1183,
+          "branch_low": 817,
+          "branch_mid": 2147,
+          "branch_none": 53
+        },
+        "double_bond_bin": {
+          "double_bond_high": 147,
+          "double_bond_low": 1333,
+          "double_bond_mid": 1843,
+          "double_bond_none": 877
+        }
+      },
+      "hidden_target": "normalized_lipophilicity_score",
+      "boundary": "Field values and counts are public; target outcomes are not included."
+    },
+    "source_transfer_evidence": {
+      "evidence_mode": "source_schema_only",
+      "source_dataset": "real_moleculenet_esol",
+      "source_objective": "maximize_normalized_solubility",
+      "mapped_roles": [
+        {
+          "source_field": "hbond_donor_bin",
+          "target_field": "hetero_atom_bin"
+        },
+        {
+          "source_field": "ring_bin",
+          "target_field": "ring_token_bin"
+        },
+        {
+          "source_field": "rotatable_bond_bin",
+          "target_field": "branch_bin"
+        },
+        {
+          "source_field": "smiles_length_bin",
+          "target_field": "smiles_length_bin"
+        }
+      ],
+      "source_outcome_statistics": null,
+      "shared_value_priors": [],
+      "boundary": "Only source identity, objective, and public source-target field alignment are provided. Source outcomes, effects, support counts, and value priors are withheld."
+    },
+    "executor": {
+      "semantic_model": "Rules become binary features. Revealed target outcomes fit a ridge Bayesian linear surrogate whose coefficient prior follows rule weights.",
+      "anchor": "A rank blend of target-only GP-UCB and GP-EI.",
+      "fusion": "semantic_mass_start/end controls the rank mass assigned to the semantic surrogate; the remaining mass stays on the target-only anchor.",
+      "selection": "Independent calibration seeds select one frozen skill. Independent held-out seeds are evaluated only after selection."
+    },
+    "design_requirements": [
+      "Return exactly 8 diverse skills.",
+      "Use only exact field/value pairs in public_semantic_fields.",
+      "Each conditions object must map a real catalog field name directly to one exact catalog value, for example {\"dominant_family\": \"oxide\"}. Never use literal placeholder keys such as exact_field, field_name, field, or value.",
+      "Give every skill a distinct, descriptive scientific skill_id. Never copy schema placeholders such as short_unique_name or add numeric suffixes to a placeholder.",
+      "Give every skill 3-10 rules; use two-condition interactions only when scientifically meaningful.",
+      "Include at least one conservative low-semantic-mass skill.",
+      "Include at least one skill grounded only in the supplied source-target field alignment; do not imply that source outcome effects were observed.",
+      "Include at least one domain-knowledge skill.",
+      "Include a counter-hypothesis skill that reverses or downweights an uncertain source relation.",
+      "Prefer mechanistic, chemically or physically interpretable rules over arbitrary coverage rules.",
+      "Use positive weights for conditions expected to improve the target objective and negative weights for risks.",
+      "Do not claim access to target outcomes and do not output candidate identifiers."
+    ],
+    "allowed_ranges": {
+      "rule_weight": "[-1, 1]",
+      "ridge": "[0.05, 20]",
+      "prior_scale": "[0, 1.5]",
+      "semantic_mass_start_end": "[0, 0.85]",
+      "ucb_weight": "[0, 1]; EI weight is 1 - ucb_weight",
+      "gp_beta_start_end": "[0.2, 4]",
+      "gp_xi": "[0, 0.2]",
+      "confidence": "[0.05, 1]"
+    },
+    "output_contract": {
+      "skills": [
+        {
+          "skill_id": "descriptive_scientific_skill_id",
+          "rules": [
+            {
+              "rule_id": "mechanistic_rule",
+              "conditions": {
+                "field_name_from_public_semantic_fields": "exact_catalog_value"
+              },
+              "weight": 0.5,
+              "rationale": "short scientific rationale"
+            }
+          ],
+          "ridge": 1.0,
+          "prior_scale": 0.25,
+          "semantic_mass_start": 0.3,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.7,
+          "hypothesis": "what this skill transfers and when it may fail"
+        }
+      ]
+    }
+  },
+  "raw_response": "```json\n{\n  \"skills\": [\n    {\n      \"skill_id\": \"high_aromatic_content_skill\",\n      \"rules\": [\n        {\n          \"rule_id\": \"high_aromatic_rule\",\n          \"conditions\": {\n            \"aromatic_bin\": \"aromatic_high\"\n          },\n          \"weight\": 0.7,\n          \"rationale\": \"High aromatic content is expected to improve lipophilicity.\"\n        },\n        {\n          \"rule_id\": \"low_halogen_rule\",\n          \"conditions\": {\n            \"halogen_bin\": \"halogen_low\"\n          },\n          \"weight\": -0.5,\n          \"rationale\": \"Lower halogen content may reduce lipophilicity risks.\"\n        }\n      ],\n      \"ridge\": 1.5,\n      \"prior_scale\": 0.5,\n      \"semantic_mass_start\": 0.4,\n      \"semantic_mass_end\": 0.2,\n      \"ucb_weight\": 0.7,\n      \"gp_beta_start\": 2.5,\n      \"gp_beta_end\": 1.5,\n      \"gp_xi\": 0.05,\n      \"confidence\": 0.8,\n      \"hypothesis\": \"This skill targets compounds with high aromatic content for improved lipophilicity.\"\n    },\n    {\n      \"skill_id\": \"low_branching_skill\",\n      \"rules\": [\n        {\n          \"rule_id\": \"low_branch_rule\",\n          \"conditions\": {\n            \"branch_bin\": \"branch_low\"\n          },\n          \"weight\": 0.6,\n          \"rationale\": \"Less branching is associated with higher lipophilicity.\"\n        }\n      ],\n      \"ridge\": 1.0,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.5,\n      \"semantic_mass_end\": 0.1,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 1.8,\n      \"gp_beta_end\": 1.2,\n      \"gp_xi\": 0.02,\n      \"confidence\": 0.75,\n      \"hypothesis\": \"This skill emphasizes low branching to enhance lipophilicity.\"\n    },\n    {\n      \"skill_id\": \"high_ring_content_skill\",\n      \"rules\": [\n        {\n          \"rule_id\": \"high_ring_rule\",\n          \"conditions\": {\n            \"ring_token_bin\": \"ring_token_high\"\n          },\n          \"weight\": 0.8,\n          \"rationale\": \"High ring content is likely to improve lipophilicity.\"\n        }\n      ],\n      \"ridge\": 1.2,\n      \"prior_scale\": 0.4,\n      \"semantic_mass_start\": 0.6,\n      \"semantic_mass_end\": 0.2,\n      \"ucb_weight\": 0.4,\n      \"gp_beta_start\": 2.0,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.03,\n      \"confidence\": 0.85,\n      \"hypothesis\": \"This skill focuses on maximizing ring structures for better lipophilicity.\"\n    },\n    {\n      \"skill_id\": \"low_double_bond_skill\",\n      \"rules\": [\n        {\n          \"rule_id\": \"low_double_bond_rule\",\n          \"conditions\": {\n            \"double_bond_bin\": \"double_bond_low\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Fewer double bonds may correlate with higher lipophilicity.\"\n        }\n      ],\n      \"ridge\": 1.0,\n      \"prior_scale\": 0.2,\n      \"semantic_mass_start\": 0.3,\n      \"semantic_mass_end\": 0.1,\n      \"ucb_weight\": 0.6,\n      \"gp_beta_start\": 1.5,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.01,\n      \"confidence\": 0.7,\n      \"hypothesis\": \"This skill targets compounds with fewer double bonds to enhance lipophilicity.\"\n    },\n    {\n      \"skill_id\": \"source_field_alignment_skill\",\n      \"rules\": [\n        {\n          \"rule_id\": \"hbond_donor_to_hetero_atom_rule\",\n          \"conditions\": {\n            \"hbond_donor_bin\": \"hetero_high\"\n          },\n          \"weight\": 0.4,\n          \"rationale\": \"Aligning source fields to target fields may yield beneficial insights.\"\n        }\n      ],\n      \"ridge\": 1.0,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.2,\n      \"semantic_mass_end\": 0.1,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 1.0,\n      \"gp_beta_end\": 0.8,\n      \"gp_xi\": 0.02,\n      \"confidence\": 0.6,\n      \"hypothesis\": \"This skill leverages source-target field alignment for potential lipophilicity insights.\"\n    },\n    {\n      \"skill_id\": \"counter_hypothesis_skill\",\n      \"rules\": [\n        {\n          \"rule_id\": \"high_halogen_counter_rule\",\n          \"conditions\": {\n            \"halogen_bin\": \"halogen_high\"\n          },\n          \"weight\": -0.6,\n          \"rationale\": \"High halogen content may negatively impact lipophilicity.\"\n        }\n      ],\n      \"ridge\": 1.0,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.3,\n      \"semantic_mass_end\": 0.1,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 1.5,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.01,\n      \"confidence\": 0.65,\n      \"hypothesis\": \"This skill counters the assumption that high halogen content is beneficial for lipophilicity.\"\n    },\n    {\n      \"skill_id\": \"low_hetero_atom_skill\",\n      \"rules\": [\n        {\n          \"rule_id\": \"low_hetero_atom_rule\",\n          \"conditions\": {\n            \"hetero_atom_bin\": \"hetero_low\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Lower heteroatom content may correlate with improved lipophilicity.\"\n        }\n      ],\n      \"ridge\": 1.0,\n      \"prior_scale\": 0.2,\n      \"semantic_mass_start\": 0.4,\n      \"semantic_mass_end\": 0.1,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 1.2,\n      \"gp_beta_end\": 0.9,\n      \"gp_xi\": 0.02,\n      \"confidence\": 0.7,\n      \"hypothesis\": \"This skill emphasizes low heteroatom content to enhance lipophilicity.\"\n    },\n    {\n      \"skill_id\": \"high_smiles_length_skill\",\n      \"rules\": [\n        {\n          \"rule_id\": \"long_smiles_rule\",\n          \"conditions\": {\n            \"smiles_length_bin\": \"smiles_long\"\n          },\n          \"weight\": 0.4,\n          \"rationale\": \"Longer SMILES may indicate more complex structures that enhance lipophilicity.\"\n        }\n      ],\n      \"ridge\": 1.0,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.3,\n      \"semantic_mass_end\": 0.1,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 1.5,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.01,\n      \"confidence\": 0.75,\n      \"hypothesis\": \"This skill targets longer SMILES for potentially improved lipophilicity.\"\n    }\n  ]\n}\n```",
+  "parsed_response": {
+    "skills": [
+      {
+        "skill_id": "high_aromatic_content_skill",
+        "rules": [
+          {
+            "rule_id": "high_aromatic_rule",
+            "conditions": {
+              "aromatic_bin": "aromatic_high"
+            },
+            "weight": 0.7,
+            "rationale": "High aromatic content is expected to improve lipophilicity."
+          },
+          {
+            "rule_id": "low_halogen_rule",
+            "conditions": {
+              "halogen_bin": "halogen_low"
+            },
+            "weight": -0.5,
+            "rationale": "Lower halogen content may reduce lipophilicity risks."
+          }
+        ],
+        "ridge": 1.5,
+        "prior_scale": 0.5,
+        "semantic_mass_start": 0.4,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.7,
+        "gp_beta_start": 2.5,
+        "gp_beta_end": 1.5,
+        "gp_xi": 0.05,
+        "confidence": 0.8,
+        "hypothesis": "This skill targets compounds with high aromatic content for improved lipophilicity."
+      },
+      {
+        "skill_id": "low_branching_skill",
+        "rules": [
+          {
+            "rule_id": "low_branch_rule",
+            "conditions": {
+              "branch_bin": "branch_low"
+            },
+            "weight": 0.6,
+            "rationale": "Less branching is associated with higher lipophilicity."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.5,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 1.8,
+        "gp_beta_end": 1.2,
+        "gp_xi": 0.02,
+        "confidence": 0.75,
+        "hypothesis": "This skill emphasizes low branching to enhance lipophilicity."
+      },
+      {
+        "skill_id": "high_ring_content_skill",
+        "rules": [
+          {
+            "rule_id": "high_ring_rule",
+            "conditions": {
+              "ring_token_bin": "ring_token_high"
+            },
+            "weight": 0.8,
+            "rationale": "High ring content is likely to improve lipophilicity."
+          }
+        ],
+        "ridge": 1.2,
+        "prior_scale": 0.4,
+        "semantic_mass_start": 0.6,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.4,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.03,
+        "confidence": 0.85,
+        "hypothesis": "This skill focuses on maximizing ring structures for better lipophilicity."
+      },
+      {
+        "skill_id": "low_double_bond_skill",
+        "rules": [
+          {
+            "rule_id": "low_double_bond_rule",
+            "conditions": {
+              "double_bond_bin": "double_bond_low"
+            },
+            "weight": 0.5,
+            "rationale": "Fewer double bonds may correlate with higher lipophilicity."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.2,
+        "semantic_mass_start": 0.3,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 1.5,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.01,
+        "confidence": 0.7,
+        "hypothesis": "This skill targets compounds with fewer double bonds to enhance lipophilicity."
+      },
+      {
+        "skill_id": "source_field_alignment_skill",
+        "rules": [
+          {
+            "rule_id": "hbond_donor_to_hetero_atom_rule",
+            "conditions": {
+              "hbond_donor_bin": "hetero_high"
+            },
+            "weight": 0.4,
+            "rationale": "Aligning source fields to target fields may yield beneficial insights."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.2,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 1.0,
+        "gp_beta_end": 0.8,
+        "gp_xi": 0.02,
+        "confidence": 0.6,
+        "hypothesis": "This skill leverages source-target field alignment for potential lipophilicity insights."
+      },
+      {
+        "skill_id": "counter_hypothesis_skill",
+        "rules": [
+          {
+            "rule_id": "high_halogen_counter_rule",
+            "conditions": {
+              "halogen_bin": "halogen_high"
+            },
+            "weight": -0.6,
+            "rationale": "High halogen content may negatively impact lipophilicity."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.3,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 1.5,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.01,
+        "confidence": 0.65,
+        "hypothesis": "This skill counters the assumption that high halogen content is beneficial for lipophilicity."
+      },
+      {
+        "skill_id": "low_hetero_atom_skill",
+        "rules": [
+          {
+            "rule_id": "low_hetero_atom_rule",
+            "conditions": {
+              "hetero_atom_bin": "hetero_low"
+            },
+            "weight": 0.5,
+            "rationale": "Lower heteroatom content may correlate with improved lipophilicity."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.2,
+        "semantic_mass_start": 0.4,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 1.2,
+        "gp_beta_end": 0.9,
+        "gp_xi": 0.02,
+        "confidence": 0.7,
+        "hypothesis": "This skill emphasizes low heteroatom content to enhance lipophilicity."
+      },
+      {
+        "skill_id": "high_smiles_length_skill",
+        "rules": [
+          {
+            "rule_id": "long_smiles_rule",
+            "conditions": {
+              "smiles_length_bin": "smiles_long"
+            },
+            "weight": 0.4,
+            "rationale": "Longer SMILES may indicate more complex structures that enhance lipophilicity."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.3,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 1.5,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.01,
+        "confidence": 0.75,
+        "hypothesis": "This skill targets longer SMILES for potentially improved lipophilicity."
+      }
+    ]
+  },
+  "normalized_skills": [
+    {
+      "skill_id": "high_aromatic_content_skill",
+      "rules": [
+        {
+          "rule_id": "high_aromatic_rule",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "High aromatic content is expected to improve lipophilicity."
+        },
+        {
+          "rule_id": "low_halogen_rule",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_low"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Lower halogen content may reduce lipophilicity risks."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.5,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.05,
+      "confidence": 0.8,
+      "hypothesis": "This skill targets compounds with high aromatic content for improved lipophilicity."
+    },
+    {
+      "skill_id": "low_branching_skill",
+      "rules": [
+        {
+          "rule_id": "low_branch_rule",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_low"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Less branching is associated with higher lipophilicity."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 1.8,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.02,
+      "confidence": 0.75,
+      "hypothesis": "This skill emphasizes low branching to enhance lipophilicity."
+    },
+    {
+      "skill_id": "high_ring_content_skill",
+      "rules": [
+        {
+          "rule_id": "high_ring_rule",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "High ring content is likely to improve lipophilicity."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.6,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.03,
+      "confidence": 0.85,
+      "hypothesis": "This skill focuses on maximizing ring structures for better lipophilicity."
+    },
+    {
+      "skill_id": "low_double_bond_skill",
+      "rules": [
+        {
+          "rule_id": "low_double_bond_rule",
+          "conditions": [
+            [
+              "double_bond_bin",
+              "double_bond_low"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Fewer double bonds may correlate with higher lipophilicity."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.2,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.7,
+      "hypothesis": "This skill targets compounds with fewer double bonds to enhance lipophilicity."
+    },
+    {
+      "skill_id": "counter_hypothesis_skill",
+      "rules": [
+        {
+          "rule_id": "high_halogen_counter_rule",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_high"
+            ]
+          ],
+          "weight": -0.6,
+          "rationale": "High halogen content may negatively impact lipophilicity."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.65,
+      "hypothesis": "This skill counters the assumption that high halogen content is beneficial for lipophilicity."
+    },
+    {
+      "skill_id": "low_hetero_atom_skill",
+      "rules": [
+        {
+          "rule_id": "low_hetero_atom_rule",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_low"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Lower heteroatom content may correlate with improved lipophilicity."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.2,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 1.2,
+      "gp_beta_end": 0.9,
+      "gp_xi": 0.02,
+      "confidence": 0.7,
+      "hypothesis": "This skill emphasizes low heteroatom content to enhance lipophilicity."
+    },
+    {
+      "skill_id": "high_smiles_length_skill",
+      "rules": [
+        {
+          "rule_id": "long_smiles_rule",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Longer SMILES may indicate more complex structures that enhance lipophilicity."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.75,
+      "hypothesis": "This skill targets longer SMILES for potentially improved lipophilicity."
+    }
+  ]
+}

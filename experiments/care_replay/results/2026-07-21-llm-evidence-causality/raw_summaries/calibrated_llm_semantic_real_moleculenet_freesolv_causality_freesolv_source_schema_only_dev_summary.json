@@ -1,0 +1,867 @@
+{
+  "experiment": "care_calibrated_llm_semantic_skill_selector",
+  "source_dataset": "real_moleculenet_esol",
+  "target_dataset": "real_moleculenet_freesolv",
+  "evidence_mode": "source_schema_only",
+  "llm_model": "openai/gpt-4o-mini",
+  "llm_generation_call_count": 1,
+  "new_llm_call_count": 0,
+  "rule_prior_enabled": true,
+  "semantic_model_enabled": true,
+  "semantic_field_catalog": {
+    "smiles_length_bin": {
+      "smiles_long": 13,
+      "smiles_mid": 122,
+      "smiles_short": 506,
+      "smiles_very_long": 1
+    },
+    "hetero_atom_bin": {
+      "hetero_high": 28,
+      "hetero_low": 316,
+      "hetero_mid": 91,
+      "hetero_none": 207
+    },
+    "halogen_bin": {
+      "halogen_high": 43,
+      "halogen_low": 73,
+      "halogen_mid": 59,
+      "halogen_none": 467
+    },
+    "aromatic_bin": {
+      "aromatic_high": 3,
+      "aromatic_low": 203,
+      "aromatic_mid": 61,
+      "aromatic_none": 375
+    },
+    "ring_token_bin": {
+      "ring_token_high": 2,
+      "ring_token_low": 247,
+      "ring_token_mid": 73,
+      "ring_token_none": 320
+    },
+    "branch_bin": {
+      "branch_high": 20,
+      "branch_low": 311,
+      "branch_mid": 116,
+      "branch_none": 195
+    },
+    "double_bond_bin": {
+      "double_bond_low": 179,
+      "double_bond_mid": 71,
+      "double_bond_none": 392
+    }
+  },
+  "skills": [
+    {
+      "skill_id": "hydrophobic_interaction",
+      "rules": [
+        {
+          "rule_id": "smiles_length_rule",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Longer SMILES may indicate more complex hydrophobic interactions."
+        },
+        {
+          "rule_id": "hetero_atom_rule",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_low"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Fewer heteroatoms may enhance hydrophobicity."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.5,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.1,
+      "confidence": 0.8,
+      "hypothesis": "This skill enhances predictions for hydrophobic compounds."
+    },
+    {
+      "skill_id": "aromatic_stability",
+      "rules": [
+        {
+          "rule_id": "aromatic_rule",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Aromatic compounds are often more stable."
+        },
+        {
+          "rule_id": "double_bond_rule",
+          "conditions": [
+            [
+              "double_bond_bin",
+              "double_bond_low"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "Fewer double bonds may reduce instability."
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 3.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.05,
+      "confidence": 0.75,
+      "hypothesis": "This skill predicts stability based on aromaticity."
+    },
+    {
+      "skill_id": "branching_effect",
+      "rules": [
+        {
+          "rule_id": "branch_rule",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_mid"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Moderate branching may enhance solubility."
+        },
+        {
+          "rule_id": "ring_token_rule",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_none"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "No rings may improve solubility."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.2,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.1,
+      "confidence": 0.7,
+      "hypothesis": "This skill assesses the impact of branching on solubility."
+    },
+    {
+      "skill_id": "low_heteroatom_risk",
+      "rules": [
+        {
+          "rule_id": "hetero_atom_rule",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "High heteroatom count may introduce risks."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.1,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.3,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.1,
+      "confidence": 0.6,
+      "hypothesis": "This skill identifies risks associated with high heteroatom counts."
+    },
+    {
+      "skill_id": "solubility_knowledge",
+      "rules": [
+        {
+          "rule_id": "smiles_length_rule",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Short SMILES often correlate with higher solubility."
+        },
+        {
+          "rule_id": "halogen_rule",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_none"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Absence of halogens may enhance solubility."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.1,
+      "confidence": 0.8,
+      "hypothesis": "This skill leverages domain knowledge for solubility predictions."
+    },
+    {
+      "skill_id": "aromatic_enhancement",
+      "rules": [
+        {
+          "rule_id": "aromatic_rule",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_mid"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Moderate aromaticity may enhance solubility."
+        },
+        {
+          "rule_id": "ring_token_rule",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Presence of rings may stabilize the structure."
+        }
+      ],
+      "ridge": 1.3,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.1,
+      "confidence": 0.75,
+      "hypothesis": "This skill enhances predictions based on aromaticity."
+    },
+    {
+      "skill_id": "branching_impact",
+      "rules": [
+        {
+          "rule_id": "branch_rule",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_high"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "High branching may negatively impact solubility."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.2,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.1,
+      "confidence": 0.7,
+      "hypothesis": "This skill assesses the negative impact of high branching."
+    }
+  ],
+  "calibration_seed_start": 16000,
+  "calibration_seed_count": 30,
+  "heldout_seed_start": 16100,
+  "heldout_seed_count": 100,
+  "selection": {
+    "target_anchor_mode": "target_acquisition_portfolio",
+    "target_anchor_summary": {
+      "gp_ucb": {
+        "final_best": 66.215557,
+        "best_so_far_auc": 57.800767,
+        "top10_hit": 0.6,
+        "composite": 124.016324
+      },
+      "mixed_kernel_gp_ei": {
+        "final_best": 65.223333,
+        "best_so_far_auc": 56.991433,
+        "top10_hit": 0.533333,
+        "composite": 122.214766
+      },
+      "target_acquisition_portfolio": {
+        "final_best": 68.202233,
+        "best_so_far_auc": 58.49743,
+        "top10_hit": 0.6,
+        "composite": 126.699663
+      }
+    },
+    "eligible_skill_modes": [
+      "llm_semantic_branching_effect"
+    ],
+    "selected_mode": "llm_semantic_branching_effect",
+    "selected_llm_skill": true,
+    "skill_diagnostics": {
+      "llm_semantic_hydrophobic_interaction": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -6.74336,
+          "std": 13.305813,
+          "se": 2.429298,
+          "normal_95ci_low": -11.504784,
+          "normal_95ci_high": -1.981936,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.4
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -5.533787,
+          "std": 9.147634,
+          "se": 1.670122,
+          "normal_95ci_low": -8.807225,
+          "normal_95ci_high": -2.260348,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.333333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -12.277147,
+          "std": 21.072367,
+          "se": 3.84727,
+          "normal_95ci_low": -19.817796,
+          "normal_95ci_high": -4.736497,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.333333
+        },
+        "positive_fold_rate": 0.0,
+        "fold_composite_means": [
+          -16.57835,
+          -8.33505,
+          -15.795567,
+          -13.67615,
+          -7.000617
+        ],
+        "risk_adjusted_composite_gain": -14.200782,
+        "eligible": false
+      },
+      "llm_semantic_aromatic_stability": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 0.53774,
+          "std": 14.071915,
+          "se": 2.569168,
+          "normal_95ci_low": -4.49783,
+          "normal_95ci_high": 5.57331,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.466667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 1.313097,
+          "std": 9.830859,
+          "se": 1.794861,
+          "normal_95ci_low": -2.204831,
+          "normal_95ci_high": 4.831025,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.5
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 1.850837,
+          "std": 22.389258,
+          "se": 4.087701,
+          "normal_95ci_low": -6.161057,
+          "normal_95ci_high": 9.86273,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.466667
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          -8.595033,
+          9.7044,
+          2.2266,
+          -4.1945,
+          10.112717
+        ],
+        "risk_adjusted_composite_gain": -0.193013,
+        "eligible": false
+      },
+      "llm_semantic_branching_effect": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 6.054417,
+          "std": 19.212616,
+          "se": 3.507728,
+          "normal_95ci_low": -0.82073,
+          "normal_95ci_high": 12.929563,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.566667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 3.155553,
+          "std": 11.509003,
+          "se": 2.101247,
+          "normal_95ci_low": -0.96289,
+          "normal_95ci_high": 7.273997,
+          "win_rate": 0.566667,
+          "non_loss_rate": 0.6
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 9.20997,
+          "std": 28.721835,
+          "se": 5.243866,
+          "normal_95ci_low": -1.068007,
+          "normal_95ci_high": 19.487947,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.533333
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          4.96055,
+          -10.459483,
+          9.5644,
+          24.19165,
+          17.792733
+        ],
+        "risk_adjusted_composite_gain": 6.588037,
+        "eligible": true
+      },
+      "llm_semantic_low_heteroatom_risk": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 4.551083,
+          "std": 22.695467,
+          "se": 4.143607,
+          "normal_95ci_low": -3.570385,
+          "normal_95ci_high": 12.672552,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.4
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 3.81689,
+          "std": 14.603847,
+          "se": 2.666286,
+          "normal_95ci_low": -1.40903,
+          "normal_95ci_high": 9.04281,
+          "win_rate": 0.533333,
+          "non_loss_rate": 0.533333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 8.367973,
+          "std": 36.517228,
+          "se": 6.667103,
+          "normal_95ci_low": -4.699549,
+          "normal_95ci_high": 21.435496,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.4
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          -5.565567,
+          23.3444,
+          13.055533,
+          -10.7917,
+          21.7972
+        ],
+        "risk_adjusted_composite_gain": 5.034421,
+        "eligible": false
+      },
+      "llm_semantic_solubility_knowledge": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 2.13665,
+          "std": 18.601523,
+          "se": 3.396158,
+          "normal_95ci_low": -4.51982,
+          "normal_95ci_high": 8.79312,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.533333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -1.776663,
+          "std": 11.793816,
+          "se": 2.153246,
+          "normal_95ci_low": -5.997026,
+          "normal_95ci_high": 2.443699,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.4
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 0.359987,
+          "std": 28.96103,
+          "se": 5.287536,
+          "normal_95ci_low": -10.003585,
+          "normal_95ci_high": 10.723558,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.466667
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          -10.127217,
+          28.436633,
+          -8.636683,
+          -18.76835,
+          10.89555
+        ],
+        "risk_adjusted_composite_gain": -2.283781,
+        "eligible": false
+      },
+      "llm_semantic_aromatic_enhancement": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 0.438853,
+          "std": 17.676953,
+          "se": 3.227355,
+          "normal_95ci_low": -5.886763,
+          "normal_95ci_high": 6.76447,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.4
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -0.166897,
+          "std": 10.56185,
+          "se": 1.928321,
+          "normal_95ci_low": -3.946406,
+          "normal_95ci_high": 3.612613,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.466667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 0.271957,
+          "std": 26.879803,
+          "se": 4.907558,
+          "normal_95ci_low": -9.346857,
+          "normal_95ci_high": 9.89077,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.433333
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          -9.28725,
+          10.30665,
+          2.106067,
+          -12.442833,
+          10.67715
+        ],
+        "risk_adjusted_composite_gain": -2.181822,
+        "eligible": false
+      },
+      "llm_semantic_branching_impact": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 1.449963,
+          "std": 17.03873,
+          "se": 3.110832,
+          "normal_95ci_low": -4.647268,
+          "normal_95ci_high": 7.547195,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.4
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -0.244227,
+          "std": 6.968184,
+          "se": 1.27221,
+          "normal_95ci_low": -2.737759,
+          "normal_95ci_high": 2.249306,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.5
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 1.205737,
+          "std": 22.44949,
+          "se": 4.098697,
+          "normal_95ci_low": -6.82771,
+          "normal_95ci_high": 9.239183,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.366667
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          -6.741117,
+          8.439417,
+          1.089933,
+          -6.95285,
+          10.1933
+        ],
+        "risk_adjusted_composite_gain": -0.843611,
+        "eligible": false
+      }
+    },
+    "thresholds": {
+      "min_risk_adjusted_composite_gain": 0.25,
+      "min_positive_fold_rate": 0.8,
+      "min_final_non_loss_rate": 0.55
+    },
+    "rule": "Choose the strongest target-only anchor on calibration composite. Select an LLM semantic skill only when final and AUC means are non-negative, fold stability and non-loss constraints pass, and risk-adjusted composite gain is positive."
+  },
+  "calibration": {
+    "gp_ucb": {
+      "final_best": 66.215557,
+      "best_so_far_auc": 57.800767,
+      "top10_hit": 0.6,
+      "composite": 124.016324
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 65.223333,
+      "best_so_far_auc": 56.991433,
+      "top10_hit": 0.533333,
+      "composite": 122.214766
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 68.202233,
+      "best_so_far_auc": 58.49743,
+      "top10_hit": 0.6,
+      "composite": 126.699663
+    },
+    "llm_semantic_hydrophobic_interaction": {
+      "final_best": 61.458873,
+      "best_so_far_auc": 52.963643,
+      "top10_hit": 0.466667,
+      "composite": 114.422516
+    },
+    "llm_semantic_aromatic_stability": {
+      "final_best": 68.739973,
+      "best_so_far_auc": 59.810527,
+      "top10_hit": 0.766667,
+      "composite": 128.5505
+    },
+    "llm_semantic_branching_effect": {
+      "final_best": 74.25665,
+      "best_so_far_auc": 61.652983,
+      "top10_hit": 0.7,
+      "composite": 135.909633
+    },
+    "llm_semantic_low_heteroatom_risk": {
+      "final_best": 72.753317,
+      "best_so_far_auc": 62.31432,
+      "top10_hit": 0.666667,
+      "composite": 135.067637
+    },
+    "llm_semantic_solubility_knowledge": {
+      "final_best": 70.338883,
+      "best_so_far_auc": 56.720767,
+      "top10_hit": 0.5,
+      "composite": 127.05965
+    },
+    "llm_semantic_aromatic_enhancement": {
+      "final_best": 68.641087,
+      "best_so_far_auc": 58.330533,
+      "top10_hit": 0.6,
+      "composite": 126.97162
+    },
+    "llm_semantic_branching_impact": {
+      "final_best": 69.652197,
+      "best_so_far_auc": 58.253203,
+      "top10_hit": 0.766667,
+      "composite": 127.9054
+    }
+  },
+  "heldout": {
+    "gp_ucb": {
+      "final_best": 66.368997,
+      "best_so_far_auc": 57.646464,
+      "top10_hit": 0.6,
+      "composite": 124.015461
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 65.84833,
+      "best_so_far_auc": 57.561464,
+      "top10_hit": 0.57,
+      "composite": 123.409794
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 65.028332,
+      "best_so_far_auc": 57.205563,
+      "top10_hit": 0.51,
+      "composite": 122.233895
+    },
+    "llm_semantic_hydrophobic_interaction": {
+      "final_best": 64.568987,
+      "best_so_far_auc": 54.844458,
+      "top10_hit": 0.57,
+      "composite": 119.413445
+    },
+    "llm_semantic_aromatic_stability": {
+      "final_best": 67.15598,
+      "best_so_far_auc": 57.812516,
+      "top10_hit": 0.65,
+      "composite": 124.968496
+    },
+    "llm_semantic_branching_effect": {
+      "final_best": 69.950987,
+      "best_so_far_auc": 59.655086,
+      "top10_hit": 0.64,
+      "composite": 129.606073
+    },
+    "llm_semantic_low_heteroatom_risk": {
+      "final_best": 70.067321,
+      "best_so_far_auc": 60.755657,
+      "top10_hit": 0.57,
+      "composite": 130.822978
+    },
+    "llm_semantic_solubility_knowledge": {
+      "final_best": 68.931326,
+      "best_so_far_auc": 58.56899,
+      "top10_hit": 0.44,
+      "composite": 127.500316
+    },
+    "llm_semantic_aromatic_enhancement": {
+      "final_best": 67.163982,
+      "best_so_far_auc": 57.938449,
+      "top10_hit": 0.62,
+      "composite": 125.102431
+    },
+    "llm_semantic_branching_impact": {
+      "final_best": 68.724982,
+      "best_so_far_auc": 60.372784,
+      "top10_hit": 0.69,
+      "composite": 129.097766
+    },
+    "llm_calibrated_selector": {
+      "final_best": 69.950987,
+      "best_so_far_auc": 59.655086,
+      "top10_hit": 0.64,
+      "composite": 129.606073
+    }
+  },
+  "heldout_strongest_target_mode_descriptive_only": "gp_ucb",
+  "heldout_pairwise": {
+    "gp_ucb": {
+      "final_best": {
+        "n": 100.0,
+        "mean": 3.58199,
+        "std": 17.36874,
+        "se": 1.736874,
+        "normal_95ci_low": 0.177717,
+        "normal_95ci_high": 6.986263,
+        "win_rate": 0.43,
+        "non_loss_rate": 0.6
+      },
+      "best_so_far_auc": {
+        "n": 100.0,
+        "mean": 2.008622,
+        "std": 11.386598,
+        "se": 1.13866,
+        "normal_95ci_low": -0.223151,
+        "normal_95ci_high": 4.240395,
+        "win_rate": 0.53,
+        "non_loss_rate": 0.56
+      },
+      "top10_hit": {
+        "n": 100.0,
+        "mean": 0.04,
+        "std": 0.598665,
+        "se": 0.059867,
+        "normal_95ci_low": -0.077338,
+        "normal_95ci_high": 0.157338,
+        "win_rate": 0.2,
+        "non_loss_rate": 0.84
+      }
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": {
+        "n": 100.0,
+        "mean": 4.102657,
+        "std": 18.902032,
+        "se": 1.890203,
+        "normal_95ci_low": 0.397859,
+        "normal_95ci_high": 7.807455,
+        "win_rate": 0.45,
+        "non_loss_rate": 0.63
+      },
+      "best_so_far_auc": {
+        "n": 100.0,
+        "mean": 2.093622,
+        "std": 12.623855,
+        "se": 1.262385,
+        "normal_95ci_low": -0.380654,
+        "normal_95ci_high": 4.567898,
+        "win_rate": 0.52,
+        "non_loss_rate": 0.58
+      },
+      "top10_hit": {
+        "n": 100.0,
+        "mean": 0.07,
+        "std": 0.620564,
+        "se": 0.062056,
+        "normal_95ci_low": -0.051631,
+        "normal_95ci_high": 0.191631,
+        "win_rate": 0.23,
+        "non_loss_rate": 0.84
+      }
+    },
+    "target_acquisition_portfolio": {
+      "final_best": {
+        "n": 100.0,
+        "mean": 4.922655,
+        "std": 19.085261,
+        "se": 1.908526,
+        "normal_95ci_low": 1.181944,
+        "normal_95ci_high": 8.663366,
+        "win_rate": 0.51,
+        "non_loss_rate": 0.67
+      },
+      "best_so_far_auc": {
+        "n": 100.0,
+        "mean": 2.449523,
+        "std": 11.821491,
+        "se": 1.182149,
+        "normal_95ci_low": 0.132511,
+        "normal_95ci_high": 4.766535,
+        "win_rate": 0.58,
+        "non_loss_rate": 0.62
+      },
+      "top10_hit": {
+        "n": 100.0,
+        "mean": 0.13,
+        "std": 0.610819,
+        "se": 0.061082,
+        "normal_95ci_low": 0.010279,
+        "normal_95ci_high": 0.249721,
+        "win_rate": 0.26,
+        "non_loss_rate": 0.87
+      }
+    }
+  },
+  "heldout_validation": {
+    "selected_llm_skill": true,
+    "strongest_target_mode": "gp_ucb",
+    "final_95ci_positive": true,
+    "auc_95ci_positive": false,
+    "top10_95ci_positive": false
+  },
+  "evidence_boundary": {
+    "generation": "Only source identity, objective, and public source-target field alignment are provided. Source outcomes, effects, support counts, and value priors are withheld.",
+    "evaluation": "Calibration selects a skill before held-out evaluation. Every per-round fit uses only previously revealed target outcomes."
+  }
+}

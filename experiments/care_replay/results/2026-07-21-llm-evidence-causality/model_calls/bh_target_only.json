@@ -1,0 +1,565 @@
+{
+  "model": "openai/gpt-4o-mini",
+  "usage": {
+    "prompt_tokens": 1044,
+    "completion_tokens": 1673,
+    "total_tokens": 2717,
+    "tps": 94.21,
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "llm_generation_call_count": 1,
+  "api_configuration": {
+    "base_url": "https://api.commonstack.ai/v1",
+    "api_mode": "chat",
+    "structured_mode": "json",
+    "temperature": 0.0,
+    "max_tokens": 4000
+  },
+  "source_dataset": "real_suzuki_miyaura",
+  "target_dataset": "real_buchwald_hartwig",
+  "evidence_mode": "target_only",
+  "prompt_payload": {
+    "task": "Design a diverse library of executable semantic optimization skills for finite-pool scientific search. Each skill defines interpretable rule features plus a conservative Bayesian linear surrogate blended with strong target-only GP-UCB and GP-EI anchors.",
+    "target": {
+      "dataset": "real_buchwald_hartwig",
+      "title": "Dreher-Doyle Buchwald-Hartwig HTE replay",
+      "objective": "maximize_yield",
+      "candidate_count": 3955,
+      "public_semantic_fields": {
+        "ligand_mw_bin": {
+          "mw_high": 986,
+          "mw_very_high": 2969
+        },
+        "base_reagent_base_family": {
+          "amidine_base": 1318,
+          "guanidine_base": 1317,
+          "phosphazene_base": 1320
+        },
+        "base_functional_class": {
+          "amidine_base": 1318,
+          "guanidine_base": 1317,
+          "phosphazene_base": 1320
+        },
+        "base_mw_bin": {
+          "mw_high": 1320,
+          "mw_mid": 2635
+        },
+        "base_tpsa_bin": {
+          "tpsa_low": 2635,
+          "tpsa_mid": 1320
+        },
+        "aryl_halide_halide_type": {
+          "bromide": 1319,
+          "chloride": 1318,
+          "iodide": 1318
+        },
+        "aryl_halide_has_heteroaromatic": {
+          "no": 2372,
+          "yes": 1583
+        },
+        "aryl_halide_mw_bin": {
+          "mw_high": 263,
+          "mw_mid": 3164,
+          "mw_none_or_low": 528
+        },
+        "additive_tpsa_bin": {
+          "tpsa_high": 360,
+          "tpsa_mid": 3595
+        }
+      },
+      "hidden_target": "yield_value",
+      "boundary": "Field values and counts are public; target outcomes are not included."
+    },
+    "source_transfer_evidence": {
+      "evidence_mode": "target_only",
+      "source_dataset": null,
+      "source_objective": null,
+      "mapped_roles": [],
+      "source_outcome_statistics": null,
+      "shared_value_priors": [],
+      "boundary": "No source identity, source schema, source outcomes, source effects, or source value priors are provided. The LLM must use the public target schema and its pretrained domain knowledge only."
+    },
+    "executor": {
+      "semantic_model": "Rules become binary features. Revealed target outcomes fit a ridge Bayesian linear surrogate whose coefficient prior follows rule weights.",
+      "anchor": "A rank blend of target-only GP-UCB and GP-EI.",
+      "fusion": "semantic_mass_start/end controls the rank mass assigned to the semantic surrogate; the remaining mass stays on the target-only anchor.",
+      "selection": "Independent calibration seeds select one frozen skill. Independent held-out seeds are evaluated only after selection."
+    },
+    "design_requirements": [
+      "Return exactly 8 diverse skills.",
+      "Use only exact field/value pairs in public_semantic_fields.",
+      "Give every skill 3-10 rules; use two-condition interactions only when scientifically meaningful.",
+      "Include at least one conservative low-semantic-mass skill.",
+      "Use only target-schema-compatible domain knowledge; do not imply that a source task or source outcomes were observed.",
+      "Include at least one domain-knowledge skill.",
+      "Include a counter-hypothesis skill that reverses or downweights an uncertain source relation.",
+      "Prefer mechanistic, chemically or physically interpretable rules over arbitrary coverage rules.",
+      "Use positive weights for conditions expected to improve the target objective and negative weights for risks.",
+      "Do not claim access to target outcomes and do not output candidate identifiers."
+    ],
+    "allowed_ranges": {
+      "rule_weight": "[-1, 1]",
+      "ridge": "[0.05, 20]",
+      "prior_scale": "[0, 1.5]",
+      "semantic_mass_start_end": "[0, 0.85]",
+      "ucb_weight": "[0, 1]; EI weight is 1 - ucb_weight",
+      "gp_beta_start_end": "[0.2, 4]",
+      "gp_xi": "[0, 0.2]",
+      "confidence": "[0.05, 1]"
+    },
+    "output_contract": {
+      "skills": [
+        {
+          "skill_id": "short_unique_name",
+          "rules": [
+            {
+              "rule_id": "mechanistic_rule",
+              "conditions": {
+                "exact_field": "exact_value"
+              },
+              "weight": 0.5,
+              "rationale": "short scientific rationale"
+            }
+          ],
+          "ridge": 1.0,
+          "prior_scale": 0.25,
+          "semantic_mass_start": 0.3,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.7,
+          "hypothesis": "what this skill transfers and when it may fail"
+        }
+      ]
+    }
+  },
+  "raw_response": "```json\n{\n  \"skills\": [\n    {\n      \"skill_id\": \"high_mw_ligand\",\n      \"rules\": [\n        {\n          \"rule_id\": \"ligand_mw_high\",\n          \"conditions\": {\n            \"exact_field\": \"ligand_mw_bin.mw_high\"\n          },\n          \"weight\": 0.7,\n          \"rationale\": \"Higher molecular weight ligands are expected to improve yield.\"\n        }\n      ],\n      \"ridge\": 1.0,\n      \"prior_scale\": 0.25,\n      \"semantic_mass_start\": 0.3,\n      \"semantic_mass_end\": 0.1,\n      \"ucb_weight\": 0.6,\n      \"gp_beta_start\": 2.0,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.01,\n      \"confidence\": 0.7,\n      \"hypothesis\": \"This skill transfers well when high molecular weight ligands are used.\"\n    },\n    {\n      \"skill_id\": \"base_family_effect\",\n      \"rules\": [\n        {\n          \"rule_id\": \"guanidine_base\",\n          \"conditions\": {\n            \"exact_field\": \"base_reagent_base_family.guanidine_base\"\n          },\n          \"weight\": 0.6,\n          \"rationale\": \"Guanidine bases are known to enhance reaction yields.\"\n        }\n      ],\n      \"ridge\": 1.5,\n      \"prior_scale\": 0.5,\n      \"semantic_mass_start\": 0.4,\n      \"semantic_mass_end\": 0.2,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 1.5,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.05,\n      \"confidence\": 0.8,\n      \"hypothesis\": \"This skill is effective when guanidine bases are utilized.\"\n    },\n    {\n      \"skill_id\": \"aryl_halide_type\",\n      \"rules\": [\n        {\n          \"rule_id\": \"bromide_halide\",\n          \"conditions\": {\n            \"exact_field\": \"aryl_halide_halide_type.bromide\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Bromides are often more reactive than other halides.\"\n        }\n      ],\n      \"ridge\": 1.0,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.2,\n      \"semantic_mass_end\": 0.1,\n      \"ucb_weight\": 0.7,\n      \"gp_beta_start\": 2.0,\n      \"gp_beta_end\": 1.5,\n      \"gp_xi\": 0.02,\n      \"confidence\": 0.75,\n      \"hypothesis\": \"This skill is beneficial when using bromide aryl halides.\"\n    },\n    {\n      \"skill_id\": \"low_tpsa_additive\",\n      \"rules\": [\n        {\n          \"rule_id\": \"additive_tpsa_low\",\n          \"conditions\": {\n            \"exact_field\": \"additive_tpsa_bin.tpsa_high\"\n          },\n          \"weight\": -0.4,\n          \"rationale\": \"High TPSA additives may hinder yield.\"\n        }\n      ],\n      \"ridge\": 0.8,\n      \"prior_scale\": 0.2,\n      \"semantic_mass_start\": 0.1,\n      \"semantic_mass_end\": 0.05,\n      \"ucb_weight\": 0.4,\n      \"gp_beta_start\": 1.0,\n      \"gp_beta_end\": 0.5,\n      \"gp_xi\": 0.01,\n      \"confidence\": 0.6,\n      \"hypothesis\": \"This skill may fail when high TPSA additives are present.\"\n    },\n    {\n      \"skill_id\": \"heteroaromatic_effect\",\n      \"rules\": [\n        {\n          \"rule_id\": \"no_heteroaromatic\",\n          \"conditions\": {\n            \"exact_field\": \"aryl_halide_has_heteroaromatic.no\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Non-heteroaromatic compounds may lead to better yields.\"\n        }\n      ],\n      \"ridge\": 1.2,\n      \"prior_scale\": 0.4,\n      \"semantic_mass_start\": 0.3,\n      \"semantic_mass_end\": 0.1,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 1.8,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.03,\n      \"confidence\": 0.7,\n      \"hypothesis\": \"This skill is effective when avoiding heteroaromatic compounds.\"\n    },\n    {\n      \"skill_id\": \"phosphazene_base_risk\",\n      \"rules\": [\n        {\n          \"rule_id\": \"phosphazene_base\",\n          \"conditions\": {\n            \"exact_field\": \"base_reagent_base_family.phosphazene_base\"\n          },\n          \"weight\": -0.5,\n          \"rationale\": \"Phosphazene bases may negatively impact yield.\"\n        }\n      ],\n      \"ridge\": 1.0,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.2,\n      \"semantic_mass_end\": 0.1,\n      \"ucb_weight\": 0.6,\n      \"gp_beta_start\": 2.0,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.01,\n      \"confidence\": 0.65,\n      \"hypothesis\": \"This skill downweights the use of phosphazene bases.\"\n    },\n    {\n      \"skill_id\": \"mid_mw_base\",\n      \"rules\": [\n        {\n          \"rule_id\": \"base_mw_mid\",\n          \"conditions\": {\n            \"exact_field\": \"base_mw_bin.mw_mid\"\n          },\n          \"weight\": 0.4,\n          \"rationale\": \"Mid-range molecular weight bases can optimize yield.\"\n        }\n      ],\n      \"ridge\": 1.0,\n      \"prior_scale\": 0.25,\n      \"semantic_mass_start\": 0.3,\n      \"semantic_mass_end\": 0.1,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 1.5,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.02,\n      \"confidence\": 0.7,\n      \"hypothesis\": \"This skill is effective with mid-range molecular weight bases.\"\n    },\n    {\n      \"skill_id\": \"tpsa_interaction\",\n      \"rules\": [\n        {\n          \"rule_id\": \"base_tpsa_mid\",\n          \"conditions\": {\n            \"exact_field\": \"base_tpsa_bin.tpsa_mid\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Mid TPSA values are favorable for yield.\"\n        },\n        {\n          \"rule_id\": \"additive_tpsa_high\",\n          \"conditions\": {\n            \"exact_field\": \"additive_tpsa_bin.tpsa_high\"\n          },\n          \"weight\": -0.3,\n          \"rationale\": \"High TPSA additives may reduce yield.\"\n        }\n      ],\n      \"ridge\": 1.0,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.4,\n      \"semantic_mass_end\": 0.2,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 1.8,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.01,\n      \"confidence\": 0.75,\n      \"hypothesis\": \"This skill captures the interaction between TPSA values and yield.\"\n    }\n  ]\n}\n```",
+  "parsed_response": {
+    "skills": [
+      {
+        "skill_id": "high_mw_ligand",
+        "rules": [
+          {
+            "rule_id": "ligand_mw_high",
+            "conditions": {
+              "exact_field": "ligand_mw_bin.mw_high"
+            },
+            "weight": 0.7,
+            "rationale": "Higher molecular weight ligands are expected to improve yield."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.25,
+        "semantic_mass_start": 0.3,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.01,
+        "confidence": 0.7,
+        "hypothesis": "This skill transfers well when high molecular weight ligands are used."
+      },
+      {
+        "skill_id": "base_family_effect",
+        "rules": [
+          {
+            "rule_id": "guanidine_base",
+            "conditions": {
+              "exact_field": "base_reagent_base_family.guanidine_base"
+            },
+            "weight": 0.6,
+            "rationale": "Guanidine bases are known to enhance reaction yields."
+          }
+        ],
+        "ridge": 1.5,
+        "prior_scale": 0.5,
+        "semantic_mass_start": 0.4,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 1.5,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.05,
+        "confidence": 0.8,
+        "hypothesis": "This skill is effective when guanidine bases are utilized."
+      },
+      {
+        "skill_id": "aryl_halide_type",
+        "rules": [
+          {
+            "rule_id": "bromide_halide",
+            "conditions": {
+              "exact_field": "aryl_halide_halide_type.bromide"
+            },
+            "weight": 0.5,
+            "rationale": "Bromides are often more reactive than other halides."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.2,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.7,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.5,
+        "gp_xi": 0.02,
+        "confidence": 0.75,
+        "hypothesis": "This skill is beneficial when using bromide aryl halides."
+      },
+      {
+        "skill_id": "low_tpsa_additive",
+        "rules": [
+          {
+            "rule_id": "additive_tpsa_low",
+            "conditions": {
+              "exact_field": "additive_tpsa_bin.tpsa_high"
+            },
+            "weight": -0.4,
+            "rationale": "High TPSA additives may hinder yield."
+          }
+        ],
+        "ridge": 0.8,
+        "prior_scale": 0.2,
+        "semantic_mass_start": 0.1,
+        "semantic_mass_end": 0.05,
+        "ucb_weight": 0.4,
+        "gp_beta_start": 1.0,
+        "gp_beta_end": 0.5,
+        "gp_xi": 0.01,
+        "confidence": 0.6,
+        "hypothesis": "This skill may fail when high TPSA additives are present."
+      },
+      {
+        "skill_id": "heteroaromatic_effect",
+        "rules": [
+          {
+            "rule_id": "no_heteroaromatic",
+            "conditions": {
+              "exact_field": "aryl_halide_has_heteroaromatic.no"
+            },
+            "weight": 0.5,
+            "rationale": "Non-heteroaromatic compounds may lead to better yields."
+          }
+        ],
+        "ridge": 1.2,
+        "prior_scale": 0.4,
+        "semantic_mass_start": 0.3,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 1.8,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.03,
+        "confidence": 0.7,
+        "hypothesis": "This skill is effective when avoiding heteroaromatic compounds."
+      },
+      {
+        "skill_id": "phosphazene_base_risk",
+        "rules": [
+          {
+            "rule_id": "phosphazene_base",
+            "conditions": {
+              "exact_field": "base_reagent_base_family.phosphazene_base"
+            },
+            "weight": -0.5,
+            "rationale": "Phosphazene bases may negatively impact yield."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.2,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.01,
+        "confidence": 0.65,
+        "hypothesis": "This skill downweights the use of phosphazene bases."
+      },
+      {
+        "skill_id": "mid_mw_base",
+        "rules": [
+          {
+            "rule_id": "base_mw_mid",
+            "conditions": {
+              "exact_field": "base_mw_bin.mw_mid"
+            },
+            "weight": 0.4,
+            "rationale": "Mid-range molecular weight bases can optimize yield."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.25,
+        "semantic_mass_start": 0.3,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 1.5,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.02,
+        "confidence": 0.7,
+        "hypothesis": "This skill is effective with mid-range molecular weight bases."
+      },
+      {
+        "skill_id": "tpsa_interaction",
+        "rules": [
+          {
+            "rule_id": "base_tpsa_mid",
+            "conditions": {
+              "exact_field": "base_tpsa_bin.tpsa_mid"
+            },
+            "weight": 0.5,
+            "rationale": "Mid TPSA values are favorable for yield."
+          },
+          {
+            "rule_id": "additive_tpsa_high",
+            "conditions": {
+              "exact_field": "additive_tpsa_bin.tpsa_high"
+            },
+            "weight": -0.3,
+            "rationale": "High TPSA additives may reduce yield."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.4,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 1.8,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.01,
+        "confidence": 0.75,
+        "hypothesis": "This skill captures the interaction between TPSA values and yield."
+      }
+    ]
+  },
+  "normalized_skills": [
+    {
+      "skill_id": "high_mw_ligand",
+      "rules": [
+        {
+          "rule_id": "ligand_mw_high",
+          "conditions": [
+            [
+              "ligand_mw_bin",
+              "mw_high"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Higher molecular weight ligands are expected to improve yield."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.25,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.7,
+      "hypothesis": "This skill transfers well when high molecular weight ligands are used."
+    },
+    {
+      "skill_id": "base_family_effect",
+      "rules": [
+        {
+          "rule_id": "guanidine_base",
+          "conditions": [
+            [
+              "base_reagent_base_family",
+              "guanidine_base"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Guanidine bases are known to enhance reaction yields."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.5,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.05,
+      "confidence": 0.8,
+      "hypothesis": "This skill is effective when guanidine bases are utilized."
+    },
+    {
+      "skill_id": "aryl_halide_type",
+      "rules": [
+        {
+          "rule_id": "bromide_halide",
+          "conditions": [
+            [
+              "aryl_halide_halide_type",
+              "bromide"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Bromides are often more reactive than other halides."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.02,
+      "confidence": 0.75,
+      "hypothesis": "This skill is beneficial when using bromide aryl halides."
+    },
+    {
+      "skill_id": "low_tpsa_additive",
+      "rules": [
+        {
+          "rule_id": "additive_tpsa_low",
+          "conditions": [
+            [
+              "additive_tpsa_bin",
+              "tpsa_high"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "High TPSA additives may hinder yield."
+        }
+      ],
+      "ridge": 0.8,
+      "prior_scale": 0.2,
+      "semantic_mass_start": 0.1,
+      "semantic_mass_end": 0.05,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 1.0,
+      "gp_beta_end": 0.5,
+      "gp_xi": 0.01,
+      "confidence": 0.6,
+      "hypothesis": "This skill may fail when high TPSA additives are present."
+    },
+    {
+      "skill_id": "heteroaromatic_effect",
+      "rules": [
+        {
+          "rule_id": "no_heteroaromatic",
+          "conditions": [
+            [
+              "aryl_halide_has_heteroaromatic",
+              "no"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Non-heteroaromatic compounds may lead to better yields."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 1.8,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.03,
+      "confidence": 0.7,
+      "hypothesis": "This skill is effective when avoiding heteroaromatic compounds."
+    },
+    {
+      "skill_id": "phosphazene_base_risk",
+      "rules": [
+        {
+          "rule_id": "phosphazene_base",
+          "conditions": [
+            [
+              "base_reagent_base_family",
+              "phosphazene_base"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Phosphazene bases may negatively impact yield."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.65,
+      "hypothesis": "This skill downweights the use of phosphazene bases."
+    },
+    {
+      "skill_id": "mid_mw_base",
+      "rules": [
+        {
+          "rule_id": "base_mw_mid",
+          "conditions": [
+            [
+              "base_mw_bin",
+              "mw_mid"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Mid-range molecular weight bases can optimize yield."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.25,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.02,
+      "confidence": 0.7,
+      "hypothesis": "This skill is effective with mid-range molecular weight bases."
+    },
+    {
+      "skill_id": "tpsa_interaction",
+      "rules": [
+        {
+          "rule_id": "base_tpsa_mid",
+          "conditions": [
+            [
+              "base_tpsa_bin",
+              "tpsa_mid"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Mid TPSA values are favorable for yield."
+        },
+        {
+          "rule_id": "additive_tpsa_high",
+          "conditions": [
+            [
+              "additive_tpsa_bin",
+              "tpsa_high"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "High TPSA additives may reduce yield."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 1.8,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.75,
+      "hypothesis": "This skill captures the interaction between TPSA values and yield."
+    }
+  ]
+}

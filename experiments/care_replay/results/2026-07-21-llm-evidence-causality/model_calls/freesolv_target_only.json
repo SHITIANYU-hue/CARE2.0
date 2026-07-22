@@ -1,0 +1,700 @@
+{
+  "model": "openai/gpt-4o-mini",
+  "usage": {
+    "prompt_tokens": 1095,
+    "completion_tokens": 2009,
+    "total_tokens": 3104,
+    "tps": 90.57,
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "llm_generation_call_count": 1,
+  "api_configuration": {
+    "base_url": "https://api.commonstack.ai/v1",
+    "api_mode": "chat",
+    "structured_mode": "json",
+    "temperature": 0.0,
+    "max_tokens": 5000
+  },
+  "source_dataset": "real_moleculenet_esol",
+  "target_dataset": "real_moleculenet_freesolv",
+  "evidence_mode": "target_only",
+  "prompt_payload": {
+    "task": "Design a diverse library of executable semantic optimization skills for finite-pool scientific search. Each skill defines interpretable rule features plus a conservative Bayesian linear surrogate blended with strong target-only GP-UCB and GP-EI anchors.",
+    "target": {
+      "dataset": "real_moleculenet_freesolv",
+      "title": "MoleculeNet FreeSolv hydration free-energy replay",
+      "objective": "maximize_hydration_affinity_score",
+      "candidate_count": 642,
+      "public_semantic_fields": {
+        "smiles_length_bin": {
+          "smiles_long": 13,
+          "smiles_mid": 122,
+          "smiles_short": 506,
+          "smiles_very_long": 1
+        },
+        "hetero_atom_bin": {
+          "hetero_high": 28,
+          "hetero_low": 316,
+          "hetero_mid": 91,
+          "hetero_none": 207
+        },
+        "halogen_bin": {
+          "halogen_high": 43,
+          "halogen_low": 73,
+          "halogen_mid": 59,
+          "halogen_none": 467
+        },
+        "aromatic_bin": {
+          "aromatic_high": 3,
+          "aromatic_low": 203,
+          "aromatic_mid": 61,
+          "aromatic_none": 375
+        },
+        "ring_token_bin": {
+          "ring_token_high": 2,
+          "ring_token_low": 247,
+          "ring_token_mid": 73,
+          "ring_token_none": 320
+        },
+        "branch_bin": {
+          "branch_high": 20,
+          "branch_low": 311,
+          "branch_mid": 116,
+          "branch_none": 195
+        },
+        "double_bond_bin": {
+          "double_bond_low": 179,
+          "double_bond_mid": 71,
+          "double_bond_none": 392
+        }
+      },
+      "hidden_target": "hydration_affinity_score",
+      "boundary": "Field values and counts are public; target outcomes are not included."
+    },
+    "source_transfer_evidence": {
+      "evidence_mode": "target_only",
+      "source_dataset": null,
+      "source_objective": null,
+      "mapped_roles": [],
+      "source_outcome_statistics": null,
+      "shared_value_priors": [],
+      "boundary": "No source identity, source schema, source outcomes, source effects, or source value priors are provided. The LLM must use the public target schema and its pretrained domain knowledge only."
+    },
+    "executor": {
+      "semantic_model": "Rules become binary features. Revealed target outcomes fit a ridge Bayesian linear surrogate whose coefficient prior follows rule weights.",
+      "anchor": "A rank blend of target-only GP-UCB and GP-EI.",
+      "fusion": "semantic_mass_start/end controls the rank mass assigned to the semantic surrogate; the remaining mass stays on the target-only anchor.",
+      "selection": "Independent calibration seeds select one frozen skill. Independent held-out seeds are evaluated only after selection."
+    },
+    "design_requirements": [
+      "Return exactly 8 diverse skills.",
+      "Use only exact field/value pairs in public_semantic_fields.",
+      "Each conditions object must map a real catalog field name directly to one exact catalog value, for example {\"dominant_family\": \"oxide\"}. Never use literal placeholder keys such as exact_field, field_name, field, or value.",
+      "Give every skill 3-10 rules; use two-condition interactions only when scientifically meaningful.",
+      "Include at least one conservative low-semantic-mass skill.",
+      "Use only target-schema-compatible domain knowledge; do not imply that a source task or source outcomes were observed.",
+      "Include at least one domain-knowledge skill.",
+      "Include a counter-hypothesis skill that reverses or downweights an uncertain source relation.",
+      "Prefer mechanistic, chemically or physically interpretable rules over arbitrary coverage rules.",
+      "Use positive weights for conditions expected to improve the target objective and negative weights for risks.",
+      "Do not claim access to target outcomes and do not output candidate identifiers."
+    ],
+    "allowed_ranges": {
+      "rule_weight": "[-1, 1]",
+      "ridge": "[0.05, 20]",
+      "prior_scale": "[0, 1.5]",
+      "semantic_mass_start_end": "[0, 0.85]",
+      "ucb_weight": "[0, 1]; EI weight is 1 - ucb_weight",
+      "gp_beta_start_end": "[0.2, 4]",
+      "gp_xi": "[0, 0.2]",
+      "confidence": "[0.05, 1]"
+    },
+    "output_contract": {
+      "skills": [
+        {
+          "skill_id": "short_unique_name",
+          "rules": [
+            {
+              "rule_id": "mechanistic_rule",
+              "conditions": {
+                "field_name_from_public_semantic_fields": "exact_catalog_value"
+              },
+              "weight": 0.5,
+              "rationale": "short scientific rationale"
+            }
+          ],
+          "ridge": 1.0,
+          "prior_scale": 0.25,
+          "semantic_mass_start": 0.3,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.7,
+          "hypothesis": "what this skill transfers and when it may fail"
+        }
+      ]
+    }
+  },
+  "raw_response": "```json\n{\n  \"skills\": [\n    {\n      \"skill_id\": \"high_aromatic_affinity\",\n      \"rules\": [\n        {\n          \"rule_id\": \"high_aromatic_rule\",\n          \"conditions\": {\n            \"aromatic_bin\": \"aromatic_high\"\n          },\n          \"weight\": 0.7,\n          \"rationale\": \"Aromatic compounds often exhibit higher hydration affinity.\"\n        },\n        {\n          \"rule_id\": \"low_hetero_atoms_rule\",\n          \"conditions\": {\n            \"hetero_atom_bin\": \"hetero_low\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Fewer heteroatoms may enhance hydration properties.\"\n        }\n      ],\n      \"ridge\": 1.5,\n      \"prior_scale\": 0.5,\n      \"semantic_mass_start\": 0.6,\n      \"semantic_mass_end\": 0.2,\n      \"ucb_weight\": 0.7,\n      \"gp_beta_start\": 2.5,\n      \"gp_beta_end\": 1.5,\n      \"gp_xi\": 0.1,\n      \"confidence\": 0.8,\n      \"hypothesis\": \"This skill targets compounds with high aromaticity for improved hydration.\"\n    },\n    {\n      \"skill_id\": \"low_branch_complexity\",\n      \"rules\": [\n        {\n          \"rule_id\": \"low_branch_rule\",\n          \"conditions\": {\n            \"branch_bin\": \"branch_low\"\n          },\n          \"weight\": 0.6,\n          \"rationale\": \"Simpler structures may favor hydration.\"\n        },\n        {\n          \"rule_id\": \"high_double_bond_rule\",\n          \"conditions\": {\n            \"double_bond_bin\": \"double_bond_low\"\n          },\n          \"weight\": -0.4,\n          \"rationale\": \"Double bonds can introduce steric hindrance.\"\n        }\n      ],\n      \"ridge\": 1.0,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.4,\n      \"semantic_mass_end\": 0.1,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 1.8,\n      \"gp_beta_end\": 1.2,\n      \"gp_xi\": 0.05,\n      \"confidence\": 0.75,\n      \"hypothesis\": \"This skill emphasizes simpler molecular structures for hydration.\"\n    },\n    {\n      \"skill_id\": \"high_halogen_influence\",\n      \"rules\": [\n        {\n          \"rule_id\": \"high_halogen_rule\",\n          \"conditions\": {\n            \"halogen_bin\": \"halogen_high\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Halogens can enhance hydration through polar interactions.\"\n        },\n        {\n          \"rule_id\": \"low_ring_token_rule\",\n          \"conditions\": {\n            \"ring_token_bin\": \"ring_token_low\"\n          },\n          \"weight\": -0.3,\n          \"rationale\": \"Fewer rings may reduce steric hindrance.\"\n        }\n      ],\n      \"ridge\": 1.2,\n      \"prior_scale\": 0.4,\n      \"semantic_mass_start\": 0.5,\n      \"semantic_mass_end\": 0.2,\n      \"ucb_weight\": 0.6,\n      \"gp_beta_start\": 2.0,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.1,\n      \"confidence\": 0.7,\n      \"hypothesis\": \"This skill focuses on halogenated compounds for hydration enhancement.\"\n    },\n    {\n      \"skill_id\": \"low_semantic_mass\",\n      \"rules\": [\n        {\n          \"rule_id\": \"low_aromatic_rule\",\n          \"conditions\": {\n            \"aromatic_bin\": \"aromatic_low\"\n          },\n          \"weight\": -0.5,\n          \"rationale\": \"Lower aromaticity may correlate with lower hydration affinity.\"\n        },\n        {\n          \"rule_id\": \"high_hetero_atoms_rule\",\n          \"conditions\": {\n            \"hetero_atom_bin\": \"hetero_high\"\n          },\n          \"weight\": -0.6,\n          \"rationale\": \"More heteroatoms can disrupt hydration.\"\n        }\n      ],\n      \"ridge\": 0.8,\n      \"prior_scale\": 0.2,\n      \"semantic_mass_start\": 0.1,\n      \"semantic_mass_end\": 0.0,\n      \"ucb_weight\": 0.4,\n      \"gp_beta_start\": 1.5,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.05,\n      \"confidence\": 0.6,\n      \"hypothesis\": \"This skill downweights complex structures for hydration.\"\n    },\n    {\n      \"skill_id\": \"ring_structure_effect\",\n      \"rules\": [\n        {\n          \"rule_id\": \"high_ring_token_rule\",\n          \"conditions\": {\n            \"ring_token_bin\": \"ring_token_high\"\n          },\n          \"weight\": 0.4,\n          \"rationale\": \"Rings can stabilize hydration interactions.\"\n        },\n        {\n          \"rule_id\": \"low_branch_rule\",\n          \"conditions\": {\n            \"branch_bin\": \"branch_low\"\n          },\n          \"weight\": 0.3,\n          \"rationale\": \"Fewer branches may enhance hydration.\"\n        }\n      ],\n      \"ridge\": 1.0,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.5,\n      \"semantic_mass_end\": 0.1,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 2.0,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.1,\n      \"confidence\": 0.7,\n      \"hypothesis\": \"This skill explores the positive effects of ring structures on hydration.\"\n    },\n    {\n      \"skill_id\": \"counter_hypothesis_low_hydration\",\n      \"rules\": [\n        {\n          \"rule_id\": \"high_aromatic_rule\",\n          \"conditions\": {\n            \"aromatic_bin\": \"aromatic_high\"\n          },\n          \"weight\": -0.5,\n          \"rationale\": \"High aromaticity may correlate with lower hydration affinity.\"\n        },\n        {\n          \"rule_id\": \"high_hetero_atoms_rule\",\n          \"conditions\": {\n            \"hetero_atom_bin\": \"hetero_high\"\n          },\n          \"weight\": -0.4,\n          \"rationale\": \"More heteroatoms can disrupt hydration.\"\n        }\n      ],\n      \"ridge\": 1.0,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.2,\n      \"semantic_mass_end\": 0.0,\n      \"ucb_weight\": 0.4,\n      \"gp_beta_start\": 1.5,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.05,\n      \"confidence\": 0.65,\n      \"hypothesis\": \"This skill challenges the assumption that high aromaticity enhances hydration.\"\n    },\n    {\n      \"skill_id\": \"double_bond_risk\",\n      \"rules\": [\n        {\n          \"rule_id\": \"high_double_bond_rule\",\n          \"conditions\": {\n            \"double_bond_bin\": \"double_bond_low\"\n          },\n          \"weight\": -0.6,\n          \"rationale\": \"Double bonds can introduce steric hindrance.\"\n        },\n        {\n          \"rule_id\": \"low_branch_rule\",\n          \"conditions\": {\n            \"branch_bin\": \"branch_low\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Simpler structures may favor hydration.\"\n        }\n      ],\n      \"ridge\": 1.0,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.4,\n      \"semantic_mass_end\": 0.1,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 1.8,\n      \"gp_beta_end\": 1.2,\n      \"gp_xi\": 0.05,\n      \"confidence\": 0.7,\n      \"hypothesis\": \"This skill assesses the risks associated with double bonds in hydration.\"\n    },\n    {\n      \"skill_id\": \"high_hetero_atom_affinity\",\n      \"rules\": [\n        {\n          \"rule_id\": \"high_hetero_atoms_rule\",\n          \"conditions\": {\n            \"hetero_atom_bin\": \"hetero_high\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Certain heteroatoms can enhance hydration through polar interactions.\"\n        },\n        {\n          \"rule_id\": \"low_aromatic_rule\",\n          \"conditions\": {\n            \"aromatic_bin\": \"aromatic_low\"\n          },\n          \"weight\": -0.3,\n          \"rationale\": \"Lower aromaticity may correlate with lower hydration affinity.\"\n        }\n      ],\n      \"ridge\": 1.2,\n      \"prior_scale\": 0.4,\n      \"semantic_mass_start\": 0.5,\n      \"semantic_mass_end\": 0.2,\n      \"ucb_weight\": 0.6,\n      \"gp_beta_start\": 2.0,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.1,\n      \"confidence\": 0.75,\n      \"hypothesis\": \"This skill focuses on the positive effects of heteroatoms on hydration.\"\n    }\n  ]\n}\n```",
+  "parsed_response": {
+    "skills": [
+      {
+        "skill_id": "high_aromatic_affinity",
+        "rules": [
+          {
+            "rule_id": "high_aromatic_rule",
+            "conditions": {
+              "aromatic_bin": "aromatic_high"
+            },
+            "weight": 0.7,
+            "rationale": "Aromatic compounds often exhibit higher hydration affinity."
+          },
+          {
+            "rule_id": "low_hetero_atoms_rule",
+            "conditions": {
+              "hetero_atom_bin": "hetero_low"
+            },
+            "weight": 0.5,
+            "rationale": "Fewer heteroatoms may enhance hydration properties."
+          }
+        ],
+        "ridge": 1.5,
+        "prior_scale": 0.5,
+        "semantic_mass_start": 0.6,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.7,
+        "gp_beta_start": 2.5,
+        "gp_beta_end": 1.5,
+        "gp_xi": 0.1,
+        "confidence": 0.8,
+        "hypothesis": "This skill targets compounds with high aromaticity for improved hydration."
+      },
+      {
+        "skill_id": "low_branch_complexity",
+        "rules": [
+          {
+            "rule_id": "low_branch_rule",
+            "conditions": {
+              "branch_bin": "branch_low"
+            },
+            "weight": 0.6,
+            "rationale": "Simpler structures may favor hydration."
+          },
+          {
+            "rule_id": "high_double_bond_rule",
+            "conditions": {
+              "double_bond_bin": "double_bond_low"
+            },
+            "weight": -0.4,
+            "rationale": "Double bonds can introduce steric hindrance."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.4,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 1.8,
+        "gp_beta_end": 1.2,
+        "gp_xi": 0.05,
+        "confidence": 0.75,
+        "hypothesis": "This skill emphasizes simpler molecular structures for hydration."
+      },
+      {
+        "skill_id": "high_halogen_influence",
+        "rules": [
+          {
+            "rule_id": "high_halogen_rule",
+            "conditions": {
+              "halogen_bin": "halogen_high"
+            },
+            "weight": 0.5,
+            "rationale": "Halogens can enhance hydration through polar interactions."
+          },
+          {
+            "rule_id": "low_ring_token_rule",
+            "conditions": {
+              "ring_token_bin": "ring_token_low"
+            },
+            "weight": -0.3,
+            "rationale": "Fewer rings may reduce steric hindrance."
+          }
+        ],
+        "ridge": 1.2,
+        "prior_scale": 0.4,
+        "semantic_mass_start": 0.5,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.1,
+        "confidence": 0.7,
+        "hypothesis": "This skill focuses on halogenated compounds for hydration enhancement."
+      },
+      {
+        "skill_id": "low_semantic_mass",
+        "rules": [
+          {
+            "rule_id": "low_aromatic_rule",
+            "conditions": {
+              "aromatic_bin": "aromatic_low"
+            },
+            "weight": -0.5,
+            "rationale": "Lower aromaticity may correlate with lower hydration affinity."
+          },
+          {
+            "rule_id": "high_hetero_atoms_rule",
+            "conditions": {
+              "hetero_atom_bin": "hetero_high"
+            },
+            "weight": -0.6,
+            "rationale": "More heteroatoms can disrupt hydration."
+          }
+        ],
+        "ridge": 0.8,
+        "prior_scale": 0.2,
+        "semantic_mass_start": 0.1,
+        "semantic_mass_end": 0.0,
+        "ucb_weight": 0.4,
+        "gp_beta_start": 1.5,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.05,
+        "confidence": 0.6,
+        "hypothesis": "This skill downweights complex structures for hydration."
+      },
+      {
+        "skill_id": "ring_structure_effect",
+        "rules": [
+          {
+            "rule_id": "high_ring_token_rule",
+            "conditions": {
+              "ring_token_bin": "ring_token_high"
+            },
+            "weight": 0.4,
+            "rationale": "Rings can stabilize hydration interactions."
+          },
+          {
+            "rule_id": "low_branch_rule",
+            "conditions": {
+              "branch_bin": "branch_low"
+            },
+            "weight": 0.3,
+            "rationale": "Fewer branches may enhance hydration."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.5,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.1,
+        "confidence": 0.7,
+        "hypothesis": "This skill explores the positive effects of ring structures on hydration."
+      },
+      {
+        "skill_id": "counter_hypothesis_low_hydration",
+        "rules": [
+          {
+            "rule_id": "high_aromatic_rule",
+            "conditions": {
+              "aromatic_bin": "aromatic_high"
+            },
+            "weight": -0.5,
+            "rationale": "High aromaticity may correlate with lower hydration affinity."
+          },
+          {
+            "rule_id": "high_hetero_atoms_rule",
+            "conditions": {
+              "hetero_atom_bin": "hetero_high"
+            },
+            "weight": -0.4,
+            "rationale": "More heteroatoms can disrupt hydration."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.2,
+        "semantic_mass_end": 0.0,
+        "ucb_weight": 0.4,
+        "gp_beta_start": 1.5,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.05,
+        "confidence": 0.65,
+        "hypothesis": "This skill challenges the assumption that high aromaticity enhances hydration."
+      },
+      {
+        "skill_id": "double_bond_risk",
+        "rules": [
+          {
+            "rule_id": "high_double_bond_rule",
+            "conditions": {
+              "double_bond_bin": "double_bond_low"
+            },
+            "weight": -0.6,
+            "rationale": "Double bonds can introduce steric hindrance."
+          },
+          {
+            "rule_id": "low_branch_rule",
+            "conditions": {
+              "branch_bin": "branch_low"
+            },
+            "weight": 0.5,
+            "rationale": "Simpler structures may favor hydration."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.4,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 1.8,
+        "gp_beta_end": 1.2,
+        "gp_xi": 0.05,
+        "confidence": 0.7,
+        "hypothesis": "This skill assesses the risks associated with double bonds in hydration."
+      },
+      {
+        "skill_id": "high_hetero_atom_affinity",
+        "rules": [
+          {
+            "rule_id": "high_hetero_atoms_rule",
+            "conditions": {
+              "hetero_atom_bin": "hetero_high"
+            },
+            "weight": 0.5,
+            "rationale": "Certain heteroatoms can enhance hydration through polar interactions."
+          },
+          {
+            "rule_id": "low_aromatic_rule",
+            "conditions": {
+              "aromatic_bin": "aromatic_low"
+            },
+            "weight": -0.3,
+            "rationale": "Lower aromaticity may correlate with lower hydration affinity."
+          }
+        ],
+        "ridge": 1.2,
+        "prior_scale": 0.4,
+        "semantic_mass_start": 0.5,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.1,
+        "confidence": 0.75,
+        "hypothesis": "This skill focuses on the positive effects of heteroatoms on hydration."
+      }
+    ]
+  },
+  "normalized_skills": [
+    {
+      "skill_id": "high_aromatic_affinity",
+      "rules": [
+        {
+          "rule_id": "high_aromatic_rule",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Aromatic compounds often exhibit higher hydration affinity."
+        },
+        {
+          "rule_id": "low_hetero_atoms_rule",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_low"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Fewer heteroatoms may enhance hydration properties."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.5,
+      "semantic_mass_start": 0.6,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.1,
+      "confidence": 0.8,
+      "hypothesis": "This skill targets compounds with high aromaticity for improved hydration."
+    },
+    {
+      "skill_id": "low_branch_complexity",
+      "rules": [
+        {
+          "rule_id": "low_branch_rule",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_low"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Simpler structures may favor hydration."
+        },
+        {
+          "rule_id": "high_double_bond_rule",
+          "conditions": [
+            [
+              "double_bond_bin",
+              "double_bond_low"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "Double bonds can introduce steric hindrance."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 1.8,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.05,
+      "confidence": 0.75,
+      "hypothesis": "This skill emphasizes simpler molecular structures for hydration."
+    },
+    {
+      "skill_id": "high_halogen_influence",
+      "rules": [
+        {
+          "rule_id": "high_halogen_rule",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_high"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Halogens can enhance hydration through polar interactions."
+        },
+        {
+          "rule_id": "low_ring_token_rule",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_low"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "Fewer rings may reduce steric hindrance."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.1,
+      "confidence": 0.7,
+      "hypothesis": "This skill focuses on halogenated compounds for hydration enhancement."
+    },
+    {
+      "skill_id": "low_semantic_mass",
+      "rules": [
+        {
+          "rule_id": "low_aromatic_rule",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_low"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Lower aromaticity may correlate with lower hydration affinity."
+        },
+        {
+          "rule_id": "high_hetero_atoms_rule",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": -0.6,
+          "rationale": "More heteroatoms can disrupt hydration."
+        }
+      ],
+      "ridge": 0.8,
+      "prior_scale": 0.2,
+      "semantic_mass_start": 0.1,
+      "semantic_mass_end": 0.0,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.05,
+      "confidence": 0.6,
+      "hypothesis": "This skill downweights complex structures for hydration."
+    },
+    {
+      "skill_id": "ring_structure_effect",
+      "rules": [
+        {
+          "rule_id": "high_ring_token_rule",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Rings can stabilize hydration interactions."
+        },
+        {
+          "rule_id": "low_branch_rule",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_low"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Fewer branches may enhance hydration."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.1,
+      "confidence": 0.7,
+      "hypothesis": "This skill explores the positive effects of ring structures on hydration."
+    },
+    {
+      "skill_id": "counter_hypothesis_low_hydration",
+      "rules": [
+        {
+          "rule_id": "high_aromatic_rule",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "High aromaticity may correlate with lower hydration affinity."
+        },
+        {
+          "rule_id": "high_hetero_atoms_rule",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "More heteroatoms can disrupt hydration."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.0,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.05,
+      "confidence": 0.65,
+      "hypothesis": "This skill challenges the assumption that high aromaticity enhances hydration."
+    },
+    {
+      "skill_id": "double_bond_risk",
+      "rules": [
+        {
+          "rule_id": "high_double_bond_rule",
+          "conditions": [
+            [
+              "double_bond_bin",
+              "double_bond_low"
+            ]
+          ],
+          "weight": -0.6,
+          "rationale": "Double bonds can introduce steric hindrance."
+        },
+        {
+          "rule_id": "low_branch_rule",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_low"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Simpler structures may favor hydration."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 1.8,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.05,
+      "confidence": 0.7,
+      "hypothesis": "This skill assesses the risks associated with double bonds in hydration."
+    },
+    {
+      "skill_id": "high_hetero_atom_affinity",
+      "rules": [
+        {
+          "rule_id": "high_hetero_atoms_rule",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Certain heteroatoms can enhance hydration through polar interactions."
+        },
+        {
+          "rule_id": "low_aromatic_rule",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_low"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "Lower aromaticity may correlate with lower hydration affinity."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.1,
+      "confidence": 0.75,
+      "hypothesis": "This skill focuses on the positive effects of heteroatoms on hydration."
+    }
+  ]
+}

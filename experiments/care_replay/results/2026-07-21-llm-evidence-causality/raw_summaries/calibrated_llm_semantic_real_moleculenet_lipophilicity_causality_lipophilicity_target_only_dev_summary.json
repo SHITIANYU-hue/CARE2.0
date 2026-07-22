@@ -1,0 +1,896 @@
+{
+  "experiment": "care_calibrated_llm_semantic_skill_selector",
+  "source_dataset": "real_moleculenet_esol",
+  "target_dataset": "real_moleculenet_lipophilicity",
+  "evidence_mode": "target_only",
+  "llm_model": "openai/gpt-4o-mini",
+  "llm_generation_call_count": 1,
+  "new_llm_call_count": 0,
+  "rule_prior_enabled": true,
+  "semantic_model_enabled": true,
+  "semantic_field_catalog": {
+    "smiles_length_bin": {
+      "smiles_long": 2265,
+      "smiles_mid": 1764,
+      "smiles_short": 93,
+      "smiles_very_long": 78
+    },
+    "hetero_atom_bin": {
+      "hetero_high": 2661,
+      "hetero_low": 194,
+      "hetero_mid": 1344,
+      "hetero_none": 1
+    },
+    "halogen_bin": {
+      "halogen_high": 98,
+      "halogen_low": 961,
+      "halogen_mid": 743,
+      "halogen_none": 2398
+    },
+    "aromatic_bin": {
+      "aromatic_high": 1982,
+      "aromatic_low": 545,
+      "aromatic_mid": 1619,
+      "aromatic_none": 54
+    },
+    "ring_token_bin": {
+      "ring_token_high": 1976,
+      "ring_token_low": 113,
+      "ring_token_mid": 2106,
+      "ring_token_none": 5
+    },
+    "branch_bin": {
+      "branch_high": 1183,
+      "branch_low": 817,
+      "branch_mid": 2147,
+      "branch_none": 53
+    },
+    "double_bond_bin": {
+      "double_bond_high": 147,
+      "double_bond_low": 1333,
+      "double_bond_mid": 1843,
+      "double_bond_none": 877
+    }
+  },
+  "skills": [
+    {
+      "skill_id": "high_aromatic_content",
+      "rules": [
+        {
+          "rule_id": "aromatic_high_rule",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "High aromatic content is expected to enhance lipophilicity."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.5,
+      "semantic_mass_start": 0.6,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.05,
+      "confidence": 0.8,
+      "hypothesis": "Increased aromaticity correlates with higher lipophilicity."
+    },
+    {
+      "skill_id": "low_double_bond_risk",
+      "rules": [
+        {
+          "rule_id": "double_bond_low_rule",
+          "conditions": [
+            [
+              "double_bond_bin",
+              "double_bond_low"
+            ]
+          ],
+          "weight": -0.6,
+          "rationale": "Lower double bond presence may reduce lipophilicity risks."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 1.8,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.02,
+      "confidence": 0.75,
+      "hypothesis": "Reducing double bonds may mitigate adverse effects on lipophilicity."
+    },
+    {
+      "skill_id": "balanced_branch_structure",
+      "rules": [
+        {
+          "rule_id": "branch_mid_rule",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_mid"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Moderate branching is hypothesized to optimize lipophilicity."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.3,
+      "ucb_weight": 0.3,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.7,
+      "hypothesis": "Balanced branching may enhance molecular interactions."
+    },
+    {
+      "skill_id": "high_heteroatom_content",
+      "rules": [
+        {
+          "rule_id": "hetero_high_rule",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Higher heteroatom content is expected to improve lipophilicity."
+        }
+      ],
+      "ridge": 1.3,
+      "prior_scale": 0.6,
+      "semantic_mass_start": 0.7,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.3,
+      "gp_xi": 0.03,
+      "confidence": 0.8,
+      "hypothesis": "Increased heteroatoms can enhance solubility and lipophilicity."
+    },
+    {
+      "skill_id": "low_halogen_content",
+      "rules": [
+        {
+          "rule_id": "halogen_low_rule",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_low"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "Lower halogen content may reduce toxicity and improve lipophilicity."
+        }
+      ],
+      "ridge": 1.1,
+      "prior_scale": 0.2,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 1.9,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.02,
+      "confidence": 0.65,
+      "hypothesis": "Reducing halogens may lead to safer and more lipophilic compounds."
+    },
+    {
+      "skill_id": "short_smiles_length",
+      "rules": [
+        {
+          "rule_id": "smiles_short_rule",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Shorter SMILES may correlate with simpler, more lipophilic structures."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.7,
+      "hypothesis": "Shorter molecular representations may indicate favorable properties."
+    },
+    {
+      "skill_id": "high_ring_token_count",
+      "rules": [
+        {
+          "rule_id": "ring_token_high_rule",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Higher ring token counts are hypothesized to enhance lipophilicity."
+        }
+      ],
+      "ridge": 1.4,
+      "prior_scale": 0.5,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.3,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 2.3,
+      "gp_beta_end": 1.4,
+      "gp_xi": 0.02,
+      "confidence": 0.75,
+      "hypothesis": "Increased ring structures may improve molecular interactions."
+    },
+    {
+      "skill_id": "counter_hypothesis_high_aromatic",
+      "rules": [
+        {
+          "rule_id": "aromatic_none_rule",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_none"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Absence of aromaticity may indicate lower lipophilicity."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 1.7,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.6,
+      "hypothesis": "Lack of aromatic structures may correlate with reduced lipophilicity."
+    }
+  ],
+  "calibration_seed_start": 16000,
+  "calibration_seed_count": 30,
+  "heldout_seed_start": 16100,
+  "heldout_seed_count": 100,
+  "selection": {
+    "target_anchor_mode": "target_acquisition_portfolio",
+    "target_anchor_summary": {
+      "gp_ucb": {
+        "final_best": 87.554167,
+        "best_so_far_auc": 85.799167,
+        "top10_hit": 0.2,
+        "composite": 173.353334
+      },
+      "mixed_kernel_gp_ei": {
+        "final_best": 88.195833,
+        "best_so_far_auc": 86.166667,
+        "top10_hit": 0.2,
+        "composite": 174.3625
+      },
+      "target_acquisition_portfolio": {
+        "final_best": 88.670833,
+        "best_so_far_auc": 86.43125,
+        "top10_hit": 0.133333,
+        "composite": 175.102083
+      }
+    },
+    "eligible_skill_modes": [
+      "llm_semantic_counter_hypothesis_high_aromatic",
+      "llm_semantic_high_aromatic_content",
+      "llm_semantic_high_ring_token_count",
+      "llm_semantic_low_double_bond_risk"
+    ],
+    "selected_mode": "llm_semantic_high_aromatic_content",
+    "selected_llm_skill": true,
+    "skill_diagnostics": {
+      "llm_semantic_high_aromatic_content": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 1.3375,
+          "std": 3.411248,
+          "se": 0.622806,
+          "normal_95ci_low": 0.1168,
+          "normal_95ci_high": 2.5582,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.766667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 1.73875,
+          "std": 3.275288,
+          "se": 0.597983,
+          "normal_95ci_low": 0.566703,
+          "normal_95ci_high": 2.910797,
+          "win_rate": 0.6,
+          "non_loss_rate": 0.8
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 3.07625,
+          "std": 6.042036,
+          "se": 1.10312,
+          "normal_95ci_low": 0.914135,
+          "normal_95ci_high": 5.238365,
+          "win_rate": 0.533333,
+          "non_loss_rate": 0.733333
+        },
+        "positive_fold_rate": 1.0,
+        "fold_composite_means": [
+          3.410417,
+          4.033333,
+          2.189583,
+          1.670833,
+          4.077083
+        ],
+        "risk_adjusted_composite_gain": 2.52469,
+        "eligible": true
+      },
+      "llm_semantic_low_double_bond_risk": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 0.841667,
+          "std": 4.053796,
+          "se": 0.740119,
+          "normal_95ci_low": -0.608966,
+          "normal_95ci_high": 2.292299,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.6
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.63625,
+          "std": 2.830283,
+          "se": 0.516737,
+          "normal_95ci_low": -0.376554,
+          "normal_95ci_high": 1.649054,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.633333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 1.477917,
+          "std": 6.290778,
+          "se": 1.148534,
+          "normal_95ci_low": -0.773209,
+          "normal_95ci_high": 3.729043,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.633333
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          0.3125,
+          1.985417,
+          0.335417,
+          4.954167,
+          -0.197917
+        ],
+        "risk_adjusted_composite_gain": 0.90365,
+        "eligible": true
+      },
+      "llm_semantic_balanced_branch_structure": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 0.954167,
+          "std": 4.49693,
+          "se": 0.821023,
+          "normal_95ci_low": -0.655039,
+          "normal_95ci_high": 2.563372,
+          "win_rate": 0.533333,
+          "non_loss_rate": 0.7
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.297083,
+          "std": 3.422111,
+          "se": 0.624789,
+          "normal_95ci_low": -0.927503,
+          "normal_95ci_high": 1.52167,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.666667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 1.25125,
+          "std": 7.115954,
+          "se": 1.29919,
+          "normal_95ci_low": -1.295162,
+          "normal_95ci_high": 3.797662,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.666667
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          3.833333,
+          0.89375,
+          -3.004167,
+          4.679167,
+          -0.145833
+        ],
+        "risk_adjusted_composite_gain": 0.601655,
+        "eligible": false
+      },
+      "llm_semantic_high_heteroatom_content": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 0.116667,
+          "std": 4.107023,
+          "se": 0.749836,
+          "normal_95ci_low": -1.353013,
+          "normal_95ci_high": 1.586346,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.7
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.715833,
+          "std": 3.78333,
+          "se": 0.690738,
+          "normal_95ci_low": -0.638014,
+          "normal_95ci_high": 2.06968,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.7
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 0.8325,
+          "std": 7.588857,
+          "se": 1.385529,
+          "normal_95ci_low": -1.883138,
+          "normal_95ci_high": 3.548138,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.7
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          3.485417,
+          2.041667,
+          -1.525,
+          4.770833,
+          -4.610417
+        ],
+        "risk_adjusted_composite_gain": 0.139736,
+        "eligible": false
+      },
+      "llm_semantic_low_halogen_content": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 0.545833,
+          "std": 3.662946,
+          "se": 0.668759,
+          "normal_95ci_low": -0.764935,
+          "normal_95ci_high": 1.856602,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.733333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.597917,
+          "std": 3.401126,
+          "se": 0.620958,
+          "normal_95ci_low": -0.619161,
+          "normal_95ci_high": 1.814994,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.7
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 1.14375,
+          "std": 6.705013,
+          "se": 1.224162,
+          "normal_95ci_low": -1.255608,
+          "normal_95ci_high": 3.543108,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.7
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          2.075,
+          -1.1125,
+          3.429167,
+          4.654167,
+          -3.327083
+        ],
+        "risk_adjusted_composite_gain": 0.531669,
+        "eligible": false
+      },
+      "llm_semantic_short_smiles_length": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 0.020833,
+          "std": 4.291475,
+          "se": 0.783512,
+          "normal_95ci_low": -1.514851,
+          "normal_95ci_high": 1.556518,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.666667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.554167,
+          "std": 4.11135,
+          "se": 0.750626,
+          "normal_95ci_low": -0.917061,
+          "normal_95ci_high": 2.025394,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.733333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 0.575,
+          "std": 7.885528,
+          "se": 1.439694,
+          "normal_95ci_low": -2.2468,
+          "normal_95ci_high": 3.3968,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.7
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          1.495833,
+          -0.372917,
+          1.485417,
+          3.708333,
+          -3.441667
+        ],
+        "risk_adjusted_composite_gain": -0.144847,
+        "eligible": false
+      },
+      "llm_semantic_high_ring_token_count": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 1.35,
+          "std": 3.973139,
+          "se": 0.725393,
+          "normal_95ci_low": -0.07177,
+          "normal_95ci_high": 2.77177,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.7
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 1.08625,
+          "std": 3.426808,
+          "se": 0.625647,
+          "normal_95ci_low": -0.140018,
+          "normal_95ci_high": 2.312518,
+          "win_rate": 0.566667,
+          "non_loss_rate": 0.766667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 2.43625,
+          "std": 6.914789,
+          "se": 1.262462,
+          "normal_95ci_low": -0.038175,
+          "normal_95ci_high": 4.910675,
+          "win_rate": 0.566667,
+          "non_loss_rate": 0.766667
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          2.041667,
+          2.372917,
+          -0.289583,
+          4.929167,
+          3.127083
+        ],
+        "risk_adjusted_composite_gain": 1.805019,
+        "eligible": true
+      },
+      "llm_semantic_counter_hypothesis_high_aromatic": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 0.658333,
+          "std": 3.716928,
+          "se": 0.678615,
+          "normal_95ci_low": -0.671752,
+          "normal_95ci_high": 1.988419,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.7
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.609167,
+          "std": 3.224024,
+          "se": 0.588624,
+          "normal_95ci_low": -0.544536,
+          "normal_95ci_high": 1.762869,
+          "win_rate": 0.533333,
+          "non_loss_rate": 0.7
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 1.2675,
+          "std": 5.999124,
+          "se": 1.095285,
+          "normal_95ci_low": -0.879259,
+          "normal_95ci_high": 3.414259,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.666667
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          0.04375,
+          1.80625,
+          0.05625,
+          4.94375,
+          -0.5125
+        ],
+        "risk_adjusted_composite_gain": 0.719858,
+        "eligible": true
+      }
+    },
+    "thresholds": {
+      "min_risk_adjusted_composite_gain": 0.25,
+      "min_positive_fold_rate": 0.8,
+      "min_final_non_loss_rate": 0.55
+    },
+    "rule": "Choose the strongest target-only anchor on calibration composite. Select an LLM semantic skill only when final and AUC means are non-negative, fold stability and non-loss constraints pass, and risk-adjusted composite gain is positive."
+  },
+  "calibration": {
+    "gp_ucb": {
+      "final_best": 87.554167,
+      "best_so_far_auc": 85.799167,
+      "top10_hit": 0.2,
+      "composite": 173.353334
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 88.195833,
+      "best_so_far_auc": 86.166667,
+      "top10_hit": 0.2,
+      "composite": 174.3625
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 88.670833,
+      "best_so_far_auc": 86.43125,
+      "top10_hit": 0.133333,
+      "composite": 175.102083
+    },
+    "llm_semantic_high_aromatic_content": {
+      "final_best": 90.008333,
+      "best_so_far_auc": 88.17,
+      "top10_hit": 0.2,
+      "composite": 178.178333
+    },
+    "llm_semantic_low_double_bond_risk": {
+      "final_best": 89.5125,
+      "best_so_far_auc": 87.0675,
+      "top10_hit": 0.333333,
+      "composite": 176.58
+    },
+    "llm_semantic_balanced_branch_structure": {
+      "final_best": 89.625,
+      "best_so_far_auc": 86.728333,
+      "top10_hit": 0.266667,
+      "composite": 176.353333
+    },
+    "llm_semantic_high_heteroatom_content": {
+      "final_best": 88.7875,
+      "best_so_far_auc": 87.147083,
+      "top10_hit": 0.2,
+      "composite": 175.934583
+    },
+    "llm_semantic_low_halogen_content": {
+      "final_best": 89.216667,
+      "best_so_far_auc": 87.029167,
+      "top10_hit": 0.333333,
+      "composite": 176.245834
+    },
+    "llm_semantic_short_smiles_length": {
+      "final_best": 88.691667,
+      "best_so_far_auc": 86.985417,
+      "top10_hit": 0.166667,
+      "composite": 175.677084
+    },
+    "llm_semantic_high_ring_token_count": {
+      "final_best": 90.020833,
+      "best_so_far_auc": 87.5175,
+      "top10_hit": 0.333333,
+      "composite": 177.538333
+    },
+    "llm_semantic_counter_hypothesis_high_aromatic": {
+      "final_best": 89.329167,
+      "best_so_far_auc": 87.040417,
+      "top10_hit": 0.233333,
+      "composite": 176.369584
+    }
+  },
+  "heldout": {
+    "gp_ucb": {
+      "final_best": 88.15,
+      "best_so_far_auc": 85.182625,
+      "top10_hit": 0.17,
+      "composite": 173.332625
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 88.16375,
+      "best_so_far_auc": 85.537125,
+      "top10_hit": 0.15,
+      "composite": 173.700875
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 88.72625,
+      "best_so_far_auc": 85.513375,
+      "top10_hit": 0.16,
+      "composite": 174.239625
+    },
+    "llm_semantic_high_aromatic_content": {
+      "final_best": 90.23625,
+      "best_so_far_auc": 87.61125,
+      "top10_hit": 0.28,
+      "composite": 177.8475
+    },
+    "llm_semantic_low_double_bond_risk": {
+      "final_best": 89.23625,
+      "best_so_far_auc": 86.61425,
+      "top10_hit": 0.19,
+      "composite": 175.8505
+    },
+    "llm_semantic_balanced_branch_structure": {
+      "final_best": 89.4325,
+      "best_so_far_auc": 86.6165,
+      "top10_hit": 0.23,
+      "composite": 176.049
+    },
+    "llm_semantic_high_heteroatom_content": {
+      "final_best": 89.80375,
+      "best_so_far_auc": 87.07,
+      "top10_hit": 0.35,
+      "composite": 176.87375
+    },
+    "llm_semantic_low_halogen_content": {
+      "final_best": 89.63125,
+      "best_so_far_auc": 86.836125,
+      "top10_hit": 0.34,
+      "composite": 176.467375
+    },
+    "llm_semantic_short_smiles_length": {
+      "final_best": 89.5775,
+      "best_so_far_auc": 86.981625,
+      "top10_hit": 0.22,
+      "composite": 176.559125
+    },
+    "llm_semantic_high_ring_token_count": {
+      "final_best": 89.57125,
+      "best_so_far_auc": 86.785125,
+      "top10_hit": 0.24,
+      "composite": 176.356375
+    },
+    "llm_semantic_counter_hypothesis_high_aromatic": {
+      "final_best": 88.78375,
+      "best_so_far_auc": 86.2845,
+      "top10_hit": 0.2,
+      "composite": 175.06825
+    },
+    "llm_calibrated_selector": {
+      "final_best": 90.23625,
+      "best_so_far_auc": 87.61125,
+      "top10_hit": 0.28,
+      "composite": 177.8475
+    }
+  },
+  "heldout_strongest_target_mode_descriptive_only": "target_acquisition_portfolio",
+  "heldout_pairwise": {
+    "gp_ucb": {
+      "final_best": {
+        "n": 100.0,
+        "mean": 2.08625,
+        "std": 4.844607,
+        "se": 0.484461,
+        "normal_95ci_low": 1.136707,
+        "normal_95ci_high": 3.035793,
+        "win_rate": 0.6,
+        "non_loss_rate": 0.73
+      },
+      "best_so_far_auc": {
+        "n": 100.0,
+        "mean": 2.428625,
+        "std": 4.684731,
+        "se": 0.468473,
+        "normal_95ci_low": 1.510418,
+        "normal_95ci_high": 3.346832,
+        "win_rate": 0.65,
+        "non_loss_rate": 0.69
+      },
+      "top10_hit": {
+        "n": 100.0,
+        "mean": 0.11,
+        "std": 0.466798,
+        "se": 0.04668,
+        "normal_95ci_low": 0.018508,
+        "normal_95ci_high": 0.201492,
+        "win_rate": 0.17,
+        "non_loss_rate": 0.94
+      }
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": {
+        "n": 100.0,
+        "mean": 2.0725,
+        "std": 4.202759,
+        "se": 0.420276,
+        "normal_95ci_low": 1.248759,
+        "normal_95ci_high": 2.896241,
+        "win_rate": 0.59,
+        "non_loss_rate": 0.72
+      },
+      "best_so_far_auc": {
+        "n": 100.0,
+        "mean": 2.074125,
+        "std": 4.166891,
+        "se": 0.416689,
+        "normal_95ci_low": 1.257414,
+        "normal_95ci_high": 2.890836,
+        "win_rate": 0.64,
+        "non_loss_rate": 0.69
+      },
+      "top10_hit": {
+        "n": 100.0,
+        "mean": 0.13,
+        "std": 0.50309,
+        "se": 0.050309,
+        "normal_95ci_low": 0.031394,
+        "normal_95ci_high": 0.228606,
+        "win_rate": 0.2,
+        "non_loss_rate": 0.93
+      }
+    },
+    "target_acquisition_portfolio": {
+      "final_best": {
+        "n": 100.0,
+        "mean": 1.51,
+        "std": 4.96537,
+        "se": 0.496537,
+        "normal_95ci_low": 0.536787,
+        "normal_95ci_high": 2.483213,
+        "win_rate": 0.54,
+        "non_loss_rate": 0.71
+      },
+      "best_so_far_auc": {
+        "n": 100.0,
+        "mean": 2.097875,
+        "std": 4.49347,
+        "se": 0.449347,
+        "normal_95ci_low": 1.217155,
+        "normal_95ci_high": 2.978595,
+        "win_rate": 0.67,
+        "non_loss_rate": 0.72
+      },
+      "top10_hit": {
+        "n": 100.0,
+        "mean": 0.12,
+        "std": 0.49558,
+        "se": 0.049558,
+        "normal_95ci_low": 0.022866,
+        "normal_95ci_high": 0.217134,
+        "win_rate": 0.19,
+        "non_loss_rate": 0.93
+      }
+    }
+  },
+  "heldout_validation": {
+    "selected_llm_skill": true,
+    "strongest_target_mode": "target_acquisition_portfolio",
+    "final_95ci_positive": true,
+    "auc_95ci_positive": true,
+    "top10_95ci_positive": true
+  },
+  "evidence_boundary": {
+    "generation": "No source identity, source schema, source outcomes, source effects, or source value priors are provided. The LLM must use the public target schema and its pretrained domain knowledge only.",
+    "evaluation": "Calibration selects a skill before held-out evaluation. Every per-round fit uses only previously revealed target outcomes."
+  }
+}

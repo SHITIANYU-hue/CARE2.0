@@ -1,0 +1,900 @@
+{
+  "experiment": "care_calibrated_llm_semantic_skill_selector",
+  "source_dataset": "real_suzuki_miyaura",
+  "target_dataset": "real_buchwald_hartwig",
+  "evidence_mode": "target_only",
+  "llm_model": "openai/gpt-4o-mini",
+  "llm_generation_call_count": 1,
+  "new_llm_call_count": 0,
+  "rule_prior_enabled": true,
+  "semantic_model_enabled": true,
+  "semantic_field_catalog": {
+    "ligand_mw_bin": {
+      "mw_high": 986,
+      "mw_very_high": 2969
+    },
+    "base_reagent_base_family": {
+      "amidine_base": 1318,
+      "guanidine_base": 1317,
+      "phosphazene_base": 1320
+    },
+    "base_functional_class": {
+      "amidine_base": 1318,
+      "guanidine_base": 1317,
+      "phosphazene_base": 1320
+    },
+    "base_mw_bin": {
+      "mw_high": 1320,
+      "mw_mid": 2635
+    },
+    "base_tpsa_bin": {
+      "tpsa_low": 2635,
+      "tpsa_mid": 1320
+    },
+    "aryl_halide_halide_type": {
+      "bromide": 1319,
+      "chloride": 1318,
+      "iodide": 1318
+    },
+    "aryl_halide_has_heteroaromatic": {
+      "no": 2372,
+      "yes": 1583
+    },
+    "aryl_halide_mw_bin": {
+      "mw_high": 263,
+      "mw_mid": 3164,
+      "mw_none_or_low": 528
+    },
+    "additive_tpsa_bin": {
+      "tpsa_high": 360,
+      "tpsa_mid": 3595
+    }
+  },
+  "skills": [
+    {
+      "skill_id": "high_mw_ligand",
+      "rules": [
+        {
+          "rule_id": "ligand_mw_high",
+          "conditions": [
+            [
+              "ligand_mw_bin",
+              "mw_high"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Higher molecular weight ligands are expected to improve yield."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.25,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.7,
+      "hypothesis": "This skill transfers well when high molecular weight ligands are used."
+    },
+    {
+      "skill_id": "base_family_effect",
+      "rules": [
+        {
+          "rule_id": "guanidine_base",
+          "conditions": [
+            [
+              "base_reagent_base_family",
+              "guanidine_base"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Guanidine bases are known to enhance reaction yields."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.5,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.05,
+      "confidence": 0.8,
+      "hypothesis": "This skill is effective when guanidine bases are utilized."
+    },
+    {
+      "skill_id": "aryl_halide_type",
+      "rules": [
+        {
+          "rule_id": "bromide_halide",
+          "conditions": [
+            [
+              "aryl_halide_halide_type",
+              "bromide"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Bromides are often more reactive than other halides."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.02,
+      "confidence": 0.75,
+      "hypothesis": "This skill is beneficial when using bromide aryl halides."
+    },
+    {
+      "skill_id": "low_tpsa_additive",
+      "rules": [
+        {
+          "rule_id": "additive_tpsa_low",
+          "conditions": [
+            [
+              "additive_tpsa_bin",
+              "tpsa_high"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "High TPSA additives may hinder yield."
+        }
+      ],
+      "ridge": 0.8,
+      "prior_scale": 0.2,
+      "semantic_mass_start": 0.1,
+      "semantic_mass_end": 0.05,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 1.0,
+      "gp_beta_end": 0.5,
+      "gp_xi": 0.01,
+      "confidence": 0.6,
+      "hypothesis": "This skill may fail when high TPSA additives are present."
+    },
+    {
+      "skill_id": "heteroaromatic_effect",
+      "rules": [
+        {
+          "rule_id": "no_heteroaromatic",
+          "conditions": [
+            [
+              "aryl_halide_has_heteroaromatic",
+              "no"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Non-heteroaromatic compounds may lead to better yields."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 1.8,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.03,
+      "confidence": 0.7,
+      "hypothesis": "This skill is effective when avoiding heteroaromatic compounds."
+    },
+    {
+      "skill_id": "phosphazene_base_risk",
+      "rules": [
+        {
+          "rule_id": "phosphazene_base",
+          "conditions": [
+            [
+              "base_reagent_base_family",
+              "phosphazene_base"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Phosphazene bases may negatively impact yield."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.65,
+      "hypothesis": "This skill downweights the use of phosphazene bases."
+    },
+    {
+      "skill_id": "mid_mw_base",
+      "rules": [
+        {
+          "rule_id": "base_mw_mid",
+          "conditions": [
+            [
+              "base_mw_bin",
+              "mw_mid"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Mid-range molecular weight bases can optimize yield."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.25,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.02,
+      "confidence": 0.7,
+      "hypothesis": "This skill is effective with mid-range molecular weight bases."
+    },
+    {
+      "skill_id": "tpsa_interaction",
+      "rules": [
+        {
+          "rule_id": "base_tpsa_mid",
+          "conditions": [
+            [
+              "base_tpsa_bin",
+              "tpsa_mid"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Mid TPSA values are favorable for yield."
+        },
+        {
+          "rule_id": "additive_tpsa_high",
+          "conditions": [
+            [
+              "additive_tpsa_bin",
+              "tpsa_high"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "High TPSA additives may reduce yield."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 1.8,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.75,
+      "hypothesis": "This skill captures the interaction between TPSA values and yield."
+    }
+  ],
+  "calibration_seed_start": 16000,
+  "calibration_seed_count": 30,
+  "heldout_seed_start": 16100,
+  "heldout_seed_count": 100,
+  "selection": {
+    "target_anchor_mode": "target_acquisition_portfolio",
+    "target_anchor_summary": {
+      "gp_ucb": {
+        "final_best": 92.45769,
+        "best_so_far_auc": 82.676803,
+        "top10_hit": 0.3,
+        "composite": 175.134493
+      },
+      "mixed_kernel_gp_ei": {
+        "final_best": 92.290707,
+        "best_so_far_auc": 82.831317,
+        "top10_hit": 0.3,
+        "composite": 175.122024
+      },
+      "target_acquisition_portfolio": {
+        "final_best": 93.660997,
+        "best_so_far_auc": 82.196193,
+        "top10_hit": 0.366667,
+        "composite": 175.85719
+      }
+    },
+    "eligible_skill_modes": [],
+    "selected_mode": "target_acquisition_portfolio",
+    "selected_llm_skill": false,
+    "skill_diagnostics": {
+      "llm_semantic_high_mw_ligand": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -1.35872,
+          "std": 11.379904,
+          "se": 2.077677,
+          "normal_95ci_low": -5.430966,
+          "normal_95ci_high": 2.713526,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.533333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 1.013253,
+          "std": 9.023651,
+          "se": 1.647486,
+          "normal_95ci_low": -2.215819,
+          "normal_95ci_high": 4.242325,
+          "win_rate": 0.566667,
+          "non_loss_rate": 0.566667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -0.345467,
+          "std": 18.394195,
+          "se": 3.358305,
+          "normal_95ci_low": -6.927745,
+          "normal_95ci_high": 6.236812,
+          "win_rate": 0.6,
+          "non_loss_rate": 0.6
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          -5.947683,
+          6.294667,
+          -10.255717,
+          13.75365,
+          -5.57225
+        ],
+        "risk_adjusted_composite_gain": -2.02462,
+        "eligible": false
+      },
+      "llm_semantic_base_family_effect": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -9.13196,
+          "std": 14.893021,
+          "se": 2.719081,
+          "normal_95ci_low": -14.461359,
+          "normal_95ci_high": -3.802561,
+          "win_rate": 0.233333,
+          "non_loss_rate": 0.366667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -5.19466,
+          "std": 9.716941,
+          "se": 1.774063,
+          "normal_95ci_low": -8.671823,
+          "normal_95ci_high": -1.717497,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.366667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -14.32662,
+          "std": 23.072196,
+          "se": 4.212387,
+          "normal_95ci_low": -22.582899,
+          "normal_95ci_high": -6.070341,
+          "win_rate": 0.233333,
+          "non_loss_rate": 0.233333
+        },
+        "positive_fold_rate": 0.0,
+        "fold_composite_means": [
+          -17.078567,
+          -20.141633,
+          -11.074383,
+          -5.892267,
+          -17.44625
+        ],
+        "risk_adjusted_composite_gain": -16.432814,
+        "eligible": false
+      },
+      "llm_semantic_aryl_halide_type": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -7.668173,
+          "std": 13.079446,
+          "se": 2.387969,
+          "normal_95ci_low": -12.348593,
+          "normal_95ci_high": -2.987754,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.366667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -5.241963,
+          "std": 8.67976,
+          "se": 1.5847,
+          "normal_95ci_low": -8.347976,
+          "normal_95ci_high": -2.135951,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.266667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -12.910137,
+          "std": 19.709453,
+          "se": 3.598437,
+          "normal_95ci_low": -19.963074,
+          "normal_95ci_high": -5.857199,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.266667
+        },
+        "positive_fold_rate": 0.0,
+        "fold_composite_means": [
+          -12.395817,
+          -19.09395,
+          -10.875517,
+          -11.366167,
+          -10.819233
+        ],
+        "risk_adjusted_composite_gain": -14.709356,
+        "eligible": false
+      },
+      "llm_semantic_low_tpsa_additive": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -4.3037,
+          "std": 10.246181,
+          "se": 1.870688,
+          "normal_95ci_low": -7.970249,
+          "normal_95ci_high": -0.637151,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.433333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -2.178243,
+          "std": 8.080207,
+          "se": 1.475237,
+          "normal_95ci_low": -5.069708,
+          "normal_95ci_high": 0.713222,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.466667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -6.481943,
+          "std": 17.101901,
+          "se": 3.122366,
+          "normal_95ci_low": -12.60178,
+          "normal_95ci_high": -0.362107,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.3
+        },
+        "positive_fold_rate": 0.2,
+        "fold_composite_means": [
+          -19.653367,
+          -1.155117,
+          -10.2278,
+          0.386233,
+          -1.759667
+        ],
+        "risk_adjusted_composite_gain": -8.043126,
+        "eligible": false
+      },
+      "llm_semantic_heteroaromatic_effect": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -5.210857,
+          "std": 16.490772,
+          "se": 3.010789,
+          "normal_95ci_low": -11.112004,
+          "normal_95ci_high": 0.69029,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.4
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -1.291697,
+          "std": 11.761233,
+          "se": 2.147298,
+          "normal_95ci_low": -5.5004,
+          "normal_95ci_high": 2.917006,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.5
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -6.502553,
+          "std": 26.44949,
+          "se": 4.828994,
+          "normal_95ci_low": -15.967382,
+          "normal_95ci_high": 2.962275,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.466667
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          -21.329617,
+          -8.736433,
+          0.747733,
+          -4.8951,
+          1.70065
+        ],
+        "risk_adjusted_composite_gain": -8.91705,
+        "eligible": false
+      },
+      "llm_semantic_phosphazene_base_risk": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -8.492323,
+          "std": 14.777943,
+          "se": 2.698071,
+          "normal_95ci_low": -13.780542,
+          "normal_95ci_high": -3.204104,
+          "win_rate": 0.2,
+          "non_loss_rate": 0.266667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -4.922293,
+          "std": 9.588232,
+          "se": 1.750564,
+          "normal_95ci_low": -8.353398,
+          "normal_95ci_high": -1.491189,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.333333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -13.414617,
+          "std": 23.20884,
+          "se": 4.237335,
+          "normal_95ci_low": -21.719793,
+          "normal_95ci_high": -5.10944,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.3
+        },
+        "positive_fold_rate": 0.0,
+        "fold_composite_means": [
+          -22.711567,
+          -18.766133,
+          -11.244967,
+          -7.33365,
+          -7.016767
+        ],
+        "risk_adjusted_composite_gain": -15.533285,
+        "eligible": false
+      },
+      "llm_semantic_mid_mw_base": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -5.05182,
+          "std": 9.1121,
+          "se": 1.663634,
+          "normal_95ci_low": -8.312543,
+          "normal_95ci_high": -1.791097,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.4
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -2.41982,
+          "std": 9.530145,
+          "se": 1.739958,
+          "normal_95ci_low": -5.830139,
+          "normal_95ci_high": 0.990499,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.4
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -7.47164,
+          "std": 17.297252,
+          "se": 3.158032,
+          "normal_95ci_low": -13.661382,
+          "normal_95ci_high": -1.281898,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.333333
+        },
+        "positive_fold_rate": 0.2,
+        "fold_composite_means": [
+          -18.582933,
+          3.543933,
+          -10.652117,
+          -10.35095,
+          -1.316133
+        ],
+        "risk_adjusted_composite_gain": -9.050656,
+        "eligible": false
+      },
+      "llm_semantic_tpsa_interaction": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -8.022553,
+          "std": 10.969339,
+          "se": 2.002718,
+          "normal_95ci_low": -11.947881,
+          "normal_95ci_high": -4.097226,
+          "win_rate": 0.1,
+          "non_loss_rate": 0.1
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -6.579303,
+          "std": 8.401445,
+          "se": 1.533887,
+          "normal_95ci_low": -9.585722,
+          "normal_95ci_high": -3.572885,
+          "win_rate": 0.1,
+          "non_loss_rate": 0.1
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -14.601857,
+          "std": 17.776322,
+          "se": 3.245497,
+          "normal_95ci_low": -20.963032,
+          "normal_95ci_high": -8.240682,
+          "win_rate": 0.1,
+          "non_loss_rate": 0.1
+        },
+        "positive_fold_rate": 0.0,
+        "fold_composite_means": [
+          -18.319983,
+          -18.42205,
+          -23.760917,
+          -4.1954,
+          -8.310933
+        ],
+        "risk_adjusted_composite_gain": -16.224605,
+        "eligible": false
+      }
+    },
+    "thresholds": {
+      "min_risk_adjusted_composite_gain": 0.25,
+      "min_positive_fold_rate": 0.8,
+      "min_final_non_loss_rate": 0.55
+    },
+    "rule": "Choose the strongest target-only anchor on calibration composite. Select an LLM semantic skill only when final and AUC means are non-negative, fold stability and non-loss constraints pass, and risk-adjusted composite gain is positive."
+  },
+  "calibration": {
+    "gp_ucb": {
+      "final_best": 92.45769,
+      "best_so_far_auc": 82.676803,
+      "top10_hit": 0.3,
+      "composite": 175.134493
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 92.290707,
+      "best_so_far_auc": 82.831317,
+      "top10_hit": 0.3,
+      "composite": 175.122024
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 93.660997,
+      "best_so_far_auc": 82.196193,
+      "top10_hit": 0.366667,
+      "composite": 175.85719
+    },
+    "llm_semantic_high_mw_ligand": {
+      "final_best": 92.302277,
+      "best_so_far_auc": 83.209447,
+      "top10_hit": 0.433333,
+      "composite": 175.511724
+    },
+    "llm_semantic_base_family_effect": {
+      "final_best": 84.529037,
+      "best_so_far_auc": 77.001533,
+      "top10_hit": 0.166667,
+      "composite": 161.53057
+    },
+    "llm_semantic_aryl_halide_type": {
+      "final_best": 85.992823,
+      "best_so_far_auc": 76.95423,
+      "top10_hit": 0.1,
+      "composite": 162.947053
+    },
+    "llm_semantic_low_tpsa_additive": {
+      "final_best": 89.357297,
+      "best_so_far_auc": 80.01795,
+      "top10_hit": 0.333333,
+      "composite": 169.375247
+    },
+    "llm_semantic_heteroaromatic_effect": {
+      "final_best": 88.45014,
+      "best_so_far_auc": 80.904497,
+      "top10_hit": 0.3,
+      "composite": 169.354637
+    },
+    "llm_semantic_phosphazene_base_risk": {
+      "final_best": 85.168673,
+      "best_so_far_auc": 77.2739,
+      "top10_hit": 0.2,
+      "composite": 162.442573
+    },
+    "llm_semantic_mid_mw_base": {
+      "final_best": 88.609177,
+      "best_so_far_auc": 79.776373,
+      "top10_hit": 0.2,
+      "composite": 168.38555
+    },
+    "llm_semantic_tpsa_interaction": {
+      "final_best": 85.638443,
+      "best_so_far_auc": 75.61689,
+      "top10_hit": 0.033333,
+      "composite": 161.255333
+    }
+  },
+  "heldout": {
+    "gp_ucb": {
+      "final_best": 91.185178,
+      "best_so_far_auc": 84.094305,
+      "top10_hit": 0.17,
+      "composite": 175.279483
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 90.6177,
+      "best_so_far_auc": 84.131607,
+      "top10_hit": 0.17,
+      "composite": 174.749307
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 90.415583,
+      "best_so_far_auc": 83.668657,
+      "top10_hit": 0.16,
+      "composite": 174.08424
+    },
+    "llm_semantic_high_mw_ligand": {
+      "final_best": 91.25805,
+      "best_so_far_auc": 83.896571,
+      "top10_hit": 0.37,
+      "composite": 175.154621
+    },
+    "llm_semantic_base_family_effect": {
+      "final_best": 87.864696,
+      "best_so_far_auc": 80.93264,
+      "top10_hit": 0.14,
+      "composite": 168.797336
+    },
+    "llm_semantic_aryl_halide_type": {
+      "final_best": 85.681759,
+      "best_so_far_auc": 79.846904,
+      "top10_hit": 0.12,
+      "composite": 165.528663
+    },
+    "llm_semantic_low_tpsa_additive": {
+      "final_best": 90.539177,
+      "best_so_far_auc": 83.596795,
+      "top10_hit": 0.19,
+      "composite": 174.135972
+    },
+    "llm_semantic_heteroaromatic_effect": {
+      "final_best": 89.955513,
+      "best_so_far_auc": 84.227532,
+      "top10_hit": 0.25,
+      "composite": 174.183045
+    },
+    "llm_semantic_phosphazene_base_risk": {
+      "final_best": 90.599579,
+      "best_so_far_auc": 81.677806,
+      "top10_hit": 0.17,
+      "composite": 172.277385
+    },
+    "llm_semantic_mid_mw_base": {
+      "final_best": 89.535342,
+      "best_so_far_auc": 81.98347,
+      "top10_hit": 0.18,
+      "composite": 171.518812
+    },
+    "llm_semantic_tpsa_interaction": {
+      "final_best": 86.18832,
+      "best_so_far_auc": 79.507995,
+      "top10_hit": 0.11,
+      "composite": 165.696315
+    },
+    "llm_calibrated_selector": {
+      "final_best": 90.415583,
+      "best_so_far_auc": 83.668657,
+      "top10_hit": 0.16,
+      "composite": 174.08424
+    }
+  },
+  "heldout_strongest_target_mode_descriptive_only": "gp_ucb",
+  "heldout_pairwise": {
+    "gp_ucb": {
+      "final_best": {
+        "n": 100.0,
+        "mean": -0.769595,
+        "std": 6.150896,
+        "se": 0.61509,
+        "normal_95ci_low": -1.975171,
+        "normal_95ci_high": 0.435981,
+        "win_rate": 0.15,
+        "non_loss_rate": 0.78
+      },
+      "best_so_far_auc": {
+        "n": 100.0,
+        "mean": -0.425648,
+        "std": 3.917914,
+        "se": 0.391791,
+        "normal_95ci_low": -1.193559,
+        "normal_95ci_high": 0.342263,
+        "win_rate": 0.29,
+        "non_loss_rate": 0.65
+      },
+      "top10_hit": {
+        "n": 100.0,
+        "mean": -0.01,
+        "std": 0.331512,
+        "se": 0.033151,
+        "normal_95ci_low": -0.074976,
+        "normal_95ci_high": 0.054976,
+        "win_rate": 0.05,
+        "non_loss_rate": 0.94
+      }
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": {
+        "n": 100.0,
+        "mean": -0.202117,
+        "std": 4.430922,
+        "se": 0.443092,
+        "normal_95ci_low": -1.070578,
+        "normal_95ci_high": 0.666344,
+        "win_rate": 0.17,
+        "non_loss_rate": 0.77
+      },
+      "best_so_far_auc": {
+        "n": 100.0,
+        "mean": -0.46295,
+        "std": 3.158867,
+        "se": 0.315887,
+        "normal_95ci_low": -1.082088,
+        "normal_95ci_high": 0.156188,
+        "win_rate": 0.29,
+        "non_loss_rate": 0.7
+      },
+      "top10_hit": {
+        "n": 100.0,
+        "mean": -0.01,
+        "std": 0.299833,
+        "se": 0.029983,
+        "normal_95ci_low": -0.068767,
+        "normal_95ci_high": 0.048767,
+        "win_rate": 0.04,
+        "non_loss_rate": 0.95
+      }
+    },
+    "target_acquisition_portfolio": {
+      "final_best": {
+        "n": 100.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      },
+      "best_so_far_auc": {
+        "n": 100.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      },
+      "top10_hit": {
+        "n": 100.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      }
+    }
+  },
+  "heldout_validation": {
+    "selected_llm_skill": false,
+    "strongest_target_mode": "gp_ucb",
+    "final_95ci_positive": false,
+    "auc_95ci_positive": false,
+    "top10_95ci_positive": false
+  },
+  "evidence_boundary": {
+    "generation": "No source identity, source schema, source outcomes, source effects, or source value priors are provided. The LLM must use the public target schema and its pretrained domain knowledge only.",
+    "evaluation": "Calibration selects a skill before held-out evaluation. Every per-round fit uses only previously revealed target outcomes."
+  }
+}

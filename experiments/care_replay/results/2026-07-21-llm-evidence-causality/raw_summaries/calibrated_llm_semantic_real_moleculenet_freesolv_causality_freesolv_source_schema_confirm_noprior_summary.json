@@ -1,0 +1,345 @@
+{
+  "experiment": "care_calibrated_llm_semantic_skill_selector",
+  "source_dataset": "real_moleculenet_esol",
+  "target_dataset": "real_moleculenet_freesolv",
+  "evidence_mode": "source_schema_only",
+  "llm_model": "openai/gpt-4o-mini",
+  "llm_generation_call_count": 1,
+  "new_llm_call_count": 0,
+  "rule_prior_enabled": false,
+  "semantic_model_enabled": true,
+  "semantic_field_catalog": {
+    "smiles_length_bin": {
+      "smiles_long": 13,
+      "smiles_mid": 122,
+      "smiles_short": 506,
+      "smiles_very_long": 1
+    },
+    "hetero_atom_bin": {
+      "hetero_high": 28,
+      "hetero_low": 316,
+      "hetero_mid": 91,
+      "hetero_none": 207
+    },
+    "halogen_bin": {
+      "halogen_high": 43,
+      "halogen_low": 73,
+      "halogen_mid": 59,
+      "halogen_none": 467
+    },
+    "aromatic_bin": {
+      "aromatic_high": 3,
+      "aromatic_low": 203,
+      "aromatic_mid": 61,
+      "aromatic_none": 375
+    },
+    "ring_token_bin": {
+      "ring_token_high": 2,
+      "ring_token_low": 247,
+      "ring_token_mid": 73,
+      "ring_token_none": 320
+    },
+    "branch_bin": {
+      "branch_high": 20,
+      "branch_low": 311,
+      "branch_mid": 116,
+      "branch_none": 195
+    },
+    "double_bond_bin": {
+      "double_bond_low": 179,
+      "double_bond_mid": 71,
+      "double_bond_none": 392
+    }
+  },
+  "skills": [
+    {
+      "skill_id": "branching_effect",
+      "rules": [
+        {
+          "rule_id": "branch_rule",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_mid"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Moderate branching may enhance solubility."
+        },
+        {
+          "rule_id": "ring_token_rule",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_none"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "No rings may improve solubility."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.1,
+      "confidence": 0.7,
+      "hypothesis": "This skill assesses the impact of branching on solubility."
+    }
+  ],
+  "calibration_seed_start": 17000,
+  "calibration_seed_count": 50,
+  "heldout_seed_start": 18000,
+  "heldout_seed_count": 500,
+  "selection": {
+    "target_anchor_mode": "target_acquisition_portfolio",
+    "target_anchor_summary": {
+      "gp_ucb": {
+        "final_best": 65.072672,
+        "best_so_far_auc": 57.90773,
+        "top10_hit": 0.38,
+        "composite": 122.980402
+      },
+      "mixed_kernel_gp_ei": {
+        "final_best": 62.887336,
+        "best_so_far_auc": 56.37407,
+        "top10_hit": 0.4,
+        "composite": 119.261406
+      },
+      "target_acquisition_portfolio": {
+        "final_best": 64.78667,
+        "best_so_far_auc": 58.271928,
+        "top10_hit": 0.4,
+        "composite": 123.058598
+      }
+    },
+    "eligible_skill_modes": [
+      "llm_semantic_branching_effect"
+    ],
+    "selected_mode": "llm_semantic_branching_effect",
+    "selected_llm_skill": true,
+    "skill_diagnostics": {
+      "llm_semantic_branching_effect": {
+        "final_best": {
+          "n": 50.0,
+          "mean": 7.611982,
+          "std": 15.846907,
+          "se": 2.241091,
+          "normal_95ci_low": 3.219444,
+          "normal_95ci_high": 12.00452,
+          "win_rate": 0.54,
+          "non_loss_rate": 0.76
+        },
+        "best_so_far_auc": {
+          "n": 50.0,
+          "mean": 3.043194,
+          "std": 9.232272,
+          "se": 1.30564,
+          "normal_95ci_low": 0.484139,
+          "normal_95ci_high": 5.602249,
+          "win_rate": 0.58,
+          "non_loss_rate": 0.68
+        },
+        "composite": {
+          "n": 50.0,
+          "mean": 10.655176,
+          "std": 23.708183,
+          "se": 3.352843,
+          "normal_95ci_low": 4.083603,
+          "normal_95ci_high": 17.226749,
+          "win_rate": 0.6,
+          "non_loss_rate": 0.7
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          25.71099,
+          8.95964,
+          3.96599,
+          14.64161,
+          -0.00235
+        ],
+        "risk_adjusted_composite_gain": 8.978755,
+        "eligible": true
+      }
+    },
+    "thresholds": {
+      "min_risk_adjusted_composite_gain": 0.25,
+      "min_positive_fold_rate": 0.8,
+      "min_final_non_loss_rate": 0.55
+    },
+    "rule": "The skill was selected on an earlier development range and frozen before these seeds. Calibration seeds in this run select only the target-only comparison anchor.",
+    "calibration_selected_mode": "llm_semantic_branching_effect",
+    "preselected_skill_id": "branching_effect"
+  },
+  "calibration": {
+    "gp_ucb": {
+      "final_best": 65.072672,
+      "best_so_far_auc": 57.90773,
+      "top10_hit": 0.38,
+      "composite": 122.980402
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 62.887336,
+      "best_so_far_auc": 56.37407,
+      "top10_hit": 0.4,
+      "composite": 119.261406
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 64.78667,
+      "best_so_far_auc": 58.271928,
+      "top10_hit": 0.4,
+      "composite": 123.058598
+    },
+    "llm_semantic_branching_effect": {
+      "final_best": 72.398652,
+      "best_so_far_auc": 61.315122,
+      "top10_hit": 0.78,
+      "composite": 133.713774
+    }
+  },
+  "heldout": {
+    "gp_ucb": {
+      "final_best": 65.642002,
+      "best_so_far_auc": 58.789891,
+      "top10_hit": 0.51,
+      "composite": 124.431893
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 65.287864,
+      "best_so_far_auc": 58.717256,
+      "top10_hit": 0.488,
+      "composite": 124.00512
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 66.617263,
+      "best_so_far_auc": 59.108375,
+      "top10_hit": 0.514,
+      "composite": 125.725638
+    },
+    "llm_semantic_branching_effect": {
+      "final_best": 69.625788,
+      "best_so_far_auc": 59.949552,
+      "top10_hit": 0.646,
+      "composite": 129.57534
+    },
+    "llm_calibrated_selector": {
+      "final_best": 69.625788,
+      "best_so_far_auc": 59.949552,
+      "top10_hit": 0.646,
+      "composite": 129.57534
+    }
+  },
+  "heldout_strongest_target_mode_descriptive_only": "target_acquisition_portfolio",
+  "heldout_pairwise": {
+    "gp_ucb": {
+      "final_best": {
+        "n": 500.0,
+        "mean": 3.983786,
+        "std": 17.332989,
+        "se": 0.775155,
+        "normal_95ci_low": 2.464483,
+        "normal_95ci_high": 5.50309,
+        "win_rate": 0.47,
+        "non_loss_rate": 0.66
+      },
+      "best_so_far_auc": {
+        "n": 500.0,
+        "mean": 1.159661,
+        "std": 11.475835,
+        "se": 0.513215,
+        "normal_95ci_low": 0.15376,
+        "normal_95ci_high": 2.165563,
+        "win_rate": 0.498,
+        "non_loss_rate": 0.578
+      },
+      "top10_hit": {
+        "n": 500.0,
+        "mean": 0.136,
+        "std": 0.61115,
+        "se": 0.027331,
+        "normal_95ci_low": 0.08243,
+        "normal_95ci_high": 0.18957,
+        "win_rate": 0.264,
+        "non_loss_rate": 0.872
+      }
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": {
+        "n": 500.0,
+        "mean": 4.337924,
+        "std": 17.170448,
+        "se": 0.767886,
+        "normal_95ci_low": 2.832868,
+        "normal_95ci_high": 5.84298,
+        "win_rate": 0.49,
+        "non_loss_rate": 0.686
+      },
+      "best_so_far_auc": {
+        "n": 500.0,
+        "mean": 1.232296,
+        "std": 11.969314,
+        "se": 0.535284,
+        "normal_95ci_low": 0.183139,
+        "normal_95ci_high": 2.281453,
+        "win_rate": 0.506,
+        "non_loss_rate": 0.59
+      },
+      "top10_hit": {
+        "n": 500.0,
+        "mean": 0.158,
+        "std": 0.617281,
+        "se": 0.027606,
+        "normal_95ci_low": 0.103893,
+        "normal_95ci_high": 0.212107,
+        "win_rate": 0.282,
+        "non_loss_rate": 0.876
+      }
+    },
+    "target_acquisition_portfolio": {
+      "final_best": {
+        "n": 500.0,
+        "mean": 3.008525,
+        "std": 16.715017,
+        "se": 0.747518,
+        "normal_95ci_low": 1.543389,
+        "normal_95ci_high": 4.473661,
+        "win_rate": 0.442,
+        "non_loss_rate": 0.66
+      },
+      "best_so_far_auc": {
+        "n": 500.0,
+        "mean": 0.841177,
+        "std": 11.505794,
+        "se": 0.514555,
+        "normal_95ci_low": -0.16735,
+        "normal_95ci_high": 1.849704,
+        "win_rate": 0.484,
+        "non_loss_rate": 0.566
+      },
+      "top10_hit": {
+        "n": 500.0,
+        "mean": 0.132,
+        "std": 0.598812,
+        "se": 0.02678,
+        "normal_95ci_low": 0.079512,
+        "normal_95ci_high": 0.184488,
+        "win_rate": 0.254,
+        "non_loss_rate": 0.878
+      }
+    }
+  },
+  "heldout_validation": {
+    "selected_llm_skill": true,
+    "strongest_target_mode": "target_acquisition_portfolio",
+    "final_95ci_positive": true,
+    "auc_95ci_positive": false,
+    "top10_95ci_positive": true
+  },
+  "evidence_boundary": {
+    "generation": "Only source identity, objective, and public source-target field alignment are provided. Source outcomes, effects, support counts, and value priors are withheld.",
+    "evaluation": "Calibration selects a skill before held-out evaluation. Every per-round fit uses only previously revealed target outcomes."
+  }
+}

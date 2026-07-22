@@ -1,0 +1,70 @@
+{
+  "study": "llm_evidence_causality_and_round_efficiency",
+  "date": "2026-07-21",
+  "branch": "exploration-aware-llm",
+  "model": "openai/gpt-4o-mini",
+  "api_provider": "CommonStack",
+  "retained_llm_calls": 12,
+  "discarded_contract_debug_calls": 2,
+  "retained_token_usage": {
+    "prompt_tokens": 18950,
+    "completion_tokens": 20287,
+    "total_tokens": 39237
+  },
+  "evidence_modes": {
+    "full": "Source identity, schema alignment, outcomes, effects, support, and value priors.",
+    "source_schema_only": "Source identity, objective, and schema alignment; no source outcomes.",
+    "target_only": "No source identity, schema, outcomes, effects, or value priors."
+  },
+  "development_protocol": {
+    "calibration_seed_start": 16000,
+    "calibration_seeds": 30,
+    "heldout_seed_start": 16100,
+    "heldout_seeds": 100,
+    "initial_observations": 5,
+    "replay_rounds": 10
+  },
+  "confirmation_protocol": {
+    "calibration_seed_start": 17000,
+    "calibration_seeds": 50,
+    "heldout_seed_start": 18000,
+    "heldout_seeds": 500,
+    "initial_observations": 5,
+    "replay_rounds": 10,
+    "selection_rule": "The LLM skill is frozen from development; confirmation calibration selects only the target-only anchor."
+  },
+  "confirmed_skills": [
+    {
+      "target": "real_matbench_expt_gap",
+      "evidence_mode": "target_only",
+      "skill_id": "high_element_count",
+      "reported_variant": "no_rule_prior",
+      "baseline": "target_acquisition_portfolio"
+    },
+    {
+      "target": "real_moleculenet_freesolv",
+      "evidence_mode": "source_schema_only",
+      "skill_id": "branching_effect",
+      "reported_variant": "full_semantic_skill",
+      "baseline": "target_acquisition_portfolio"
+    },
+    {
+      "target": "real_moleculenet_lipophilicity",
+      "evidence_mode": "target_only",
+      "skill_id": "high_aromatic_content",
+      "reported_variant": "no_rule_prior",
+      "baseline": "gp_ucb"
+    }
+  ],
+  "negative_result": {
+    "target": "real_buchwald_hartwig",
+    "source": "real_suzuki_miyaura",
+    "result": "All evidence modes failed calibration and fell back to the target acquisition portfolio."
+  },
+  "execution_boundary": {
+    "llm_generation": "Local machine because the server could not reach CommonStack.",
+    "replay_and_statistics": "GPU server for all development, component-ablation, and confirmation runs.",
+    "credential_storage": "No API keys or server credentials are stored in this result directory."
+  },
+  "server_export_sha256": "b214139ab82a3691fa47136f52deb105b21782ee8d87f33298f893fa7262a58d"
+}
