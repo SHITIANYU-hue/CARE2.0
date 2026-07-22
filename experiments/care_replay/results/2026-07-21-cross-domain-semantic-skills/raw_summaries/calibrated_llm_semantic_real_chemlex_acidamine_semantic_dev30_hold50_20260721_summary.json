@@ -1,0 +1,735 @@
+{
+  "experiment": "care_calibrated_llm_semantic_skill_selector",
+  "source_dataset": "real_suzuki_miyaura",
+  "target_dataset": "real_chemlex_acidamine",
+  "llm_model": "openai/gpt-4o-mini",
+  "llm_generation_call_count": 1,
+  "new_llm_call_count": 0,
+  "rule_prior_enabled": true,
+  "semantic_model_enabled": true,
+  "semantic_field_catalog": {
+    "acid_smiles_length_bin": {
+      "smiles_long": 3376,
+      "smiles_mid": 6579,
+      "smiles_short": 1231,
+      "smiles_very_long": 483
+    },
+    "acid_hetero_atom_bin": {
+      "hetero_high": 4672,
+      "hetero_low": 987,
+      "hetero_mid": 6010
+    },
+    "acid_aromatic_bin": {
+      "aromatic_high": 1881,
+      "aromatic_low": 4120,
+      "aromatic_mid": 3496,
+      "aromatic_none": 2172
+    },
+    "acid_ring_token_bin": {
+      "ring_token_high": 1874,
+      "ring_token_low": 3410,
+      "ring_token_mid": 5461,
+      "ring_token_none": 924
+    },
+    "acid_branch_bin": {
+      "branch_high": 3238,
+      "branch_low": 2896,
+      "branch_mid": 5535
+    },
+    "amine_smiles_length_bin": {
+      "smiles_long": 1849,
+      "smiles_mid": 6860,
+      "smiles_short": 2551,
+      "smiles_very_long": 409
+    },
+    "amine_hetero_atom_bin": {
+      "hetero_high": 2473,
+      "hetero_low": 3653,
+      "hetero_mid": 5543
+    },
+    "amine_aromatic_bin": {
+      "aromatic_high": 2078,
+      "aromatic_low": 2556,
+      "aromatic_mid": 4015,
+      "aromatic_none": 3020
+    },
+    "amine_ring_token_bin": {
+      "ring_token_high": 1476,
+      "ring_token_low": 2739,
+      "ring_token_mid": 6360,
+      "ring_token_none": 1094
+    },
+    "amine_branch_bin": {
+      "branch_high": 1710,
+      "branch_low": 4925,
+      "branch_mid": 4006,
+      "branch_none": 1028
+    },
+    "reagent_smiles_length_bin": {
+      "smiles_long": 10739,
+      "smiles_mid": 915,
+      "smiles_very_long": 15
+    },
+    "reagent_hetero_atom_bin": {
+      "hetero_high": 9415,
+      "hetero_mid": 2254
+    },
+    "reagent_aromatic_bin": {
+      "aromatic_low": 999,
+      "aromatic_mid": 9408,
+      "aromatic_none": 1262
+    },
+    "reagent_branch_bin": {
+      "branch_high": 10754,
+      "branch_mid": 915
+    }
+  },
+  "skills": [
+    {
+      "skill_id": "acid_length_effect",
+      "rules": [
+        {
+          "rule_id": "acid_smiles_length_bin",
+          "conditions": [
+            [
+              "acid_smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Longer acid SMILES may enhance conversion."
+        },
+        {
+          "rule_id": "acid_aromatic_bin",
+          "conditions": [
+            [
+              "acid_aromatic_bin",
+              "aromatic_high"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Aromatic acids are likely to improve conversion."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.5,
+      "semantic_mass_start": 0.6,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.1,
+      "confidence": 0.8,
+      "hypothesis": "Acid length and aromaticity positively influence conversion."
+    },
+    {
+      "skill_id": "amine_structure_impact",
+      "rules": [
+        {
+          "rule_id": "amine_smiles_length_bin",
+          "conditions": [
+            [
+              "amine_smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Mid-length amines may optimize conversion."
+        },
+        {
+          "rule_id": "amine_branch_bin",
+          "conditions": [
+            [
+              "amine_branch_bin",
+              "branch_high"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Highly branched amines could enhance conversion."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.05,
+      "confidence": 0.75,
+      "hypothesis": "Amine structure and branching lead to improved conversion."
+    },
+    {
+      "skill_id": "reagent_effectiveness",
+      "rules": [
+        {
+          "rule_id": "reagent_hetero_atom_bin",
+          "conditions": [
+            [
+              "reagent_hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Reagents with high heteroatoms are effective."
+        },
+        {
+          "rule_id": "reagent_branch_bin",
+          "conditions": [
+            [
+              "reagent_branch_bin",
+              "branch_high"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Highly branched reagents may enhance conversion."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.1,
+      "confidence": 0.7,
+      "hypothesis": "Reagent structure significantly impacts conversion."
+    },
+    {
+      "skill_id": "counter_hypothesis_branching",
+      "rules": [
+        {
+          "rule_id": "amine_branch_bin",
+          "conditions": [
+            [
+              "amine_branch_bin",
+              "branch_low"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Lower branching in amines may reduce conversion."
+        },
+        {
+          "rule_id": "acid_branch_bin",
+          "conditions": [
+            [
+              "acid_branch_bin",
+              "branch_low"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "Less branched acids could hinder conversion."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.05,
+      "confidence": 0.65,
+      "hypothesis": "High branching in reactants may negatively impact conversion."
+    },
+    {
+      "skill_id": "domain_knowledge_acid_amine",
+      "rules": [
+        {
+          "rule_id": "acid_hetero_atom_bin",
+          "conditions": [
+            [
+              "acid_hetero_atom_bin",
+              "hetero_mid"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Moderate heteroatoms in acids are beneficial."
+        },
+        {
+          "rule_id": "amine_aromatic_bin",
+          "conditions": [
+            [
+              "amine_aromatic_bin",
+              "aromatic_mid"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Moderate aromaticity in amines enhances conversion."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.05,
+      "confidence": 0.75,
+      "hypothesis": "Domain knowledge suggests specific structures improve conversion."
+    }
+  ],
+  "calibration_seed_start": 12000,
+  "calibration_seed_count": 30,
+  "heldout_seed_start": 12100,
+  "heldout_seed_count": 50,
+  "selection": {
+    "target_anchor_mode": "gp_ucb",
+    "target_anchor_summary": {
+      "gp_ucb": {
+        "final_best": 83.293333,
+        "best_so_far_auc": 69.570233,
+        "top10_hit": 0.0,
+        "composite": 152.863566
+      },
+      "mixed_kernel_gp_ei": {
+        "final_best": 80.365333,
+        "best_so_far_auc": 69.207367,
+        "top10_hit": 0.0,
+        "composite": 149.5727
+      },
+      "target_acquisition_portfolio": {
+        "final_best": 80.651667,
+        "best_so_far_auc": 70.134633,
+        "top10_hit": 0.0,
+        "composite": 150.7863
+      }
+    },
+    "eligible_skill_modes": [],
+    "selected_mode": "gp_ucb",
+    "selected_llm_skill": false,
+    "skill_diagnostics": {
+      "llm_semantic_acid_length_effect": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 2.317333,
+          "std": 22.101823,
+          "se": 4.035222,
+          "normal_95ci_low": -5.591702,
+          "normal_95ci_high": 10.226369,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.466667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.362767,
+          "std": 16.139078,
+          "se": 2.946579,
+          "normal_95ci_low": -5.412528,
+          "normal_95ci_high": 6.138062,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.433333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 2.6801,
+          "std": 34.569044,
+          "se": 6.311415,
+          "normal_95ci_low": -9.690273,
+          "normal_95ci_high": 15.050473,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.433333
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          -2.243,
+          14.605167,
+          7.347833,
+          -2.556,
+          -3.7535
+        ],
+        "risk_adjusted_composite_gain": -0.475608,
+        "eligible": false
+      },
+      "llm_semantic_amine_structure_impact": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -2.926333,
+          "std": 23.739653,
+          "se": 4.334248,
+          "normal_95ci_low": -11.421459,
+          "normal_95ci_high": 5.568792,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.366667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 3.092733,
+          "std": 23.320946,
+          "se": 4.257803,
+          "normal_95ci_low": -5.25256,
+          "normal_95ci_high": 11.438027,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.366667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 0.1664,
+          "std": 43.622362,
+          "se": 7.964317,
+          "normal_95ci_low": -15.443662,
+          "normal_95ci_high": 15.776462,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.3
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          -0.633167,
+          2.201167,
+          -3.9985,
+          16.6895,
+          -13.427
+        ],
+        "risk_adjusted_composite_gain": -3.815759,
+        "eligible": false
+      },
+      "llm_semantic_reagent_effectiveness": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 0.004,
+          "std": 21.07929,
+          "se": 3.848534,
+          "normal_95ci_low": -7.539127,
+          "normal_95ci_high": 7.547127,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.533333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 3.7308,
+          "std": 17.480827,
+          "se": 3.191548,
+          "normal_95ci_low": -2.524634,
+          "normal_95ci_high": 9.986234,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.566667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 3.7348,
+          "std": 34.912337,
+          "se": 6.374092,
+          "normal_95ci_low": -8.758419,
+          "normal_95ci_high": 16.228019,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.533333
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          -3.484333,
+          17.485833,
+          -9.328167,
+          28.446833,
+          -14.446167
+        ],
+        "risk_adjusted_composite_gain": 0.547754,
+        "eligible": false
+      },
+      "llm_semantic_counter_hypothesis_branching": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -4.119,
+          "std": 26.631144,
+          "se": 4.862159,
+          "normal_95ci_low": -13.648832,
+          "normal_95ci_high": 5.410832,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.366667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.75,
+          "std": 18.516167,
+          "se": 3.380574,
+          "normal_95ci_low": -5.875925,
+          "normal_95ci_high": 7.375925,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.466667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -3.369,
+          "std": 41.529225,
+          "se": 7.582165,
+          "normal_95ci_low": -18.230042,
+          "normal_95ci_high": 11.492042,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.466667
+        },
+        "positive_fold_rate": 0.2,
+        "fold_composite_means": [
+          -16.994667,
+          24.49,
+          -9.818833,
+          -5.543333,
+          -8.978167
+        ],
+        "risk_adjusted_composite_gain": -7.160082,
+        "eligible": false
+      },
+      "llm_semantic_domain_knowledge_acid_amine": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -1.348,
+          "std": 25.395786,
+          "se": 4.636615,
+          "normal_95ci_low": -10.435765,
+          "normal_95ci_high": 7.739765,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.466667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 3.1451,
+          "std": 17.694993,
+          "se": 3.230649,
+          "normal_95ci_low": -3.186972,
+          "normal_95ci_high": 9.477172,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.5
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 1.7971,
+          "std": 39.354596,
+          "se": 7.185133,
+          "normal_95ci_low": -12.285761,
+          "normal_95ci_high": 15.879961,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.466667
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          -7.974333,
+          17.917333,
+          -0.324833,
+          -3.745167,
+          3.1125
+        ],
+        "risk_adjusted_composite_gain": -1.795467,
+        "eligible": false
+      }
+    },
+    "thresholds": {
+      "min_risk_adjusted_composite_gain": 0.25,
+      "min_positive_fold_rate": 0.8,
+      "min_final_non_loss_rate": 0.55
+    },
+    "rule": "Choose the strongest target-only anchor on calibration composite. Select an LLM semantic skill only when final and AUC means are non-negative, fold stability and non-loss constraints pass, and risk-adjusted composite gain is positive."
+  },
+  "calibration": {
+    "gp_ucb": {
+      "final_best": 83.293333,
+      "best_so_far_auc": 69.570233,
+      "top10_hit": 0.0,
+      "composite": 152.863566
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 80.365333,
+      "best_so_far_auc": 69.207367,
+      "top10_hit": 0.0,
+      "composite": 149.5727
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 80.651667,
+      "best_so_far_auc": 70.134633,
+      "top10_hit": 0.0,
+      "composite": 150.7863
+    },
+    "llm_semantic_acid_length_effect": {
+      "final_best": 85.610667,
+      "best_so_far_auc": 69.933,
+      "top10_hit": 0.033333,
+      "composite": 155.543667
+    },
+    "llm_semantic_amine_structure_impact": {
+      "final_best": 80.367,
+      "best_so_far_auc": 72.662967,
+      "top10_hit": 0.0,
+      "composite": 153.029967
+    },
+    "llm_semantic_reagent_effectiveness": {
+      "final_best": 83.297333,
+      "best_so_far_auc": 73.301033,
+      "top10_hit": 0.0,
+      "composite": 156.598366
+    },
+    "llm_semantic_counter_hypothesis_branching": {
+      "final_best": 79.174333,
+      "best_so_far_auc": 70.320233,
+      "top10_hit": 0.0,
+      "composite": 149.494566
+    },
+    "llm_semantic_domain_knowledge_acid_amine": {
+      "final_best": 81.945333,
+      "best_so_far_auc": 72.715333,
+      "top10_hit": 0.0,
+      "composite": 154.660666
+    }
+  },
+  "heldout": {
+    "gp_ucb": {
+      "final_best": 85.9142,
+      "best_so_far_auc": 78.89736,
+      "top10_hit": 0.02,
+      "composite": 164.81156
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 90.3522,
+      "best_so_far_auc": 82.02694,
+      "top10_hit": 0.02,
+      "composite": 172.37914
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 84.8806,
+      "best_so_far_auc": 79.00362,
+      "top10_hit": 0.02,
+      "composite": 163.88422
+    },
+    "llm_semantic_acid_length_effect": {
+      "final_best": 86.2048,
+      "best_so_far_auc": 77.022788,
+      "top10_hit": 0.04,
+      "composite": 163.227588
+    },
+    "llm_semantic_amine_structure_impact": {
+      "final_best": 87.3176,
+      "best_so_far_auc": 75.6253,
+      "top10_hit": 0.02,
+      "composite": 162.9429
+    },
+    "llm_semantic_reagent_effectiveness": {
+      "final_best": 85.3128,
+      "best_so_far_auc": 76.4017,
+      "top10_hit": 0.02,
+      "composite": 161.7145
+    },
+    "llm_semantic_counter_hypothesis_branching": {
+      "final_best": 85.9224,
+      "best_so_far_auc": 75.60328,
+      "top10_hit": 0.02,
+      "composite": 161.52568
+    },
+    "llm_semantic_domain_knowledge_acid_amine": {
+      "final_best": 85.026,
+      "best_so_far_auc": 76.5149,
+      "top10_hit": 0.02,
+      "composite": 161.5409
+    },
+    "llm_calibrated_selector": {
+      "final_best": 85.9142,
+      "best_so_far_auc": 78.89736,
+      "top10_hit": 0.02,
+      "composite": 164.81156
+    }
+  },
+  "heldout_strongest_target_mode_descriptive_only": "mixed_kernel_gp_ei",
+  "heldout_pairwise": {
+    "gp_ucb": {
+      "final_best": {
+        "n": 50.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      }
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": {
+        "n": 50.0,
+        "mean": -4.438,
+        "std": 18.800962,
+        "se": 2.658858,
+        "normal_95ci_low": -9.649361,
+        "normal_95ci_high": 0.773361,
+        "win_rate": 0.26,
+        "non_loss_rate": 0.68
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": -3.12958,
+        "std": 10.325883,
+        "se": 1.4603,
+        "normal_95ci_low": -5.991769,
+        "normal_95ci_high": -0.267391,
+        "win_rate": 0.26,
+        "non_loss_rate": 0.52
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      }
+    },
+    "target_acquisition_portfolio": {
+      "final_best": {
+        "n": 50.0,
+        "mean": 1.0336,
+        "std": 18.002954,
+        "se": 2.546002,
+        "normal_95ci_low": -3.956564,
+        "normal_95ci_high": 6.023764,
+        "win_rate": 0.24,
+        "non_loss_rate": 0.84
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": -0.10626,
+        "std": 14.518105,
+        "se": 2.05317,
+        "normal_95ci_low": -4.130473,
+        "normal_95ci_high": 3.917953,
+        "win_rate": 0.26,
+        "non_loss_rate": 0.8
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      }
+    }
+  },
+  "heldout_validation": {
+    "selected_llm_skill": false,
+    "strongest_target_mode": "mixed_kernel_gp_ei",
+    "final_95ci_positive": false,
+    "auc_95ci_positive": false,
+    "top10_95ci_positive": false
+  },
+  "evidence_boundary": "The LLM sees source summaries and public target field vocabularies only. Calibration selects a skill before held-out evaluation. Every per-round fit uses only previously revealed target outcomes."
+}

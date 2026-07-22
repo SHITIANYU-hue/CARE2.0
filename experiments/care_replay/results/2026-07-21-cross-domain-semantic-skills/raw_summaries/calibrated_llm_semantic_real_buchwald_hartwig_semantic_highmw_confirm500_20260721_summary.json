@@ -1,0 +1,338 @@
+{
+  "experiment": "care_calibrated_llm_semantic_skill_selector",
+  "source_dataset": "real_suzuki_miyaura",
+  "target_dataset": "real_buchwald_hartwig",
+  "llm_model": "openai/gpt-4o-mini",
+  "llm_generation_call_count": 1,
+  "new_llm_call_count": 0,
+  "semantic_field_catalog": {
+    "ligand_mw_bin": {
+      "mw_high": 986,
+      "mw_very_high": 2969
+    },
+    "base_reagent_base_family": {
+      "amidine_base": 1318,
+      "guanidine_base": 1317,
+      "phosphazene_base": 1320
+    },
+    "base_functional_class": {
+      "amidine_base": 1318,
+      "guanidine_base": 1317,
+      "phosphazene_base": 1320
+    },
+    "base_mw_bin": {
+      "mw_high": 1320,
+      "mw_mid": 2635
+    },
+    "base_tpsa_bin": {
+      "tpsa_low": 2635,
+      "tpsa_mid": 1320
+    },
+    "aryl_halide_halide_type": {
+      "bromide": 1319,
+      "chloride": 1318,
+      "iodide": 1318
+    },
+    "aryl_halide_has_heteroaromatic": {
+      "no": 2372,
+      "yes": 1583
+    },
+    "aryl_halide_mw_bin": {
+      "mw_high": 263,
+      "mw_mid": 3164,
+      "mw_none_or_low": 528
+    },
+    "additive_tpsa_bin": {
+      "tpsa_high": 360,
+      "tpsa_mid": 3595
+    }
+  },
+  "skills": [
+    {
+      "skill_id": "high_mw_ligand_effect",
+      "rules": [
+        {
+          "rule_id": "ligand_mw_high",
+          "conditions": [
+            [
+              "ligand_mw_bin",
+              "mw_high"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Higher molecular weight ligands are expected to improve yield."
+        },
+        {
+          "rule_id": "base_functional_class_guarantee",
+          "conditions": [
+            [
+              "base_functional_class",
+              "amidine_base"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Amidine bases are known to enhance reactivity."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.5,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.1,
+      "confidence": 0.8,
+      "hypothesis": "This skill transfers well for high molecular weight ligands."
+    }
+  ],
+  "calibration_seed_start": 13000,
+  "calibration_seed_count": 50,
+  "heldout_seed_start": 14000,
+  "heldout_seed_count": 500,
+  "selection": {
+    "target_anchor_mode": "mixed_kernel_gp_ei",
+    "target_anchor_summary": {
+      "gp_ucb": {
+        "final_best": 91.128884,
+        "best_so_far_auc": 84.103614,
+        "top10_hit": 0.26,
+        "composite": 175.232498
+      },
+      "mixed_kernel_gp_ei": {
+        "final_best": 91.443364,
+        "best_so_far_auc": 84.895618,
+        "top10_hit": 0.28,
+        "composite": 176.338982
+      },
+      "target_acquisition_portfolio": {
+        "final_best": 90.087932,
+        "best_so_far_auc": 84.286934,
+        "top10_hit": 0.18,
+        "composite": 174.374866
+      }
+    },
+    "eligible_skill_modes": [
+      "llm_semantic_high_mw_ligand_effect"
+    ],
+    "selected_mode": "llm_semantic_high_mw_ligand_effect",
+    "selected_llm_skill": true,
+    "skill_diagnostics": {
+      "llm_semantic_high_mw_ligand_effect": {
+        "final_best": {
+          "n": 50.0,
+          "mean": 1.085088,
+          "std": 9.539897,
+          "se": 1.349145,
+          "normal_95ci_low": -1.559236,
+          "normal_95ci_high": 3.729412,
+          "win_rate": 0.46,
+          "non_loss_rate": 0.6
+        },
+        "best_so_far_auc": {
+          "n": 50.0,
+          "mean": 2.880948,
+          "std": 8.2964,
+          "se": 1.173288,
+          "normal_95ci_low": 0.581303,
+          "normal_95ci_high": 5.180593,
+          "win_rate": 0.7,
+          "non_loss_rate": 0.72
+        },
+        "composite": {
+          "n": 50.0,
+          "mean": 3.966036,
+          "std": 16.746354,
+          "se": 2.368292,
+          "normal_95ci_low": -0.675817,
+          "normal_95ci_high": 8.607889,
+          "win_rate": 0.68,
+          "non_loss_rate": 0.7
+        },
+        "positive_fold_rate": 1.0,
+        "fold_composite_means": [
+          5.01345,
+          3.11597,
+          7.13183,
+          4.4709,
+          0.09803
+        ],
+        "risk_adjusted_composite_gain": 2.78189,
+        "eligible": true
+      }
+    },
+    "thresholds": {
+      "min_risk_adjusted_composite_gain": 0.25,
+      "min_positive_fold_rate": 0.8,
+      "min_final_non_loss_rate": 0.55
+    },
+    "rule": "The skill was selected on an earlier development range and frozen before these seeds. Calibration seeds in this run select only the target-only comparison anchor.",
+    "calibration_selected_mode": "llm_semantic_high_mw_ligand_effect",
+    "preselected_skill_id": "high_mw_ligand_effect"
+  },
+  "calibration": {
+    "gp_ucb": {
+      "final_best": 91.128884,
+      "best_so_far_auc": 84.103614,
+      "top10_hit": 0.26,
+      "composite": 175.232498
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 91.443364,
+      "best_so_far_auc": 84.895618,
+      "top10_hit": 0.28,
+      "composite": 176.338982
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 90.087932,
+      "best_so_far_auc": 84.286934,
+      "top10_hit": 0.18,
+      "composite": 174.374866
+    },
+    "llm_semantic_high_mw_ligand_effect": {
+      "final_best": 92.528452,
+      "best_so_far_auc": 87.776566,
+      "top10_hit": 0.36,
+      "composite": 180.305018
+    }
+  },
+  "heldout": {
+    "gp_ucb": {
+      "final_best": 90.730608,
+      "best_so_far_auc": 83.462974,
+      "top10_hit": 0.24,
+      "composite": 174.193582
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 90.654696,
+      "best_so_far_auc": 83.674594,
+      "top10_hit": 0.24,
+      "composite": 174.32929
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 90.538934,
+      "best_so_far_auc": 83.469714,
+      "top10_hit": 0.22,
+      "composite": 174.008648
+    },
+    "llm_semantic_high_mw_ligand_effect": {
+      "final_best": 93.775482,
+      "best_so_far_auc": 86.533391,
+      "top10_hit": 0.416,
+      "composite": 180.308873
+    },
+    "llm_calibrated_selector": {
+      "final_best": 93.775482,
+      "best_so_far_auc": 86.533391,
+      "top10_hit": 0.416,
+      "composite": 180.308873
+    }
+  },
+  "heldout_strongest_target_mode_descriptive_only": "mixed_kernel_gp_ei",
+  "heldout_pairwise": {
+    "gp_ucb": {
+      "final_best": {
+        "n": 500.0,
+        "mean": 3.044875,
+        "std": 11.087226,
+        "se": 0.495836,
+        "normal_95ci_low": 2.073036,
+        "normal_95ci_high": 4.016713,
+        "win_rate": 0.558,
+        "non_loss_rate": 0.656
+      },
+      "best_so_far_auc": {
+        "n": 500.0,
+        "mean": 3.070417,
+        "std": 10.014124,
+        "se": 0.447845,
+        "normal_95ci_low": 2.19264,
+        "normal_95ci_high": 3.948193,
+        "win_rate": 0.584,
+        "non_loss_rate": 0.604
+      },
+      "top10_hit": {
+        "n": 500.0,
+        "mean": 0.176,
+        "std": 0.577082,
+        "se": 0.025808,
+        "normal_95ci_low": 0.125417,
+        "normal_95ci_high": 0.226583,
+        "win_rate": 0.27,
+        "non_loss_rate": 0.906
+      }
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": {
+        "n": 500.0,
+        "mean": 3.120786,
+        "std": 10.49066,
+        "se": 0.469157,
+        "normal_95ci_low": 2.201239,
+        "normal_95ci_high": 4.040333,
+        "win_rate": 0.536,
+        "non_loss_rate": 0.664
+      },
+      "best_so_far_auc": {
+        "n": 500.0,
+        "mean": 2.858796,
+        "std": 10.251388,
+        "se": 0.458456,
+        "normal_95ci_low": 1.960223,
+        "normal_95ci_high": 3.75737,
+        "win_rate": 0.568,
+        "non_loss_rate": 0.588
+      },
+      "top10_hit": {
+        "n": 500.0,
+        "mean": 0.176,
+        "std": 0.55229,
+        "se": 0.024699,
+        "normal_95ci_low": 0.12759,
+        "normal_95ci_high": 0.22441,
+        "win_rate": 0.256,
+        "non_loss_rate": 0.92
+      }
+    },
+    "target_acquisition_portfolio": {
+      "final_best": {
+        "n": 500.0,
+        "mean": 3.236548,
+        "std": 11.326952,
+        "se": 0.506557,
+        "normal_95ci_low": 2.243697,
+        "normal_95ci_high": 4.229399,
+        "win_rate": 0.548,
+        "non_loss_rate": 0.656
+      },
+      "best_so_far_auc": {
+        "n": 500.0,
+        "mean": 3.063676,
+        "std": 10.272533,
+        "se": 0.459402,
+        "normal_95ci_low": 2.163249,
+        "normal_95ci_high": 3.964103,
+        "win_rate": 0.572,
+        "non_loss_rate": 0.594
+      },
+      "top10_hit": {
+        "n": 500.0,
+        "mean": 0.196,
+        "std": 0.556403,
+        "se": 0.024883,
+        "normal_95ci_low": 0.147229,
+        "normal_95ci_high": 0.244771,
+        "win_rate": 0.272,
+        "non_loss_rate": 0.924
+      }
+    }
+  },
+  "heldout_validation": {
+    "selected_llm_skill": true,
+    "strongest_target_mode": "mixed_kernel_gp_ei",
+    "final_95ci_positive": true,
+    "auc_95ci_positive": true,
+    "top10_95ci_positive": true
+  },
+  "evidence_boundary": "The LLM sees source summaries and public target field vocabularies only. Calibration selects a skill before held-out evaluation. Every per-round fit uses only previously revealed target outcomes."
+}

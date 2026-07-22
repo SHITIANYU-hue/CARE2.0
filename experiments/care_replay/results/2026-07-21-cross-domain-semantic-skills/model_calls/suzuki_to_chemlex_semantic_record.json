@@ -1,0 +1,617 @@
+{
+  "model": "openai/gpt-4o-mini",
+  "usage": {
+    "prompt_tokens": 1517,
+    "completion_tokens": 1714,
+    "total_tokens": 3231,
+    "tps": 109.64,
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "llm_generation_call_count": 1,
+  "api_configuration": {
+    "base_url": "https://api.commonstack.ai/v1",
+    "api_mode": "chat",
+    "structured_mode": "json",
+    "temperature": 0.45,
+    "max_tokens": 5000
+  },
+  "source_dataset": "real_suzuki_miyaura",
+  "target_dataset": "real_chemlex_acidamine",
+  "prompt_payload": {
+    "task": "Design a diverse library of executable semantic optimization skills for finite-pool scientific search. Each skill defines interpretable rule features plus a conservative Bayesian linear surrogate blended with strong target-only GP-UCB and GP-EI anchors.",
+    "target": {
+      "dataset": "real_chemlex_acidamine",
+      "title": "ChemLex acid-amine wetlab conversion replay",
+      "objective": "maximize_conversion",
+      "candidate_count": 11669,
+      "public_semantic_fields": {
+        "acid_smiles_length_bin": {
+          "smiles_long": 3376,
+          "smiles_mid": 6579,
+          "smiles_short": 1231,
+          "smiles_very_long": 483
+        },
+        "acid_hetero_atom_bin": {
+          "hetero_high": 4672,
+          "hetero_low": 987,
+          "hetero_mid": 6010
+        },
+        "acid_aromatic_bin": {
+          "aromatic_high": 1881,
+          "aromatic_low": 4120,
+          "aromatic_mid": 3496,
+          "aromatic_none": 2172
+        },
+        "acid_ring_token_bin": {
+          "ring_token_high": 1874,
+          "ring_token_low": 3410,
+          "ring_token_mid": 5461,
+          "ring_token_none": 924
+        },
+        "acid_branch_bin": {
+          "branch_high": 3238,
+          "branch_low": 2896,
+          "branch_mid": 5535
+        },
+        "amine_smiles_length_bin": {
+          "smiles_long": 1849,
+          "smiles_mid": 6860,
+          "smiles_short": 2551,
+          "smiles_very_long": 409
+        },
+        "amine_hetero_atom_bin": {
+          "hetero_high": 2473,
+          "hetero_low": 3653,
+          "hetero_mid": 5543
+        },
+        "amine_aromatic_bin": {
+          "aromatic_high": 2078,
+          "aromatic_low": 2556,
+          "aromatic_mid": 4015,
+          "aromatic_none": 3020
+        },
+        "amine_ring_token_bin": {
+          "ring_token_high": 1476,
+          "ring_token_low": 2739,
+          "ring_token_mid": 6360,
+          "ring_token_none": 1094
+        },
+        "amine_branch_bin": {
+          "branch_high": 1710,
+          "branch_low": 4925,
+          "branch_mid": 4006,
+          "branch_none": 1028
+        },
+        "reagent_smiles_length_bin": {
+          "smiles_long": 10739,
+          "smiles_mid": 915,
+          "smiles_very_long": 15
+        },
+        "reagent_hetero_atom_bin": {
+          "hetero_high": 9415,
+          "hetero_mid": 2254
+        },
+        "reagent_aromatic_bin": {
+          "aromatic_low": 999,
+          "aromatic_mid": 9408,
+          "aromatic_none": 1262
+        },
+        "reagent_branch_bin": {
+          "branch_high": 10754,
+          "branch_mid": 915
+        }
+      },
+      "hidden_target": "conversion_value",
+      "boundary": "Field values and counts are public; target outcomes are not included."
+    },
+    "source_transfer_evidence": {
+      "source_dataset": "real_suzuki_miyaura",
+      "source_objective": "maximize_yield",
+      "source_observation_count": 512,
+      "roles": [
+        {
+          "source_field": "reactant_1",
+          "target_field": "acid",
+          "source_support_count": 7,
+          "source_mean_abs_effect": 9.6058,
+          "source_max_abs_effect": 18.9175,
+          "confidence": 0.527,
+          "transfer_weight": 0.877
+        },
+        {
+          "source_field": "reactant_2",
+          "target_field": "amine",
+          "source_support_count": 4,
+          "source_mean_abs_effect": 11.5195,
+          "source_max_abs_effect": 16.6026,
+          "confidence": 0.3762,
+          "transfer_weight": 0.7262
+        },
+        {
+          "source_field": "reagent",
+          "target_field": "reagent",
+          "source_support_count": 8,
+          "source_mean_abs_effect": 3.6191,
+          "source_max_abs_effect": 8.9788,
+          "confidence": 0.2778,
+          "transfer_weight": 0.6278
+        },
+        {
+          "source_field": "solvent",
+          "target_field": "solvent",
+          "source_support_count": 6,
+          "source_mean_abs_effect": 6.3914,
+          "source_max_abs_effect": 11.2157,
+          "confidence": 0.3073,
+          "transfer_weight": 0.6573
+        }
+      ],
+      "shared_value_priors": [],
+      "boundary": "Only source outcomes and public source/target descriptors are summarized. No target outcomes are present."
+    },
+    "executor": {
+      "semantic_model": "Rules become binary features. Revealed target outcomes fit a ridge Bayesian linear surrogate whose coefficient prior follows rule weights.",
+      "anchor": "A rank blend of target-only GP-UCB and GP-EI.",
+      "fusion": "semantic_mass_start/end controls the rank mass assigned to the semantic surrogate; the remaining mass stays on the target-only anchor.",
+      "selection": "Independent calibration seeds select one frozen skill. Independent held-out seeds are evaluated only after selection."
+    },
+    "design_requirements": [
+      "Return exactly 8 diverse skills.",
+      "Use only exact field/value pairs in public_semantic_fields.",
+      "Give every skill 3-10 rules; use two-condition interactions only when scientifically meaningful.",
+      "Include at least one conservative low-semantic-mass skill.",
+      "Include at least one source-evidence skill and one domain-knowledge skill.",
+      "Include a counter-hypothesis skill that reverses or downweights an uncertain source relation.",
+      "Prefer mechanistic, chemically or physically interpretable rules over arbitrary coverage rules.",
+      "Use positive weights for conditions expected to improve the target objective and negative weights for risks.",
+      "Do not claim access to target outcomes and do not output candidate identifiers."
+    ],
+    "allowed_ranges": {
+      "rule_weight": "[-1, 1]",
+      "ridge": "[0.05, 20]",
+      "prior_scale": "[0, 1.5]",
+      "semantic_mass_start_end": "[0, 0.85]",
+      "ucb_weight": "[0, 1]; EI weight is 1 - ucb_weight",
+      "gp_beta_start_end": "[0.2, 4]",
+      "gp_xi": "[0, 0.2]",
+      "confidence": "[0.05, 1]"
+    },
+    "output_contract": {
+      "skills": [
+        {
+          "skill_id": "short_unique_name",
+          "rules": [
+            {
+              "rule_id": "mechanistic_rule",
+              "conditions": {
+                "exact_field": "exact_value"
+              },
+              "weight": 0.5,
+              "rationale": "short scientific rationale"
+            }
+          ],
+          "ridge": 1.0,
+          "prior_scale": 0.25,
+          "semantic_mass_start": 0.3,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.7,
+          "hypothesis": "what this skill transfers and when it may fail"
+        }
+      ]
+    }
+  },
+  "raw_response": "```json\n{\n  \"skills\": [\n    {\n      \"skill_id\": \"acid_length_effect\",\n      \"rules\": [\n        {\n          \"rule_id\": \"acid_smiles_length_bin\",\n          \"conditions\": {\n            \"exact_field\": \"acid_smiles_length_bin.smiles_long\"\n          },\n          \"weight\": 0.8,\n          \"rationale\": \"Longer acid SMILES may enhance conversion.\"\n        },\n        {\n          \"rule_id\": \"acid_aromatic_bin\",\n          \"conditions\": {\n            \"exact_field\": \"acid_aromatic_bin.aromatic_high\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Aromatic acids are likely to improve conversion.\"\n        }\n      ],\n      \"ridge\": 1.5,\n      \"prior_scale\": 0.5,\n      \"semantic_mass_start\": 0.6,\n      \"semantic_mass_end\": 0.2,\n      \"ucb_weight\": 0.7,\n      \"gp_beta_start\": 2.5,\n      \"gp_beta_end\": 1.5,\n      \"gp_xi\": 0.1,\n      \"confidence\": 0.8,\n      \"hypothesis\": \"Acid length and aromaticity positively influence conversion.\"\n    },\n    {\n      \"skill_id\": \"amine_structure_impact\",\n      \"rules\": [\n        {\n          \"rule_id\": \"amine_smiles_length_bin\",\n          \"conditions\": {\n            \"exact_field\": \"amine_smiles_length_bin.smiles_mid\"\n          },\n          \"weight\": 0.6,\n          \"rationale\": \"Mid-length amines may optimize conversion.\"\n        },\n        {\n          \"rule_id\": \"amine_branch_bin\",\n          \"conditions\": {\n            \"exact_field\": \"amine_branch_bin.branch_high\"\n          },\n          \"weight\": 0.4,\n          \"rationale\": \"Highly branched amines could enhance conversion.\"\n        }\n      ],\n      \"ridge\": 1.0,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.5,\n      \"semantic_mass_end\": 0.1,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 2.0,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.05,\n      \"confidence\": 0.75,\n      \"hypothesis\": \"Amine structure and branching lead to improved conversion.\"\n    },\n    {\n      \"skill_id\": \"reagent_effectiveness\",\n      \"rules\": [\n        {\n          \"rule_id\": \"reagent_hetero_atom_bin\",\n          \"conditions\": {\n            \"exact_field\": \"reagent_hetero_atom_bin.hetero_high\"\n          },\n          \"weight\": 0.7,\n          \"rationale\": \"Reagents with high heteroatoms are effective.\"\n        },\n        {\n          \"rule_id\": \"reagent_branch_bin\",\n          \"conditions\": {\n            \"exact_field\": \"reagent_branch_bin.branch_high\"\n          },\n          \"weight\": 0.6,\n          \"rationale\": \"Highly branched reagents may enhance conversion.\"\n        }\n      ],\n      \"ridge\": 1.2,\n      \"prior_scale\": 0.4,\n      \"semantic_mass_start\": 0.4,\n      \"semantic_mass_end\": 0.2,\n      \"ucb_weight\": 0.6,\n      \"gp_beta_start\": 2.2,\n      \"gp_beta_end\": 1.2,\n      \"gp_xi\": 0.1,\n      \"confidence\": 0.7,\n      \"hypothesis\": \"Reagent structure significantly impacts conversion.\"\n    },\n    {\n      \"skill_id\": \"solvent_influence\",\n      \"rules\": [\n        {\n          \"rule_id\": \"solvent\",\n          \"conditions\": {\n            \"exact_field\": \"solvent\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"The choice of solvent can affect conversion.\"\n        }\n      ],\n      \"ridge\": 0.8,\n      \"prior_scale\": 0.2,\n      \"semantic_mass_start\": 0.3,\n      \"semantic_mass_end\": 0.1,\n      \"ucb_weight\": 0.4,\n      \"gp_beta_start\": 1.8,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.05,\n      \"confidence\": 0.6,\n      \"hypothesis\": \"Solvent selection plays a critical role in conversion.\"\n    },\n    {\n      \"skill_id\": \"counter_hypothesis_branching\",\n      \"rules\": [\n        {\n          \"rule_id\": \"amine_branch_bin\",\n          \"conditions\": {\n            \"exact_field\": \"amine_branch_bin.branch_low\"\n          },\n          \"weight\": -0.5,\n          \"rationale\": \"Lower branching in amines may reduce conversion.\"\n        },\n        {\n          \"rule_id\": \"acid_branch_bin\",\n          \"conditions\": {\n            \"exact_field\": \"acid_branch_bin.branch_low\"\n          },\n          \"weight\": -0.4,\n          \"rationale\": \"Less branched acids could hinder conversion.\"\n        }\n      ],\n      \"ridge\": 1.0,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.5,\n      \"semantic_mass_end\": 0.2,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 2.0,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.05,\n      \"confidence\": 0.65,\n      \"hypothesis\": \"High branching in reactants may negatively impact conversion.\"\n    },\n    {\n      \"skill_id\": \"source_evidence_reactants\",\n      \"rules\": [\n        {\n          \"rule_id\": \"reactant_1\",\n          \"conditions\": {\n            \"exact_field\": \"reactant_1\"\n          },\n          \"weight\": 0.6,\n          \"rationale\": \"Evidence from reactant 1 suggests a positive effect.\"\n        },\n        {\n          \"rule_id\": \"reactant_2\",\n          \"conditions\": {\n            \"exact_field\": \"reactant_2\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Reactant 2 also shows potential for improvement.\"\n        }\n      ],\n      \"ridge\": 1.3,\n      \"prior_scale\": 0.4,\n      \"semantic_mass_start\": 0.5,\n      \"semantic_mass_end\": 0.3,\n      \"ucb_weight\": 0.6,\n      \"gp_beta_start\": 2.0,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.1,\n      \"confidence\": 0.7,\n      \"hypothesis\": \"Source evidence indicates reactants positively influence conversion.\"\n    },\n    {\n      \"skill_id\": \"domain_knowledge_acid_amine\",\n      \"rules\": [\n        {\n          \"rule_id\": \"acid_hetero_atom_bin\",\n          \"conditions\": {\n            \"exact_field\": \"acid_hetero_atom_bin.hetero_mid\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Moderate heteroatoms in acids are beneficial.\"\n        },\n        {\n          \"rule_id\": \"amine_aromatic_bin\",\n          \"conditions\": {\n            \"exact_field\": \"amine_aromatic_bin.aromatic_mid\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Moderate aromaticity in amines enhances conversion.\"\n        }\n      ],\n      \"ridge\": 1.0,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.4,\n      \"semantic_mass_end\": 0.2,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 2.0,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.05,\n      \"confidence\": 0.75,\n      \"hypothesis\": \"Domain knowledge suggests specific structures improve conversion.\"\n    }\n  ]\n}\n```",
+  "parsed_response": {
+    "skills": [
+      {
+        "skill_id": "acid_length_effect",
+        "rules": [
+          {
+            "rule_id": "acid_smiles_length_bin",
+            "conditions": {
+              "exact_field": "acid_smiles_length_bin.smiles_long"
+            },
+            "weight": 0.8,
+            "rationale": "Longer acid SMILES may enhance conversion."
+          },
+          {
+            "rule_id": "acid_aromatic_bin",
+            "conditions": {
+              "exact_field": "acid_aromatic_bin.aromatic_high"
+            },
+            "weight": 0.5,
+            "rationale": "Aromatic acids are likely to improve conversion."
+          }
+        ],
+        "ridge": 1.5,
+        "prior_scale": 0.5,
+        "semantic_mass_start": 0.6,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.7,
+        "gp_beta_start": 2.5,
+        "gp_beta_end": 1.5,
+        "gp_xi": 0.1,
+        "confidence": 0.8,
+        "hypothesis": "Acid length and aromaticity positively influence conversion."
+      },
+      {
+        "skill_id": "amine_structure_impact",
+        "rules": [
+          {
+            "rule_id": "amine_smiles_length_bin",
+            "conditions": {
+              "exact_field": "amine_smiles_length_bin.smiles_mid"
+            },
+            "weight": 0.6,
+            "rationale": "Mid-length amines may optimize conversion."
+          },
+          {
+            "rule_id": "amine_branch_bin",
+            "conditions": {
+              "exact_field": "amine_branch_bin.branch_high"
+            },
+            "weight": 0.4,
+            "rationale": "Highly branched amines could enhance conversion."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.5,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.05,
+        "confidence": 0.75,
+        "hypothesis": "Amine structure and branching lead to improved conversion."
+      },
+      {
+        "skill_id": "reagent_effectiveness",
+        "rules": [
+          {
+            "rule_id": "reagent_hetero_atom_bin",
+            "conditions": {
+              "exact_field": "reagent_hetero_atom_bin.hetero_high"
+            },
+            "weight": 0.7,
+            "rationale": "Reagents with high heteroatoms are effective."
+          },
+          {
+            "rule_id": "reagent_branch_bin",
+            "conditions": {
+              "exact_field": "reagent_branch_bin.branch_high"
+            },
+            "weight": 0.6,
+            "rationale": "Highly branched reagents may enhance conversion."
+          }
+        ],
+        "ridge": 1.2,
+        "prior_scale": 0.4,
+        "semantic_mass_start": 0.4,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 1.2,
+        "gp_xi": 0.1,
+        "confidence": 0.7,
+        "hypothesis": "Reagent structure significantly impacts conversion."
+      },
+      {
+        "skill_id": "solvent_influence",
+        "rules": [
+          {
+            "rule_id": "solvent",
+            "conditions": {
+              "exact_field": "solvent"
+            },
+            "weight": 0.5,
+            "rationale": "The choice of solvent can affect conversion."
+          }
+        ],
+        "ridge": 0.8,
+        "prior_scale": 0.2,
+        "semantic_mass_start": 0.3,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.4,
+        "gp_beta_start": 1.8,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.05,
+        "confidence": 0.6,
+        "hypothesis": "Solvent selection plays a critical role in conversion."
+      },
+      {
+        "skill_id": "counter_hypothesis_branching",
+        "rules": [
+          {
+            "rule_id": "amine_branch_bin",
+            "conditions": {
+              "exact_field": "amine_branch_bin.branch_low"
+            },
+            "weight": -0.5,
+            "rationale": "Lower branching in amines may reduce conversion."
+          },
+          {
+            "rule_id": "acid_branch_bin",
+            "conditions": {
+              "exact_field": "acid_branch_bin.branch_low"
+            },
+            "weight": -0.4,
+            "rationale": "Less branched acids could hinder conversion."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.5,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.05,
+        "confidence": 0.65,
+        "hypothesis": "High branching in reactants may negatively impact conversion."
+      },
+      {
+        "skill_id": "source_evidence_reactants",
+        "rules": [
+          {
+            "rule_id": "reactant_1",
+            "conditions": {
+              "exact_field": "reactant_1"
+            },
+            "weight": 0.6,
+            "rationale": "Evidence from reactant 1 suggests a positive effect."
+          },
+          {
+            "rule_id": "reactant_2",
+            "conditions": {
+              "exact_field": "reactant_2"
+            },
+            "weight": 0.5,
+            "rationale": "Reactant 2 also shows potential for improvement."
+          }
+        ],
+        "ridge": 1.3,
+        "prior_scale": 0.4,
+        "semantic_mass_start": 0.5,
+        "semantic_mass_end": 0.3,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.1,
+        "confidence": 0.7,
+        "hypothesis": "Source evidence indicates reactants positively influence conversion."
+      },
+      {
+        "skill_id": "domain_knowledge_acid_amine",
+        "rules": [
+          {
+            "rule_id": "acid_hetero_atom_bin",
+            "conditions": {
+              "exact_field": "acid_hetero_atom_bin.hetero_mid"
+            },
+            "weight": 0.5,
+            "rationale": "Moderate heteroatoms in acids are beneficial."
+          },
+          {
+            "rule_id": "amine_aromatic_bin",
+            "conditions": {
+              "exact_field": "amine_aromatic_bin.aromatic_mid"
+            },
+            "weight": 0.5,
+            "rationale": "Moderate aromaticity in amines enhances conversion."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.4,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.05,
+        "confidence": 0.75,
+        "hypothesis": "Domain knowledge suggests specific structures improve conversion."
+      }
+    ]
+  },
+  "normalized_skills": [
+    {
+      "skill_id": "acid_length_effect",
+      "rules": [
+        {
+          "rule_id": "acid_smiles_length_bin",
+          "conditions": [
+            [
+              "acid_smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Longer acid SMILES may enhance conversion."
+        },
+        {
+          "rule_id": "acid_aromatic_bin",
+          "conditions": [
+            [
+              "acid_aromatic_bin",
+              "aromatic_high"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Aromatic acids are likely to improve conversion."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.5,
+      "semantic_mass_start": 0.6,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.1,
+      "confidence": 0.8,
+      "hypothesis": "Acid length and aromaticity positively influence conversion."
+    },
+    {
+      "skill_id": "amine_structure_impact",
+      "rules": [
+        {
+          "rule_id": "amine_smiles_length_bin",
+          "conditions": [
+            [
+              "amine_smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Mid-length amines may optimize conversion."
+        },
+        {
+          "rule_id": "amine_branch_bin",
+          "conditions": [
+            [
+              "amine_branch_bin",
+              "branch_high"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Highly branched amines could enhance conversion."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.05,
+      "confidence": 0.75,
+      "hypothesis": "Amine structure and branching lead to improved conversion."
+    },
+    {
+      "skill_id": "reagent_effectiveness",
+      "rules": [
+        {
+          "rule_id": "reagent_hetero_atom_bin",
+          "conditions": [
+            [
+              "reagent_hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Reagents with high heteroatoms are effective."
+        },
+        {
+          "rule_id": "reagent_branch_bin",
+          "conditions": [
+            [
+              "reagent_branch_bin",
+              "branch_high"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Highly branched reagents may enhance conversion."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.1,
+      "confidence": 0.7,
+      "hypothesis": "Reagent structure significantly impacts conversion."
+    },
+    {
+      "skill_id": "counter_hypothesis_branching",
+      "rules": [
+        {
+          "rule_id": "amine_branch_bin",
+          "conditions": [
+            [
+              "amine_branch_bin",
+              "branch_low"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Lower branching in amines may reduce conversion."
+        },
+        {
+          "rule_id": "acid_branch_bin",
+          "conditions": [
+            [
+              "acid_branch_bin",
+              "branch_low"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "Less branched acids could hinder conversion."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.05,
+      "confidence": 0.65,
+      "hypothesis": "High branching in reactants may negatively impact conversion."
+    },
+    {
+      "skill_id": "domain_knowledge_acid_amine",
+      "rules": [
+        {
+          "rule_id": "acid_hetero_atom_bin",
+          "conditions": [
+            [
+              "acid_hetero_atom_bin",
+              "hetero_mid"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Moderate heteroatoms in acids are beneficial."
+        },
+        {
+          "rule_id": "amine_aromatic_bin",
+          "conditions": [
+            [
+              "amine_aromatic_bin",
+              "aromatic_mid"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Moderate aromaticity in amines enhances conversion."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.05,
+      "confidence": 0.75,
+      "hypothesis": "Domain knowledge suggests specific structures improve conversion."
+    }
+  ]
+}

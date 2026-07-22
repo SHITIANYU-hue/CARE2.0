@@ -1,0 +1,332 @@
+{
+  "experiment": "care_calibrated_llm_semantic_skill_selector",
+  "source_dataset": "real_matbench_dielectric",
+  "target_dataset": "real_matbench_expt_gap",
+  "llm_model": "openai/gpt-4o-mini",
+  "llm_generation_call_count": 1,
+  "new_llm_call_count": 0,
+  "rule_prior_enabled": false,
+  "semantic_model_enabled": false,
+  "semantic_field_catalog": {
+    "anion_family": {
+      "carbide_or_carbon": 85,
+      "chalcogenide": 1485,
+      "halide": 177,
+      "other": 1307,
+      "oxide": 1090,
+      "pnictide": 460
+    },
+    "element_count_bin": {
+      "binary": 1041,
+      "ternary_quaternary": 3563
+    },
+    "dominant_family": {
+      "alkali": 95,
+      "alkaline_earth": 114,
+      "chalcogen": 2044,
+      "halogen": 169,
+      "lanthanide": 229,
+      "light_nonmetal": 47,
+      "metalloid": 570,
+      "other": 31,
+      "pnictogen": 114,
+      "post_transition": 319,
+      "transition_metal": 872
+    },
+    "transition_metal_flag": {
+      "has_transition_metal": 2999,
+      "no_transition_metal": 1605
+    },
+    "lanthanide_flag": {
+      "has_lanthanide": 1285,
+      "no_lanthanide": 3319
+    },
+    "mean_atomic_number_bin": {
+      "mean_z_high": 1227,
+      "mean_z_low": 903,
+      "mean_z_mid": 2175,
+      "mean_z_very_high": 299
+    },
+    "max_element_fraction_bin": {
+      "balanced": 302,
+      "concentrated": 2411,
+      "dominant_element_heavy": 147,
+      "moderately_concentrated": 1744
+    }
+  },
+  "skills": [
+    {
+      "skill_id": "counter_transition_metal",
+      "rules": [
+        {
+          "rule_id": "transition_metal_risk",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": -0.7,
+          "rationale": "Transition metals may introduce unwanted electronic states."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.0,
+      "semantic_mass_end": 0.0,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 1.8,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.1,
+      "confidence": 0.6,
+      "hypothesis": "This skill downweights transition metals due to their uncertain effects."
+    }
+  ],
+  "calibration_seed_start": 13000,
+  "calibration_seed_count": 50,
+  "heldout_seed_start": 14000,
+  "heldout_seed_count": 500,
+  "selection": {
+    "target_anchor_mode": "mixed_kernel_gp_ei",
+    "target_anchor_summary": {
+      "gp_ucb": {
+        "final_best": 62.8475,
+        "best_so_far_auc": 50.735,
+        "top10_hit": 0.18,
+        "composite": 113.5825
+      },
+      "mixed_kernel_gp_ei": {
+        "final_best": 63.55,
+        "best_so_far_auc": 51.5305,
+        "top10_hit": 0.14,
+        "composite": 115.0805
+      },
+      "target_acquisition_portfolio": {
+        "final_best": 60.48,
+        "best_so_far_auc": 49.28975,
+        "top10_hit": 0.12,
+        "composite": 109.76975
+      }
+    },
+    "eligible_skill_modes": [],
+    "selected_mode": "llm_semantic_counter_transition_metal",
+    "selected_llm_skill": true,
+    "skill_diagnostics": {
+      "llm_semantic_counter_transition_metal": {
+        "final_best": {
+          "n": 50.0,
+          "mean": -5.05,
+          "std": 18.573738,
+          "se": 2.626723,
+          "normal_95ci_low": -10.198378,
+          "normal_95ci_high": 0.098378,
+          "win_rate": 0.28,
+          "non_loss_rate": 0.6
+        },
+        "best_so_far_auc": {
+          "n": 50.0,
+          "mean": -1.8125,
+          "std": 12.036813,
+          "se": 1.702262,
+          "normal_95ci_low": -5.148934,
+          "normal_95ci_high": 1.523934,
+          "win_rate": 0.32,
+          "non_loss_rate": 0.54
+        },
+        "composite": {
+          "n": 50.0,
+          "mean": -6.8625,
+          "std": 29.073822,
+          "se": 4.111659,
+          "normal_95ci_low": -14.921352,
+          "normal_95ci_high": 1.196352,
+          "win_rate": 0.34,
+          "non_loss_rate": 0.56
+        },
+        "positive_fold_rate": 0.0,
+        "fold_composite_means": [
+          -2.85875,
+          -2.24,
+          -5.15625,
+          -7.43375,
+          -16.62375
+        ],
+        "risk_adjusted_composite_gain": -8.91833,
+        "eligible": false
+      }
+    },
+    "thresholds": {
+      "min_risk_adjusted_composite_gain": 0.25,
+      "min_positive_fold_rate": 0.8,
+      "min_final_non_loss_rate": 0.55
+    },
+    "rule": "The skill was selected on an earlier development range and frozen before these seeds. Calibration seeds in this run select only the target-only comparison anchor.",
+    "calibration_selected_mode": "mixed_kernel_gp_ei",
+    "preselected_skill_id": "counter_transition_metal"
+  },
+  "calibration": {
+    "gp_ucb": {
+      "final_best": 62.8475,
+      "best_so_far_auc": 50.735,
+      "top10_hit": 0.18,
+      "composite": 113.5825
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 63.55,
+      "best_so_far_auc": 51.5305,
+      "top10_hit": 0.14,
+      "composite": 115.0805
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 60.48,
+      "best_so_far_auc": 49.28975,
+      "top10_hit": 0.12,
+      "composite": 109.76975
+    },
+    "llm_semantic_counter_transition_metal": {
+      "final_best": 58.5,
+      "best_so_far_auc": 49.718,
+      "top10_hit": 0.1,
+      "composite": 108.218
+    }
+  },
+  "heldout": {
+    "gp_ucb": {
+      "final_best": 62.4255,
+      "best_so_far_auc": 51.122525,
+      "top10_hit": 0.178,
+      "composite": 113.548025
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 63.1635,
+      "best_so_far_auc": 51.1929,
+      "top10_hit": 0.196,
+      "composite": 114.3564
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 62.9555,
+      "best_so_far_auc": 51.083525,
+      "top10_hit": 0.186,
+      "composite": 114.039025
+    },
+    "llm_semantic_counter_transition_metal": {
+      "final_best": 63.71,
+      "best_so_far_auc": 52.057875,
+      "top10_hit": 0.212,
+      "composite": 115.767875
+    },
+    "llm_calibrated_selector": {
+      "final_best": 63.71,
+      "best_so_far_auc": 52.057875,
+      "top10_hit": 0.212,
+      "composite": 115.767875
+    }
+  },
+  "heldout_strongest_target_mode_descriptive_only": "mixed_kernel_gp_ei",
+  "heldout_pairwise": {
+    "gp_ucb": {
+      "final_best": {
+        "n": 500.0,
+        "mean": 1.2845,
+        "std": 25.464938,
+        "se": 1.138827,
+        "normal_95ci_low": -0.9476,
+        "normal_95ci_high": 3.5166,
+        "win_rate": 0.37,
+        "non_loss_rate": 0.646
+      },
+      "best_so_far_auc": {
+        "n": 500.0,
+        "mean": 0.93535,
+        "std": 15.324523,
+        "se": 0.685333,
+        "normal_95ci_low": -0.407904,
+        "normal_95ci_high": 2.278604,
+        "win_rate": 0.46,
+        "non_loss_rate": 0.586
+      },
+      "top10_hit": {
+        "n": 500.0,
+        "mean": 0.034,
+        "std": 0.40601,
+        "se": 0.018157,
+        "normal_95ci_low": -0.001588,
+        "normal_95ci_high": 0.069588,
+        "win_rate": 0.1,
+        "non_loss_rate": 0.934
+      }
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": {
+        "n": 500.0,
+        "mean": 0.5465,
+        "std": 25.130517,
+        "se": 1.123871,
+        "normal_95ci_low": -1.656287,
+        "normal_95ci_high": 2.749287,
+        "win_rate": 0.338,
+        "non_loss_rate": 0.638
+      },
+      "best_so_far_auc": {
+        "n": 500.0,
+        "mean": 0.864975,
+        "std": 15.570642,
+        "se": 0.69634,
+        "normal_95ci_low": -0.499852,
+        "normal_95ci_high": 2.229802,
+        "win_rate": 0.448,
+        "non_loss_rate": 0.596
+      },
+      "top10_hit": {
+        "n": 500.0,
+        "mean": 0.016,
+        "std": 0.404653,
+        "se": 0.018097,
+        "normal_95ci_low": -0.019469,
+        "normal_95ci_high": 0.051469,
+        "win_rate": 0.09,
+        "non_loss_rate": 0.926
+      }
+    },
+    "target_acquisition_portfolio": {
+      "final_best": {
+        "n": 500.0,
+        "mean": 0.7545,
+        "std": 25.408367,
+        "se": 1.136297,
+        "normal_95ci_low": -1.472642,
+        "normal_95ci_high": 2.981642,
+        "win_rate": 0.358,
+        "non_loss_rate": 0.662
+      },
+      "best_so_far_auc": {
+        "n": 500.0,
+        "mean": 0.97435,
+        "std": 15.82409,
+        "se": 0.707675,
+        "normal_95ci_low": -0.412693,
+        "normal_95ci_high": 2.361393,
+        "win_rate": 0.448,
+        "non_loss_rate": 0.594
+      },
+      "top10_hit": {
+        "n": 500.0,
+        "mean": 0.026,
+        "std": 0.396641,
+        "se": 0.017738,
+        "normal_95ci_low": -0.008767,
+        "normal_95ci_high": 0.060767,
+        "win_rate": 0.092,
+        "non_loss_rate": 0.934
+      }
+    }
+  },
+  "heldout_validation": {
+    "selected_llm_skill": true,
+    "strongest_target_mode": "mixed_kernel_gp_ei",
+    "final_95ci_positive": false,
+    "auc_95ci_positive": false,
+    "top10_95ci_positive": false
+  },
+  "evidence_boundary": "The LLM sees source summaries and public target field vocabularies only. Calibration selects a skill before held-out evaluation. Every per-round fit uses only previously revealed target outcomes."
+}

@@ -143,14 +143,40 @@ calibration, chosen candidates, and the frozen LLM patch.
 leave-one-out calibration is available. It is disabled by default because the
 paired July 21 confirmation did not improve over the calibrated-only path.
 
-The July 21 low-cost evaluation, including 500-seed confirmation, universal
-schedule checks, complete LLM traces, per-seed metrics, and compressed audit
-logs, is archived under
+The first July 21 low-cost evaluation, including a 500-seed confirmation,
+universal-schedule checks, complete LLM traces, per-seed metrics, and compressed
+audit logs, is archived under
 [`results/2026-07-21-low-cost-llm-transfer`](results/2026-07-21-low-cost-llm-transfer/README.md).
-The confirmed claim is molecular-property domain generalization: one frozen
-cheap-model acquisition skill improves AUC on both FreeSolv and Lipophilicity.
-Reaction and materials transfer remain boundary results rather than positive
-claims.
+That snapshot confirms molecular-property generalization but treats reaction
+and materials transfer as boundary results.
+
+The follow-up semantic-skill compiler lets the LLM propose interpretable rule
+features, coefficient priors, and an acquisition schedule from source evidence
+and a public target schema. A strict compiler rejects unknown fields and values.
+Earlier revealed target outcomes fit the semantic surrogate online; its rank is
+blended with strong target-only GP-UCB and GP-EI anchors. Generate a skill
+library once, then calibrate and freeze it before held-out replay:
+
+```bash
+export CARE_LLM_API_KEY="..."
+export CARE_LLM_TRACE_LOG="experiments/care_replay/outputs/llm_semantic/generation_trace.jsonl"
+python3 experiments/care_replay/scripts/generate_llm_semantic_skills.py \
+  --source-dataset real_suzuki_miyaura \
+  --target-dataset real_buchwald_hartwig \
+  --output experiments/care_replay/outputs/llm_semantic/suzuki_to_bh.json
+
+python3 experiments/care_replay/scripts/run_calibrated_llm_semantic_selector.py \
+  --llm-record experiments/care_replay/outputs/llm_semantic/suzuki_to_bh.json \
+  --target-dataset real_buchwald_hartwig \
+  --calibration-seed-start 13000 --calibration-seeds 50 \
+  --heldout-seed-start 14000 --heldout-seeds 500
+```
+
+Use `--disable-semantic-model` for the acquisition-schedule-only ablation and
+`--disable-rule-prior` to retain the LLM rule features while removing the LLM's
+initial coefficient direction. The cross-domain confirmation and these paired
+ablations are archived under
+[`results/2026-07-21-cross-domain-semantic-skills`](results/2026-07-21-cross-domain-semantic-skills/README.md).
 
 Run a strong-model LLM transfer follow-up:
 
@@ -236,6 +262,17 @@ Outputs:
 
 Tracked result snapshots:
 
+- `results/2026-07-21-cross-domain-semantic-skills/`: LLM-compiled semantic
+  rule features fused with target-only GP-UCB/GP-EI. Frozen 500-seed
+  confirmations are significantly positive on real Buchwald-Hartwig HTE and
+  Matbench band gap, with schedule-only and rule-prior ablations, raw metrics,
+  model traces, and per-round audits. Together with the companion MoleculeNet
+  result, this supplies positive examples in three scientific domains while
+  retaining ChemLex as a negative boundary case.
+- `results/2026-07-21-low-cost-llm-transfer/`: low-cost frozen LLM kernel and
+  acquisition skills. It includes the 500-seed FreeSolv confirmation and the
+  no-new-call Lipophilicity generalization check used in the cross-domain
+  summary.
 - `results/2026-07-20-batch-diverse-exploration/`: server-side 30-seed
   batch-diversity ablation on four real datasets. It includes strict pre-batch
   evidence boundaries, public-factor novelty, a minimum within-batch distance,

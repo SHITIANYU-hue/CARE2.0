@@ -394,6 +394,78 @@ def smiles_public_descriptors(smiles: str) -> tuple[dict[str, str], tuple[float,
     return descriptor_bins, (x1, x2, x3)
 
 
+def prefixed_smiles_public_descriptors(prefix: str, smiles: str) -> dict[str, str]:
+    descriptors, _numeric = smiles_public_descriptors(smiles)
+    return {f"{prefix}_{field}": value for field, value in descriptors.items()}
+
+
+def prefixed_smiles_motif_descriptors(prefix: str, smiles: str) -> dict[str, str]:
+    nitrogen_count = float(smiles.count("N") + smiles.count("n"))
+    oxygen_count = float(smiles.count("O") + smiles.count("o"))
+    carbonyl_count = float(
+        smiles.count("C(=O)")
+        + smiles.count("O=C(")
+        + smiles.count("C(=S)")
+        + smiles.count("S=C(")
+    )
+    return {
+        f"{prefix}_nitrogen_bin": numeric_bin(
+            nitrogen_count,
+            (0.0, 1.0, 3.0),
+            ("nitrogen_none", "nitrogen_one", "nitrogen_few", "nitrogen_many"),
+        ),
+        f"{prefix}_oxygen_bin": numeric_bin(
+            oxygen_count,
+            (0.0, 2.0, 5.0),
+            ("oxygen_none", "oxygen_low", "oxygen_mid", "oxygen_high"),
+        ),
+        f"{prefix}_carbonyl_bin": numeric_bin(
+            carbonyl_count,
+            (0.0, 1.0, 2.0),
+            ("carbonyl_none", "carbonyl_one", "carbonyl_two", "carbonyl_many"),
+        ),
+        f"{prefix}_amide_flag": (
+            "has_amide"
+            if "C(=O)N" in smiles or "O=C(N" in smiles or "NC(=O)" in smiles
+            else "no_amide"
+        ),
+        f"{prefix}_nitrile_flag": (
+            "has_nitrile" if "C#N" in smiles or "N#C" in smiles else "no_nitrile"
+        ),
+        f"{prefix}_sulfur_flag": (
+            "has_sulfur" if "S" in smiles or "s" in smiles else "no_sulfur"
+        ),
+        f"{prefix}_phosphorus_flag": (
+            "has_phosphorus" if "P" in smiles else "no_phosphorus"
+        ),
+        f"{prefix}_formal_charge_flag": (
+            "has_formal_charge" if "+" in smiles or "-" in smiles else "no_formal_charge"
+        ),
+        f"{prefix}_aromatic_hetero_flag": (
+            "has_aromatic_hetero"
+            if any(token in smiles for token in ("n", "o", "s"))
+            else "no_aromatic_hetero"
+        ),
+        f"{prefix}_multi_component_flag": (
+            "multi_component" if "." in smiles else "single_component"
+        ),
+    }
+
+
+def chemlex_reagent_family(smiles: str) -> str:
+    if "N=C=N" in smiles:
+        return "carbodiimide_coupling"
+    if "[P+]" in smiles:
+        return "phosphonium_coupling"
+    if "On1nnc2cccnc21" in smiles:
+        return "aza_benzotriazole_uronium"
+    if "n1n[n+]([O-])c2ncccc21" in smiles:
+        return "n_oxide_uronium"
+    if "CN(C)C(Cl)=[N+]" in smiles:
+        return "chloroformamidinium"
+    return "other_uronium"
+
+
 ELEMENT_Z = {
     "H": 1,
     "He": 2,
@@ -948,10 +1020,14 @@ def real_chemlex_acidamine_adapter() -> DatasetAdapter:
         conversion = row.get("Conversion")
         if conversion is None:
             continue
-        acid = acid_labels[str(row["Acid"])]
-        amine = amine_labels[str(row["Amine"])]
-        reagent = reagent_labels[str(row["Reagents"])]
-        solvent = solvent_labels[str(row["Solvent"])]
+        acid_smiles = str(row["Acid"])
+        amine_smiles = str(row["Amine"])
+        reagent_smiles = str(row["Reagents"])
+        solvent_smiles = str(row["Solvent"])
+        acid = acid_labels[acid_smiles]
+        amine = amine_labels[amine_smiles]
+        reagent = reagent_labels[reagent_smiles]
+        solvent = solvent_labels[solvent_smiles]
         pool.append(
             Candidate(
                 candidate_id=f"chemlex_{idx:05d}_{acid}_{amine}_{reagent}_{solvent}",
@@ -965,6 +1041,18 @@ def real_chemlex_acidamine_adapter() -> DatasetAdapter:
                     "amine": amine,
                     "reagent": reagent,
                     "solvent": solvent,
+                    "acid_smiles": acid_smiles,
+                    "amine_smiles": amine_smiles,
+                    "reagent_smiles": reagent_smiles,
+                    "solvent_smiles": solvent_smiles,
+                    **prefixed_smiles_public_descriptors("acid", acid_smiles),
+                    **prefixed_smiles_public_descriptors("amine", amine_smiles),
+                    **prefixed_smiles_public_descriptors("reagent", reagent_smiles),
+                    **prefixed_smiles_public_descriptors("solvent", solvent_smiles),
+                    **prefixed_smiles_motif_descriptors("acid", acid_smiles),
+                    **prefixed_smiles_motif_descriptors("amine", amine_smiles),
+                    **prefixed_smiles_motif_descriptors("reagent", reagent_smiles),
+                    "reagent_coupling_family": chemlex_reagent_family(reagent_smiles),
                     "random_split": str(row.get("Random_Split", "")),
                     "stratified_split_one_unseen": str(row.get("Stratified_Split_One_Unseen", "")),
                     "stratified_split_both_unseen": str(row.get("Stratified_Split_Both_Unseen", "")),
