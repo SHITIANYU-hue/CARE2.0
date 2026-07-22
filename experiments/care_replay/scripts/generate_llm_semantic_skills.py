@@ -161,6 +161,15 @@ def build_prompt_payload(
         "design_requirements": [
             f"Return exactly {skill_count} diverse skills.",
             "Use only exact field/value pairs in public_semantic_fields.",
+            (
+                "Each conditions object must map a real catalog field name directly to one exact "
+                "catalog value, for example {\"dominant_family\": \"oxide\"}. Never use literal "
+                "placeholder keys such as exact_field, field_name, field, or value."
+            ),
+            (
+                "Give every skill a distinct, descriptive scientific skill_id. Never copy schema "
+                "placeholders such as short_unique_name or add numeric suffixes to a placeholder."
+            ),
             "Give every skill 3-10 rules; use two-condition interactions only when scientifically meaningful.",
             "Include at least one conservative low-semantic-mass skill.",
             evidence_requirement,
@@ -190,10 +199,10 @@ def build_prompt_payload(
         },
         "output_contract": {
             "skills": [{
-                "skill_id": "short_unique_name",
+                "skill_id": "descriptive_scientific_skill_id",
                 "rules": [{
                     "rule_id": "mechanistic_rule",
-                    "conditions": {"exact_field": "exact_value"},
+                    "conditions": {"field_name_from_public_semantic_fields": "exact_catalog_value"},
                     "weight": 0.5,
                     "rationale": "short scientific rationale",
                 }],

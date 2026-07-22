@@ -250,6 +250,67 @@ Build the paired transfer significance audit:
 python3 experiments/care_replay/scripts/build_transfer_significance_summary.py
 ```
 
+Run the source-evidence causality ablation for an LLM semantic skill library:
+
+```bash
+export COMMONSTACK_API_KEY="..."
+python3 experiments/care_replay/scripts/generate_llm_semantic_skills.py \
+  --source-dataset real_suzuki_miyaura \
+  --target-dataset real_buchwald_hartwig \
+  --evidence-mode full \
+  --llm-temperature 0 \
+  --output experiments/care_replay/outputs/llm_semantic/causality/bh_full.json
+python3 experiments/care_replay/scripts/generate_llm_semantic_skills.py \
+  --source-dataset real_suzuki_miyaura \
+  --target-dataset real_buchwald_hartwig \
+  --evidence-mode source_schema_only \
+  --llm-temperature 0 \
+  --output experiments/care_replay/outputs/llm_semantic/causality/bh_source_schema_only.json
+python3 experiments/care_replay/scripts/generate_llm_semantic_skills.py \
+  --source-dataset real_suzuki_miyaura \
+  --target-dataset real_buchwald_hartwig \
+  --evidence-mode target_only \
+  --llm-temperature 0 \
+  --output experiments/care_replay/outputs/llm_semantic/causality/bh_target_only.json
+```
+
+Evaluate the three records with identical calibration and held-out seed ranges,
+then compare their `llm_calibrated_selector` rows with
+`build_source_evidence_ablation.py`. `full` includes source outcome statistics;
+`source_schema_only` keeps only source identity and public field alignment;
+`target_only` withholds the source task entirely. The predeclared pair set and
+reporting rule are stored in `configs/semantic_transfer_pairs.json`.
+
+Measure target-experiment savings from the held-out audit traces:
+
+```bash
+python3 experiments/care_replay/scripts/build_round_efficiency_summary.py \
+  --summary experiments/care_replay/outputs/runs/<output_id>_summary.json \
+  --audit-dir experiments/care_replay/outputs/runs \
+  --output-id <output_id> \
+  --initial 5 \
+  --rounds 10 \
+  --output experiments/care_replay/outputs/runs/<output_id>_round_efficiency.json
+```
+
+The report includes best-so-far deltas at fixed budgets, rounds needed to
+reach the frozen target baseline's final quality, and rounds needed to find a
+globally top-10 candidate. Misses are right-censored at `rounds + 1` and are
+reported with hit rates rather than silently discarded.
+
+For a frozen skill, run the same held-out seeds with `--disable-rule-prior`
+and `--disable-semantic-model`, then use
+`build_semantic_component_ablation.py` to separate the contribution of the
+LLM-proposed coefficient direction, executable rule partition, and acquisition
+schedule. `build_round_efficiency_summary.py` also accepts
+`--baseline-output-id` and `--baseline-mode` for paired round-efficiency
+comparisons across those runs.
+
+`plot_round_efficiency.py` renders the paired best-so-far trajectory with a
+95% confidence band and the cumulative global top-10 discovery curves used in
+the report. Plot rendering requires `matplotlib`; the replay itself has no
+plotting dependency.
+
 Outputs:
 
 - `outputs/tables/<dataset_id>_metrics.csv`

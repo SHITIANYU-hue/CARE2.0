@@ -129,6 +129,25 @@ class LlmSemanticSkillsTest(unittest.TestCase):
         self.assertEqual(payload["mapped_roles"], [])
         self.assertEqual(payload["shared_value_priors"], [])
 
+    def test_prompt_contract_uses_real_catalog_field_placeholders(self) -> None:
+        payload = generate.build_prompt_payload(
+            "real_suzuki_miyaura",
+            "real_buchwald_hartwig",
+            512,
+            0.65,
+            8,
+            "target_only",
+        )
+        conditions = payload["output_contract"]["skills"][0]["rules"][0]["conditions"]
+        self.assertEqual(
+            conditions,
+            {"field_name_from_public_semantic_fields": "exact_catalog_value"},
+        )
+        self.assertEqual(
+            payload["output_contract"]["skills"][0]["skill_id"],
+            "descriptive_scientific_skill_id",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
