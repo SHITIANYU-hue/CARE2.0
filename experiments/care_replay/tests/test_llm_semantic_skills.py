@@ -10,6 +10,7 @@ SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 import llm_semantic_skills as semantic  # noqa: E402
+import generate_llm_semantic_skills as generate  # noqa: E402
 import run_synthetic_suzuki as replay  # noqa: E402
 
 
@@ -100,6 +101,33 @@ class LlmSemanticSkillsTest(unittest.TestCase):
             replay.chemlex_reagent_family("CN(C)C(On1nnc2cccnc21)=[N+](C)C"),
             "aza_benzotriazole_uronium",
         )
+
+    def test_source_schema_ablation_withholds_outcome_statistics(self) -> None:
+        payload = generate.source_evidence_payload(
+            "real_suzuki_miyaura",
+            "real_buchwald_hartwig",
+            512,
+            0.65,
+            "source_schema_only",
+        )
+        self.assertEqual(payload["evidence_mode"], "source_schema_only")
+        self.assertTrue(payload["mapped_roles"])
+        self.assertIsNone(payload["source_outcome_statistics"])
+        self.assertEqual(payload["shared_value_priors"], [])
+        self.assertNotIn("source_mean_abs_effect", str(payload))
+
+    def test_target_only_ablation_withholds_source_identity(self) -> None:
+        payload = generate.source_evidence_payload(
+            "real_suzuki_miyaura",
+            "real_buchwald_hartwig",
+            512,
+            0.65,
+            "target_only",
+        )
+        self.assertEqual(payload["evidence_mode"], "target_only")
+        self.assertIsNone(payload["source_dataset"])
+        self.assertEqual(payload["mapped_roles"], [])
+        self.assertEqual(payload["shared_value_priors"], [])
 
 
 if __name__ == "__main__":

@@ -311,6 +311,7 @@ def main() -> None:
         "experiment": "care_calibrated_llm_semantic_skill_selector",
         "source_dataset": record.get("source_dataset"),
         "target_dataset": args.target_dataset,
+        "evidence_mode": record.get("evidence_mode", "full"),
         "llm_model": record.get("model"),
         "llm_generation_call_count": int(record.get("llm_generation_call_count", 1)),
         "new_llm_call_count": 0,
@@ -334,11 +335,17 @@ def main() -> None:
             "auc_95ci_positive": strongest_stats["best_so_far_auc"]["normal_95ci_low"] > 0.0,
             "top10_95ci_positive": strongest_stats["top10_hit"]["normal_95ci_low"] > 0.0,
         },
-        "evidence_boundary": (
-            "The LLM sees source summaries and public target field vocabularies only. Calibration "
-            "selects a skill before held-out evaluation. Every per-round fit uses only previously "
-            "revealed target outcomes."
-        ),
+        "evidence_boundary": {
+            "generation": (
+                record.get("prompt_payload", {})
+                .get("source_transfer_evidence", {})
+                .get("boundary", "Generation evidence boundary was not recorded.")
+            ),
+            "evaluation": (
+                "Calibration selects a skill before held-out evaluation. Every per-round fit uses "
+                "only previously revealed target outcomes."
+            ),
+        },
     }
     output_id = f"calibrated_llm_semantic_{args.target_dataset}"
     if args.output_tag:

@@ -15,6 +15,9 @@ import run_synthetic_suzuki as replay
 import run_transfer_ablation as transfer
 
 
+EVIDENCE_MODES = ("full", "source_schema_only", "target_only")
+
+
 def transfer_card_payload(
     source_dataset: str,
     target_dataset: str,
@@ -46,15 +49,78 @@ def transfer_card_payload(
     }
 
 
+def source_evidence_payload(
+    source_dataset: str,
+    target_dataset: str,
+    source_observations: int,
+    discount: float,
+    evidence_mode: str,
+) -> dict[str, Any]:
+    if evidence_mode == "full":
+        payload = transfer_card_payload(
+            source_dataset,
+            target_dataset,
+            source_observations,
+            discount,
+        )
+        payload["evidence_mode"] = evidence_mode
+        return payload
+    if evidence_mode == "source_schema_only":
+        source = replay.DATASET_BUILDERS[source_dataset]()
+        role_map = transfer.descriptor_transfer_role_map_for(source_dataset, target_dataset)
+        return {
+            "evidence_mode": evidence_mode,
+            "source_dataset": source_dataset,
+            "source_objective": source.objective,
+            "mapped_roles": [
+                {"source_field": source_field, "target_field": target_field}
+                for source_field, target_field in sorted(role_map.items())
+            ],
+            "source_outcome_statistics": None,
+            "shared_value_priors": [],
+            "boundary": (
+                "Only source identity, objective, and public source-target field alignment are "
+                "provided. Source outcomes, effects, support counts, and value priors are withheld."
+            ),
+        }
+    if evidence_mode == "target_only":
+        return {
+            "evidence_mode": evidence_mode,
+            "source_dataset": None,
+            "source_objective": None,
+            "mapped_roles": [],
+            "source_outcome_statistics": None,
+            "shared_value_priors": [],
+            "boundary": (
+                "No source identity, source schema, source outcomes, source effects, or source value "
+                "priors are provided. The LLM must use the public target schema and its pretrained "
+                "domain knowledge only."
+            ),
+        }
+    raise ValueError(f"Unsupported evidence mode: {evidence_mode}")
+
+
 def build_prompt_payload(
     source_dataset: str,
     target_dataset: str,
     source_observations: int,
     discount: float,
     skill_count: int,
+    evidence_mode: str = "full",
 ) -> dict[str, Any]:
     target = replay.DATASET_BUILDERS[target_dataset]()
     catalog = semantic.semantic_field_catalog(target)
+    evidence_requirement = {
+        "full": "Include at least one skill explicitly grounded in the supplied source outcome evidence.",
+        "source_schema_only": (
+            "Include at least one skill grounded only in the supplied source-target field alignment; "
+            "do not imply that source outcome effects were observed."
+        ),
+        "target_only": (
+            "Use only target-schema-compatible domain knowledge; do not imply that a source task or "
+            "source outcomes were observed."
+        ),
+    }[evidence_mode]
     return {
         "task": (
             "Design a diverse library of executable semantic optimization skills for finite-pool "
@@ -70,11 +136,12 @@ def build_prompt_payload(
             "hidden_target": target.hidden_target,
             "boundary": "Field values and counts are public; target outcomes are not included.",
         },
-        "source_transfer_evidence": transfer_card_payload(
+        "source_transfer_evidence": source_evidence_payload(
             source_dataset,
             target_dataset,
             source_observations,
             discount,
+            evidence_mode,
         ),
         "executor": {
             "semantic_model": (
@@ -96,7 +163,8 @@ def build_prompt_payload(
             "Use only exact field/value pairs in public_semantic_fields.",
             "Give every skill 3-10 rules; use two-condition interactions only when scientifically meaningful.",
             "Include at least one conservative low-semantic-mass skill.",
-            "Include at least one source-evidence skill and one domain-knowledge skill.",
+            evidence_requirement,
+            "Include at least one domain-knowledge skill.",
             "Include a counter-hypothesis skill that reverses or downweights an uncertain source relation.",
             "Prefer mechanistic, chemically or physically interpretable rules over arbitrary coverage rules.",
             "Use positive weights for conditions expected to improve the target objective and negative weights for risks.",
@@ -152,6 +220,7 @@ def main() -> None:
     parser.add_argument("--source-observations", type=int, default=512)
     parser.add_argument("--discount", type=float, default=0.65)
     parser.add_argument("--skill-count", type=int, default=8)
+    parser.add_argument("--evidence-mode", choices=EVIDENCE_MODES, default="full")
     parser.add_argument("--llm-base-url", default="https://api.commonstack.ai/v1")
     parser.add_argument("--llm-model", default="openai/gpt-4o-mini")
     parser.add_argument("--llm-api-key-env", default="COMMONSTACK_API_KEY")
@@ -167,6 +236,7 @@ def main() -> None:
         args.source_observations,
         args.discount,
         args.skill_count,
+        args.evidence_mode,
     )
     config = replay.LLMConfig(
         base_url=args.llm_base_url,
@@ -206,6 +276,7 @@ def main() -> None:
         },
         "source_dataset": args.source_dataset,
         "target_dataset": args.target_dataset,
+        "evidence_mode": args.evidence_mode,
         "prompt_payload": payload,
         "raw_response": content,
         "parsed_response": parsed,
