@@ -42,10 +42,12 @@ def build_curves(
     rounds: int,
     baseline_output_id: str | None = None,
     baseline_mode: str | None = None,
+    llm_mode: str | None = None,
 ) -> dict[str, Any]:
     dataset_id = str(summary["target_dataset"])
     baseline_output_id = baseline_output_id or output_id
     baseline_mode = baseline_mode or str(summary["selection"]["target_anchor_mode"])
+    llm_mode = llm_mode or efficiency.SELECTOR_MODE
     seed_start = int(summary["heldout_seed_start"])
     seed_count = int(summary["heldout_seed_count"])
     adapter = replay.DATASET_BUILDERS[dataset_id]()
@@ -63,27 +65,52 @@ def build_curves(
 
     for seed in range(seed_start, seed_start + seed_count):
         llm_events = efficiency.load_events(
-            efficiency.audit_path(audit_dir, output_id, efficiency.SELECTOR_MODE, seed)
+            efficiency.audit_path(audit_dir, output_id, llm_mode, seed)
         )
         baseline_events = efficiency.load_events(
             efficiency.audit_path(audit_dir, baseline_output_id, baseline_mode, seed)
         )
-        initial_best, initial_hit = efficiency.initial_context(
+        baseline_initial_best, baseline_initial_hit = efficiency.initial_context(
             adapter,
             seed,
             initial,
             top10_ids,
         )
+        llm_initial_best, llm_initial_hit = efficiency.llm_initial_context(
+            adapter,
+            seed,
+            initial,
+            top10_ids,
+            llm_events,
+        )
         for round_count in range(rounds + 1):
             paired_by_round[round_count].append(
-                efficiency.best_at_round(llm_events, initial_best, round_count)
-                - efficiency.best_at_round(baseline_events, initial_best, round_count)
+                efficiency.best_at_round(
+                    llm_events,
+                    llm_initial_best,
+                    round_count,
+                )
+                - efficiency.best_at_round(
+                    baseline_events,
+                    baseline_initial_best,
+                    round_count,
+                )
             )
             llm_hits[round_count] += int(
-                trace_has_top10(llm_events, initial_hit, top10_ids, round_count)
+                trace_has_top10(
+                    llm_events,
+                    llm_initial_hit,
+                    top10_ids,
+                    round_count,
+                )
             )
             baseline_hits[round_count] += int(
-                trace_has_top10(baseline_events, initial_hit, top10_ids, round_count)
+                trace_has_top10(
+                    baseline_events,
+                    baseline_initial_hit,
+                    top10_ids,
+                    round_count,
+                )
             )
 
     return {
@@ -92,6 +119,7 @@ def build_curves(
         "llm_top10_rate": [llm_hits[index] / seed_count for index in range(rounds + 1)],
         "baseline_top10_rate": [baseline_hits[index] / seed_count for index in range(rounds + 1)],
         "baseline_mode": baseline_mode,
+        "llm_mode": llm_mode,
         "seed_count": seed_count,
         "dataset": dataset_id,
     }
@@ -129,7 +157,7 @@ def plot_curves(curves: dict[str, Any], output: Path, title: str) -> None:
     axes[0].axhline(0, color=charcoal, linewidth=1.0, linestyle="--")
     axes[0].set_title("Paired best-so-far improvement")
     axes[0].set_xlabel("Target acquisition round")
-    axes[0].set_ylabel("LLM selector minus target baseline")
+    axes[0].set_ylabel("Best-so-far delta")
 
     axes[1].plot(
         rounds,
@@ -138,7 +166,7 @@ def plot_curves(curves: dict[str, Any], output: Path, title: str) -> None:
         linewidth=2.2,
         marker="o",
         markersize=3.8,
-        label="LLM selector",
+        label="Routed LLM strategy",
     )
     axes[1].plot(
         rounds,
@@ -156,7 +184,8 @@ def plot_curves(curves: dict[str, Any], output: Path, title: str) -> None:
     axes[1].legend(frameon=False, loc="upper left")
 
     for axis in axes:
-        axis.set_xticks(rounds)
+        tick_step = 1 if len(rounds) <= 7 else 2
+        axis.set_xticks(rounds[::tick_step])
         axis.grid(axis="y", color=grid, linewidth=0.8)
         axis.spines["top"].set_visible(False)
         axis.spines["right"].set_visible(False)
@@ -181,6 +210,7 @@ def main() -> None:
     parser.add_argument("--output-id", required=True)
     parser.add_argument("--baseline-output-id", default="")
     parser.add_argument("--baseline-mode", default="")
+    parser.add_argument("--llm-mode", default="")
     parser.add_argument("--initial", type=int, default=5)
     parser.add_argument("--rounds", type=int, default=10)
     parser.add_argument("--title", default="CARE 2.0 round efficiency")
@@ -196,6 +226,7 @@ def main() -> None:
         args.rounds,
         args.baseline_output_id or None,
         args.baseline_mode or None,
+        args.llm_mode or None,
     )
     plot_curves(curves, args.output, args.title)
 

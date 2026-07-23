@@ -22,6 +22,7 @@ import run_transfer_weighted_kernel as weighted
 
 LLM_DIRECT_SELECTOR_MODE = "llm_direct_prior_selector"
 LLAMBO_WARMSTART_SELECTOR_MODE = "llambo_warmstart_selector"
+CARE_STRATEGY_ROUTER_MODE = "care_strategy_router"
 
 
 def expand_skill_variants(
@@ -81,6 +82,7 @@ def add_mode_alias(
     alias_mode: str,
     heldout_seeds: set[int],
     selection_rule: str,
+    trace_key: str = "external_baseline_selector",
 ) -> None:
     for source_row in list(rows):
         if str(source_row["mode"]) != source_mode or int(source_row["seed"]) not in heldout_seeds:
@@ -94,12 +96,97 @@ def add_mode_alias(
         for source_event in audits[(source_mode, seed)]:
             event = deepcopy(source_event)
             event["mode"] = alias_mode
-            event["external_baseline_selector"] = {
+            event[trace_key] = {
                 "selected_source_mode": source_mode,
                 "selection_rule": selection_rule,
             }
             alias_audit.append(event)
         audits[(alias_mode, seed)] = alias_audit
+
+
+def select_strategy_route(
+    rows: list[dict[str, Any]],
+    calibration_seeds: set[int],
+    candidate_modes: tuple[str, ...],
+    target_anchor_mode: str,
+    min_risk_adjusted_gain: float,
+    min_positive_fold_rate: float,
+    min_final_non_loss_rate: float = 0.55,
+) -> tuple[str, dict[str, Any]]:
+    """Choose an execution strategy from calibration rows only."""
+    unique_modes = tuple(dict.fromkeys(candidate_modes))
+    diagnostics: dict[str, Any] = {}
+    eligible_modes = [target_anchor_mode]
+    for mode in unique_modes:
+        if mode == target_anchor_mode:
+            diagnostics[mode] = {
+                "eligible": True,
+                "risk_adjusted_composite_gain": 0.0,
+                "reason": "target-only fallback",
+            }
+            continue
+        final = selector.paired_deltas(
+            rows, mode, target_anchor_mode, calibration_seeds, "final_best"
+        )
+        auc = selector.paired_deltas(
+            rows, mode, target_anchor_mode, calibration_seeds, "best_so_far_auc"
+        )
+        composite = [left + right for left, right in zip(final, auc)]
+        final_stats = selector.delta_summary(final)
+        auc_stats = selector.delta_summary(auc)
+        composite_stats = selector.delta_summary(composite)
+        fold_rate, fold_means = selector.positive_fold_rate(composite, 5)
+        risk_adjusted = composite_stats["mean"] - 0.5 * composite_stats["se"]
+        accepted = bool(
+            final_stats["mean"] >= 0.0
+            and auc_stats["mean"] >= 0.0
+            and fold_rate >= min_positive_fold_rate
+            and final_stats["non_loss_rate"] >= min_final_non_loss_rate
+            and risk_adjusted >= min_risk_adjusted_gain
+        )
+        diagnostics[mode] = {
+            "final_best": final_stats,
+            "best_so_far_auc": auc_stats,
+            "composite": composite_stats,
+            "positive_fold_rate": round(fold_rate, 6),
+            "fold_composite_means": fold_means,
+            "risk_adjusted_composite_gain": round(risk_adjusted, 6),
+            "eligible": accepted,
+        }
+        if accepted:
+            eligible_modes.append(mode)
+    selected_mode = max(
+        eligible_modes,
+        key=lambda mode: (
+            float(diagnostics[mode]["risk_adjusted_composite_gain"]),
+            mode,
+        ),
+    )
+    rule = (
+        "Choose among the frozen semantic selector, LLM-direct prior, "
+        "LLAMBO-style warm-start, and the target-only anchor using calibration "
+        "seeds only. Require non-negative final-best and AUC deltas, stable "
+        "folds, and a positive risk-adjusted composite gain; otherwise fall "
+        "back to the target-only anchor."
+    )
+    return selected_mode, {
+        "selected_mode": selected_mode,
+        "selected_llm_strategy": selected_mode != target_anchor_mode,
+        "target_anchor_mode": target_anchor_mode,
+        "candidate_modes": list(unique_modes),
+        "eligible_modes": eligible_modes,
+        "diagnostics": diagnostics,
+        "thresholds": {
+            "min_risk_adjusted_composite_gain": min_risk_adjusted_gain,
+            "min_positive_fold_rate": min_positive_fold_rate,
+            "min_final_non_loss_rate": min_final_non_loss_rate,
+        },
+        "rule": rule,
+        "evidence_boundary": (
+            "Only calibration outcomes choose the strategy. Held-out outcomes "
+            "are used once for the frozen comparison."
+        ),
+    }
 
 
 def evaluate_seed(
@@ -434,6 +521,31 @@ def main() -> None:
                 "calibration": calibration_means,
                 "rule": rule,
             }
+    strategy_candidates = [
+        selection["target_anchor_mode"],
+        selected_mode,
+        *(
+            str(family["selected_mode"])
+            for family in external_selection.values()
+        ),
+    ]
+    strategy_mode, strategy_route = select_strategy_route(
+        rows,
+        calibration_seeds,
+        tuple(strategy_candidates),
+        selection["target_anchor_mode"],
+        args.min_risk_adjusted_gain,
+        args.min_positive_fold_rate,
+    )
+    add_mode_alias(
+        rows,
+        audits,
+        strategy_mode,
+        CARE_STRATEGY_ROUTER_MODE,
+        heldout_seeds,
+        strategy_route["rule"],
+        trace_key="strategy_router",
+    )
     all_modes = (
         *selector.TARGET_MODES,
         *(semantic.skill_mode(skill) for skill in skills),
@@ -444,6 +556,7 @@ def main() -> None:
             else ()
         ),
         selector.SELECTOR_MODE,
+        CARE_STRATEGY_ROUTER_MODE,
     )
     calibration = selector.mode_means(rows, all_modes, calibration_seeds)
     heldout = selector.mode_means(rows, all_modes, heldout_seeds)
@@ -478,6 +591,33 @@ def main() -> None:
         }
         for alias in (LLM_DIRECT_SELECTOR_MODE, LLAMBO_WARMSTART_SELECTOR_MODE)
     } if args.include_llm_baselines else {}
+    strategy_pairwise = {
+        baseline: {
+            field: selector.delta_summary(selector.paired_deltas(
+                rows,
+                CARE_STRATEGY_ROUTER_MODE,
+                baseline,
+                heldout_seeds,
+                field,
+            ))
+            for field in ("final_best", "best_so_far_auc", "top10_hit")
+        }
+        for baseline in selector.TARGET_MODES
+    }
+    strategy_vs_external = {
+        alias: {
+            field: selector.delta_summary(selector.paired_deltas(
+                rows,
+                CARE_STRATEGY_ROUTER_MODE,
+                alias,
+                heldout_seeds,
+                field,
+            ))
+            for field in ("final_best", "best_so_far_auc", "top10_hit")
+        }
+        for alias in (LLM_DIRECT_SELECTOR_MODE, LLAMBO_WARMSTART_SELECTOR_MODE)
+    } if args.include_llm_baselines else {}
+    strategy_stats = strategy_pairwise[strongest_target]
     summary = {
         "experiment": "care_calibrated_llm_semantic_skill_selector",
         "source_dataset": record.get("source_dataset"),
@@ -502,6 +642,23 @@ def main() -> None:
         "heldout_pairwise": pairwise,
         "external_llm_baselines": external_selection,
         "care_vs_external_llm": care_vs_external,
+        "strategy_router": strategy_route,
+        "strategy_router_strongest_target_mode": strongest_target,
+        "strategy_router_pairwise": strategy_pairwise,
+        "strategy_router_vs_external_llm": strategy_vs_external,
+        "strategy_router_validation": {
+            "selected_llm_strategy": strategy_route["selected_llm_strategy"],
+            "strongest_target_mode": strongest_target,
+            "final_95ci_positive": (
+                strategy_stats["final_best"]["normal_95ci_low"] > 0.0
+            ),
+            "auc_95ci_positive": (
+                strategy_stats["best_so_far_auc"]["normal_95ci_low"] > 0.0
+            ),
+            "top10_95ci_positive": (
+                strategy_stats["top10_hit"]["normal_95ci_low"] > 0.0
+            ),
+        },
         "heldout_validation": {
             "selected_llm_skill": selection["selected_llm_skill"],
             "strongest_target_mode": strongest_target,

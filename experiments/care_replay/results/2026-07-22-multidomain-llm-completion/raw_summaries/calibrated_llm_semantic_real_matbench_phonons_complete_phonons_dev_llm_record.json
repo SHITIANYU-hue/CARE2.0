@@ -1,0 +1,852 @@
+{
+  "model": "deepspeek-v3.2",
+  "usage": {
+    "prompt_tokens": 2673,
+    "total_tokens": 5246,
+    "completion_tokens": 2573,
+    "prompt_tokens_details": null,
+    "reasoning_tokens": 0
+  },
+  "llm_generation_call_count": 1,
+  "api_configuration": {
+    "base_url": "<redacted-private-endpoint>",
+    "api_mode": "chat",
+    "structured_mode": "json",
+    "temperature": 0.35,
+    "max_tokens": 6500
+  },
+  "source_dataset": "real_matbench_log_kvrh",
+  "target_dataset": "real_matbench_phonons",
+  "evidence_mode": "target_only",
+  "prompt_payload": {
+    "task": "Design a diverse library of executable semantic optimization skills for finite-pool scientific search. Each skill defines interpretable rule features plus a conservative Bayesian linear surrogate blended with strong target-only GP-UCB and GP-EI anchors.",
+    "target": {
+      "dataset": "real_matbench_phonons",
+      "title": "Matbench phonon peak replay",
+      "objective": "maximize_last_phonon_dos_peak",
+      "candidate_count": 1265,
+      "public_semantic_fields": {
+        "anion_family": {
+          "carbide_or_carbon": 15,
+          "chalcogenide": 284,
+          "halide": 274,
+          "other": 74,
+          "oxide": 360,
+          "pnictide": 258
+        },
+        "element_count_bin": {
+          "binary": 303,
+          "quinary_senary": 3,
+          "ternary_quaternary": 959
+        },
+        "dominant_family": {
+          "alkali": 143,
+          "alkaline_earth": 70,
+          "chalcogen": 478,
+          "halogen": 219,
+          "light_nonmetal": 35,
+          "metalloid": 112,
+          "pnictogen": 108,
+          "post_transition": 22,
+          "transition_metal": 78
+        },
+        "transition_metal_flag": {
+          "has_transition_metal": 615,
+          "no_transition_metal": 650
+        },
+        "lanthanide_flag": {
+          "has_lanthanide": 41,
+          "no_lanthanide": 1224
+        },
+        "mean_atomic_number_bin": {
+          "mean_z_high": 177,
+          "mean_z_low": 443,
+          "mean_z_mid": 637,
+          "mean_z_very_high": 8
+        },
+        "max_element_fraction_bin": {
+          "balanced": 170,
+          "concentrated": 549,
+          "dominant_element_heavy": 9,
+          "moderately_concentrated": 537
+        }
+      },
+      "hidden_target": "normalized_property_score",
+      "boundary": "Field values and counts are public; target outcomes are not included."
+    },
+    "source_transfer_evidence": {
+      "evidence_mode": "target_only",
+      "source_dataset": null,
+      "source_objective": null,
+      "mapped_roles": [],
+      "source_outcome_statistics": null,
+      "shared_value_priors": [],
+      "boundary": "No source identity, source schema, source outcomes, source effects, or source value priors are provided. The LLM must use the public target schema and its pretrained domain knowledge only."
+    },
+    "executor": {
+      "semantic_model": "Rules become binary features. Revealed target outcomes fit a ridge Bayesian linear surrogate whose coefficient prior follows rule weights.",
+      "anchor": "A rank blend of target-only GP-UCB and GP-EI.",
+      "fusion": "semantic_mass_start/end controls the rank mass assigned to the semantic surrogate; the remaining mass stays on the target-only anchor.",
+      "selection": "Independent calibration seeds select one frozen skill. Independent held-out seeds are evaluated only after selection."
+    },
+    "design_requirements": [
+      "Return exactly 10 diverse skills.",
+      "Use only exact field/value pairs in public_semantic_fields.",
+      "Each conditions object must map a real catalog field name directly to one exact catalog value, for example {\"dominant_family\": \"oxide\"}. Never use literal placeholder keys such as exact_field, field_name, field, or value.",
+      "Give every skill a distinct, descriptive scientific skill_id. Never copy schema placeholders such as short_unique_name or add numeric suffixes to a placeholder.",
+      "Give every skill 3-10 rules; use two-condition interactions only when scientifically meaningful.",
+      "Include at least one conservative low-semantic-mass skill.",
+      "Use only target-schema-compatible domain knowledge; do not imply that a source task or source outcomes were observed.",
+      "Include at least one domain-knowledge skill.",
+      "Include a counter-hypothesis skill that reverses or downweights an uncertain source relation.",
+      "Prefer mechanistic, chemically or physically interpretable rules over arbitrary coverage rules.",
+      "Use positive weights for conditions expected to improve the target objective and negative weights for risks.",
+      "Do not claim access to target outcomes and do not output candidate identifiers."
+    ],
+    "allowed_ranges": {
+      "rule_weight": "[-1, 1]",
+      "ridge": "[0.05, 20]",
+      "prior_scale": "[0, 1.5]",
+      "semantic_mass_start_end": "[0, 0.85]",
+      "ucb_weight": "[0, 1]; EI weight is 1 - ucb_weight",
+      "gp_beta_start_end": "[0.2, 4]",
+      "gp_xi": "[0, 0.2]",
+      "confidence": "[0.05, 1]"
+    },
+    "output_contract": {
+      "skills": [
+        {
+          "skill_id": "descriptive_scientific_skill_id",
+          "rules": [
+            {
+              "rule_id": "mechanistic_rule",
+              "conditions": {
+                "field_name_from_public_semantic_fields": "exact_catalog_value"
+              },
+              "weight": 0.5,
+              "rationale": "short scientific rationale"
+            }
+          ],
+          "ridge": 1.0,
+          "prior_scale": 0.25,
+          "semantic_mass_start": 0.3,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.7,
+          "hypothesis": "what this skill transfers and when it may fail"
+        }
+      ]
+    },
+    "care_knowledge_context": {
+      "cards": [
+        {
+          "id": "transfer.real-suzuki-miyaura-to-real-buchwald-hartwig-gate-reject-2026-07-21",
+          "type": "transfer",
+          "title": "Gate-rejected transfer: real_suzuki_miyaura to real_buchwald_hartwig",
+          "summary": "All evidence modes failed calibration and fell back to the target acquisition portfolio.",
+          "content": "Reusable lesson: do not force a source-derived semantic policy when every evidence mode fails calibration. Preserve the target-only fallback and improve the reaction representation before retrying.",
+          "tags": [
+            "real_suzuki_miyaura",
+            "real_buchwald_hartwig",
+            "negative-transfer",
+            "gate-reject"
+          ],
+          "updated_at": "2026-07-21",
+          "score": -15.115636561270897
+        },
+        {
+          "id": "mechanism.layered-skill-transfer",
+          "type": "mechanism",
+          "title": "Layered transferable skill artifact",
+          "summary": "CARE 2.0 skill transfer should not be limited to acquisition-level score adjustment; a reusable skill should specify representation mapping, mechanism hypothesis, model binding, acquisition binding, gate/risk checks, and workflow boundaries.",
+          "content": "A layered transferable skill artifact records six linked layers. Representation layer: what source fields or descriptors can be mapped to the target task. Mechanism layer: what scientific hypothesis is being reused, such as role importance, descriptor relevance, solvation, sterics, electronics, or stability. Model layer: how the skill changes a surrogate model, embedding, kernel, feature transform, or uncertainty prior. Acquisition layer: how it changes candidate ranking, UCB/EI, exploration strength, or candidate filtering. Gate/risk layer: when the transfer is allowed, when it should be rejected, and what negative-transfer failure modes are known. Workflow layer: experiment constraints, budget, batch design, data reveal protocol, and audit outputs. This card is the intended CARE 2.0 abstraction behind the current transfer-weighted kernel experiments.",
+          "tags": [
+            "mechanism",
+            "skill transfer",
+            "transferable skill",
+            "representation",
+            "mechanism",
+            "acquisition",
+            "gate",
+            "workflow"
+          ],
+          "updated_at": "2026-07-04",
+          "score": -8.189409767475448
+        },
+        {
+          "id": "skill.semantic-real-moleculenet-lipophilicity-high-aromatic-content-2026-07-21",
+          "type": "skill",
+          "title": "Reusable semantic feature pattern: high_aromatic_content",
+          "summary": "For real_moleculenet_lipophilicity, use the LLM to define the high_aromatic_content feature partition, then fit its direction and magnitude from revealed target observations.",
+          "content": "Evidence mode: target_only. Rule prior: disabled. Reusable lesson: preserve the LLM-proposed feature partition, but calibrate or remove unsupported coefficient signs before held-out evaluation.",
+          "tags": [
+            "real_moleculenet_lipophilicity",
+            "high_aromatic_content",
+            "target_only",
+            "schema-to-skill",
+            "target-calibration"
+          ],
+          "updated_at": "2026-07-21",
+          "score": -7.912150687188857
+        },
+        {
+          "id": "skill.semantic-real-matbench-expt-gap-high-element-count-2026-07-21",
+          "type": "skill",
+          "title": "Reusable semantic feature pattern: high_element_count",
+          "summary": "For real_matbench_expt_gap, use the LLM to define the high_element_count feature partition, then fit its direction and magnitude from revealed target observations.",
+          "content": "Evidence mode: target_only. Rule prior: disabled. Reusable lesson: preserve the LLM-proposed feature partition, but calibrate or remove unsupported coefficient signs before held-out evaluation.",
+          "tags": [
+            "real_matbench_expt_gap",
+            "high_element_count",
+            "target_only",
+            "schema-to-skill",
+            "target-calibration"
+          ],
+          "updated_at": "2026-07-21",
+          "score": -7.857404722651182
+        },
+        {
+          "id": "skill.semantic-real-moleculenet-freesolv-branching-effect-2026-07-21",
+          "type": "skill",
+          "title": "Reusable semantic feature pattern: branching_effect",
+          "summary": "For real_moleculenet_freesolv, use the LLM to define the branching_effect feature partition, then fit its direction and magnitude from revealed target observations.",
+          "content": "Evidence mode: source_schema_only. Rule prior: enabled. Reusable lesson: preserve the LLM-proposed feature partition, but calibrate or remove unsupported coefficient signs before held-out evaluation.",
+          "tags": [
+            "real_moleculenet_freesolv",
+            "branching_effect",
+            "source_schema_only",
+            "schema-to-skill",
+            "target-calibration"
+          ],
+          "updated_at": "2026-07-21",
+          "score": -7.777155172401812
+        },
+        {
+          "id": "skill.transfer-weighted-gp-kernel",
+          "type": "skill",
+          "title": "Transfer-weighted GP kernel skill",
+          "summary": "A reusable acquisition-model skill that uses source-to-target transfer-card role confidence to reweight categorical fields in the mixed-kernel GP-UCB surrogate.",
+          "content": "This skill does not directly add a post-hoc candidate bonus and does not directly select candidate ids. It converts a transfer card into categorical kernel weights so that the GP-UCB acquisition treats source-supported target fields as more important in the similarity geometry. The current implementation lives in experiments/care_replay/scripts/run_transfer_weighted_kernel.py. The first tested binding uses normalized weights of the form 1 + scale * role_confidence, with scale=1.5 as the cleanest setting across Suzuki-Miyaura to Buchwald-Hartwig and FreeSolv to Lipophilicity. The skill is public-evidence safe because role confidence is compiled from revealed source observations and target public feature names, while target hidden outcomes remain unavailable until selected.",
+          "tags": [
+            "skill",
+            "transfer",
+            "GP-UCB",
+            "kernel",
+            "surrogate",
+            "acquisition",
+            "skill optimization"
+          ],
+          "updated_at": "2026-07-04",
+          "score": -6.679771453235039
+        }
+      ],
+      "instruction": "Use these public, previously archived cards only as reusable design lessons. Do not copy reported target values into a rule and do not imply that the current target outcomes were observed. Prefer lessons that survived held-out calibration."
+    }
+  },
+  "raw_response": "{\n  \"skills\": [\n    {\n      \"skill_id\": \"optimize_oxide_ternary_phonon_peak\",\n      \"rules\": [\n        {\n          \"rule_id\": \"oxide_ternary_stability\",\n          \"conditions\": {\n            \"dominant_family\": \"oxide\",\n            \"element_count_bin\": \"ternary_quaternary\"\n          },\n          \"weight\": 0.8,\n          \"rationale\": \"Oxide-based ternary compounds often exhibit phonon peak stability due to strong ionic bonding and lattice symmetry.\"\n        },\n        {\n          \"rule_id\": \"high_atomic_number_balance\",\n          \"conditions\": {\n            \"mean_atomic_number_bin\": \"mean_z_mid\",\n            \"max_element_fraction_bin\": \"balanced\"\n          },\n          \"weight\": 0.6,\n          \"rationale\": \"Moderate atomic number distribution with balanced elemental composition enhances phonon dispersion and peak sharpness.\"\n        }\n      ],\n      \"ridge\": 1.5,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.4,\n      \"semantic_mass_end\": 0.2,\n      \"ucb_weight\": 0.7,\n      \"gp_beta_start\": 3.0,\n      \"gp_beta_end\": 1.5,\n      \"gp_xi\": 0.02,\n      \"confidence\": 0.85,\n      \"hypothesis\": \"This skill may fail in systems with strong covalent character or significant lattice distortions.\"\n    },\n    {\n      \"skill_id\": \"enhance_chalcogenide_phonon_response\",\n      \"rules\": [\n        {\n          \"rule_id\": \"chalcogenide_transition_metal_interaction\",\n          \"conditions\": {\n            \"dominant_family\": \"chalcogenide\",\n            \"transition_metal_flag\": \"has_transition_metal\"\n          },\n          \"weight\": 0.9,\n          \"rationale\": \"Transition metals in chalcogenides introduce d-orbital interactions that enhance phonon peak intensity.\"\n        },\n        {\n          \"rule_id\": \"moderate_element_concentration\",\n          \"conditions\": {\n            \"max_element_fraction_bin\": \"moderately_concentrated\"\n          },\n          \"weight\": 0.4,\n          \"rationale\": \"Moderate concentration prevents excessive disorder, which can broaden phonon peaks.\"\n        }\n      ],\n      \"ridge\": 2.0,\n      \"prior_scale\": 0.4,\n      \"semantic_mass_start\": 0.6,\n      \"semantic_mass_end\": 0.3,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 2.5,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.03,\n      \"confidence\": 0.78,\n      \"hypothesis\": \"May underperform in highly disordered or non-ideal crystal structures.\"\n    },\n    {\n      \"skill_id\": \"suppress_halide_phonon_damping\",\n      \"rules\": [\n        {\n          \"rule_id\": \"halide_lattice_stiffness\",\n          \"conditions\": {\n            \"dominant_family\": \"halide\",\n            \"transition_metal_flag\": \"no_transition_metal\"\n          },\n          \"weight\": -1.0,\n          \"rationale\": \"Non-transition metal halides often exhibit phonon damping due to weak interatomic forces.\"\n        }\n      ],\n      \"ridge\": 0.1,\n      \"prior_scale\": 0.1,\n      \"semantic_mass_start\": 0.1,\n      \"semantic_mass_end\": 0.05,\n      \"ucb_weight\": 0.3,\n      \"gp_beta_start\": 0.5,\n      \"gp_beta_end\": 0.3,\n      \"gp_xi\": 0.01,\n      \"confidence\": 0.65,\n      \"hypothesis\": \"This skill is conservative and may not improve peak height in halide systems with high disorder.\"\n    },\n    {\n      \"skill_id\": \"promote_alkali_oxide_phonon_clarity\",\n      \"rules\": [\n        {\n          \"rule_id\": \"alkali_oxide_high_symmetry\",\n          \"conditions\": {\n            \"dominant_family\": \"oxide\",\n            \"dominant_family\": \"alkali\"\n          },\n          \"weight\": 0.7,\n          \"rationale\": \"Alkali oxides with high symmetry produce well-defined phonon peaks due to uniform atomic arrangements.\"\n        }\n      ],\n      \"ridge\": 1.2,\n      \"prior_scale\": 0.2,\n      \"semantic_mass_start\": 0.3,\n      \"semantic_mass_end\": 0.1,\n      \"ucb_weight\": 0.8,\n      \"gp_beta_start\": 3.5,\n      \"gp_beta_end\": 2.0,\n      \"gp_xi\": 0.015,\n      \"confidence\": 0.8,\n      \"hypothesis\": \"May not generalize to systems with significant ionic size mismatch.\"\n    },\n    {\n      \"skill_id\": \"target_pnictide_phonon_peak_enhancement\",\n      \"rules\": [\n        {\n          \"rule_id\": \"pnictide_high_atomic_number\",\n          \"conditions\": {\n            \"dominant_family\": \"pnictide\",\n            \"mean_atomic_number_bin\": \"mean_z_high\"\n          },\n          \"weight\": 0.6,\n          \"rationale\": \"High atomic number elements in pnictides contribute to stronger phonon coupling and peak formation.\"\n        },\n        {\n          \"rule_id\": \"pnictide_transition_metal_interaction\",\n          \"conditions\": {\n            \"transition_metal_flag\": \"has_transition_metal\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Transition metals enhance phonon peak amplitude through hybridization effects.\"\n        }\n      ],\n      \"ridge\": 1.8,\n      \"prior_scale\": 0.35,\n      \"semantic_mass_start\": 0.5,\n      \"semantic_mass_end\": 0.2,\n      \"ucb_weight\": 0.6,\n      \"gp_beta_start\": 2.8,\n      \"gp_beta_end\": 1.2,\n      \"gp_xi\": 0.02,\n      \"confidence\": 0.75,\n      \"hypothesis\": \"May fail in systems with low structural coherence or high defect density.\"\n    },\n    {\n      \"skill_id\": \"optimize_binary_oxide_phonon_fidelity\",\n      \"rules\": [\n        {\n          \"rule_id\": \"binary_oxide_lattice_order\",\n          \"conditions\": {\n            \"element_count_bin\": \"binary\",\n            \"dominant_family\": \"oxide\"\n          },\n          \"weight\": 0.9,\n          \"rationale\": \"Binary oxides with ordered lattices exhibit sharp and reproducible phonon peaks.\"\n        }\n      ],\n      \"ridge\": 0.5,\n      \"prior_scale\": 0.25,\n      \"semantic_mass_start\": 0.2,\n      \"semantic_mass_end\": 0.08,\n      \"ucb_weight\": 0.4,\n      \"gp_beta_start\": 1.8,\n      \"gp_beta_end\": 0.8,\n      \"gp_xi\": 0.01,\n      \"confidence\": 0.7,\n      \"hypothesis\": \"May not improve peak height in disordered or amorphous binary oxides.\"\n    },\n    {\n      \"skill_id\": \"counter_hypothesis_halide_phonon_suppression\",\n      \"rules\": [\n        {\n          \"rule_id\": \"halide_phonon_damping\",\n          \"conditions\": {\n            \"dominant_family\": \"halide\",\n            \"transition_metal_flag\": \"has_transition_metal\"\n          },\n          \"weight\": -1.0,\n          \"rationale\": \"Transition metals in halides can introduce phonon damping due to anharmonic effects.\"\n        }\n      ],\n      \"ridge\": 0.05,\n      \"prior_scale\": 0.1,\n      \"semantic_mass_start\": 0.05,\n      \"semantic_mass_end\": 0.02,\n      \"ucb_weight\": 0.2,\n      \"gp_beta_start\": 0.4,\n      \"gp_beta_end\": 0.2,\n      \"gp_xi\": 0.005,\n      \"confidence\": 0.6,\n      \"hypothesis\": \"This skill explicitly downweights halide systems with transition metals, serving as a counter-hypothesis to the general phonon enhancement trend.\"\n    },\n    {\n      \"skill_id\": \"maximize_light_nonmetal_phonon_response\",\n      \"rules\": [\n        {\n          \"rule_id\": \"light_nonmetal_high_symmetry\",\n          \"conditions\": {\n            \"dominant_family\": \"light_nonmetal\",\n            \"element_count_bin\": \"ternary_quaternary\"\n          },\n          \"weight\": 0.7,\n          \"rationale\": \"Light nonmetals in complex structures can support high phonon peak frequencies due to low mass and high vibrational modes.\"\n        }\n      ],\n      \"ridge\": 1.0,\n      \"prior_scale\": 0.2,\n      \"semantic_mass_start\": 0.35,\n      \"semantic_mass_end\": 0.15,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 2.0,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.015,\n      \"confidence\": 0.72,\n      \"hypothesis\": \"May not scale well with increasing complexity or disorder.\"\n    },\n    {\n      \"skill_id\": \"preserve_lanthanide_phonon_stability\",\n      \"rules\": [\n        {\n          \"rule_id\": \"lanthanide_lattice_hardening\",\n          \"conditions\": {\n            \"lanthanide_flag\": \"has_lanthanide\"\n          },\n          \"weight\": 0.4,\n          \"rationale\": \"Lanthanide ions contribute to lattice rigidity, which can stabilize phonon peaks.\"\n        }\n      ],\n      \"ridge\": 0.8,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.2,\n      \"semantic_mass_end\": 0.1,\n      \"ucb_weight\": 0.3,\n      \"gp_beta_start\": 1.5,\n      \"gp_beta_end\": 0.9,\n      \"gp_xi\": 0.01,\n      \"confidence\": 0.68,\n      \"hypothesis\": \"May not be effective in systems where lanthanide ions are not well-integrated into the lattice.\"\n    },\n    {\n      \"skill_id\": \"domain_knowledge_oxide_phonon_peak\",\n      \"rules\": [\n        {\n          \"rule_id\": \"oxide_phonon_peak_mechanism\",\n          \"conditions\": {\n            \"dominant_family\": \"oxide\",\n            \"transition_metal_flag\": \"no_transition_metal\"\n          },\n          \"weight\": 0.8,\n          \"rationale\": \"Oxides without transition metals exhibit phonon peaks due to strong ionic bonding and low anharmonicity.\"\n        },\n        {\n          \"rule_id\": \"oxide_element_balance\",\n          \"conditions\": {\n            \"max_element_fraction_bin\": \"balanced\"\n          },\n          \"weight\": 0.6,\n          \"rationale\": \"Balanced elemental composition reduces lattice strain and improves phonon peak sharpness.\"\n        }\n      ],\n      \"ridge\": 1.4,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.5,\n      \"semantic_mass_end\": 0.3,\n      \"ucb_weight\": 0.65,\n      \"gp_beta_start\": 3.0,\n      \"gp_beta_end\": 1.8,\n      \"gp_xi\": 0.02,\n      \"confidence\": 0.82,\n      \"hypothesis\": \"May not apply to systems with high defect density or non-ideal stoichiometry.\"\n    }\n  ]\n}",
+  "parsed_response": {
+    "skills": [
+      {
+        "skill_id": "optimize_oxide_ternary_phonon_peak",
+        "rules": [
+          {
+            "rule_id": "oxide_ternary_stability",
+            "conditions": {
+              "dominant_family": "oxide",
+              "element_count_bin": "ternary_quaternary"
+            },
+            "weight": 0.8,
+            "rationale": "Oxide-based ternary compounds often exhibit phonon peak stability due to strong ionic bonding and lattice symmetry."
+          },
+          {
+            "rule_id": "high_atomic_number_balance",
+            "conditions": {
+              "mean_atomic_number_bin": "mean_z_mid",
+              "max_element_fraction_bin": "balanced"
+            },
+            "weight": 0.6,
+            "rationale": "Moderate atomic number distribution with balanced elemental composition enhances phonon dispersion and peak sharpness."
+          }
+        ],
+        "ridge": 1.5,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.4,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.7,
+        "gp_beta_start": 3.0,
+        "gp_beta_end": 1.5,
+        "gp_xi": 0.02,
+        "confidence": 0.85,
+        "hypothesis": "This skill may fail in systems with strong covalent character or significant lattice distortions."
+      },
+      {
+        "skill_id": "enhance_chalcogenide_phonon_response",
+        "rules": [
+          {
+            "rule_id": "chalcogenide_transition_metal_interaction",
+            "conditions": {
+              "dominant_family": "chalcogenide",
+              "transition_metal_flag": "has_transition_metal"
+            },
+            "weight": 0.9,
+            "rationale": "Transition metals in chalcogenides introduce d-orbital interactions that enhance phonon peak intensity."
+          },
+          {
+            "rule_id": "moderate_element_concentration",
+            "conditions": {
+              "max_element_fraction_bin": "moderately_concentrated"
+            },
+            "weight": 0.4,
+            "rationale": "Moderate concentration prevents excessive disorder, which can broaden phonon peaks."
+          }
+        ],
+        "ridge": 2.0,
+        "prior_scale": 0.4,
+        "semantic_mass_start": 0.6,
+        "semantic_mass_end": 0.3,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 2.5,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.03,
+        "confidence": 0.78,
+        "hypothesis": "May underperform in highly disordered or non-ideal crystal structures."
+      },
+      {
+        "skill_id": "suppress_halide_phonon_damping",
+        "rules": [
+          {
+            "rule_id": "halide_lattice_stiffness",
+            "conditions": {
+              "dominant_family": "halide",
+              "transition_metal_flag": "no_transition_metal"
+            },
+            "weight": -1.0,
+            "rationale": "Non-transition metal halides often exhibit phonon damping due to weak interatomic forces."
+          }
+        ],
+        "ridge": 0.1,
+        "prior_scale": 0.1,
+        "semantic_mass_start": 0.1,
+        "semantic_mass_end": 0.05,
+        "ucb_weight": 0.3,
+        "gp_beta_start": 0.5,
+        "gp_beta_end": 0.3,
+        "gp_xi": 0.01,
+        "confidence": 0.65,
+        "hypothesis": "This skill is conservative and may not improve peak height in halide systems with high disorder."
+      },
+      {
+        "skill_id": "promote_alkali_oxide_phonon_clarity",
+        "rules": [
+          {
+            "rule_id": "alkali_oxide_high_symmetry",
+            "conditions": {
+              "dominant_family": "alkali"
+            },
+            "weight": 0.7,
+            "rationale": "Alkali oxides with high symmetry produce well-defined phonon peaks due to uniform atomic arrangements."
+          }
+        ],
+        "ridge": 1.2,
+        "prior_scale": 0.2,
+        "semantic_mass_start": 0.3,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.8,
+        "gp_beta_start": 3.5,
+        "gp_beta_end": 2.0,
+        "gp_xi": 0.015,
+        "confidence": 0.8,
+        "hypothesis": "May not generalize to systems with significant ionic size mismatch."
+      },
+      {
+        "skill_id": "target_pnictide_phonon_peak_enhancement",
+        "rules": [
+          {
+            "rule_id": "pnictide_high_atomic_number",
+            "conditions": {
+              "dominant_family": "pnictide",
+              "mean_atomic_number_bin": "mean_z_high"
+            },
+            "weight": 0.6,
+            "rationale": "High atomic number elements in pnictides contribute to stronger phonon coupling and peak formation."
+          },
+          {
+            "rule_id": "pnictide_transition_metal_interaction",
+            "conditions": {
+              "transition_metal_flag": "has_transition_metal"
+            },
+            "weight": 0.5,
+            "rationale": "Transition metals enhance phonon peak amplitude through hybridization effects."
+          }
+        ],
+        "ridge": 1.8,
+        "prior_scale": 0.35,
+        "semantic_mass_start": 0.5,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.8,
+        "gp_beta_end": 1.2,
+        "gp_xi": 0.02,
+        "confidence": 0.75,
+        "hypothesis": "May fail in systems with low structural coherence or high defect density."
+      },
+      {
+        "skill_id": "optimize_binary_oxide_phonon_fidelity",
+        "rules": [
+          {
+            "rule_id": "binary_oxide_lattice_order",
+            "conditions": {
+              "element_count_bin": "binary",
+              "dominant_family": "oxide"
+            },
+            "weight": 0.9,
+            "rationale": "Binary oxides with ordered lattices exhibit sharp and reproducible phonon peaks."
+          }
+        ],
+        "ridge": 0.5,
+        "prior_scale": 0.25,
+        "semantic_mass_start": 0.2,
+        "semantic_mass_end": 0.08,
+        "ucb_weight": 0.4,
+        "gp_beta_start": 1.8,
+        "gp_beta_end": 0.8,
+        "gp_xi": 0.01,
+        "confidence": 0.7,
+        "hypothesis": "May not improve peak height in disordered or amorphous binary oxides."
+      },
+      {
+        "skill_id": "counter_hypothesis_halide_phonon_suppression",
+        "rules": [
+          {
+            "rule_id": "halide_phonon_damping",
+            "conditions": {
+              "dominant_family": "halide",
+              "transition_metal_flag": "has_transition_metal"
+            },
+            "weight": -1.0,
+            "rationale": "Transition metals in halides can introduce phonon damping due to anharmonic effects."
+          }
+        ],
+        "ridge": 0.05,
+        "prior_scale": 0.1,
+        "semantic_mass_start": 0.05,
+        "semantic_mass_end": 0.02,
+        "ucb_weight": 0.2,
+        "gp_beta_start": 0.4,
+        "gp_beta_end": 0.2,
+        "gp_xi": 0.005,
+        "confidence": 0.6,
+        "hypothesis": "This skill explicitly downweights halide systems with transition metals, serving as a counter-hypothesis to the general phonon enhancement trend."
+      },
+      {
+        "skill_id": "maximize_light_nonmetal_phonon_response",
+        "rules": [
+          {
+            "rule_id": "light_nonmetal_high_symmetry",
+            "conditions": {
+              "dominant_family": "light_nonmetal",
+              "element_count_bin": "ternary_quaternary"
+            },
+            "weight": 0.7,
+            "rationale": "Light nonmetals in complex structures can support high phonon peak frequencies due to low mass and high vibrational modes."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.2,
+        "semantic_mass_start": 0.35,
+        "semantic_mass_end": 0.15,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.015,
+        "confidence": 0.72,
+        "hypothesis": "May not scale well with increasing complexity or disorder."
+      },
+      {
+        "skill_id": "preserve_lanthanide_phonon_stability",
+        "rules": [
+          {
+            "rule_id": "lanthanide_lattice_hardening",
+            "conditions": {
+              "lanthanide_flag": "has_lanthanide"
+            },
+            "weight": 0.4,
+            "rationale": "Lanthanide ions contribute to lattice rigidity, which can stabilize phonon peaks."
+          }
+        ],
+        "ridge": 0.8,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.2,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.3,
+        "gp_beta_start": 1.5,
+        "gp_beta_end": 0.9,
+        "gp_xi": 0.01,
+        "confidence": 0.68,
+        "hypothesis": "May not be effective in systems where lanthanide ions are not well-integrated into the lattice."
+      },
+      {
+        "skill_id": "domain_knowledge_oxide_phonon_peak",
+        "rules": [
+          {
+            "rule_id": "oxide_phonon_peak_mechanism",
+            "conditions": {
+              "dominant_family": "oxide",
+              "transition_metal_flag": "no_transition_metal"
+            },
+            "weight": 0.8,
+            "rationale": "Oxides without transition metals exhibit phonon peaks due to strong ionic bonding and low anharmonicity."
+          },
+          {
+            "rule_id": "oxide_element_balance",
+            "conditions": {
+              "max_element_fraction_bin": "balanced"
+            },
+            "weight": 0.6,
+            "rationale": "Balanced elemental composition reduces lattice strain and improves phonon peak sharpness."
+          }
+        ],
+        "ridge": 1.4,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.5,
+        "semantic_mass_end": 0.3,
+        "ucb_weight": 0.65,
+        "gp_beta_start": 3.0,
+        "gp_beta_end": 1.8,
+        "gp_xi": 0.02,
+        "confidence": 0.82,
+        "hypothesis": "May not apply to systems with high defect density or non-ideal stoichiometry."
+      }
+    ]
+  },
+  "normalized_skills": [
+    {
+      "skill_id": "optimize_oxide_ternary_phonon_peak",
+      "rules": [
+        {
+          "rule_id": "oxide_ternary_stability",
+          "conditions": [
+            [
+              "element_count_bin",
+              "ternary_quaternary"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Oxide-based ternary compounds often exhibit phonon peak stability due to strong ionic bonding and lattice symmetry."
+        },
+        {
+          "rule_id": "high_atomic_number_balance",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "balanced"
+            ],
+            [
+              "mean_atomic_number_bin",
+              "mean_z_mid"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Moderate atomic number distribution with balanced elemental composition enhances phonon dispersion and peak sharpness."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 3.0,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.02,
+      "confidence": 0.85,
+      "hypothesis": "This skill may fail in systems with strong covalent character or significant lattice distortions."
+    },
+    {
+      "skill_id": "enhance_chalcogenide_phonon_response",
+      "rules": [
+        {
+          "rule_id": "chalcogenide_transition_metal_interaction",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": 0.9,
+          "rationale": "Transition metals in chalcogenides introduce d-orbital interactions that enhance phonon peak intensity."
+        },
+        {
+          "rule_id": "moderate_element_concentration",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "moderately_concentrated"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Moderate concentration prevents excessive disorder, which can broaden phonon peaks."
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.6,
+      "semantic_mass_end": 0.3,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.03,
+      "confidence": 0.78,
+      "hypothesis": "May underperform in highly disordered or non-ideal crystal structures."
+    },
+    {
+      "skill_id": "suppress_halide_phonon_damping",
+      "rules": [
+        {
+          "rule_id": "halide_lattice_stiffness",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "no_transition_metal"
+            ]
+          ],
+          "weight": -1.0,
+          "rationale": "Non-transition metal halides often exhibit phonon damping due to weak interatomic forces."
+        }
+      ],
+      "ridge": 0.1,
+      "prior_scale": 0.1,
+      "semantic_mass_start": 0.1,
+      "semantic_mass_end": 0.05,
+      "ucb_weight": 0.3,
+      "gp_beta_start": 0.5,
+      "gp_beta_end": 0.3,
+      "gp_xi": 0.01,
+      "confidence": 0.65,
+      "hypothesis": "This skill is conservative and may not improve peak height in halide systems with high disorder."
+    },
+    {
+      "skill_id": "promote_alkali_oxide_phonon_clarity",
+      "rules": [
+        {
+          "rule_id": "alkali_oxide_high_symmetry",
+          "conditions": [
+            [
+              "dominant_family",
+              "alkali"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Alkali oxides with high symmetry produce well-defined phonon peaks due to uniform atomic arrangements."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.2,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.8,
+      "gp_beta_start": 3.5,
+      "gp_beta_end": 2.0,
+      "gp_xi": 0.015,
+      "confidence": 0.8,
+      "hypothesis": "May not generalize to systems with significant ionic size mismatch."
+    },
+    {
+      "skill_id": "target_pnictide_phonon_peak_enhancement",
+      "rules": [
+        {
+          "rule_id": "pnictide_high_atomic_number",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_high"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "High atomic number elements in pnictides contribute to stronger phonon coupling and peak formation."
+        },
+        {
+          "rule_id": "pnictide_transition_metal_interaction",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Transition metals enhance phonon peak amplitude through hybridization effects."
+        }
+      ],
+      "ridge": 1.8,
+      "prior_scale": 0.35,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.8,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.02,
+      "confidence": 0.75,
+      "hypothesis": "May fail in systems with low structural coherence or high defect density."
+    },
+    {
+      "skill_id": "optimize_binary_oxide_phonon_fidelity",
+      "rules": [
+        {
+          "rule_id": "binary_oxide_lattice_order",
+          "conditions": [
+            [
+              "element_count_bin",
+              "binary"
+            ]
+          ],
+          "weight": 0.9,
+          "rationale": "Binary oxides with ordered lattices exhibit sharp and reproducible phonon peaks."
+        }
+      ],
+      "ridge": 0.5,
+      "prior_scale": 0.25,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 1.8,
+      "gp_beta_end": 0.8,
+      "gp_xi": 0.01,
+      "confidence": 0.7,
+      "hypothesis": "May not improve peak height in disordered or amorphous binary oxides."
+    },
+    {
+      "skill_id": "counter_hypothesis_halide_phonon_suppression",
+      "rules": [
+        {
+          "rule_id": "halide_phonon_damping",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": -1.0,
+          "rationale": "Transition metals in halides can introduce phonon damping due to anharmonic effects."
+        }
+      ],
+      "ridge": 0.05,
+      "prior_scale": 0.1,
+      "semantic_mass_start": 0.05,
+      "semantic_mass_end": 0.02,
+      "ucb_weight": 0.2,
+      "gp_beta_start": 0.4,
+      "gp_beta_end": 0.2,
+      "gp_xi": 0.005,
+      "confidence": 0.6,
+      "hypothesis": "This skill explicitly downweights halide systems with transition metals, serving as a counter-hypothesis to the general phonon enhancement trend."
+    },
+    {
+      "skill_id": "maximize_light_nonmetal_phonon_response",
+      "rules": [
+        {
+          "rule_id": "light_nonmetal_high_symmetry",
+          "conditions": [
+            [
+              "dominant_family",
+              "light_nonmetal"
+            ],
+            [
+              "element_count_bin",
+              "ternary_quaternary"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Light nonmetals in complex structures can support high phonon peak frequencies due to low mass and high vibrational modes."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.2,
+      "semantic_mass_start": 0.35,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.015,
+      "confidence": 0.72,
+      "hypothesis": "May not scale well with increasing complexity or disorder."
+    },
+    {
+      "skill_id": "preserve_lanthanide_phonon_stability",
+      "rules": [
+        {
+          "rule_id": "lanthanide_lattice_hardening",
+          "conditions": [
+            [
+              "lanthanide_flag",
+              "has_lanthanide"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Lanthanide ions contribute to lattice rigidity, which can stabilize phonon peaks."
+        }
+      ],
+      "ridge": 0.8,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.3,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 0.9,
+      "gp_xi": 0.01,
+      "confidence": 0.68,
+      "hypothesis": "May not be effective in systems where lanthanide ions are not well-integrated into the lattice."
+    },
+    {
+      "skill_id": "domain_knowledge_oxide_phonon_peak",
+      "rules": [
+        {
+          "rule_id": "oxide_phonon_peak_mechanism",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "no_transition_metal"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Oxides without transition metals exhibit phonon peaks due to strong ionic bonding and low anharmonicity."
+        },
+        {
+          "rule_id": "oxide_element_balance",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "balanced"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Balanced elemental composition reduces lattice strain and improves phonon peak sharpness."
+        }
+      ],
+      "ridge": 1.4,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.3,
+      "ucb_weight": 0.65,
+      "gp_beta_start": 3.0,
+      "gp_beta_end": 1.8,
+      "gp_xi": 0.02,
+      "confidence": 0.82,
+      "hypothesis": "May not apply to systems with high defect density or non-ideal stoichiometry."
+    }
+  ],
+  "knowledge_retrieval": {
+    "enabled": true,
+    "db": "knowledge_base/care_kb.sqlite",
+    "cutoff": "2026-07-21",
+    "card_ids": [
+      "transfer.real-suzuki-miyaura-to-real-buchwald-hartwig-gate-reject-2026-07-21",
+      "mechanism.layered-skill-transfer",
+      "skill.semantic-real-moleculenet-lipophilicity-high-aromatic-content-2026-07-21",
+      "skill.semantic-real-matbench-expt-gap-high-element-count-2026-07-21",
+      "skill.semantic-real-moleculenet-freesolv-branching-effect-2026-07-21",
+      "skill.transfer-weighted-gp-kernel"
+    ]
+  }
+}

@@ -1,0 +1,782 @@
+{
+  "model": "deepspeek-v3.2",
+  "usage": {
+    "prompt_tokens": 2573,
+    "total_tokens": 4924,
+    "completion_tokens": 2351,
+    "prompt_tokens_details": null,
+    "reasoning_tokens": 0
+  },
+  "llm_generation_call_count": 1,
+  "api_configuration": {
+    "base_url": "<redacted-private-endpoint>",
+    "api_mode": "chat",
+    "structured_mode": "json",
+    "temperature": 0.35,
+    "max_tokens": 6500
+  },
+  "source_dataset": "real_moleculenet_freesolv",
+  "target_dataset": "real_moleculenet_esol",
+  "evidence_mode": "target_only",
+  "prompt_payload": {
+    "task": "Design a diverse library of executable semantic optimization skills for finite-pool scientific search. Each skill defines interpretable rule features plus a conservative Bayesian linear surrogate blended with strong target-only GP-UCB and GP-EI anchors.",
+    "target": {
+      "dataset": "real_moleculenet_esol",
+      "title": "MoleculeNet ESOL Delaney solubility replay",
+      "objective": "maximize_normalized_solubility",
+      "candidate_count": 1128,
+      "public_semantic_fields": {
+        "smiles_length_bin": {
+          "smiles_long": 61,
+          "smiles_mid": 476,
+          "smiles_short": 589,
+          "smiles_very_long": 2
+        },
+        "hbond_donor_bin": {
+          "donor_high": 10,
+          "donor_low": 444,
+          "donor_mid": 39,
+          "donor_none": 635
+        },
+        "ring_bin": {
+          "rings_high": 25,
+          "rings_low": 607,
+          "rings_mid": 179,
+          "rings_none": 317
+        },
+        "rotatable_bond_bin": {
+          "rot_high": 143,
+          "rot_low": 593,
+          "rot_mid": 362,
+          "rot_very_high": 30
+        }
+      },
+      "hidden_target": "normalized_solubility_score",
+      "boundary": "Field values and counts are public; target outcomes are not included."
+    },
+    "source_transfer_evidence": {
+      "evidence_mode": "target_only",
+      "source_dataset": null,
+      "source_objective": null,
+      "mapped_roles": [],
+      "source_outcome_statistics": null,
+      "shared_value_priors": [],
+      "boundary": "No source identity, source schema, source outcomes, source effects, or source value priors are provided. The LLM must use the public target schema and its pretrained domain knowledge only."
+    },
+    "executor": {
+      "semantic_model": "Rules become binary features. Revealed target outcomes fit a ridge Bayesian linear surrogate whose coefficient prior follows rule weights.",
+      "anchor": "A rank blend of target-only GP-UCB and GP-EI.",
+      "fusion": "semantic_mass_start/end controls the rank mass assigned to the semantic surrogate; the remaining mass stays on the target-only anchor.",
+      "selection": "Independent calibration seeds select one frozen skill. Independent held-out seeds are evaluated only after selection."
+    },
+    "design_requirements": [
+      "Return exactly 10 diverse skills.",
+      "Use only exact field/value pairs in public_semantic_fields.",
+      "Each conditions object must map a real catalog field name directly to one exact catalog value, for example {\"dominant_family\": \"oxide\"}. Never use literal placeholder keys such as exact_field, field_name, field, or value.",
+      "Give every skill a distinct, descriptive scientific skill_id. Never copy schema placeholders such as short_unique_name or add numeric suffixes to a placeholder.",
+      "Give every skill 3-10 rules; use two-condition interactions only when scientifically meaningful.",
+      "Include at least one conservative low-semantic-mass skill.",
+      "Use only target-schema-compatible domain knowledge; do not imply that a source task or source outcomes were observed.",
+      "Include at least one domain-knowledge skill.",
+      "Include a counter-hypothesis skill that reverses or downweights an uncertain source relation.",
+      "Prefer mechanistic, chemically or physically interpretable rules over arbitrary coverage rules.",
+      "Use positive weights for conditions expected to improve the target objective and negative weights for risks.",
+      "Do not claim access to target outcomes and do not output candidate identifiers."
+    ],
+    "allowed_ranges": {
+      "rule_weight": "[-1, 1]",
+      "ridge": "[0.05, 20]",
+      "prior_scale": "[0, 1.5]",
+      "semantic_mass_start_end": "[0, 0.85]",
+      "ucb_weight": "[0, 1]; EI weight is 1 - ucb_weight",
+      "gp_beta_start_end": "[0.2, 4]",
+      "gp_xi": "[0, 0.2]",
+      "confidence": "[0.05, 1]"
+    },
+    "output_contract": {
+      "skills": [
+        {
+          "skill_id": "descriptive_scientific_skill_id",
+          "rules": [
+            {
+              "rule_id": "mechanistic_rule",
+              "conditions": {
+                "field_name_from_public_semantic_fields": "exact_catalog_value"
+              },
+              "weight": 0.5,
+              "rationale": "short scientific rationale"
+            }
+          ],
+          "ridge": 1.0,
+          "prior_scale": 0.25,
+          "semantic_mass_start": 0.3,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.7,
+          "hypothesis": "what this skill transfers and when it may fail"
+        }
+      ]
+    },
+    "care_knowledge_context": {
+      "cards": [
+        {
+          "id": "transfer.real-suzuki-miyaura-to-real-buchwald-hartwig-gate-reject-2026-07-21",
+          "type": "transfer",
+          "title": "Gate-rejected transfer: real_suzuki_miyaura to real_buchwald_hartwig",
+          "summary": "All evidence modes failed calibration and fell back to the target acquisition portfolio.",
+          "content": "Reusable lesson: do not force a source-derived semantic policy when every evidence mode fails calibration. Preserve the target-only fallback and improve the reaction representation before retrying.",
+          "tags": [
+            "real_suzuki_miyaura",
+            "real_buchwald_hartwig",
+            "negative-transfer",
+            "gate-reject"
+          ],
+          "updated_at": "2026-07-21",
+          "score": -15.115636561270897
+        },
+        {
+          "id": "skill.semantic-real-moleculenet-freesolv-branching-effect-2026-07-21",
+          "type": "skill",
+          "title": "Reusable semantic feature pattern: branching_effect",
+          "summary": "For real_moleculenet_freesolv, use the LLM to define the branching_effect feature partition, then fit its direction and magnitude from revealed target observations.",
+          "content": "Evidence mode: source_schema_only. Rule prior: enabled. Reusable lesson: preserve the LLM-proposed feature partition, but calibrate or remove unsupported coefficient signs before held-out evaluation.",
+          "tags": [
+            "real_moleculenet_freesolv",
+            "branching_effect",
+            "source_schema_only",
+            "schema-to-skill",
+            "target-calibration"
+          ],
+          "updated_at": "2026-07-21",
+          "score": -11.878054081060228
+        },
+        {
+          "id": "mechanism.layered-skill-transfer",
+          "type": "mechanism",
+          "title": "Layered transferable skill artifact",
+          "summary": "CARE 2.0 skill transfer should not be limited to acquisition-level score adjustment; a reusable skill should specify representation mapping, mechanism hypothesis, model binding, acquisition binding, gate/risk checks, and workflow boundaries.",
+          "content": "A layered transferable skill artifact records six linked layers. Representation layer: what source fields or descriptors can be mapped to the target task. Mechanism layer: what scientific hypothesis is being reused, such as role importance, descriptor relevance, solvation, sterics, electronics, or stability. Model layer: how the skill changes a surrogate model, embedding, kernel, feature transform, or uncertainty prior. Acquisition layer: how it changes candidate ranking, UCB/EI, exploration strength, or candidate filtering. Gate/risk layer: when the transfer is allowed, when it should be rejected, and what negative-transfer failure modes are known. Workflow layer: experiment constraints, budget, batch design, data reveal protocol, and audit outputs. This card is the intended CARE 2.0 abstraction behind the current transfer-weighted kernel experiments.",
+          "tags": [
+            "mechanism",
+            "skill transfer",
+            "transferable skill",
+            "representation",
+            "mechanism",
+            "acquisition",
+            "gate",
+            "workflow"
+          ],
+          "updated_at": "2026-07-04",
+          "score": -8.189409767475448
+        },
+        {
+          "id": "skill.semantic-real-moleculenet-lipophilicity-high-aromatic-content-2026-07-21",
+          "type": "skill",
+          "title": "Reusable semantic feature pattern: high_aromatic_content",
+          "summary": "For real_moleculenet_lipophilicity, use the LLM to define the high_aromatic_content feature partition, then fit its direction and magnitude from revealed target observations.",
+          "content": "Evidence mode: target_only. Rule prior: disabled. Reusable lesson: preserve the LLM-proposed feature partition, but calibrate or remove unsupported coefficient signs before held-out evaluation.",
+          "tags": [
+            "real_moleculenet_lipophilicity",
+            "high_aromatic_content",
+            "target_only",
+            "schema-to-skill",
+            "target-calibration"
+          ],
+          "updated_at": "2026-07-21",
+          "score": -7.912150687188857
+        },
+        {
+          "id": "skill.semantic-real-matbench-expt-gap-high-element-count-2026-07-21",
+          "type": "skill",
+          "title": "Reusable semantic feature pattern: high_element_count",
+          "summary": "For real_matbench_expt_gap, use the LLM to define the high_element_count feature partition, then fit its direction and magnitude from revealed target observations.",
+          "content": "Evidence mode: target_only. Rule prior: disabled. Reusable lesson: preserve the LLM-proposed feature partition, but calibrate or remove unsupported coefficient signs before held-out evaluation.",
+          "tags": [
+            "real_matbench_expt_gap",
+            "high_element_count",
+            "target_only",
+            "schema-to-skill",
+            "target-calibration"
+          ],
+          "updated_at": "2026-07-21",
+          "score": -7.857404722651182
+        },
+        {
+          "id": "transfer.freesolv-to-lipophilicity-transferable-skill",
+          "type": "transfer",
+          "title": "FreeSolv to Lipophilicity transferable skill",
+          "summary": "A molecular-property transferable skill instance using shared SMILES-derived descriptor fields as the representation bridge.",
+          "content": "Representation mapping: shared descriptor bins such as smiles_length_bin, hetero_atom_bin, halogen_bin, aromatic_bin, ring_token_bin, branch_bin, and double_bond_bin transfer directly because the source and target adapters use the same public vocabulary. Mechanism hypothesis: coarse SMILES-derived structure descriptors can indicate reusable molecular-property search geometry across hydration free energy and lipophilicity tasks. Model binding: transfer-card role confidence reweights the categorical GP kernel. Acquisition binding: GP-UCB remains the selector. Gate/risk boundary: value-level transfer is only allowed for shared descriptor vocabularies; dataset-local labels should not be transferred this way. Current 50-seed result: GP-UCB final_best 88.4775 / AUC 86.4578; transfer_weighted_gp_ucb_scale_1p5 final_best 88.5650 / AUC 86.6808.",
+          "tags": [
+            "transfer",
+            "MoleculeNet",
+            "FreeSolv",
+            "Lipophilicity",
+            "SMILES descriptors",
+            "GP-UCB",
+            "molecular property"
+          ],
+          "updated_at": "2026-07-04",
+          "score": -7.657770959746029
+        }
+      ],
+      "instruction": "Use these public, previously archived cards only as reusable design lessons. Do not copy reported target values into a rule and do not imply that the current target outcomes were observed. Prefer lessons that survived held-out calibration."
+    }
+  },
+  "raw_response": "{\n  \"skills\": [\n    {\n      \"skill_id\": \"optimize_for_high_solubility_via_low_hbond_donors\",\n      \"rules\": [\n        {\n          \"rule_id\": \"reduce_hbond_donors\",\n          \"conditions\": {\n            \"hbond_donor_bin\": \"donor_low\"\n          },\n          \"weight\": 0.8,\n          \"rationale\": \"Fewer hydrogen bond donors reduce molecular polarity and improve solubility in aqueous environments.\"\n        },\n        {\n          \"rule_id\": \"minimize_ring_count\",\n          \"conditions\": {\n            \"ring_bin\": \"rings_low\"\n          },\n          \"weight\": 0.6,\n          \"rationale\": \"Smaller ring systems reduce molecular surface area and enhance solubility by minimizing hydrophobic interactions.\"\n        }\n      ],\n      \"ridge\": 1.5,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.4,\n      \"semantic_mass_end\": 0.2,\n      \"ucb_weight\": 0.7,\n      \"gp_beta_start\": 2.5,\n      \"gp_beta_end\": 1.5,\n      \"gp_xi\": 0.02,\n      \"confidence\": 0.85,\n      \"hypothesis\": \"This skill improves solubility by reducing polarity and molecular complexity; may fail in highly polarized systems with strong dipole moments.\"\n    },\n    {\n      \"skill_id\": \"enhance_solubility_with_branching_stability\",\n      \"rules\": [\n        {\n          \"rule_id\": \"favor_branching\",\n          \"conditions\": {\n            \"smiles_length_bin\": \"smiles_mid\"\n          },\n          \"weight\": 0.7,\n          \"rationale\": \"Moderate branching improves molecular packing and solvation dynamics in water.\"\n        },\n        {\n          \"rule_id\": \"avoid_very_long_smiles\",\n          \"conditions\": {\n            \"smiles_length_bin\": \"smiles_very_long\"\n          },\n          \"weight\": -1.0,\n          \"rationale\": \"Extremely long molecules exhibit poor solvation due to entropic penalties and conformational flexibility.\"\n        }\n      ],\n      \"ridge\": 2.0,\n      \"prior_scale\": 0.4,\n      \"semantic_mass_start\": 0.6,\n      \"semantic_mass_end\": 0.3,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 3.0,\n      \"gp_beta_end\": 1.8,\n      \"gp_xi\": 0.03,\n      \"confidence\": 0.78,\n      \"hypothesis\": \"Branching improves solubility up to a point; excessive branching may lead to aggregation or poor diffusion.\"\n    },\n    {\n      \"skill_id\": \"preserve_low_rotatable_bond_structures\",\n      \"rules\": [\n        {\n          \"rule_id\": \"limit_rotatable_bonds\",\n          \"conditions\": {\n            \"rotatable_bond_bin\": \"rot_low\"\n          },\n          \"weight\": 0.9,\n          \"rationale\": \"Fewer rotatable bonds correlate with higher conformational rigidity and better solvation efficiency.\"\n        }\n      ],\n      \"ridge\": 0.5,\n      \"prior_scale\": 0.2,\n      \"semantic_mass_start\": 0.1,\n      \"semantic_mass_end\": 0.05,\n      \"ucb_weight\": 0.8,\n      \"gp_beta_start\": 1.0,\n      \"gp_beta_end\": 0.8,\n      \"gp_xi\": 0.01,\n      \"confidence\": 0.92,\n      \"hypothesis\": \"This is a conservative low-semantic-mass skill focused on structural rigidity; may not capture complex solvation effects.\"\n    },\n    {\n      \"skill_id\": \"target_high_aromatic_content_for_stability\",\n      \"rules\": [\n        {\n          \"rule_id\": \"increase_aromaticity\",\n          \"conditions\": {\n            \"ring_bin\": \"rings_high\"\n          },\n          \"weight\": 0.4,\n          \"rationale\": \"Aromatic systems offer stability and favorable π-π interactions with water molecules.\"\n        }\n      ],\n      \"ridge\": 1.2,\n      \"prior_scale\": 0.35,\n      \"semantic_mass_start\": 0.5,\n      \"semantic_mass_end\": 0.3,\n      \"ucb_weight\": 0.4,\n      \"gp_beta_start\": 2.0,\n      \"gp_beta_end\": 1.2,\n      \"gp_xi\": 0.02,\n      \"confidence\": 0.7,\n      \"hypothesis\": \"Aromatic rings improve stability but may reduce solubility due to hydrophobic character; context-dependent.\"\n    },\n    {\n      \"skill_id\": \"counter_hypothesis_low_hbond_donors\",\n      \"rules\": [\n        {\n          \"rule_id\": \"increase_hbond_donors\",\n          \"conditions\": {\n            \"hbond_donor_bin\": \"donor_high\"\n          },\n          \"weight\": -1.0,\n          \"rationale\": \"This skill reverses the common assumption that low H-bond donors improve solubility; may be relevant in polar solvents.\"\n        }\n      ],\n      \"ridge\": 0.8,\n      \"prior_scale\": 0.15,\n      \"semantic_mass_start\": 0.2,\n      \"semantic_mass_end\": 0.1,\n      \"ucb_weight\": 0.3,\n      \"gp_beta_start\": 1.5,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.01,\n      \"confidence\": 0.65,\n      \"hypothesis\": \"This skill challenges the standard rule; may fail in systems where H-bonding enhances solvation.\"\n    },\n    {\n      \"skill_id\": \"favor_moderate_ring_count_for_solubility\",\n      \"rules\": [\n        {\n          \"rule_id\": \"balance_ring_count\",\n          \"conditions\": {\n            \"ring_bin\": \"rings_mid\"\n          },\n          \"weight\": 0.7,\n          \"rationale\": \"Moderate ring count provides structural balance between rigidity and solvation accessibility.\"\n        }\n      ],\n      \"ridge\": 1.8,\n      \"prior_scale\": 0.4,\n      \"semantic_mass_start\": 0.5,\n      \"semantic_mass_end\": 0.2,\n      \"ucb_weight\": 0.6,\n      \"gp_beta_start\": 2.5,\n      \"gp_beta_end\": 1.8,\n      \"gp_xi\": 0.025,\n      \"confidence\": 0.8,\n      \"hypothesis\": \"This skill supports a balanced molecular architecture; may underperform in highly flexible or rigid systems.\"\n    },\n    {\n      \"skill_id\": \"optimize_for_high_solubility_with_smiles_mid_length\",\n      \"rules\": [\n        {\n          \"rule_id\": \"target_smiles_mid\",\n          \"conditions\": {\n            \"smiles_length_bin\": \"smiles_mid\"\n          },\n          \"weight\": 0.85,\n          \"rationale\": \"Molecules of moderate size exhibit optimal solvation dynamics and diffusion rates in water.\"\n        }\n      ],\n      \"ridge\": 1.0,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.45,\n      \"semantic_mass_end\": 0.25,\n      \"ucb_weight\": 0.7,\n      \"gp_beta_start\": 2.2,\n      \"gp_beta_end\": 1.4,\n      \"gp_xi\": 0.015,\n      \"confidence\": 0.88,\n      \"hypothesis\": \"This skill targets a well-established solubility sweet spot; may not capture rare high-solubility outliers.\"\n    },\n    {\n      \"skill_id\": \"avoid_high_rotatable_bond_structures\",\n      \"rules\": [\n        {\n          \"rule_id\": \"limit_rotatable_bonds\",\n          \"conditions\": {\n            \"rotatable_bond_bin\": \"rot_high\"\n          },\n          \"weight\": -1.0,\n          \"rationale\": \"High rotatable bond count leads to conformational entropy loss and poor solvation efficiency.\"\n        }\n      ],\n      \"ridge\": 0.6,\n      \"prior_scale\": 0.2,\n      \"semantic_mass_start\": 0.15,\n      \"semantic_mass_end\": 0.08,\n      \"ucb_weight\": 0.9,\n      \"gp_beta_start\": 1.8,\n      \"gp_beta_end\": 1.2,\n      \"gp_xi\": 0.01,\n      \"confidence\": 0.87,\n      \"hypothesis\": \"This skill emphasizes structural rigidity; may be overly conservative in flexible scaffolds.\"\n    },\n    {\n      \"skill_id\": \"enhance_solubility_via_low_ring_count\",\n      \"rules\": [\n        {\n          \"rule_id\": \"reduce_rings\",\n          \"conditions\": {\n            \"ring_bin\": \"rings_low\"\n          },\n          \"weight\": 0.9,\n          \"rationale\": \"Low ring count reduces hydrophobic surface area and improves water solvation.\"\n        }\n      ],\n      \"ridge\": 1.3,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.5,\n      \"semantic_mass_end\": 0.3,\n      \"ucb_weight\": 0.6,\n      \"gp_beta_start\": 2.0,\n      \"gp_beta_end\": 1.3,\n      \"gp_xi\": 0.02,\n      \"confidence\": 0.83,\n      \"hypothesis\": \"This skill aligns with known solubility trends; may not capture systems with strong hydrophilic functional groups.\"\n    },\n    {\n      \"skill_id\": \"domain_knowledge_focused_on_polar_surface_area\",\n      \"rules\": [\n        {\n          \"rule_id\": \"favor_polar_features\",\n          \"conditions\": {\n            \"hbond_donor_bin\": \"donor_low\",\n            \"ring_bin\": \"rings_low\"\n          },\n          \"weight\": 0.8,\n          \"rationale\": \"Low H-bond donor and ring count systems exhibit reduced hydrophobicity and improved solvation.\"\n        }\n      ],\n      \"ridge\": 1.7,\n      \"prior_scale\": 0.4,\n      \"semantic_mass_start\": 0.6,\n      \"semantic_mass_end\": 0.4,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 2.8,\n      \"gp_beta_end\": 1.6,\n      \"gp_xi\": 0.02,\n      \"confidence\": 0.9,\n      \"hypothesis\": \"This skill leverages domain knowledge on solvation thermodynamics; may fail in systems with strong hydrophobic substituents.\"\n    }\n  ]\n}",
+  "parsed_response": {
+    "skills": [
+      {
+        "skill_id": "optimize_for_high_solubility_via_low_hbond_donors",
+        "rules": [
+          {
+            "rule_id": "reduce_hbond_donors",
+            "conditions": {
+              "hbond_donor_bin": "donor_low"
+            },
+            "weight": 0.8,
+            "rationale": "Fewer hydrogen bond donors reduce molecular polarity and improve solubility in aqueous environments."
+          },
+          {
+            "rule_id": "minimize_ring_count",
+            "conditions": {
+              "ring_bin": "rings_low"
+            },
+            "weight": 0.6,
+            "rationale": "Smaller ring systems reduce molecular surface area and enhance solubility by minimizing hydrophobic interactions."
+          }
+        ],
+        "ridge": 1.5,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.4,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.7,
+        "gp_beta_start": 2.5,
+        "gp_beta_end": 1.5,
+        "gp_xi": 0.02,
+        "confidence": 0.85,
+        "hypothesis": "This skill improves solubility by reducing polarity and molecular complexity; may fail in highly polarized systems with strong dipole moments."
+      },
+      {
+        "skill_id": "enhance_solubility_with_branching_stability",
+        "rules": [
+          {
+            "rule_id": "favor_branching",
+            "conditions": {
+              "smiles_length_bin": "smiles_mid"
+            },
+            "weight": 0.7,
+            "rationale": "Moderate branching improves molecular packing and solvation dynamics in water."
+          },
+          {
+            "rule_id": "avoid_very_long_smiles",
+            "conditions": {
+              "smiles_length_bin": "smiles_very_long"
+            },
+            "weight": -1.0,
+            "rationale": "Extremely long molecules exhibit poor solvation due to entropic penalties and conformational flexibility."
+          }
+        ],
+        "ridge": 2.0,
+        "prior_scale": 0.4,
+        "semantic_mass_start": 0.6,
+        "semantic_mass_end": 0.3,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 3.0,
+        "gp_beta_end": 1.8,
+        "gp_xi": 0.03,
+        "confidence": 0.78,
+        "hypothesis": "Branching improves solubility up to a point; excessive branching may lead to aggregation or poor diffusion."
+      },
+      {
+        "skill_id": "preserve_low_rotatable_bond_structures",
+        "rules": [
+          {
+            "rule_id": "limit_rotatable_bonds",
+            "conditions": {
+              "rotatable_bond_bin": "rot_low"
+            },
+            "weight": 0.9,
+            "rationale": "Fewer rotatable bonds correlate with higher conformational rigidity and better solvation efficiency."
+          }
+        ],
+        "ridge": 0.5,
+        "prior_scale": 0.2,
+        "semantic_mass_start": 0.1,
+        "semantic_mass_end": 0.05,
+        "ucb_weight": 0.8,
+        "gp_beta_start": 1.0,
+        "gp_beta_end": 0.8,
+        "gp_xi": 0.01,
+        "confidence": 0.92,
+        "hypothesis": "This is a conservative low-semantic-mass skill focused on structural rigidity; may not capture complex solvation effects."
+      },
+      {
+        "skill_id": "target_high_aromatic_content_for_stability",
+        "rules": [
+          {
+            "rule_id": "increase_aromaticity",
+            "conditions": {
+              "ring_bin": "rings_high"
+            },
+            "weight": 0.4,
+            "rationale": "Aromatic systems offer stability and favorable π-π interactions with water molecules."
+          }
+        ],
+        "ridge": 1.2,
+        "prior_scale": 0.35,
+        "semantic_mass_start": 0.5,
+        "semantic_mass_end": 0.3,
+        "ucb_weight": 0.4,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.2,
+        "gp_xi": 0.02,
+        "confidence": 0.7,
+        "hypothesis": "Aromatic rings improve stability but may reduce solubility due to hydrophobic character; context-dependent."
+      },
+      {
+        "skill_id": "counter_hypothesis_low_hbond_donors",
+        "rules": [
+          {
+            "rule_id": "increase_hbond_donors",
+            "conditions": {
+              "hbond_donor_bin": "donor_high"
+            },
+            "weight": -1.0,
+            "rationale": "This skill reverses the common assumption that low H-bond donors improve solubility; may be relevant in polar solvents."
+          }
+        ],
+        "ridge": 0.8,
+        "prior_scale": 0.15,
+        "semantic_mass_start": 0.2,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.3,
+        "gp_beta_start": 1.5,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.01,
+        "confidence": 0.65,
+        "hypothesis": "This skill challenges the standard rule; may fail in systems where H-bonding enhances solvation."
+      },
+      {
+        "skill_id": "favor_moderate_ring_count_for_solubility",
+        "rules": [
+          {
+            "rule_id": "balance_ring_count",
+            "conditions": {
+              "ring_bin": "rings_mid"
+            },
+            "weight": 0.7,
+            "rationale": "Moderate ring count provides structural balance between rigidity and solvation accessibility."
+          }
+        ],
+        "ridge": 1.8,
+        "prior_scale": 0.4,
+        "semantic_mass_start": 0.5,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.5,
+        "gp_beta_end": 1.8,
+        "gp_xi": 0.025,
+        "confidence": 0.8,
+        "hypothesis": "This skill supports a balanced molecular architecture; may underperform in highly flexible or rigid systems."
+      },
+      {
+        "skill_id": "optimize_for_high_solubility_with_smiles_mid_length",
+        "rules": [
+          {
+            "rule_id": "target_smiles_mid",
+            "conditions": {
+              "smiles_length_bin": "smiles_mid"
+            },
+            "weight": 0.85,
+            "rationale": "Molecules of moderate size exhibit optimal solvation dynamics and diffusion rates in water."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.45,
+        "semantic_mass_end": 0.25,
+        "ucb_weight": 0.7,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 1.4,
+        "gp_xi": 0.015,
+        "confidence": 0.88,
+        "hypothesis": "This skill targets a well-established solubility sweet spot; may not capture rare high-solubility outliers."
+      },
+      {
+        "skill_id": "avoid_high_rotatable_bond_structures",
+        "rules": [
+          {
+            "rule_id": "limit_rotatable_bonds",
+            "conditions": {
+              "rotatable_bond_bin": "rot_high"
+            },
+            "weight": -1.0,
+            "rationale": "High rotatable bond count leads to conformational entropy loss and poor solvation efficiency."
+          }
+        ],
+        "ridge": 0.6,
+        "prior_scale": 0.2,
+        "semantic_mass_start": 0.15,
+        "semantic_mass_end": 0.08,
+        "ucb_weight": 0.9,
+        "gp_beta_start": 1.8,
+        "gp_beta_end": 1.2,
+        "gp_xi": 0.01,
+        "confidence": 0.87,
+        "hypothesis": "This skill emphasizes structural rigidity; may be overly conservative in flexible scaffolds."
+      },
+      {
+        "skill_id": "enhance_solubility_via_low_ring_count",
+        "rules": [
+          {
+            "rule_id": "reduce_rings",
+            "conditions": {
+              "ring_bin": "rings_low"
+            },
+            "weight": 0.9,
+            "rationale": "Low ring count reduces hydrophobic surface area and improves water solvation."
+          }
+        ],
+        "ridge": 1.3,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.5,
+        "semantic_mass_end": 0.3,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.3,
+        "gp_xi": 0.02,
+        "confidence": 0.83,
+        "hypothesis": "This skill aligns with known solubility trends; may not capture systems with strong hydrophilic functional groups."
+      },
+      {
+        "skill_id": "domain_knowledge_focused_on_polar_surface_area",
+        "rules": [
+          {
+            "rule_id": "favor_polar_features",
+            "conditions": {
+              "hbond_donor_bin": "donor_low",
+              "ring_bin": "rings_low"
+            },
+            "weight": 0.8,
+            "rationale": "Low H-bond donor and ring count systems exhibit reduced hydrophobicity and improved solvation."
+          }
+        ],
+        "ridge": 1.7,
+        "prior_scale": 0.4,
+        "semantic_mass_start": 0.6,
+        "semantic_mass_end": 0.4,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 2.8,
+        "gp_beta_end": 1.6,
+        "gp_xi": 0.02,
+        "confidence": 0.9,
+        "hypothesis": "This skill leverages domain knowledge on solvation thermodynamics; may fail in systems with strong hydrophobic substituents."
+      }
+    ]
+  },
+  "normalized_skills": [
+    {
+      "skill_id": "optimize_for_high_solubility_via_low_hbond_donors",
+      "rules": [
+        {
+          "rule_id": "reduce_hbond_donors",
+          "conditions": [
+            [
+              "hbond_donor_bin",
+              "donor_low"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Fewer hydrogen bond donors reduce molecular polarity and improve solubility in aqueous environments."
+        },
+        {
+          "rule_id": "minimize_ring_count",
+          "conditions": [
+            [
+              "ring_bin",
+              "rings_low"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Smaller ring systems reduce molecular surface area and enhance solubility by minimizing hydrophobic interactions."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.02,
+      "confidence": 0.85,
+      "hypothesis": "This skill improves solubility by reducing polarity and molecular complexity; may fail in highly polarized systems with strong dipole moments."
+    },
+    {
+      "skill_id": "enhance_solubility_with_branching_stability",
+      "rules": [
+        {
+          "rule_id": "favor_branching",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Moderate branching improves molecular packing and solvation dynamics in water."
+        },
+        {
+          "rule_id": "avoid_very_long_smiles",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_very_long"
+            ]
+          ],
+          "weight": -1.0,
+          "rationale": "Extremely long molecules exhibit poor solvation due to entropic penalties and conformational flexibility."
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.6,
+      "semantic_mass_end": 0.3,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 3.0,
+      "gp_beta_end": 1.8,
+      "gp_xi": 0.03,
+      "confidence": 0.78,
+      "hypothesis": "Branching improves solubility up to a point; excessive branching may lead to aggregation or poor diffusion."
+    },
+    {
+      "skill_id": "preserve_low_rotatable_bond_structures",
+      "rules": [
+        {
+          "rule_id": "limit_rotatable_bonds",
+          "conditions": [
+            [
+              "rotatable_bond_bin",
+              "rot_low"
+            ]
+          ],
+          "weight": 0.9,
+          "rationale": "Fewer rotatable bonds correlate with higher conformational rigidity and better solvation efficiency."
+        }
+      ],
+      "ridge": 0.5,
+      "prior_scale": 0.2,
+      "semantic_mass_start": 0.1,
+      "semantic_mass_end": 0.05,
+      "ucb_weight": 0.8,
+      "gp_beta_start": 1.0,
+      "gp_beta_end": 0.8,
+      "gp_xi": 0.01,
+      "confidence": 0.92,
+      "hypothesis": "This is a conservative low-semantic-mass skill focused on structural rigidity; may not capture complex solvation effects."
+    },
+    {
+      "skill_id": "target_high_aromatic_content_for_stability",
+      "rules": [
+        {
+          "rule_id": "increase_aromaticity",
+          "conditions": [
+            [
+              "ring_bin",
+              "rings_high"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Aromatic systems offer stability and favorable π-π interactions with water molecules."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.35,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.3,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.02,
+      "confidence": 0.7,
+      "hypothesis": "Aromatic rings improve stability but may reduce solubility due to hydrophobic character; context-dependent."
+    },
+    {
+      "skill_id": "counter_hypothesis_low_hbond_donors",
+      "rules": [
+        {
+          "rule_id": "increase_hbond_donors",
+          "conditions": [
+            [
+              "hbond_donor_bin",
+              "donor_high"
+            ]
+          ],
+          "weight": -1.0,
+          "rationale": "This skill reverses the common assumption that low H-bond donors improve solubility; may be relevant in polar solvents."
+        }
+      ],
+      "ridge": 0.8,
+      "prior_scale": 0.15,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.3,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.65,
+      "hypothesis": "This skill challenges the standard rule; may fail in systems where H-bonding enhances solvation."
+    },
+    {
+      "skill_id": "favor_moderate_ring_count_for_solubility",
+      "rules": [
+        {
+          "rule_id": "balance_ring_count",
+          "conditions": [
+            [
+              "ring_bin",
+              "rings_mid"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Moderate ring count provides structural balance between rigidity and solvation accessibility."
+        }
+      ],
+      "ridge": 1.8,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.8,
+      "gp_xi": 0.025,
+      "confidence": 0.8,
+      "hypothesis": "This skill supports a balanced molecular architecture; may underperform in highly flexible or rigid systems."
+    },
+    {
+      "skill_id": "optimize_for_high_solubility_with_smiles_mid_length",
+      "rules": [
+        {
+          "rule_id": "target_smiles_mid",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": 0.85,
+          "rationale": "Molecules of moderate size exhibit optimal solvation dynamics and diffusion rates in water."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.45,
+      "semantic_mass_end": 0.25,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.4,
+      "gp_xi": 0.015,
+      "confidence": 0.88,
+      "hypothesis": "This skill targets a well-established solubility sweet spot; may not capture rare high-solubility outliers."
+    },
+    {
+      "skill_id": "avoid_high_rotatable_bond_structures",
+      "rules": [
+        {
+          "rule_id": "limit_rotatable_bonds",
+          "conditions": [
+            [
+              "rotatable_bond_bin",
+              "rot_high"
+            ]
+          ],
+          "weight": -1.0,
+          "rationale": "High rotatable bond count leads to conformational entropy loss and poor solvation efficiency."
+        }
+      ],
+      "ridge": 0.6,
+      "prior_scale": 0.2,
+      "semantic_mass_start": 0.15,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.9,
+      "gp_beta_start": 1.8,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.01,
+      "confidence": 0.87,
+      "hypothesis": "This skill emphasizes structural rigidity; may be overly conservative in flexible scaffolds."
+    },
+    {
+      "skill_id": "enhance_solubility_via_low_ring_count",
+      "rules": [
+        {
+          "rule_id": "reduce_rings",
+          "conditions": [
+            [
+              "ring_bin",
+              "rings_low"
+            ]
+          ],
+          "weight": 0.9,
+          "rationale": "Low ring count reduces hydrophobic surface area and improves water solvation."
+        }
+      ],
+      "ridge": 1.3,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.3,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.3,
+      "gp_xi": 0.02,
+      "confidence": 0.83,
+      "hypothesis": "This skill aligns with known solubility trends; may not capture systems with strong hydrophilic functional groups."
+    },
+    {
+      "skill_id": "domain_knowledge_focused_on_polar_surface_area",
+      "rules": [
+        {
+          "rule_id": "favor_polar_features",
+          "conditions": [
+            [
+              "hbond_donor_bin",
+              "donor_low"
+            ],
+            [
+              "ring_bin",
+              "rings_low"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Low H-bond donor and ring count systems exhibit reduced hydrophobicity and improved solvation."
+        }
+      ],
+      "ridge": 1.7,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.6,
+      "semantic_mass_end": 0.4,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.8,
+      "gp_beta_end": 1.6,
+      "gp_xi": 0.02,
+      "confidence": 0.9,
+      "hypothesis": "This skill leverages domain knowledge on solvation thermodynamics; may fail in systems with strong hydrophobic substituents."
+    }
+  ],
+  "knowledge_retrieval": {
+    "enabled": true,
+    "db": "knowledge_base/care_kb.sqlite",
+    "cutoff": "2026-07-21",
+    "card_ids": [
+      "transfer.real-suzuki-miyaura-to-real-buchwald-hartwig-gate-reject-2026-07-21",
+      "skill.semantic-real-moleculenet-freesolv-branching-effect-2026-07-21",
+      "mechanism.layered-skill-transfer",
+      "skill.semantic-real-moleculenet-lipophilicity-high-aromatic-content-2026-07-21",
+      "skill.semantic-real-matbench-expt-gap-high-element-count-2026-07-21",
+      "transfer.freesolv-to-lipophilicity-transferable-skill"
+    ]
+  }
+}

@@ -91,6 +91,36 @@ def cards_from_result_dir(result_dir: Path) -> list[dict[str, Any]]:
         final_delta = float(row.get("delta_final_best", 0.0) or 0.0)
         auc_delta = float(row.get("delta_auc", 0.0) or 0.0)
         rounds_saved = float(row.get("rounds_saved_top10", 0.0) or 0.0)
+        execution = row.get("rule_prior", "unknown")
+        if execution == "warmstart":
+            skill_summary = (
+                f"For {target}, use the LLM-defined {skill} partition to choose "
+                "the initial batch, then continue with the target-only optimizer."
+            )
+            reusable_lesson = (
+                "Reusable lesson: calibration should compare LLM warm-starting "
+                "with online semantic fitting and direct-prior execution."
+            )
+        elif execution == "direct_prior":
+            skill_summary = (
+                f"For {target}, keep the LLM-defined {skill} rule as a bounded "
+                "fixed prior blended with the target-only optimizer."
+            )
+            reusable_lesson = (
+                "Reusable lesson: target calibration can decide that a fixed "
+                "semantic prior is more reliable than re-fitting its direction."
+            )
+        else:
+            skill_summary = (
+                f"For {target}, use the LLM to define the {skill} feature "
+                "partition, then fit its direction and magnitude from revealed "
+                "target observations."
+            )
+            reusable_lesson = (
+                "Reusable lesson: preserve the LLM-proposed feature partition, "
+                "but calibrate or remove unsupported coefficient signs before "
+                "held-out evaluation."
+            )
         summary = (
             f"{skill} on {target}: final-best delta {final_delta:+.4f}, "
             f"AUC delta {auc_delta:+.4f}, top-10 rounds saved {rounds_saved:+.3f}; {label}."
@@ -114,26 +144,28 @@ def cards_from_result_dir(result_dir: Path) -> list[dict[str, Any]]:
             skill_id,
             "skill",
             f"Reusable semantic feature pattern: {skill}",
+            skill_summary,
             (
-                f"For {target}, use the LLM to define the {skill} feature partition, then fit "
-                "its direction and magnitude from revealed target observations."
-            ),
-            (
-                f"Evidence mode: {evidence_mode}. Rule prior: {row.get('rule_prior')}. "
-                "Reusable lesson: preserve the LLM-proposed feature partition, but calibrate or "
-                "remove unsupported coefficient signs before held-out evaluation."
+                f"Evidence mode: {evidence_mode}. Execution: {execution}. "
+                f"{reusable_lesson}"
             ),
             [target, skill, evidence_mode, "schema-to-skill", "target-calibration"],
             [run_id, result_id],
             date,
             "high" if label == "confirmed_positive" else "medium",
         ))
-    negative = manifest.get("negative_result")
-    if isinstance(negative, dict):
+    negatives = manifest.get("negative_results")
+    if not isinstance(negatives, list):
+        legacy = manifest.get("negative_result")
+        negatives = [legacy] if isinstance(legacy, dict) else []
+    for negative in negatives:
+        if not isinstance(negative, dict):
+            continue
         target = str(negative.get("target", "unknown"))
         source = str(negative.get("source", "unknown"))
+        case = slug(str(negative.get("case", "gate-reject")))
         cards.append(make_card(
-            f"transfer.{slug(source)}-to-{slug(target)}-gate-reject-{date}",
+            f"transfer.{slug(source)}-to-{slug(target)}-{case}-{date}",
             "transfer",
             f"Gate-rejected transfer: {source} to {target}",
             str(negative.get("result", "Transfer was rejected by calibration.")),

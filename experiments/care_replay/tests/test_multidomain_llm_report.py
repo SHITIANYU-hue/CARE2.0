@@ -18,16 +18,17 @@ class MultidomainLlmReportTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
             paths = []
-            for index, (target, selected, low) in enumerate((
-                ("materials", True, 1.0),
-                ("molecular", True, 0.2),
-                ("reaction", False, -1.0),
+            for index, (target, selected, low, seeds) in enumerate((
+                ("materials", True, 1.0, 500),
+                ("molecular", True, 0.2, 500),
+                ("reaction", False, -1.0, 100),
+                ("wetlab", True, 0.3, 20),
             )):
                 path = root / f"{index}.json"
                 path.write_text(json.dumps({
                     "target_dataset": target,
                     "domain": target,
-                    "heldout_seed_count": 100,
+                    "heldout_seed_count": seeds,
                     "selection": {
                         "selected_llm_skill": selected,
                         "selected_mode": "llm" if selected else "gp_ucb",
@@ -47,6 +48,9 @@ class MultidomainLlmReportTest(unittest.TestCase):
             self.assertTrue(result["majority_gain"])
             self.assertTrue(result["multidomain_gain"])
             self.assertEqual(result["fallback_count"], 1)
+            self.assertEqual(result["evaluated_run_count"], 3)
+            self.assertEqual(result["development_run_count"], 1)
+            self.assertEqual(result["development_signal_count"], 1)
 
 
 if __name__ == "__main__":

@@ -145,6 +145,50 @@ class LlmSemanticSkillsTest(unittest.TestCase):
             semantic.fixed_rule_score(skill, right),
         )
 
+    def test_strategy_router_selects_stable_calibration_gain(self) -> None:
+        rows = []
+        for seed in range(10):
+            rows.extend([
+                {
+                    "mode": "gp_ucb",
+                    "seed": seed,
+                    "final_best": 10.0,
+                    "best_so_far_auc": 8.0,
+                    "top10_hit": 0,
+                },
+                {
+                    "mode": "llm_semantic_stable",
+                    "seed": seed,
+                    "final_best": 11.0,
+                    "best_so_far_auc": 10.0,
+                    "top10_hit": 1,
+                },
+                {
+                    "mode": "llm_direct_prior_unstable",
+                    "seed": seed,
+                    "final_best": 9.0 if seed % 2 else 12.0,
+                    "best_so_far_auc": 7.0 if seed % 2 else 10.0,
+                    "top10_hit": 0,
+                },
+            ])
+        selected, route = calibrated.select_strategy_route(
+            rows,
+            set(range(10)),
+            (
+                "gp_ucb",
+                "llm_semantic_stable",
+                "llm_direct_prior_unstable",
+            ),
+            "gp_ucb",
+            0.25,
+            0.8,
+        )
+        self.assertEqual(selected, "llm_semantic_stable")
+        self.assertTrue(route["selected_llm_strategy"])
+        self.assertFalse(
+            route["diagnostics"]["llm_direct_prior_unstable"]["eligible"]
+        )
+
     def test_chemlex_reagent_family_is_derived_from_public_smiles(self) -> None:
         self.assertEqual(
             replay.chemlex_reagent_family("CCN=C=NCCCN(C)C.Cl"),

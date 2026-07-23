@@ -1,0 +1,2843 @@
+{
+  "experiment": "care_calibrated_llm_semantic_skill_selector",
+  "source_dataset": "real_suzuki_miyaura",
+  "target_dataset": "real_buchwald_hartwig",
+  "evidence_mode": "source_schema_only",
+  "llm_model": "deepspeek-v3.2",
+  "llm_generation_call_count": 1,
+  "new_llm_call_count": 0,
+  "rule_prior_enabled": true,
+  "semantic_model_enabled": true,
+  "semantic_field_catalog": {
+    "ligand_mw_bin": {
+      "mw_high": 986,
+      "mw_very_high": 2969
+    },
+    "base_reagent_base_family": {
+      "amidine_base": 1318,
+      "guanidine_base": 1317,
+      "phosphazene_base": 1320
+    },
+    "base_functional_class": {
+      "amidine_base": 1318,
+      "guanidine_base": 1317,
+      "phosphazene_base": 1320
+    },
+    "base_mw_bin": {
+      "mw_high": 1320,
+      "mw_mid": 2635
+    },
+    "base_tpsa_bin": {
+      "tpsa_low": 2635,
+      "tpsa_mid": 1320
+    },
+    "aryl_halide_halide_type": {
+      "bromide": 1319,
+      "chloride": 1318,
+      "iodide": 1318
+    },
+    "aryl_halide_has_heteroaromatic": {
+      "no": 2372,
+      "yes": 1583
+    },
+    "aryl_halide_mw_bin": {
+      "mw_high": 263,
+      "mw_mid": 3164,
+      "mw_none_or_low": 528
+    },
+    "additive_tpsa_bin": {
+      "tpsa_high": 360,
+      "tpsa_mid": 3595
+    }
+  },
+  "skills": [
+    {
+      "skill_id": "optimize_high_mw_ligand_with_guanidine_base",
+      "rules": [
+        {
+          "rule_id": "ligand_mw_high_guanidine_stabilization",
+          "conditions": [
+            [
+              "ligand_mw_bin",
+              "mw_high"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "High molecular weight ligands benefit from guanidine bases due to enhanced charge delocalization and stabilization of transition states."
+        },
+        {
+          "rule_id": "guanidine_base_stabilizes_aryl_halide_transition",
+          "conditions": [
+            [
+              "base_reagent_base_family",
+              "guanidine_base"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Guanidine bases are effective in stabilizing electron-deficient aryl halides during nucleophilic aromatic substitution."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 3.0,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.05,
+      "confidence": 0.85,
+      "hypothesis": "This skill leverages known base-ligand synergy in cross-coupling reactions; may fail with highly electron-rich aryl halides due to over-stabilization of intermediates."
+    },
+    {
+      "skill_id": "optimize_high_mw_ligand_with_guanidine_base_noprior",
+      "rules": [
+        {
+          "rule_id": "ligand_mw_high_guanidine_stabilization",
+          "conditions": [
+            [
+              "ligand_mw_bin",
+              "mw_high"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "High molecular weight ligands benefit from guanidine bases due to enhanced charge delocalization and stabilization of transition states."
+        },
+        {
+          "rule_id": "guanidine_base_stabilizes_aryl_halide_transition",
+          "conditions": [
+            [
+              "base_reagent_base_family",
+              "guanidine_base"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Guanidine bases are effective in stabilizing electron-deficient aryl halides during nucleophilic aromatic substitution."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 3.0,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.05,
+      "confidence": 0.85,
+      "hypothesis": "This skill leverages known base-ligand synergy in cross-coupling reactions; may fail with highly electron-rich aryl halides due to over-stabilization of intermediates."
+    },
+    {
+      "skill_id": "optimize_high_mw_ligand_with_guanidine_base_conservative",
+      "rules": [
+        {
+          "rule_id": "ligand_mw_high_guanidine_stabilization",
+          "conditions": [
+            [
+              "ligand_mw_bin",
+              "mw_high"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "High molecular weight ligands benefit from guanidine bases due to enhanced charge delocalization and stabilization of transition states."
+        },
+        {
+          "rule_id": "guanidine_base_stabilizes_aryl_halide_transition",
+          "conditions": [
+            [
+              "base_reagent_base_family",
+              "guanidine_base"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Guanidine bases are effective in stabilizing electron-deficient aryl halides during nucleophilic aromatic substitution."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 3.0,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.05,
+      "confidence": 0.85,
+      "hypothesis": "This skill leverages known base-ligand synergy in cross-coupling reactions; may fail with highly electron-rich aryl halides due to over-stabilization of intermediates."
+    },
+    {
+      "skill_id": "use_bromide_aryl_halide_with_phosphazene_base",
+      "rules": [
+        {
+          "rule_id": "bromide_phosphazene_pairing",
+          "conditions": [
+            [
+              "aryl_halide_halide_type",
+              "bromide"
+            ],
+            [
+              "base_reagent_base_family",
+              "phosphazene_base"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Bromide aryl halides react efficiently with phosphazene bases due to favorable bond-forming kinetics and minimal side reactions."
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.3,
+      "ucb_weight": 0.8,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.03,
+      "confidence": 0.75,
+      "hypothesis": "This skill is based on known mechanistic behavior; may fail with sterically hindered bromides due to slow oxidative addition."
+    },
+    {
+      "skill_id": "use_bromide_aryl_halide_with_phosphazene_base_noprior",
+      "rules": [
+        {
+          "rule_id": "bromide_phosphazene_pairing",
+          "conditions": [
+            [
+              "aryl_halide_halide_type",
+              "bromide"
+            ],
+            [
+              "base_reagent_base_family",
+              "phosphazene_base"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Bromide aryl halides react efficiently with phosphazene bases due to favorable bond-forming kinetics and minimal side reactions."
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.3,
+      "ucb_weight": 0.8,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.03,
+      "confidence": 0.75,
+      "hypothesis": "This skill is based on known mechanistic behavior; may fail with sterically hindered bromides due to slow oxidative addition."
+    },
+    {
+      "skill_id": "use_bromide_aryl_halide_with_phosphazene_base_conservative",
+      "rules": [
+        {
+          "rule_id": "bromide_phosphazene_pairing",
+          "conditions": [
+            [
+              "aryl_halide_halide_type",
+              "bromide"
+            ],
+            [
+              "base_reagent_base_family",
+              "phosphazene_base"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Bromide aryl halides react efficiently with phosphazene bases due to favorable bond-forming kinetics and minimal side reactions."
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.8,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.03,
+      "confidence": 0.75,
+      "hypothesis": "This skill is based on known mechanistic behavior; may fail with sterically hindered bromides due to slow oxidative addition."
+    },
+    {
+      "skill_id": "avoid_heteroaromatic_aryl_halides_with_high_mw_bases",
+      "rules": [
+        {
+          "rule_id": "heteroaromatic_risk_with_high_mw_base",
+          "conditions": [
+            [
+              "aryl_halide_has_heteroaromatic",
+              "yes"
+            ],
+            [
+              "base_mw_bin",
+              "mw_high"
+            ]
+          ],
+          "weight": -1.0,
+          "rationale": "Heteroaromatic systems are prone to side reactions when paired with high-mass bases due to electronic mismatch and steric crowding."
+        }
+      ],
+      "ridge": 0.5,
+      "prior_scale": 0.2,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 1.8,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.02,
+      "confidence": 0.8,
+      "hypothesis": "This skill acts as a counter-hypothesis to common base-aryl halide pairings; may be overly conservative for certain heterocyclic systems."
+    },
+    {
+      "skill_id": "avoid_heteroaromatic_aryl_halides_with_high_mw_bases_noprior",
+      "rules": [
+        {
+          "rule_id": "heteroaromatic_risk_with_high_mw_base",
+          "conditions": [
+            [
+              "aryl_halide_has_heteroaromatic",
+              "yes"
+            ],
+            [
+              "base_mw_bin",
+              "mw_high"
+            ]
+          ],
+          "weight": -1.0,
+          "rationale": "Heteroaromatic systems are prone to side reactions when paired with high-mass bases due to electronic mismatch and steric crowding."
+        }
+      ],
+      "ridge": 0.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 1.8,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.02,
+      "confidence": 0.8,
+      "hypothesis": "This skill acts as a counter-hypothesis to common base-aryl halide pairings; may be overly conservative for certain heterocyclic systems."
+    },
+    {
+      "skill_id": "avoid_heteroaromatic_aryl_halides_with_high_mw_bases_conservative",
+      "rules": [
+        {
+          "rule_id": "heteroaromatic_risk_with_high_mw_base",
+          "conditions": [
+            [
+              "aryl_halide_has_heteroaromatic",
+              "yes"
+            ],
+            [
+              "base_mw_bin",
+              "mw_high"
+            ]
+          ],
+          "weight": -1.0,
+          "rationale": "Heteroaromatic systems are prone to side reactions when paired with high-mass bases due to electronic mismatch and steric crowding."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 1.8,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.02,
+      "confidence": 0.8,
+      "hypothesis": "This skill acts as a counter-hypothesis to common base-aryl halide pairings; may be overly conservative for certain heterocyclic systems."
+    },
+    {
+      "skill_id": "favor_chloride_aryl_halides_with_amidine_base",
+      "rules": [
+        {
+          "rule_id": "chloride_amidine_efficiency",
+          "conditions": [
+            [
+              "aryl_halide_halide_type",
+              "chloride"
+            ],
+            [
+              "base_functional_class",
+              "amidine_base"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Chloride aryl halides undergo efficient substitution with amidine bases due to moderate nucleophilicity and good solubility."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.01,
+      "confidence": 0.7,
+      "hypothesis": "This skill targets a common industrial reaction; may not generalize to electron-deficient substrates where chloride reactivity is low."
+    },
+    {
+      "skill_id": "favor_chloride_aryl_halides_with_amidine_base_noprior",
+      "rules": [
+        {
+          "rule_id": "chloride_amidine_efficiency",
+          "conditions": [
+            [
+              "aryl_halide_halide_type",
+              "chloride"
+            ],
+            [
+              "base_functional_class",
+              "amidine_base"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Chloride aryl halides undergo efficient substitution with amidine bases due to moderate nucleophilicity and good solubility."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.01,
+      "confidence": 0.7,
+      "hypothesis": "This skill targets a common industrial reaction; may not generalize to electron-deficient substrates where chloride reactivity is low."
+    },
+    {
+      "skill_id": "favor_chloride_aryl_halides_with_amidine_base_conservative",
+      "rules": [
+        {
+          "rule_id": "chloride_amidine_efficiency",
+          "conditions": [
+            [
+              "aryl_halide_halide_type",
+              "chloride"
+            ],
+            [
+              "base_functional_class",
+              "amidine_base"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Chloride aryl halides undergo efficient substitution with amidine bases due to moderate nucleophilicity and good solubility."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.01,
+      "confidence": 0.7,
+      "hypothesis": "This skill targets a common industrial reaction; may not generalize to electron-deficient substrates where chloride reactivity is low."
+    },
+    {
+      "skill_id": "use_mw_mid_base_with_aryl_halide_mw_mid",
+      "rules": [
+        {
+          "rule_id": "balanced_mw_pairing",
+          "conditions": [
+            [
+              "aryl_halide_mw_bin",
+              "mw_mid"
+            ],
+            [
+              "base_mw_bin",
+              "mw_mid"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Matching molecular weights between base and aryl halide reduce steric strain and improve reaction homogeneity."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.25,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.8,
+      "gp_xi": 0.02,
+      "confidence": 0.8,
+      "hypothesis": "This skill promotes balanced system design; may underperform with very large or very small substrates due to mismatched kinetics."
+    },
+    {
+      "skill_id": "use_mw_mid_base_with_aryl_halide_mw_mid_noprior",
+      "rules": [
+        {
+          "rule_id": "balanced_mw_pairing",
+          "conditions": [
+            [
+              "aryl_halide_mw_bin",
+              "mw_mid"
+            ],
+            [
+              "base_mw_bin",
+              "mw_mid"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Matching molecular weights between base and aryl halide reduce steric strain and improve reaction homogeneity."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.8,
+      "gp_xi": 0.02,
+      "confidence": 0.8,
+      "hypothesis": "This skill promotes balanced system design; may underperform with very large or very small substrates due to mismatched kinetics."
+    },
+    {
+      "skill_id": "use_mw_mid_base_with_aryl_halide_mw_mid_conservative",
+      "rules": [
+        {
+          "rule_id": "balanced_mw_pairing",
+          "conditions": [
+            [
+              "aryl_halide_mw_bin",
+              "mw_mid"
+            ],
+            [
+              "base_mw_bin",
+              "mw_mid"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Matching molecular weights between base and aryl halide reduce steric strain and improve reaction homogeneity."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.8,
+      "gp_xi": 0.02,
+      "confidence": 0.8,
+      "hypothesis": "This skill promotes balanced system design; may underperform with very large or very small substrates due to mismatched kinetics."
+    },
+    {
+      "skill_id": "base_tpsa_mid_optimizes_solvent_interaction",
+      "rules": [
+        {
+          "rule_id": "tpsa_mid_base_enhances_solubility",
+          "conditions": [
+            [
+              "base_tpsa_bin",
+              "tpsa_mid"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Intermediate TPSA bases offer optimal solubility and accessibility in common reaction solvents."
+        }
+      ],
+      "ridge": 0.8,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.75,
+      "hypothesis": "This skill supports solvent compatibility; may fail in highly polar or non-polar media where TPSA effects are diminished."
+    },
+    {
+      "skill_id": "base_tpsa_mid_optimizes_solvent_interaction_noprior",
+      "rules": [
+        {
+          "rule_id": "tpsa_mid_base_enhances_solubility",
+          "conditions": [
+            [
+              "base_tpsa_bin",
+              "tpsa_mid"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Intermediate TPSA bases offer optimal solubility and accessibility in common reaction solvents."
+        }
+      ],
+      "ridge": 0.8,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.75,
+      "hypothesis": "This skill supports solvent compatibility; may fail in highly polar or non-polar media where TPSA effects are diminished."
+    },
+    {
+      "skill_id": "base_tpsa_mid_optimizes_solvent_interaction_conservative",
+      "rules": [
+        {
+          "rule_id": "tpsa_mid_base_enhances_solubility",
+          "conditions": [
+            [
+              "base_tpsa_bin",
+              "tpsa_mid"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Intermediate TPSA bases offer optimal solubility and accessibility in common reaction solvents."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.75,
+      "hypothesis": "This skill supports solvent compatibility; may fail in highly polar or non-polar media where TPSA effects are diminished."
+    },
+    {
+      "skill_id": "transfer_from_suzuki_to_buchwald_halide_type_alignment",
+      "rules": [
+        {
+          "rule_id": "suzuki_halide_type_transfer",
+          "conditions": [
+            [
+              "aryl_halide_halide_type",
+              "bromide"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "From source Suzuki-Miyaura data, bromide aryl halides show consistent high yield performance in cross-coupling; this rule transfers that pattern."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.15,
+      "semantic_mass_start": 0.05,
+      "semantic_mass_end": 0.03,
+      "ucb_weight": 0.2,
+      "gp_beta_start": 1.0,
+      "gp_beta_end": 0.8,
+      "gp_xi": 0.01,
+      "confidence": 0.65,
+      "hypothesis": "This skill is grounded in source-target field alignment but does not assume outcome transfer; may fail due to mechanistic differences in substitution pathways."
+    },
+    {
+      "skill_id": "transfer_from_suzuki_to_buchwald_halide_type_alignment_noprior",
+      "rules": [
+        {
+          "rule_id": "suzuki_halide_type_transfer",
+          "conditions": [
+            [
+              "aryl_halide_halide_type",
+              "bromide"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "From source Suzuki-Miyaura data, bromide aryl halides show consistent high yield performance in cross-coupling; this rule transfers that pattern."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.05,
+      "semantic_mass_end": 0.03,
+      "ucb_weight": 0.2,
+      "gp_beta_start": 1.0,
+      "gp_beta_end": 0.8,
+      "gp_xi": 0.01,
+      "confidence": 0.65,
+      "hypothesis": "This skill is grounded in source-target field alignment but does not assume outcome transfer; may fail due to mechanistic differences in substitution pathways."
+    },
+    {
+      "skill_id": "transfer_from_suzuki_to_buchwald_halide_type_alignment_conservative",
+      "rules": [
+        {
+          "rule_id": "suzuki_halide_type_transfer",
+          "conditions": [
+            [
+              "aryl_halide_halide_type",
+              "bromide"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "From source Suzuki-Miyaura data, bromide aryl halides show consistent high yield performance in cross-coupling; this rule transfers that pattern."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.05,
+      "semantic_mass_end": 0.03,
+      "ucb_weight": 0.2,
+      "gp_beta_start": 1.0,
+      "gp_beta_end": 0.8,
+      "gp_xi": 0.01,
+      "confidence": 0.65,
+      "hypothesis": "This skill is grounded in source-target field alignment but does not assume outcome transfer; may fail due to mechanistic differences in substitution pathways."
+    },
+    {
+      "skill_id": "favor_aryl_halide_mw_none_or_low_with_low_tpsa_base",
+      "rules": [
+        {
+          "rule_id": "low_mw_low_tpsa_pairing",
+          "conditions": [
+            [
+              "aryl_halide_mw_bin",
+              "mw_none_or_low"
+            ],
+            [
+              "base_tpsa_bin",
+              "tpsa_low"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Low molecular weight and low TPSA systems exhibit faster reaction kinetics and fewer side products."
+        }
+      ],
+      "ridge": 1.3,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.3,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 3.0,
+      "gp_beta_end": 2.0,
+      "gp_xi": 0.03,
+      "confidence": 0.9,
+      "hypothesis": "This skill targets simple systems with high yield potential; may not scale to complex substrates with steric or electronic challenges."
+    },
+    {
+      "skill_id": "favor_aryl_halide_mw_none_or_low_with_low_tpsa_base_noprior",
+      "rules": [
+        {
+          "rule_id": "low_mw_low_tpsa_pairing",
+          "conditions": [
+            [
+              "aryl_halide_mw_bin",
+              "mw_none_or_low"
+            ],
+            [
+              "base_tpsa_bin",
+              "tpsa_low"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Low molecular weight and low TPSA systems exhibit faster reaction kinetics and fewer side products."
+        }
+      ],
+      "ridge": 1.3,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.3,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 3.0,
+      "gp_beta_end": 2.0,
+      "gp_xi": 0.03,
+      "confidence": 0.9,
+      "hypothesis": "This skill targets simple systems with high yield potential; may not scale to complex substrates with steric or electronic challenges."
+    },
+    {
+      "skill_id": "favor_aryl_halide_mw_none_or_low_with_low_tpsa_base_conservative",
+      "rules": [
+        {
+          "rule_id": "low_mw_low_tpsa_pairing",
+          "conditions": [
+            [
+              "aryl_halide_mw_bin",
+              "mw_none_or_low"
+            ],
+            [
+              "base_tpsa_bin",
+              "tpsa_low"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Low molecular weight and low TPSA systems exhibit faster reaction kinetics and fewer side products."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 3.0,
+      "gp_beta_end": 2.0,
+      "gp_xi": 0.03,
+      "confidence": 0.9,
+      "hypothesis": "This skill targets simple systems with high yield potential; may not scale to complex substrates with steric or electronic challenges."
+    },
+    {
+      "skill_id": "counter_hypothesis_high_mw_base_with_heteroaromatic",
+      "rules": [
+        {
+          "rule_id": "high_mw_base_heteroaromatic_risk",
+          "conditions": [
+            [
+              "aryl_halide_has_heteroaromatic",
+              "yes"
+            ],
+            [
+              "base_mw_bin",
+              "mw_high"
+            ]
+          ],
+          "weight": -1.0,
+          "rationale": "High-mass bases are known to cause decomposition in heteroaromatic systems due to strong base strength and poor selectivity."
+        }
+      ],
+      "ridge": 0.2,
+      "prior_scale": 0.1,
+      "semantic_mass_start": 0.1,
+      "semantic_mass_end": 0.05,
+      "ucb_weight": 0.1,
+      "gp_beta_start": 0.5,
+      "gp_beta_end": 0.3,
+      "gp_xi": 0.005,
+      "confidence": 0.85,
+      "hypothesis": "This skill explicitly reverses a potentially harmful base-substrate pairing; may be overly restrictive in systems where strong bases are necessary."
+    },
+    {
+      "skill_id": "counter_hypothesis_high_mw_base_with_heteroaromatic_noprior",
+      "rules": [
+        {
+          "rule_id": "high_mw_base_heteroaromatic_risk",
+          "conditions": [
+            [
+              "aryl_halide_has_heteroaromatic",
+              "yes"
+            ],
+            [
+              "base_mw_bin",
+              "mw_high"
+            ]
+          ],
+          "weight": -1.0,
+          "rationale": "High-mass bases are known to cause decomposition in heteroaromatic systems due to strong base strength and poor selectivity."
+        }
+      ],
+      "ridge": 0.2,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.1,
+      "semantic_mass_end": 0.05,
+      "ucb_weight": 0.1,
+      "gp_beta_start": 0.5,
+      "gp_beta_end": 0.3,
+      "gp_xi": 0.005,
+      "confidence": 0.85,
+      "hypothesis": "This skill explicitly reverses a potentially harmful base-substrate pairing; may be overly restrictive in systems where strong bases are necessary."
+    },
+    {
+      "skill_id": "counter_hypothesis_high_mw_base_with_heteroaromatic_conservative",
+      "rules": [
+        {
+          "rule_id": "high_mw_base_heteroaromatic_risk",
+          "conditions": [
+            [
+              "aryl_halide_has_heteroaromatic",
+              "yes"
+            ],
+            [
+              "base_mw_bin",
+              "mw_high"
+            ]
+          ],
+          "weight": -1.0,
+          "rationale": "High-mass bases are known to cause decomposition in heteroaromatic systems due to strong base strength and poor selectivity."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.1,
+      "semantic_mass_end": 0.05,
+      "ucb_weight": 0.1,
+      "gp_beta_start": 0.5,
+      "gp_beta_end": 0.3,
+      "gp_xi": 0.005,
+      "confidence": 0.85,
+      "hypothesis": "This skill explicitly reverses a potentially harmful base-substrate pairing; may be overly restrictive in systems where strong bases are necessary."
+    },
+    {
+      "skill_id": "cross_skill_rule_bank",
+      "rules": [
+        {
+          "rule_id": "ligand_mw_high_guanidine_stabilization",
+          "conditions": [
+            [
+              "ligand_mw_bin",
+              "mw_high"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "High molecular weight ligands benefit from guanidine bases due to enhanced charge delocalization and stabilization of transition states."
+        },
+        {
+          "rule_id": "guanidine_base_stabilizes_aryl_halide_transition",
+          "conditions": [
+            [
+              "base_reagent_base_family",
+              "guanidine_base"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Guanidine bases are effective in stabilizing electron-deficient aryl halides during nucleophilic aromatic substitution."
+        },
+        {
+          "rule_id": "bromide_phosphazene_pairing",
+          "conditions": [
+            [
+              "aryl_halide_halide_type",
+              "bromide"
+            ],
+            [
+              "base_reagent_base_family",
+              "phosphazene_base"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Bromide aryl halides react efficiently with phosphazene bases due to favorable bond-forming kinetics and minimal side reactions."
+        },
+        {
+          "rule_id": "heteroaromatic_risk_with_high_mw_base",
+          "conditions": [
+            [
+              "aryl_halide_has_heteroaromatic",
+              "yes"
+            ],
+            [
+              "base_mw_bin",
+              "mw_high"
+            ]
+          ],
+          "weight": -1.0,
+          "rationale": "Heteroaromatic systems are prone to side reactions when paired with high-mass bases due to electronic mismatch and steric crowding."
+        },
+        {
+          "rule_id": "chloride_amidine_efficiency",
+          "conditions": [
+            [
+              "aryl_halide_halide_type",
+              "chloride"
+            ],
+            [
+              "base_functional_class",
+              "amidine_base"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Chloride aryl halides undergo efficient substitution with amidine bases due to moderate nucleophilicity and good solubility."
+        },
+        {
+          "rule_id": "balanced_mw_pairing",
+          "conditions": [
+            [
+              "aryl_halide_mw_bin",
+              "mw_mid"
+            ],
+            [
+              "base_mw_bin",
+              "mw_mid"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Matching molecular weights between base and aryl halide reduce steric strain and improve reaction homogeneity."
+        },
+        {
+          "rule_id": "tpsa_mid_base_enhances_solubility",
+          "conditions": [
+            [
+              "base_tpsa_bin",
+              "tpsa_mid"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Intermediate TPSA bases offer optimal solubility and accessibility in common reaction solvents."
+        },
+        {
+          "rule_id": "suzuki_halide_type_transfer",
+          "conditions": [
+            [
+              "aryl_halide_halide_type",
+              "bromide"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "From source Suzuki-Miyaura data, bromide aryl halides show consistent high yield performance in cross-coupling; this rule transfers that pattern."
+        },
+        {
+          "rule_id": "low_mw_low_tpsa_pairing",
+          "conditions": [
+            [
+              "aryl_halide_mw_bin",
+              "mw_none_or_low"
+            ],
+            [
+              "base_tpsa_bin",
+              "tpsa_low"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Low molecular weight and low TPSA systems exhibit faster reaction kinetics and fewer side products."
+        }
+      ],
+      "ridge": 4.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.25,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.9,
+      "hypothesis": "Union of independently proposed LLM rule features. Rule signs are ignored; revealed target observations fit a strongly regularized coefficient vector."
+    }
+  ],
+  "skill_variant_policy": "expanded",
+  "calibration_seed_start": 22000,
+  "calibration_seed_count": 30,
+  "heldout_seed_start": 22100,
+  "heldout_seed_count": 100,
+  "selection": {
+    "target_anchor_mode": "gp_ucb",
+    "target_anchor_summary": {
+      "gp_ucb": {
+        "final_best": 90.365847,
+        "best_so_far_auc": 82.822337,
+        "top10_hit": 0.166667,
+        "composite": 173.188184
+      },
+      "mixed_kernel_gp_ei": {
+        "final_best": 88.622697,
+        "best_so_far_auc": 82.345653,
+        "top10_hit": 0.133333,
+        "composite": 170.96835
+      },
+      "target_acquisition_portfolio": {
+        "final_best": 89.9392,
+        "best_so_far_auc": 82.407907,
+        "top10_hit": 0.2,
+        "composite": 172.347107
+      }
+    },
+    "eligible_skill_modes": [],
+    "selected_mode": "gp_ucb",
+    "selected_llm_skill": false,
+    "skill_diagnostics": {
+      "llm_semantic_optimize_high_mw_ligand_with_guanidine_base": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -2.03948,
+          "std": 8.808566,
+          "se": 1.608217,
+          "normal_95ci_low": -5.191585,
+          "normal_95ci_high": 1.112625,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.5
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -1.735937,
+          "std": 6.972433,
+          "se": 1.272986,
+          "normal_95ci_low": -4.23099,
+          "normal_95ci_high": 0.759116,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.4
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -3.775417,
+          "std": 14.515886,
+          "se": 2.650226,
+          "normal_95ci_low": -8.96986,
+          "normal_95ci_high": 1.419026,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.366667
+        },
+        "positive_fold_rate": 0.2,
+        "fold_composite_means": [
+          -3.976283,
+          -0.686367,
+          -3.0994,
+          -15.086617,
+          3.971583
+        ],
+        "risk_adjusted_composite_gain": -5.10053,
+        "eligible": false
+      },
+      "llm_semantic_optimize_high_mw_ligand_with_guanidine_base_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -4.031303,
+          "std": 11.096092,
+          "se": 2.02586,
+          "normal_95ci_low": -8.001989,
+          "normal_95ci_high": -0.060618,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.3
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -3.221337,
+          "std": 7.285251,
+          "se": 1.330099,
+          "normal_95ci_low": -5.82833,
+          "normal_95ci_high": -0.614343,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.3
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -7.25264,
+          "std": 17.025305,
+          "se": 3.108381,
+          "normal_95ci_low": -13.345067,
+          "normal_95ci_high": -1.160213,
+          "win_rate": 0.233333,
+          "non_loss_rate": 0.233333
+        },
+        "positive_fold_rate": 0.2,
+        "fold_composite_means": [
+          -7.115667,
+          0.7152,
+          -7.617117,
+          -15.09585,
+          -7.149767
+        ],
+        "risk_adjusted_composite_gain": -8.806831,
+        "eligible": false
+      },
+      "llm_semantic_optimize_high_mw_ligand_with_guanidine_base_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -2.07705,
+          "std": 11.634952,
+          "se": 2.124242,
+          "normal_95ci_low": -6.240564,
+          "normal_95ci_high": 2.086464,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.466667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -2.790593,
+          "std": 10.070361,
+          "se": 1.838588,
+          "normal_95ci_low": -6.394226,
+          "normal_95ci_high": 0.813039,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.366667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -4.867643,
+          "std": 20.202909,
+          "se": 3.68853,
+          "normal_95ci_low": -12.097161,
+          "normal_95ci_high": 2.361875,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.366667
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          1.885683,
+          -3.980317,
+          -17.162467,
+          -11.058733,
+          5.977617
+        ],
+        "risk_adjusted_composite_gain": -6.711908,
+        "eligible": false
+      },
+      "llm_semantic_use_bromide_aryl_halide_with_phosphazene_base": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -7.387803,
+          "std": 12.520467,
+          "se": 2.285914,
+          "normal_95ci_low": -11.868195,
+          "normal_95ci_high": -2.907412,
+          "win_rate": 0.2,
+          "non_loss_rate": 0.266667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -5.633043,
+          "std": 6.632579,
+          "se": 1.210938,
+          "normal_95ci_low": -8.006481,
+          "normal_95ci_high": -3.259605,
+          "win_rate": 0.2,
+          "non_loss_rate": 0.2
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -13.020847,
+          "std": 18.040237,
+          "se": 3.293681,
+          "normal_95ci_low": -19.476462,
+          "normal_95ci_high": -6.565231,
+          "win_rate": 0.2,
+          "non_loss_rate": 0.2
+        },
+        "positive_fold_rate": 0.0,
+        "fold_composite_means": [
+          -13.122267,
+          -6.8347,
+          -13.842967,
+          -10.545933,
+          -20.758367
+        ],
+        "risk_adjusted_composite_gain": -14.667687,
+        "eligible": false
+      },
+      "llm_semantic_use_bromide_aryl_halide_with_phosphazene_base_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -6.274333,
+          "std": 14.625176,
+          "se": 2.67018,
+          "normal_95ci_low": -11.507885,
+          "normal_95ci_high": -1.040781,
+          "win_rate": 0.233333,
+          "non_loss_rate": 0.333333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -5.696323,
+          "std": 7.524854,
+          "se": 1.373844,
+          "normal_95ci_low": -8.389058,
+          "normal_95ci_high": -3.003589,
+          "win_rate": 0.2,
+          "non_loss_rate": 0.2
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -11.970657,
+          "std": 20.918619,
+          "se": 3.8192,
+          "normal_95ci_low": -19.456288,
+          "normal_95ci_high": -4.485025,
+          "win_rate": 0.233333,
+          "non_loss_rate": 0.233333
+        },
+        "positive_fold_rate": 0.0,
+        "fold_composite_means": [
+          -10.220483,
+          -3.925283,
+          -19.764833,
+          -2.542867,
+          -23.399817
+        ],
+        "risk_adjusted_composite_gain": -13.880257,
+        "eligible": false
+      },
+      "llm_semantic_use_bromide_aryl_halide_with_phosphazene_base_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -5.024207,
+          "std": 11.019091,
+          "se": 2.011802,
+          "normal_95ci_low": -8.967338,
+          "normal_95ci_high": -1.081075,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.366667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -4.617663,
+          "std": 7.252593,
+          "se": 1.324136,
+          "normal_95ci_low": -7.21297,
+          "normal_95ci_high": -2.022356,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.3
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -9.64187,
+          "std": 16.80517,
+          "se": 3.06819,
+          "normal_95ci_low": -15.655523,
+          "normal_95ci_high": -3.628217,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.266667
+        },
+        "positive_fold_rate": 0.0,
+        "fold_composite_means": [
+          -12.600983,
+          -6.772133,
+          -10.524317,
+          -7.68695,
+          -10.624967
+        ],
+        "risk_adjusted_composite_gain": -11.175965,
+        "eligible": false
+      },
+      "llm_semantic_avoid_heteroaromatic_aryl_halides_with_high_mw_bases": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -4.481637,
+          "std": 13.271497,
+          "se": 2.423033,
+          "normal_95ci_low": -9.230781,
+          "normal_95ci_high": 0.267508,
+          "win_rate": 0.233333,
+          "non_loss_rate": 0.333333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -3.63815,
+          "std": 7.601979,
+          "se": 1.387925,
+          "normal_95ci_low": -6.358483,
+          "normal_95ci_high": -0.917817,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.366667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -8.119787,
+          "std": 20.000175,
+          "se": 3.651516,
+          "normal_95ci_low": -15.276757,
+          "normal_95ci_high": -0.962816,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.3
+        },
+        "positive_fold_rate": 0.0,
+        "fold_composite_means": [
+          -13.313817,
+          -3.510183,
+          -14.665917,
+          -4.937067,
+          -4.17195
+        ],
+        "risk_adjusted_composite_gain": -9.945545,
+        "eligible": false
+      },
+      "llm_semantic_avoid_heteroaromatic_aryl_halides_with_high_mw_bases_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -4.364603,
+          "std": 12.602977,
+          "se": 2.300978,
+          "normal_95ci_low": -8.874521,
+          "normal_95ci_high": 0.145314,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.366667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -4.23486,
+          "std": 7.249458,
+          "se": 1.323564,
+          "normal_95ci_low": -6.829045,
+          "normal_95ci_high": -1.640675,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.3
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -8.599463,
+          "std": 18.751903,
+          "se": 3.423613,
+          "normal_95ci_low": -15.309746,
+          "normal_95ci_high": -1.889181,
+          "win_rate": 0.233333,
+          "non_loss_rate": 0.233333
+        },
+        "positive_fold_rate": 0.2,
+        "fold_composite_means": [
+          -13.313817,
+          0.233133,
+          -15.49475,
+          -10.331467,
+          -4.090417
+        ],
+        "risk_adjusted_composite_gain": -10.311269,
+        "eligible": false
+      },
+      "llm_semantic_avoid_heteroaromatic_aryl_halides_with_high_mw_bases_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -4.74832,
+          "std": 10.530005,
+          "se": 1.922507,
+          "normal_95ci_low": -8.516434,
+          "normal_95ci_high": -0.980206,
+          "win_rate": 0.233333,
+          "non_loss_rate": 0.3
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -4.30248,
+          "std": 6.892329,
+          "se": 1.258361,
+          "normal_95ci_low": -6.768868,
+          "normal_95ci_high": -1.836092,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.333333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -9.0508,
+          "std": 16.14501,
+          "se": 2.947662,
+          "normal_95ci_low": -14.828218,
+          "normal_95ci_high": -3.273382,
+          "win_rate": 0.233333,
+          "non_loss_rate": 0.233333
+        },
+        "positive_fold_rate": 0.0,
+        "fold_composite_means": [
+          -10.495117,
+          -4.19475,
+          -12.27515,
+          -13.021067,
+          -5.267917
+        ],
+        "risk_adjusted_composite_gain": -10.524631,
+        "eligible": false
+      },
+      "llm_semantic_favor_chloride_aryl_halides_with_amidine_base": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -6.855933,
+          "std": 12.029743,
+          "se": 2.196321,
+          "normal_95ci_low": -11.160722,
+          "normal_95ci_high": -2.551145,
+          "win_rate": 0.2,
+          "non_loss_rate": 0.233333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -7.876263,
+          "std": 10.545218,
+          "se": 1.925285,
+          "normal_95ci_low": -11.649821,
+          "normal_95ci_high": -4.102705,
+          "win_rate": 0.2,
+          "non_loss_rate": 0.2
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -14.732197,
+          "std": 21.160722,
+          "se": 3.863402,
+          "normal_95ci_low": -22.304464,
+          "normal_95ci_high": -7.159929,
+          "win_rate": 0.166667,
+          "non_loss_rate": 0.166667
+        },
+        "positive_fold_rate": 0.0,
+        "fold_composite_means": [
+          -11.22025,
+          -13.26655,
+          -27.624383,
+          -20.807733,
+          -0.742067
+        ],
+        "risk_adjusted_composite_gain": -16.663898,
+        "eligible": false
+      },
+      "llm_semantic_favor_chloride_aryl_halides_with_amidine_base_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -5.960323,
+          "std": 12.883939,
+          "se": 2.352275,
+          "normal_95ci_low": -10.570782,
+          "normal_95ci_high": -1.349865,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.333333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -6.912123,
+          "std": 10.603823,
+          "se": 1.935984,
+          "normal_95ci_low": -10.706653,
+          "normal_95ci_high": -3.117594,
+          "win_rate": 0.166667,
+          "non_loss_rate": 0.166667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -12.872447,
+          "std": 22.590386,
+          "se": 4.124421,
+          "normal_95ci_low": -20.956313,
+          "normal_95ci_high": -4.788581,
+          "win_rate": 0.233333,
+          "non_loss_rate": 0.233333
+        },
+        "positive_fold_rate": 0.0,
+        "fold_composite_means": [
+          -4.791567,
+          -19.78165,
+          -21.897983,
+          -17.403933,
+          -0.4871
+        ],
+        "risk_adjusted_composite_gain": -14.934658,
+        "eligible": false
+      },
+      "llm_semantic_favor_chloride_aryl_halides_with_amidine_base_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -8.132283,
+          "std": 15.604636,
+          "se": 2.849004,
+          "normal_95ci_low": -13.716331,
+          "normal_95ci_high": -2.548236,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.333333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -7.758083,
+          "std": 11.051369,
+          "se": 2.017695,
+          "normal_95ci_low": -11.712765,
+          "normal_95ci_high": -3.803402,
+          "win_rate": 0.233333,
+          "non_loss_rate": 0.233333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -15.890367,
+          "std": 25.342474,
+          "se": 4.626882,
+          "normal_95ci_low": -24.959054,
+          "normal_95ci_high": -6.821679,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.266667
+        },
+        "positive_fold_rate": 0.0,
+        "fold_composite_means": [
+          -12.440217,
+          -16.0669,
+          -31.797867,
+          -12.987083,
+          -6.159767
+        ],
+        "risk_adjusted_composite_gain": -18.203808,
+        "eligible": false
+      },
+      "llm_semantic_use_mw_mid_base_with_aryl_halide_mw_mid": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -2.824613,
+          "std": 11.9875,
+          "se": 2.188608,
+          "normal_95ci_low": -7.114285,
+          "normal_95ci_high": 1.465058,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.333333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -2.218913,
+          "std": 8.707144,
+          "se": 1.5897,
+          "normal_95ci_low": -5.334725,
+          "normal_95ci_high": 0.896898,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.4
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -5.043527,
+          "std": 19.466163,
+          "se": 3.554019,
+          "normal_95ci_low": -12.009403,
+          "normal_95ci_high": 1.92235,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.333333
+        },
+        "positive_fold_rate": 0.0,
+        "fold_composite_means": [
+          -9.659,
+          -0.72765,
+          -8.73265,
+          -3.67,
+          -2.428333
+        ],
+        "risk_adjusted_composite_gain": -6.820537,
+        "eligible": false
+      },
+      "llm_semantic_use_mw_mid_base_with_aryl_halide_mw_mid_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -5.053497,
+          "std": 13.746715,
+          "se": 2.509795,
+          "normal_95ci_low": -9.972695,
+          "normal_95ci_high": -0.134298,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.4
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -3.064393,
+          "std": 8.483471,
+          "se": 1.548863,
+          "normal_95ci_low": -6.100165,
+          "normal_95ci_high": -0.028622,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.333333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -8.11789,
+          "std": 21.095764,
+          "se": 3.851542,
+          "normal_95ci_low": -15.666912,
+          "normal_95ci_high": -0.568868,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.266667
+        },
+        "positive_fold_rate": 0.0,
+        "fold_composite_means": [
+          -5.496283,
+          -3.00495,
+          -17.306767,
+          -9.798483,
+          -4.982967
+        ],
+        "risk_adjusted_composite_gain": -10.043661,
+        "eligible": false
+      },
+      "llm_semantic_use_mw_mid_base_with_aryl_halide_mw_mid_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -4.822297,
+          "std": 8.704829,
+          "se": 1.589277,
+          "normal_95ci_low": -7.93728,
+          "normal_95ci_high": -1.707314,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.333333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -3.670387,
+          "std": 6.548789,
+          "se": 1.19564,
+          "normal_95ci_low": -6.013841,
+          "normal_95ci_high": -1.326933,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.3
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -8.492683,
+          "std": 14.483958,
+          "se": 2.644397,
+          "normal_95ci_low": -13.675701,
+          "normal_95ci_high": -3.309666,
+          "win_rate": 0.2,
+          "non_loss_rate": 0.2
+        },
+        "positive_fold_rate": 0.0,
+        "fold_composite_means": [
+          -4.81335,
+          -3.4601,
+          -11.7357,
+          -9.121967,
+          -13.3323
+        ],
+        "risk_adjusted_composite_gain": -9.814882,
+        "eligible": false
+      },
+      "llm_semantic_base_tpsa_mid_optimizes_solvent_interaction": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -4.75036,
+          "std": 12.869546,
+          "se": 2.349647,
+          "normal_95ci_low": -9.355668,
+          "normal_95ci_high": -0.145052,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.4
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -4.798517,
+          "std": 8.565884,
+          "se": 1.563909,
+          "normal_95ci_low": -7.863779,
+          "normal_95ci_high": -1.733254,
+          "win_rate": 0.2,
+          "non_loss_rate": 0.2
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -9.548877,
+          "std": 20.459014,
+          "se": 3.735288,
+          "normal_95ci_low": -16.870041,
+          "normal_95ci_high": -2.227712,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.266667
+        },
+        "positive_fold_rate": 0.0,
+        "fold_composite_means": [
+          -1.147883,
+          -6.5678,
+          -19.703117,
+          -13.006333,
+          -7.31925
+        ],
+        "risk_adjusted_composite_gain": -11.416521,
+        "eligible": false
+      },
+      "llm_semantic_base_tpsa_mid_optimizes_solvent_interaction_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -5.04402,
+          "std": 11.931686,
+          "se": 2.178418,
+          "normal_95ci_low": -9.313719,
+          "normal_95ci_high": -0.774321,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.366667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -4.744757,
+          "std": 8.458272,
+          "se": 1.544262,
+          "normal_95ci_low": -7.77151,
+          "normal_95ci_high": -1.718003,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.3
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -9.788777,
+          "std": 19.318742,
+          "se": 3.527104,
+          "normal_95ci_low": -16.7019,
+          "normal_95ci_high": -2.875654,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.333333
+        },
+        "positive_fold_rate": 0.0,
+        "fold_composite_means": [
+          -3.456267,
+          -10.129483,
+          -16.23335,
+          -15.909433,
+          -3.21535
+        ],
+        "risk_adjusted_composite_gain": -11.552329,
+        "eligible": false
+      },
+      "llm_semantic_base_tpsa_mid_optimizes_solvent_interaction_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -4.04549,
+          "std": 8.790977,
+          "se": 1.605005,
+          "normal_95ci_low": -7.191301,
+          "normal_95ci_high": -0.899679,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.366667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -4.261453,
+          "std": 7.225076,
+          "se": 1.319112,
+          "normal_95ci_low": -6.846913,
+          "normal_95ci_high": -1.675993,
+          "win_rate": 0.233333,
+          "non_loss_rate": 0.233333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -8.306943,
+          "std": 15.204296,
+          "se": 2.775912,
+          "normal_95ci_low": -13.747731,
+          "normal_95ci_high": -2.866156,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.3
+        },
+        "positive_fold_rate": 0.0,
+        "fold_composite_means": [
+          -4.1881,
+          -7.709567,
+          -10.845033,
+          -13.6447,
+          -5.147317
+        ],
+        "risk_adjusted_composite_gain": -9.694899,
+        "eligible": false
+      },
+      "llm_semantic_transfer_from_suzuki_to_buchwald_halide_type_alignment": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -3.389267,
+          "std": 14.140559,
+          "se": 2.581701,
+          "normal_95ci_low": -8.449401,
+          "normal_95ci_high": 1.670867,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.5
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -2.383797,
+          "std": 8.105596,
+          "se": 1.479873,
+          "normal_95ci_low": -5.284347,
+          "normal_95ci_high": 0.516754,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.433333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -5.773063,
+          "std": 21.641547,
+          "se": 3.951188,
+          "normal_95ci_low": -13.517392,
+          "normal_95ci_high": 1.971265,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.433333
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          0.321083,
+          9.289217,
+          -13.629633,
+          -16.420267,
+          -8.425717
+        ],
+        "risk_adjusted_composite_gain": -7.748657,
+        "eligible": false
+      },
+      "llm_semantic_transfer_from_suzuki_to_buchwald_halide_type_alignment_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -3.603307,
+          "std": 15.10832,
+          "se": 2.758389,
+          "normal_95ci_low": -9.00975,
+          "normal_95ci_high": 1.803136,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.533333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -2.68304,
+          "std": 8.848237,
+          "se": 1.61546,
+          "normal_95ci_low": -5.849341,
+          "normal_95ci_high": 0.483261,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.433333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -6.286347,
+          "std": 23.334669,
+          "se": 4.260308,
+          "normal_95ci_low": -14.636551,
+          "normal_95ci_high": 2.063858,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.433333
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          0.3493,
+          9.289217,
+          -11.8762,
+          -12.59365,
+          -16.6004
+        ],
+        "risk_adjusted_composite_gain": -8.416501,
+        "eligible": false
+      },
+      "llm_semantic_transfer_from_suzuki_to_buchwald_halide_type_alignment_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -1.135347,
+          "std": 11.711555,
+          "se": 2.138228,
+          "normal_95ci_low": -5.326273,
+          "normal_95ci_high": 3.05558,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.533333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -1.834237,
+          "std": 7.366231,
+          "se": 1.344884,
+          "normal_95ci_low": -4.470209,
+          "normal_95ci_high": 0.801735,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.4
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -2.969583,
+          "std": 18.251711,
+          "se": 3.332291,
+          "normal_95ci_low": -9.500874,
+          "normal_95ci_high": 3.561708,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.433333
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          1.6788,
+          7.1806,
+          -9.219667,
+          -10.816983,
+          -3.670667
+        ],
+        "risk_adjusted_composite_gain": -4.635728,
+        "eligible": false
+      },
+      "llm_semantic_favor_aryl_halide_mw_none_or_low_with_low_tpsa_base": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -7.19051,
+          "std": 14.141446,
+          "se": 2.581863,
+          "normal_95ci_low": -12.250962,
+          "normal_95ci_high": -2.130058,
+          "win_rate": 0.233333,
+          "non_loss_rate": 0.233333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -5.67765,
+          "std": 11.199956,
+          "se": 2.044823,
+          "normal_95ci_low": -9.685503,
+          "normal_95ci_high": -1.669797,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.333333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -12.86816,
+          "std": 24.141186,
+          "se": 4.407557,
+          "normal_95ci_low": -21.506972,
+          "normal_95ci_high": -4.229348,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.266667
+        },
+        "positive_fold_rate": 0.0,
+        "fold_composite_means": [
+          -11.467883,
+          -6.087083,
+          -24.139383,
+          -8.362417,
+          -14.284033
+        ],
+        "risk_adjusted_composite_gain": -15.071938,
+        "eligible": false
+      },
+      "llm_semantic_favor_aryl_halide_mw_none_or_low_with_low_tpsa_base_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -6.554857,
+          "std": 14.609515,
+          "se": 2.66732,
+          "normal_95ci_low": -11.782805,
+          "normal_95ci_high": -1.326909,
+          "win_rate": 0.2,
+          "non_loss_rate": 0.233333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -5.73016,
+          "std": 9.606374,
+          "se": 1.753876,
+          "normal_95ci_low": -9.167757,
+          "normal_95ci_high": -2.292563,
+          "win_rate": 0.233333,
+          "non_loss_rate": 0.233333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -12.285017,
+          "std": 22.873984,
+          "se": 4.176199,
+          "normal_95ci_low": -20.470367,
+          "normal_95ci_high": -4.099667,
+          "win_rate": 0.2,
+          "non_loss_rate": 0.2
+        },
+        "positive_fold_rate": 0.0,
+        "fold_composite_means": [
+          -7.798267,
+          -7.764583,
+          -22.577583,
+          -7.141167,
+          -16.143483
+        ],
+        "risk_adjusted_composite_gain": -14.373117,
+        "eligible": false
+      },
+      "llm_semantic_favor_aryl_halide_mw_none_or_low_with_low_tpsa_base_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -4.639937,
+          "std": 12.742396,
+          "se": 2.326432,
+          "normal_95ci_low": -9.199744,
+          "normal_95ci_high": -0.080129,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.3
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -5.947663,
+          "std": 10.68317,
+          "se": 1.950471,
+          "normal_95ci_low": -9.770587,
+          "normal_95ci_high": -2.12474,
+          "win_rate": 0.233333,
+          "non_loss_rate": 0.233333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -10.5876,
+          "std": 22.234784,
+          "se": 4.059498,
+          "normal_95ci_low": -18.544215,
+          "normal_95ci_high": -2.630985,
+          "win_rate": 0.233333,
+          "non_loss_rate": 0.233333
+        },
+        "positive_fold_rate": 0.0,
+        "fold_composite_means": [
+          -6.5823,
+          -12.6821,
+          -17.8347,
+          -6.1542,
+          -9.6847
+        ],
+        "risk_adjusted_composite_gain": -12.617349,
+        "eligible": false
+      },
+      "llm_semantic_counter_hypothesis_high_mw_base_with_heteroaromatic": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -3.188323,
+          "std": 13.902983,
+          "se": 2.538326,
+          "normal_95ci_low": -8.163442,
+          "normal_95ci_high": 1.786795,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.533333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -3.563757,
+          "std": 11.760975,
+          "se": 2.147251,
+          "normal_95ci_low": -7.772368,
+          "normal_95ci_high": 0.644854,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.366667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -6.75208,
+          "std": 24.818898,
+          "se": 4.53129,
+          "normal_95ci_low": -15.633408,
+          "normal_95ci_high": 2.129248,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.4
+        },
+        "positive_fold_rate": 0.2,
+        "fold_composite_means": [
+          -2.956267,
+          -14.83155,
+          -2.99365,
+          -16.42635,
+          3.447417
+        ],
+        "risk_adjusted_composite_gain": -9.017725,
+        "eligible": false
+      },
+      "llm_semantic_counter_hypothesis_high_mw_base_with_heteroaromatic_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -4.16478,
+          "std": 12.924906,
+          "se": 2.359754,
+          "normal_95ci_low": -8.789898,
+          "normal_95ci_high": 0.460338,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.466667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -4.25079,
+          "std": 10.963326,
+          "se": 2.00162,
+          "normal_95ci_low": -8.173966,
+          "normal_95ci_high": -0.327614,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.366667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -8.41557,
+          "std": 22.937653,
+          "se": 4.187823,
+          "normal_95ci_low": -16.623704,
+          "normal_95ci_high": -0.207436,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.433333
+        },
+        "positive_fold_rate": 0.0,
+        "fold_composite_means": [
+          -4.77255,
+          -14.739433,
+          -2.53165,
+          -15.908433,
+          -4.125783
+        ],
+        "risk_adjusted_composite_gain": -10.509481,
+        "eligible": false
+      },
+      "llm_semantic_counter_hypothesis_high_mw_base_with_heteroaromatic_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -3.83916,
+          "std": 10.648802,
+          "se": 1.944196,
+          "normal_95ci_low": -7.649785,
+          "normal_95ci_high": -0.028535,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.366667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -2.683723,
+          "std": 8.403711,
+          "se": 1.534301,
+          "normal_95ci_low": -5.690953,
+          "normal_95ci_high": 0.323506,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.266667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -6.522883,
+          "std": 18.179008,
+          "se": 3.319018,
+          "normal_95ci_low": -13.028158,
+          "normal_95ci_high": -0.017609,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.3
+        },
+        "positive_fold_rate": 0.2,
+        "fold_composite_means": [
+          -5.94215,
+          -3.230483,
+          -10.398467,
+          -16.808517,
+          3.7652
+        ],
+        "risk_adjusted_composite_gain": -8.182392,
+        "eligible": false
+      },
+      "llm_semantic_cross_skill_rule_bank": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -4.499867,
+          "std": 12.599263,
+          "se": 2.3003,
+          "normal_95ci_low": -9.008455,
+          "normal_95ci_high": 0.008722,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.433333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -2.386833,
+          "std": 7.975953,
+          "se": 1.456203,
+          "normal_95ci_low": -5.240991,
+          "normal_95ci_high": 0.467325,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.333333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -6.8867,
+          "std": 19.124461,
+          "se": 3.491633,
+          "normal_95ci_low": -13.730301,
+          "normal_95ci_high": -0.043099,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.333333
+        },
+        "positive_fold_rate": 0.2,
+        "fold_composite_means": [
+          -5.272817,
+          2.532283,
+          -11.63615,
+          -7.884333,
+          -12.172483
+        ],
+        "risk_adjusted_composite_gain": -8.632517,
+        "eligible": false
+      }
+    },
+    "thresholds": {
+      "min_risk_adjusted_composite_gain": 0.25,
+      "min_positive_fold_rate": 0.8,
+      "min_final_non_loss_rate": 0.55
+    },
+    "rule": "Choose the strongest target-only anchor on calibration composite. Select an LLM semantic skill only when final and AUC means are non-negative, fold stability and non-loss constraints pass, and risk-adjusted composite gain is positive."
+  },
+  "calibration": {
+    "gp_ucb": {
+      "final_best": 90.365847,
+      "best_so_far_auc": 82.822337,
+      "top10_hit": 0.166667,
+      "composite": 173.188184
+    },
+    "llm_semantic_avoid_heteroaromatic_aryl_halides_with_high_mw_bases": {
+      "final_best": 85.88421,
+      "best_so_far_auc": 79.184187,
+      "top10_hit": 0.166667,
+      "composite": 165.068397
+    },
+    "llm_semantic_avoid_heteroaromatic_aryl_halides_with_high_mw_bases_conservative": {
+      "final_best": 85.617527,
+      "best_so_far_auc": 78.519857,
+      "top10_hit": 0.033333,
+      "composite": 164.137384
+    },
+    "llm_semantic_avoid_heteroaromatic_aryl_halides_with_high_mw_bases_noprior": {
+      "final_best": 86.001243,
+      "best_so_far_auc": 78.587477,
+      "top10_hit": 0.1,
+      "composite": 164.58872
+    },
+    "llm_semantic_base_tpsa_mid_optimizes_solvent_interaction": {
+      "final_best": 85.615487,
+      "best_so_far_auc": 78.02382,
+      "top10_hit": 0.066667,
+      "composite": 163.639307
+    },
+    "llm_semantic_base_tpsa_mid_optimizes_solvent_interaction_conservative": {
+      "final_best": 86.320357,
+      "best_so_far_auc": 78.560883,
+      "top10_hit": 0.066667,
+      "composite": 164.88124
+    },
+    "llm_semantic_base_tpsa_mid_optimizes_solvent_interaction_noprior": {
+      "final_best": 85.321827,
+      "best_so_far_auc": 78.07758,
+      "top10_hit": 0.1,
+      "composite": 163.399407
+    },
+    "llm_semantic_counter_hypothesis_high_mw_base_with_heteroaromatic": {
+      "final_best": 87.177523,
+      "best_so_far_auc": 79.25858,
+      "top10_hit": 0.2,
+      "composite": 166.436103
+    },
+    "llm_semantic_counter_hypothesis_high_mw_base_with_heteroaromatic_conservative": {
+      "final_best": 86.526687,
+      "best_so_far_auc": 80.138613,
+      "top10_hit": 0.133333,
+      "composite": 166.6653
+    },
+    "llm_semantic_counter_hypothesis_high_mw_base_with_heteroaromatic_noprior": {
+      "final_best": 86.201067,
+      "best_so_far_auc": 78.571547,
+      "top10_hit": 0.2,
+      "composite": 164.772614
+    },
+    "llm_semantic_cross_skill_rule_bank": {
+      "final_best": 85.86598,
+      "best_so_far_auc": 80.435503,
+      "top10_hit": 0.166667,
+      "composite": 166.301483
+    },
+    "llm_semantic_favor_aryl_halide_mw_none_or_low_with_low_tpsa_base": {
+      "final_best": 83.175337,
+      "best_so_far_auc": 77.144687,
+      "top10_hit": 0.0,
+      "composite": 160.320024
+    },
+    "llm_semantic_favor_aryl_halide_mw_none_or_low_with_low_tpsa_base_conservative": {
+      "final_best": 85.72591,
+      "best_so_far_auc": 76.874673,
+      "top10_hit": 0.033333,
+      "composite": 162.600583
+    },
+    "llm_semantic_favor_aryl_halide_mw_none_or_low_with_low_tpsa_base_noprior": {
+      "final_best": 83.81099,
+      "best_so_far_auc": 77.092177,
+      "top10_hit": 0.033333,
+      "composite": 160.903167
+    },
+    "llm_semantic_favor_chloride_aryl_halides_with_amidine_base": {
+      "final_best": 83.509913,
+      "best_so_far_auc": 74.946073,
+      "top10_hit": 0.0,
+      "composite": 158.455986
+    },
+    "llm_semantic_favor_chloride_aryl_halides_with_amidine_base_conservative": {
+      "final_best": 82.233563,
+      "best_so_far_auc": 75.064253,
+      "top10_hit": 0.066667,
+      "composite": 157.297816
+    },
+    "llm_semantic_favor_chloride_aryl_halides_with_amidine_base_noprior": {
+      "final_best": 84.405523,
+      "best_so_far_auc": 75.910213,
+      "top10_hit": 0.066667,
+      "composite": 160.315736
+    },
+    "llm_semantic_optimize_high_mw_ligand_with_guanidine_base": {
+      "final_best": 88.326367,
+      "best_so_far_auc": 81.0864,
+      "top10_hit": 0.233333,
+      "composite": 169.412767
+    },
+    "llm_semantic_optimize_high_mw_ligand_with_guanidine_base_conservative": {
+      "final_best": 88.288797,
+      "best_so_far_auc": 80.031743,
+      "top10_hit": 0.233333,
+      "composite": 168.32054
+    },
+    "llm_semantic_optimize_high_mw_ligand_with_guanidine_base_noprior": {
+      "final_best": 86.334543,
+      "best_so_far_auc": 79.601,
+      "top10_hit": 0.0,
+      "composite": 165.935543
+    },
+    "llm_semantic_transfer_from_suzuki_to_buchwald_halide_type_alignment": {
+      "final_best": 86.97658,
+      "best_so_far_auc": 80.43854,
+      "top10_hit": 0.1,
+      "composite": 167.41512
+    },
+    "llm_semantic_transfer_from_suzuki_to_buchwald_halide_type_alignment_conservative": {
+      "final_best": 89.2305,
+      "best_so_far_auc": 80.9881,
+      "top10_hit": 0.1,
+      "composite": 170.2186
+    },
+    "llm_semantic_transfer_from_suzuki_to_buchwald_halide_type_alignment_noprior": {
+      "final_best": 86.76254,
+      "best_so_far_auc": 80.139297,
+      "top10_hit": 0.133333,
+      "composite": 166.901837
+    },
+    "llm_semantic_use_bromide_aryl_halide_with_phosphazene_base": {
+      "final_best": 82.978043,
+      "best_so_far_auc": 77.189293,
+      "top10_hit": 0.133333,
+      "composite": 160.167336
+    },
+    "llm_semantic_use_bromide_aryl_halide_with_phosphazene_base_conservative": {
+      "final_best": 85.34164,
+      "best_so_far_auc": 78.204673,
+      "top10_hit": 0.1,
+      "composite": 163.546313
+    },
+    "llm_semantic_use_bromide_aryl_halide_with_phosphazene_base_noprior": {
+      "final_best": 84.091513,
+      "best_so_far_auc": 77.126013,
+      "top10_hit": 0.1,
+      "composite": 161.217526
+    },
+    "llm_semantic_use_mw_mid_base_with_aryl_halide_mw_mid": {
+      "final_best": 87.541233,
+      "best_so_far_auc": 80.603423,
+      "top10_hit": 0.066667,
+      "composite": 168.144656
+    },
+    "llm_semantic_use_mw_mid_base_with_aryl_halide_mw_mid_conservative": {
+      "final_best": 85.54355,
+      "best_so_far_auc": 79.15195,
+      "top10_hit": 0.0,
+      "composite": 164.6955
+    },
+    "llm_semantic_use_mw_mid_base_with_aryl_halide_mw_mid_noprior": {
+      "final_best": 85.31235,
+      "best_so_far_auc": 79.757943,
+      "top10_hit": 0.1,
+      "composite": 165.070293
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 88.622697,
+      "best_so_far_auc": 82.345653,
+      "top10_hit": 0.133333,
+      "composite": 170.96835
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 89.9392,
+      "best_so_far_auc": 82.407907,
+      "top10_hit": 0.2,
+      "composite": 172.347107
+    }
+  },
+  "heldout": {
+    "care_strategy_router": {
+      "final_best": 90.400585,
+      "best_so_far_auc": 83.611112,
+      "top10_hit": 0.24,
+      "composite": 174.011697
+    },
+    "gp_ucb": {
+      "final_best": 90.400585,
+      "best_so_far_auc": 83.611112,
+      "top10_hit": 0.24,
+      "composite": 174.011697
+    },
+    "llm_calibrated_selector": {
+      "final_best": 90.400585,
+      "best_so_far_auc": 83.611112,
+      "top10_hit": 0.24,
+      "composite": 174.011697
+    },
+    "llm_semantic_avoid_heteroaromatic_aryl_halides_with_high_mw_bases": {
+      "final_best": 84.814781,
+      "best_so_far_auc": 78.877654,
+      "top10_hit": 0.11,
+      "composite": 163.692435
+    },
+    "llm_semantic_avoid_heteroaromatic_aryl_halides_with_high_mw_bases_conservative": {
+      "final_best": 84.847931,
+      "best_so_far_auc": 79.315609,
+      "top10_hit": 0.13,
+      "composite": 164.16354
+    },
+    "llm_semantic_avoid_heteroaromatic_aryl_halides_with_high_mw_bases_noprior": {
+      "final_best": 85.091423,
+      "best_so_far_auc": 79.107033,
+      "top10_hit": 0.09,
+      "composite": 164.198456
+    },
+    "llm_semantic_base_tpsa_mid_optimizes_solvent_interaction": {
+      "final_best": 86.175627,
+      "best_so_far_auc": 78.787997,
+      "top10_hit": 0.11,
+      "composite": 164.963624
+    },
+    "llm_semantic_base_tpsa_mid_optimizes_solvent_interaction_conservative": {
+      "final_best": 86.356542,
+      "best_so_far_auc": 79.050435,
+      "top10_hit": 0.16,
+      "composite": 165.406977
+    },
+    "llm_semantic_base_tpsa_mid_optimizes_solvent_interaction_noprior": {
+      "final_best": 88.457831,
+      "best_so_far_auc": 80.025826,
+      "top10_hit": 0.15,
+      "composite": 168.483657
+    },
+    "llm_semantic_counter_hypothesis_high_mw_base_with_heteroaromatic": {
+      "final_best": 85.807759,
+      "best_so_far_auc": 80.235226,
+      "top10_hit": 0.13,
+      "composite": 166.042985
+    },
+    "llm_semantic_counter_hypothesis_high_mw_base_with_heteroaromatic_conservative": {
+      "final_best": 85.89906,
+      "best_so_far_auc": 79.788186,
+      "top10_hit": 0.17,
+      "composite": 165.687246
+    },
+    "llm_semantic_counter_hypothesis_high_mw_base_with_heteroaromatic_noprior": {
+      "final_best": 86.346581,
+      "best_so_far_auc": 80.430915,
+      "top10_hit": 0.13,
+      "composite": 166.777496
+    },
+    "llm_semantic_cross_skill_rule_bank": {
+      "final_best": 84.877445,
+      "best_so_far_auc": 78.749606,
+      "top10_hit": 0.13,
+      "composite": 163.627051
+    },
+    "llm_semantic_favor_aryl_halide_mw_none_or_low_with_low_tpsa_base": {
+      "final_best": 84.945335,
+      "best_so_far_auc": 77.621185,
+      "top10_hit": 0.13,
+      "composite": 162.56652
+    },
+    "llm_semantic_favor_aryl_halide_mw_none_or_low_with_low_tpsa_base_conservative": {
+      "final_best": 87.765462,
+      "best_so_far_auc": 79.583108,
+      "top10_hit": 0.15,
+      "composite": 167.34857
+    },
+    "llm_semantic_favor_aryl_halide_mw_none_or_low_with_low_tpsa_base_noprior": {
+      "final_best": 86.188413,
+      "best_so_far_auc": 78.497678,
+      "top10_hit": 0.15,
+      "composite": 164.686091
+    },
+    "llm_semantic_favor_chloride_aryl_halides_with_amidine_base": {
+      "final_best": 83.558996,
+      "best_so_far_auc": 77.410112,
+      "top10_hit": 0.07,
+      "composite": 160.969108
+    },
+    "llm_semantic_favor_chloride_aryl_halides_with_amidine_base_conservative": {
+      "final_best": 84.969614,
+      "best_so_far_auc": 78.341078,
+      "top10_hit": 0.08,
+      "composite": 163.310692
+    },
+    "llm_semantic_favor_chloride_aryl_halides_with_amidine_base_noprior": {
+      "final_best": 84.571027,
+      "best_so_far_auc": 78.237395,
+      "top10_hit": 0.08,
+      "composite": 162.808422
+    },
+    "llm_semantic_optimize_high_mw_ligand_with_guanidine_base": {
+      "final_best": 88.305826,
+      "best_so_far_auc": 80.398447,
+      "top10_hit": 0.27,
+      "composite": 168.704273
+    },
+    "llm_semantic_optimize_high_mw_ligand_with_guanidine_base_conservative": {
+      "final_best": 88.69283,
+      "best_so_far_auc": 80.488244,
+      "top10_hit": 0.21,
+      "composite": 169.181074
+    },
+    "llm_semantic_optimize_high_mw_ligand_with_guanidine_base_noprior": {
+      "final_best": 89.130355,
+      "best_so_far_auc": 80.644097,
+      "top10_hit": 0.23,
+      "composite": 169.774452
+    },
+    "llm_semantic_transfer_from_suzuki_to_buchwald_halide_type_alignment": {
+      "final_best": 89.343076,
+      "best_so_far_auc": 81.895824,
+      "top10_hit": 0.2,
+      "composite": 171.2389
+    },
+    "llm_semantic_transfer_from_suzuki_to_buchwald_halide_type_alignment_conservative": {
+      "final_best": 90.051516,
+      "best_so_far_auc": 82.105529,
+      "top10_hit": 0.19,
+      "composite": 172.157045
+    },
+    "llm_semantic_transfer_from_suzuki_to_buchwald_halide_type_alignment_noprior": {
+      "final_best": 89.554789,
+      "best_so_far_auc": 82.102974,
+      "top10_hit": 0.2,
+      "composite": 171.657763
+    },
+    "llm_semantic_use_bromide_aryl_halide_with_phosphazene_base": {
+      "final_best": 85.275079,
+      "best_so_far_auc": 76.58451,
+      "top10_hit": 0.19,
+      "composite": 161.859589
+    },
+    "llm_semantic_use_bromide_aryl_halide_with_phosphazene_base_conservative": {
+      "final_best": 87.824718,
+      "best_so_far_auc": 79.507158,
+      "top10_hit": 0.21,
+      "composite": 167.331876
+    },
+    "llm_semantic_use_bromide_aryl_halide_with_phosphazene_base_noprior": {
+      "final_best": 86.363615,
+      "best_so_far_auc": 78.124069,
+      "top10_hit": 0.14,
+      "composite": 164.487684
+    },
+    "llm_semantic_use_mw_mid_base_with_aryl_halide_mw_mid": {
+      "final_best": 87.663378,
+      "best_so_far_auc": 81.13714,
+      "top10_hit": 0.13,
+      "composite": 168.800518
+    },
+    "llm_semantic_use_mw_mid_base_with_aryl_halide_mw_mid_conservative": {
+      "final_best": 87.460804,
+      "best_so_far_auc": 80.791916,
+      "top10_hit": 0.09,
+      "composite": 168.25272
+    },
+    "llm_semantic_use_mw_mid_base_with_aryl_halide_mw_mid_noprior": {
+      "final_best": 87.388571,
+      "best_so_far_auc": 81.0055,
+      "top10_hit": 0.11,
+      "composite": 168.394071
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 89.94125,
+      "best_so_far_auc": 81.914977,
+      "top10_hit": 0.23,
+      "composite": 171.856227
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 90.072968,
+      "best_so_far_auc": 82.933266,
+      "top10_hit": 0.22,
+      "composite": 173.006234
+    }
+  },
+  "heldout_strongest_target_mode_descriptive_only": "gp_ucb",
+  "heldout_pairwise": {
+    "gp_ucb": {
+      "final_best": {
+        "n": 100.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      },
+      "best_so_far_auc": {
+        "n": 100.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      },
+      "top10_hit": {
+        "n": 100.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      }
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": {
+        "n": 100.0,
+        "mean": 0.459335,
+        "std": 8.371781,
+        "se": 0.837178,
+        "normal_95ci_low": -1.181534,
+        "normal_95ci_high": 2.100204,
+        "win_rate": 0.25,
+        "non_loss_rate": 0.8
+      },
+      "best_so_far_auc": {
+        "n": 100.0,
+        "mean": 1.696135,
+        "std": 5.444679,
+        "se": 0.544468,
+        "normal_95ci_low": 0.628978,
+        "normal_95ci_high": 2.763292,
+        "win_rate": 0.45,
+        "non_loss_rate": 0.76
+      },
+      "top10_hit": {
+        "n": 100.0,
+        "mean": 0.01,
+        "std": 0.299833,
+        "se": 0.029983,
+        "normal_95ci_low": -0.048767,
+        "normal_95ci_high": 0.068767,
+        "win_rate": 0.05,
+        "non_loss_rate": 0.96
+      }
+    },
+    "target_acquisition_portfolio": {
+      "final_best": {
+        "n": 100.0,
+        "mean": 0.327617,
+        "std": 7.77994,
+        "se": 0.777994,
+        "normal_95ci_low": -1.197251,
+        "normal_95ci_high": 1.852485,
+        "win_rate": 0.24,
+        "non_loss_rate": 0.85
+      },
+      "best_so_far_auc": {
+        "n": 100.0,
+        "mean": 0.677846,
+        "std": 6.138969,
+        "se": 0.613897,
+        "normal_95ci_low": -0.525392,
+        "normal_95ci_high": 1.881084,
+        "win_rate": 0.35,
+        "non_loss_rate": 0.8
+      },
+      "top10_hit": {
+        "n": 100.0,
+        "mean": 0.02,
+        "std": 0.345832,
+        "se": 0.034583,
+        "normal_95ci_low": -0.047783,
+        "normal_95ci_high": 0.087783,
+        "win_rate": 0.07,
+        "non_loss_rate": 0.95
+      }
+    }
+  },
+  "external_llm_baselines": {},
+  "care_vs_external_llm": {},
+  "heldout_validation": {
+    "selected_llm_skill": false,
+    "strongest_target_mode": "gp_ucb",
+    "final_95ci_positive": false,
+    "auc_95ci_positive": false,
+    "top10_95ci_positive": false
+  },
+  "evidence_boundary": {
+    "generation": "Only source identity, objective, and public source-target field alignment are provided. Source outcomes, effects, support counts, and value priors are withheld.",
+    "evaluation": "Calibration selects a skill before held-out evaluation. Every per-round fit uses only previously revealed target outcomes."
+  },
+  "strategy_router": {
+    "selected_mode": "gp_ucb",
+    "selected_llm_strategy": false,
+    "target_anchor_mode": "gp_ucb",
+    "candidate_modes": [
+      "gp_ucb"
+    ],
+    "eligible_modes": [
+      "gp_ucb"
+    ],
+    "diagnostics": {
+      "gp_ucb": {
+        "eligible": true,
+        "risk_adjusted_composite_gain": 0.0,
+        "reason": "target-only fallback"
+      }
+    },
+    "thresholds": {
+      "min_risk_adjusted_composite_gain": 0.25,
+      "min_positive_fold_rate": 0.8,
+      "min_final_non_loss_rate": 0.55
+    },
+    "rule": "Choose among the frozen semantic selector, LLM-direct prior, LLAMBO-style warm-start, and the target-only anchor using calibration seeds only. Require non-negative final-best and AUC deltas, stable folds, and a positive risk-adjusted composite gain; otherwise fall back to the target-only anchor.",
+    "evidence_boundary": "Only calibration outcomes choose the strategy. Held-out outcomes are used once for the frozen comparison."
+  },
+  "strategy_router_strongest_target_mode": "gp_ucb",
+  "strategy_router_pairwise": {
+    "gp_ucb": {
+      "final_best": {
+        "n": 100.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      },
+      "best_so_far_auc": {
+        "n": 100.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      },
+      "top10_hit": {
+        "n": 100.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      }
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": {
+        "n": 100.0,
+        "mean": 0.459335,
+        "std": 8.371781,
+        "se": 0.837178,
+        "normal_95ci_low": -1.181534,
+        "normal_95ci_high": 2.100204,
+        "win_rate": 0.25,
+        "non_loss_rate": 0.8
+      },
+      "best_so_far_auc": {
+        "n": 100.0,
+        "mean": 1.696135,
+        "std": 5.444679,
+        "se": 0.544468,
+        "normal_95ci_low": 0.628978,
+        "normal_95ci_high": 2.763292,
+        "win_rate": 0.45,
+        "non_loss_rate": 0.76
+      },
+      "top10_hit": {
+        "n": 100.0,
+        "mean": 0.01,
+        "std": 0.299833,
+        "se": 0.029983,
+        "normal_95ci_low": -0.048767,
+        "normal_95ci_high": 0.068767,
+        "win_rate": 0.05,
+        "non_loss_rate": 0.96
+      }
+    },
+    "target_acquisition_portfolio": {
+      "final_best": {
+        "n": 100.0,
+        "mean": 0.327617,
+        "std": 7.77994,
+        "se": 0.777994,
+        "normal_95ci_low": -1.197251,
+        "normal_95ci_high": 1.852485,
+        "win_rate": 0.24,
+        "non_loss_rate": 0.85
+      },
+      "best_so_far_auc": {
+        "n": 100.0,
+        "mean": 0.677846,
+        "std": 6.138969,
+        "se": 0.613897,
+        "normal_95ci_low": -0.525392,
+        "normal_95ci_high": 1.881084,
+        "win_rate": 0.35,
+        "non_loss_rate": 0.8
+      },
+      "top10_hit": {
+        "n": 100.0,
+        "mean": 0.02,
+        "std": 0.345832,
+        "se": 0.034583,
+        "normal_95ci_low": -0.047783,
+        "normal_95ci_high": 0.087783,
+        "win_rate": 0.07,
+        "non_loss_rate": 0.95
+      }
+    }
+  },
+  "strategy_router_vs_external_llm": {},
+  "strategy_router_validation": {
+    "selected_llm_strategy": false,
+    "strongest_target_mode": "gp_ucb",
+    "final_95ci_positive": false,
+    "auc_95ci_positive": false,
+    "top10_95ci_positive": false
+  }
+}

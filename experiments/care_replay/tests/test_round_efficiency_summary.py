@@ -39,6 +39,32 @@ class RoundEfficiencySummaryTest(unittest.TestCase):
         self.assertEqual(rounds.best_at_round(events, 3.0, 1), 4.0)
         self.assertEqual(rounds.best_at_round(events, 3.0, 2), 7.0)
 
+    def test_llm_initial_context_uses_warmstart_candidates(self) -> None:
+        candidates = (
+            rounds.replay.Candidate("low", "a", 0, 0, 0, 1.0, {}),
+            rounds.replay.Candidate("high", "b", 0, 0, 0, 9.0, {}),
+        )
+        adapter = rounds.replay.DatasetAdapter(
+            "test",
+            "test",
+            "maximize",
+            (),
+            "value",
+            "group",
+            (),
+            "",
+            candidates,
+        )
+        events = [{
+            "hypothesis_snapshot": {
+                "warmstart_candidates": ["high"],
+            }
+        }]
+        self.assertEqual(
+            rounds.llm_initial_context(adapter, 0, 1, {"high"}, events),
+            (9.0, True),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -20,11 +20,20 @@ class RuntimeKnowledgeBaseTest(unittest.TestCase):
             (result_dir / "run_manifest.json").write_text(json.dumps({
                 "study": "example",
                 "date": "2026-07-21",
-                "negative_result": {
-                    "source": "source_a",
-                    "target": "target_b",
-                    "result": "Calibration rejected transfer.",
-                },
+                "negative_results": [
+                    {
+                        "source": "source_a",
+                        "target": "target_b",
+                        "case": "gate-reject",
+                        "result": "Calibration rejected transfer.",
+                    },
+                    {
+                        "source": "source_c",
+                        "target": "target_d",
+                        "case": "negative-heldout",
+                        "result": "Held-out replay rejected transfer.",
+                    },
+                ],
             }), encoding="utf-8")
             (result_dir / "headline_results.csv").write_text(
                 "target,evidence_mode,selected_skill,rule_prior,baseline,seeds,delta_final_best,final_ci_low,final_ci_high,delta_auc,auc_ci_low,auc_ci_high,rounds_saved_top10\n"
@@ -37,7 +46,7 @@ class RuntimeKnowledgeBaseTest(unittest.TestCase):
             found = retrieval.retrieve_runtime_cards(db, "ring rule target calibration", 5)
             self.assertTrue(any(card["type"] == "skill" for card in found))
             con = sqlite3.connect(db)
-            self.assertEqual(con.execute("select count(*) from cards").fetchone()[0], 4)
+            self.assertEqual(con.execute("select count(*) from cards").fetchone()[0], 5)
             con.close()
 
 

@@ -1,0 +1,3204 @@
+{
+  "experiment": "care_calibrated_llm_semantic_skill_selector",
+  "source_dataset": "real_matbench_log_kvrh",
+  "target_dataset": "real_matbench_phonons",
+  "evidence_mode": "target_only",
+  "llm_model": "deepspeek-v3.2",
+  "llm_generation_call_count": 1,
+  "new_llm_call_count": 0,
+  "rule_prior_enabled": true,
+  "semantic_model_enabled": true,
+  "semantic_field_catalog": {
+    "anion_family": {
+      "carbide_or_carbon": 15,
+      "chalcogenide": 284,
+      "halide": 274,
+      "other": 74,
+      "oxide": 360,
+      "pnictide": 258
+    },
+    "element_count_bin": {
+      "binary": 303,
+      "quinary_senary": 3,
+      "ternary_quaternary": 959
+    },
+    "dominant_family": {
+      "alkali": 143,
+      "alkaline_earth": 70,
+      "chalcogen": 478,
+      "halogen": 219,
+      "light_nonmetal": 35,
+      "metalloid": 112,
+      "pnictogen": 108,
+      "post_transition": 22,
+      "transition_metal": 78
+    },
+    "transition_metal_flag": {
+      "has_transition_metal": 615,
+      "no_transition_metal": 650
+    },
+    "lanthanide_flag": {
+      "has_lanthanide": 41,
+      "no_lanthanide": 1224
+    },
+    "mean_atomic_number_bin": {
+      "mean_z_high": 177,
+      "mean_z_low": 443,
+      "mean_z_mid": 637,
+      "mean_z_very_high": 8
+    },
+    "max_element_fraction_bin": {
+      "balanced": 170,
+      "concentrated": 549,
+      "dominant_element_heavy": 9,
+      "moderately_concentrated": 537
+    }
+  },
+  "skills": [
+    {
+      "skill_id": "optimize_oxide_ternary_phonon_peak",
+      "rules": [
+        {
+          "rule_id": "oxide_ternary_stability",
+          "conditions": [
+            [
+              "element_count_bin",
+              "ternary_quaternary"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Oxide-based ternary compounds often exhibit phonon peak stability due to strong ionic bonding and lattice symmetry."
+        },
+        {
+          "rule_id": "high_atomic_number_balance",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "balanced"
+            ],
+            [
+              "mean_atomic_number_bin",
+              "mean_z_mid"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Moderate atomic number distribution with balanced elemental composition enhances phonon dispersion and peak sharpness."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 3.0,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.02,
+      "confidence": 0.85,
+      "hypothesis": "This skill may fail in systems with strong covalent character or significant lattice distortions."
+    },
+    {
+      "skill_id": "optimize_oxide_ternary_phonon_peak_noprior",
+      "rules": [
+        {
+          "rule_id": "oxide_ternary_stability",
+          "conditions": [
+            [
+              "element_count_bin",
+              "ternary_quaternary"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Oxide-based ternary compounds often exhibit phonon peak stability due to strong ionic bonding and lattice symmetry."
+        },
+        {
+          "rule_id": "high_atomic_number_balance",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "balanced"
+            ],
+            [
+              "mean_atomic_number_bin",
+              "mean_z_mid"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Moderate atomic number distribution with balanced elemental composition enhances phonon dispersion and peak sharpness."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 3.0,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.02,
+      "confidence": 0.85,
+      "hypothesis": "This skill may fail in systems with strong covalent character or significant lattice distortions."
+    },
+    {
+      "skill_id": "optimize_oxide_ternary_phonon_peak_conservative",
+      "rules": [
+        {
+          "rule_id": "oxide_ternary_stability",
+          "conditions": [
+            [
+              "element_count_bin",
+              "ternary_quaternary"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Oxide-based ternary compounds often exhibit phonon peak stability due to strong ionic bonding and lattice symmetry."
+        },
+        {
+          "rule_id": "high_atomic_number_balance",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "balanced"
+            ],
+            [
+              "mean_atomic_number_bin",
+              "mean_z_mid"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Moderate atomic number distribution with balanced elemental composition enhances phonon dispersion and peak sharpness."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 3.0,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.02,
+      "confidence": 0.85,
+      "hypothesis": "This skill may fail in systems with strong covalent character or significant lattice distortions."
+    },
+    {
+      "skill_id": "enhance_chalcogenide_phonon_response",
+      "rules": [
+        {
+          "rule_id": "chalcogenide_transition_metal_interaction",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": 0.9,
+          "rationale": "Transition metals in chalcogenides introduce d-orbital interactions that enhance phonon peak intensity."
+        },
+        {
+          "rule_id": "moderate_element_concentration",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "moderately_concentrated"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Moderate concentration prevents excessive disorder, which can broaden phonon peaks."
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.6,
+      "semantic_mass_end": 0.3,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.03,
+      "confidence": 0.78,
+      "hypothesis": "May underperform in highly disordered or non-ideal crystal structures."
+    },
+    {
+      "skill_id": "enhance_chalcogenide_phonon_response_noprior",
+      "rules": [
+        {
+          "rule_id": "chalcogenide_transition_metal_interaction",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": 0.9,
+          "rationale": "Transition metals in chalcogenides introduce d-orbital interactions that enhance phonon peak intensity."
+        },
+        {
+          "rule_id": "moderate_element_concentration",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "moderately_concentrated"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Moderate concentration prevents excessive disorder, which can broaden phonon peaks."
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.6,
+      "semantic_mass_end": 0.3,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.03,
+      "confidence": 0.78,
+      "hypothesis": "May underperform in highly disordered or non-ideal crystal structures."
+    },
+    {
+      "skill_id": "enhance_chalcogenide_phonon_response_conservative",
+      "rules": [
+        {
+          "rule_id": "chalcogenide_transition_metal_interaction",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": 0.9,
+          "rationale": "Transition metals in chalcogenides introduce d-orbital interactions that enhance phonon peak intensity."
+        },
+        {
+          "rule_id": "moderate_element_concentration",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "moderately_concentrated"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Moderate concentration prevents excessive disorder, which can broaden phonon peaks."
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.03,
+      "confidence": 0.78,
+      "hypothesis": "May underperform in highly disordered or non-ideal crystal structures."
+    },
+    {
+      "skill_id": "suppress_halide_phonon_damping",
+      "rules": [
+        {
+          "rule_id": "halide_lattice_stiffness",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "no_transition_metal"
+            ]
+          ],
+          "weight": -1.0,
+          "rationale": "Non-transition metal halides often exhibit phonon damping due to weak interatomic forces."
+        }
+      ],
+      "ridge": 0.1,
+      "prior_scale": 0.1,
+      "semantic_mass_start": 0.1,
+      "semantic_mass_end": 0.05,
+      "ucb_weight": 0.3,
+      "gp_beta_start": 0.5,
+      "gp_beta_end": 0.3,
+      "gp_xi": 0.01,
+      "confidence": 0.65,
+      "hypothesis": "This skill is conservative and may not improve peak height in halide systems with high disorder."
+    },
+    {
+      "skill_id": "suppress_halide_phonon_damping_noprior",
+      "rules": [
+        {
+          "rule_id": "halide_lattice_stiffness",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "no_transition_metal"
+            ]
+          ],
+          "weight": -1.0,
+          "rationale": "Non-transition metal halides often exhibit phonon damping due to weak interatomic forces."
+        }
+      ],
+      "ridge": 0.1,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.1,
+      "semantic_mass_end": 0.05,
+      "ucb_weight": 0.3,
+      "gp_beta_start": 0.5,
+      "gp_beta_end": 0.3,
+      "gp_xi": 0.01,
+      "confidence": 0.65,
+      "hypothesis": "This skill is conservative and may not improve peak height in halide systems with high disorder."
+    },
+    {
+      "skill_id": "suppress_halide_phonon_damping_conservative",
+      "rules": [
+        {
+          "rule_id": "halide_lattice_stiffness",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "no_transition_metal"
+            ]
+          ],
+          "weight": -1.0,
+          "rationale": "Non-transition metal halides often exhibit phonon damping due to weak interatomic forces."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.1,
+      "semantic_mass_end": 0.05,
+      "ucb_weight": 0.3,
+      "gp_beta_start": 0.5,
+      "gp_beta_end": 0.3,
+      "gp_xi": 0.01,
+      "confidence": 0.65,
+      "hypothesis": "This skill is conservative and may not improve peak height in halide systems with high disorder."
+    },
+    {
+      "skill_id": "promote_alkali_oxide_phonon_clarity",
+      "rules": [
+        {
+          "rule_id": "alkali_oxide_high_symmetry",
+          "conditions": [
+            [
+              "dominant_family",
+              "alkali"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Alkali oxides with high symmetry produce well-defined phonon peaks due to uniform atomic arrangements."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.2,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.8,
+      "gp_beta_start": 3.5,
+      "gp_beta_end": 2.0,
+      "gp_xi": 0.015,
+      "confidence": 0.8,
+      "hypothesis": "May not generalize to systems with significant ionic size mismatch."
+    },
+    {
+      "skill_id": "promote_alkali_oxide_phonon_clarity_noprior",
+      "rules": [
+        {
+          "rule_id": "alkali_oxide_high_symmetry",
+          "conditions": [
+            [
+              "dominant_family",
+              "alkali"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Alkali oxides with high symmetry produce well-defined phonon peaks due to uniform atomic arrangements."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.8,
+      "gp_beta_start": 3.5,
+      "gp_beta_end": 2.0,
+      "gp_xi": 0.015,
+      "confidence": 0.8,
+      "hypothesis": "May not generalize to systems with significant ionic size mismatch."
+    },
+    {
+      "skill_id": "promote_alkali_oxide_phonon_clarity_conservative",
+      "rules": [
+        {
+          "rule_id": "alkali_oxide_high_symmetry",
+          "conditions": [
+            [
+              "dominant_family",
+              "alkali"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Alkali oxides with high symmetry produce well-defined phonon peaks due to uniform atomic arrangements."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.8,
+      "gp_beta_start": 3.5,
+      "gp_beta_end": 2.0,
+      "gp_xi": 0.015,
+      "confidence": 0.8,
+      "hypothesis": "May not generalize to systems with significant ionic size mismatch."
+    },
+    {
+      "skill_id": "target_pnictide_phonon_peak_enhancement",
+      "rules": [
+        {
+          "rule_id": "pnictide_high_atomic_number",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_high"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "High atomic number elements in pnictides contribute to stronger phonon coupling and peak formation."
+        },
+        {
+          "rule_id": "pnictide_transition_metal_interaction",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Transition metals enhance phonon peak amplitude through hybridization effects."
+        }
+      ],
+      "ridge": 1.8,
+      "prior_scale": 0.35,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.8,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.02,
+      "confidence": 0.75,
+      "hypothesis": "May fail in systems with low structural coherence or high defect density."
+    },
+    {
+      "skill_id": "target_pnictide_phonon_peak_enhancement_noprior",
+      "rules": [
+        {
+          "rule_id": "pnictide_high_atomic_number",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_high"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "High atomic number elements in pnictides contribute to stronger phonon coupling and peak formation."
+        },
+        {
+          "rule_id": "pnictide_transition_metal_interaction",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Transition metals enhance phonon peak amplitude through hybridization effects."
+        }
+      ],
+      "ridge": 1.8,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.8,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.02,
+      "confidence": 0.75,
+      "hypothesis": "May fail in systems with low structural coherence or high defect density."
+    },
+    {
+      "skill_id": "target_pnictide_phonon_peak_enhancement_conservative",
+      "rules": [
+        {
+          "rule_id": "pnictide_high_atomic_number",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_high"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "High atomic number elements in pnictides contribute to stronger phonon coupling and peak formation."
+        },
+        {
+          "rule_id": "pnictide_transition_metal_interaction",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Transition metals enhance phonon peak amplitude through hybridization effects."
+        }
+      ],
+      "ridge": 1.8,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.8,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.02,
+      "confidence": 0.75,
+      "hypothesis": "May fail in systems with low structural coherence or high defect density."
+    },
+    {
+      "skill_id": "optimize_binary_oxide_phonon_fidelity",
+      "rules": [
+        {
+          "rule_id": "binary_oxide_lattice_order",
+          "conditions": [
+            [
+              "element_count_bin",
+              "binary"
+            ]
+          ],
+          "weight": 0.9,
+          "rationale": "Binary oxides with ordered lattices exhibit sharp and reproducible phonon peaks."
+        }
+      ],
+      "ridge": 0.5,
+      "prior_scale": 0.25,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 1.8,
+      "gp_beta_end": 0.8,
+      "gp_xi": 0.01,
+      "confidence": 0.7,
+      "hypothesis": "May not improve peak height in disordered or amorphous binary oxides."
+    },
+    {
+      "skill_id": "optimize_binary_oxide_phonon_fidelity_noprior",
+      "rules": [
+        {
+          "rule_id": "binary_oxide_lattice_order",
+          "conditions": [
+            [
+              "element_count_bin",
+              "binary"
+            ]
+          ],
+          "weight": 0.9,
+          "rationale": "Binary oxides with ordered lattices exhibit sharp and reproducible phonon peaks."
+        }
+      ],
+      "ridge": 0.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 1.8,
+      "gp_beta_end": 0.8,
+      "gp_xi": 0.01,
+      "confidence": 0.7,
+      "hypothesis": "May not improve peak height in disordered or amorphous binary oxides."
+    },
+    {
+      "skill_id": "optimize_binary_oxide_phonon_fidelity_conservative",
+      "rules": [
+        {
+          "rule_id": "binary_oxide_lattice_order",
+          "conditions": [
+            [
+              "element_count_bin",
+              "binary"
+            ]
+          ],
+          "weight": 0.9,
+          "rationale": "Binary oxides with ordered lattices exhibit sharp and reproducible phonon peaks."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 1.8,
+      "gp_beta_end": 0.8,
+      "gp_xi": 0.01,
+      "confidence": 0.7,
+      "hypothesis": "May not improve peak height in disordered or amorphous binary oxides."
+    },
+    {
+      "skill_id": "counter_hypothesis_halide_phonon_suppression",
+      "rules": [
+        {
+          "rule_id": "halide_phonon_damping",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": -1.0,
+          "rationale": "Transition metals in halides can introduce phonon damping due to anharmonic effects."
+        }
+      ],
+      "ridge": 0.05,
+      "prior_scale": 0.1,
+      "semantic_mass_start": 0.05,
+      "semantic_mass_end": 0.02,
+      "ucb_weight": 0.2,
+      "gp_beta_start": 0.4,
+      "gp_beta_end": 0.2,
+      "gp_xi": 0.005,
+      "confidence": 0.6,
+      "hypothesis": "This skill explicitly downweights halide systems with transition metals, serving as a counter-hypothesis to the general phonon enhancement trend."
+    },
+    {
+      "skill_id": "counter_hypothesis_halide_phonon_suppression_noprior",
+      "rules": [
+        {
+          "rule_id": "halide_phonon_damping",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": -1.0,
+          "rationale": "Transition metals in halides can introduce phonon damping due to anharmonic effects."
+        }
+      ],
+      "ridge": 0.05,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.05,
+      "semantic_mass_end": 0.02,
+      "ucb_weight": 0.2,
+      "gp_beta_start": 0.4,
+      "gp_beta_end": 0.2,
+      "gp_xi": 0.005,
+      "confidence": 0.6,
+      "hypothesis": "This skill explicitly downweights halide systems with transition metals, serving as a counter-hypothesis to the general phonon enhancement trend."
+    },
+    {
+      "skill_id": "counter_hypothesis_halide_phonon_suppression_conservative",
+      "rules": [
+        {
+          "rule_id": "halide_phonon_damping",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": -1.0,
+          "rationale": "Transition metals in halides can introduce phonon damping due to anharmonic effects."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.05,
+      "semantic_mass_end": 0.02,
+      "ucb_weight": 0.2,
+      "gp_beta_start": 0.4,
+      "gp_beta_end": 0.2,
+      "gp_xi": 0.005,
+      "confidence": 0.6,
+      "hypothesis": "This skill explicitly downweights halide systems with transition metals, serving as a counter-hypothesis to the general phonon enhancement trend."
+    },
+    {
+      "skill_id": "maximize_light_nonmetal_phonon_response",
+      "rules": [
+        {
+          "rule_id": "light_nonmetal_high_symmetry",
+          "conditions": [
+            [
+              "dominant_family",
+              "light_nonmetal"
+            ],
+            [
+              "element_count_bin",
+              "ternary_quaternary"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Light nonmetals in complex structures can support high phonon peak frequencies due to low mass and high vibrational modes."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.2,
+      "semantic_mass_start": 0.35,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.015,
+      "confidence": 0.72,
+      "hypothesis": "May not scale well with increasing complexity or disorder."
+    },
+    {
+      "skill_id": "maximize_light_nonmetal_phonon_response_noprior",
+      "rules": [
+        {
+          "rule_id": "light_nonmetal_high_symmetry",
+          "conditions": [
+            [
+              "dominant_family",
+              "light_nonmetal"
+            ],
+            [
+              "element_count_bin",
+              "ternary_quaternary"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Light nonmetals in complex structures can support high phonon peak frequencies due to low mass and high vibrational modes."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.35,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.015,
+      "confidence": 0.72,
+      "hypothesis": "May not scale well with increasing complexity or disorder."
+    },
+    {
+      "skill_id": "maximize_light_nonmetal_phonon_response_conservative",
+      "rules": [
+        {
+          "rule_id": "light_nonmetal_high_symmetry",
+          "conditions": [
+            [
+              "dominant_family",
+              "light_nonmetal"
+            ],
+            [
+              "element_count_bin",
+              "ternary_quaternary"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Light nonmetals in complex structures can support high phonon peak frequencies due to low mass and high vibrational modes."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.015,
+      "confidence": 0.72,
+      "hypothesis": "May not scale well with increasing complexity or disorder."
+    },
+    {
+      "skill_id": "preserve_lanthanide_phonon_stability",
+      "rules": [
+        {
+          "rule_id": "lanthanide_lattice_hardening",
+          "conditions": [
+            [
+              "lanthanide_flag",
+              "has_lanthanide"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Lanthanide ions contribute to lattice rigidity, which can stabilize phonon peaks."
+        }
+      ],
+      "ridge": 0.8,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.3,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 0.9,
+      "gp_xi": 0.01,
+      "confidence": 0.68,
+      "hypothesis": "May not be effective in systems where lanthanide ions are not well-integrated into the lattice."
+    },
+    {
+      "skill_id": "preserve_lanthanide_phonon_stability_noprior",
+      "rules": [
+        {
+          "rule_id": "lanthanide_lattice_hardening",
+          "conditions": [
+            [
+              "lanthanide_flag",
+              "has_lanthanide"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Lanthanide ions contribute to lattice rigidity, which can stabilize phonon peaks."
+        }
+      ],
+      "ridge": 0.8,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.3,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 0.9,
+      "gp_xi": 0.01,
+      "confidence": 0.68,
+      "hypothesis": "May not be effective in systems where lanthanide ions are not well-integrated into the lattice."
+    },
+    {
+      "skill_id": "preserve_lanthanide_phonon_stability_conservative",
+      "rules": [
+        {
+          "rule_id": "lanthanide_lattice_hardening",
+          "conditions": [
+            [
+              "lanthanide_flag",
+              "has_lanthanide"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Lanthanide ions contribute to lattice rigidity, which can stabilize phonon peaks."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.3,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 0.9,
+      "gp_xi": 0.01,
+      "confidence": 0.68,
+      "hypothesis": "May not be effective in systems where lanthanide ions are not well-integrated into the lattice."
+    },
+    {
+      "skill_id": "domain_knowledge_oxide_phonon_peak",
+      "rules": [
+        {
+          "rule_id": "oxide_phonon_peak_mechanism",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "no_transition_metal"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Oxides without transition metals exhibit phonon peaks due to strong ionic bonding and low anharmonicity."
+        },
+        {
+          "rule_id": "oxide_element_balance",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "balanced"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Balanced elemental composition reduces lattice strain and improves phonon peak sharpness."
+        }
+      ],
+      "ridge": 1.4,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.3,
+      "ucb_weight": 0.65,
+      "gp_beta_start": 3.0,
+      "gp_beta_end": 1.8,
+      "gp_xi": 0.02,
+      "confidence": 0.82,
+      "hypothesis": "May not apply to systems with high defect density or non-ideal stoichiometry."
+    },
+    {
+      "skill_id": "domain_knowledge_oxide_phonon_peak_noprior",
+      "rules": [
+        {
+          "rule_id": "oxide_phonon_peak_mechanism",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "no_transition_metal"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Oxides without transition metals exhibit phonon peaks due to strong ionic bonding and low anharmonicity."
+        },
+        {
+          "rule_id": "oxide_element_balance",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "balanced"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Balanced elemental composition reduces lattice strain and improves phonon peak sharpness."
+        }
+      ],
+      "ridge": 1.4,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.3,
+      "ucb_weight": 0.65,
+      "gp_beta_start": 3.0,
+      "gp_beta_end": 1.8,
+      "gp_xi": 0.02,
+      "confidence": 0.82,
+      "hypothesis": "May not apply to systems with high defect density or non-ideal stoichiometry."
+    },
+    {
+      "skill_id": "domain_knowledge_oxide_phonon_peak_conservative",
+      "rules": [
+        {
+          "rule_id": "oxide_phonon_peak_mechanism",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "no_transition_metal"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Oxides without transition metals exhibit phonon peaks due to strong ionic bonding and low anharmonicity."
+        },
+        {
+          "rule_id": "oxide_element_balance",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "balanced"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Balanced elemental composition reduces lattice strain and improves phonon peak sharpness."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.65,
+      "gp_beta_start": 3.0,
+      "gp_beta_end": 1.8,
+      "gp_xi": 0.02,
+      "confidence": 0.82,
+      "hypothesis": "May not apply to systems with high defect density or non-ideal stoichiometry."
+    },
+    {
+      "skill_id": "cross_skill_rule_bank",
+      "rules": [
+        {
+          "rule_id": "oxide_ternary_stability",
+          "conditions": [
+            [
+              "element_count_bin",
+              "ternary_quaternary"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Oxide-based ternary compounds often exhibit phonon peak stability due to strong ionic bonding and lattice symmetry."
+        },
+        {
+          "rule_id": "high_atomic_number_balance",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "balanced"
+            ],
+            [
+              "mean_atomic_number_bin",
+              "mean_z_mid"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Moderate atomic number distribution with balanced elemental composition enhances phonon dispersion and peak sharpness."
+        },
+        {
+          "rule_id": "chalcogenide_transition_metal_interaction",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": 0.9,
+          "rationale": "Transition metals in chalcogenides introduce d-orbital interactions that enhance phonon peak intensity."
+        },
+        {
+          "rule_id": "moderate_element_concentration",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "moderately_concentrated"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Moderate concentration prevents excessive disorder, which can broaden phonon peaks."
+        },
+        {
+          "rule_id": "halide_lattice_stiffness",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "no_transition_metal"
+            ]
+          ],
+          "weight": -1.0,
+          "rationale": "Non-transition metal halides often exhibit phonon damping due to weak interatomic forces."
+        },
+        {
+          "rule_id": "alkali_oxide_high_symmetry",
+          "conditions": [
+            [
+              "dominant_family",
+              "alkali"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Alkali oxides with high symmetry produce well-defined phonon peaks due to uniform atomic arrangements."
+        },
+        {
+          "rule_id": "pnictide_high_atomic_number",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_high"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "High atomic number elements in pnictides contribute to stronger phonon coupling and peak formation."
+        },
+        {
+          "rule_id": "binary_oxide_lattice_order",
+          "conditions": [
+            [
+              "element_count_bin",
+              "binary"
+            ]
+          ],
+          "weight": 0.9,
+          "rationale": "Binary oxides with ordered lattices exhibit sharp and reproducible phonon peaks."
+        },
+        {
+          "rule_id": "light_nonmetal_high_symmetry",
+          "conditions": [
+            [
+              "dominant_family",
+              "light_nonmetal"
+            ],
+            [
+              "element_count_bin",
+              "ternary_quaternary"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Light nonmetals in complex structures can support high phonon peak frequencies due to low mass and high vibrational modes."
+        },
+        {
+          "rule_id": "lanthanide_lattice_hardening",
+          "conditions": [
+            [
+              "lanthanide_flag",
+              "has_lanthanide"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Lanthanide ions contribute to lattice rigidity, which can stabilize phonon peaks."
+        },
+        {
+          "rule_id": "oxide_element_balance",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "balanced"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Balanced elemental composition reduces lattice strain and improves phonon peak sharpness."
+        }
+      ],
+      "ridge": 4.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.25,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.85,
+      "hypothesis": "Union of independently proposed LLM rule features. Rule signs are ignored; revealed target observations fit a strongly regularized coefficient vector."
+    }
+  ],
+  "skill_variant_policy": "expanded",
+  "calibration_seed_start": 24000,
+  "calibration_seed_count": 30,
+  "heldout_seed_start": 24100,
+  "heldout_seed_count": 100,
+  "selection": {
+    "target_anchor_mode": "target_acquisition_portfolio",
+    "target_anchor_summary": {
+      "gp_ucb": {
+        "final_best": 58.600313,
+        "best_so_far_auc": 53.15962,
+        "top10_hit": 0.3,
+        "composite": 111.759933
+      },
+      "mixed_kernel_gp_ei": {
+        "final_best": 61.464033,
+        "best_so_far_auc": 53.364407,
+        "top10_hit": 0.333333,
+        "composite": 114.82844
+      },
+      "target_acquisition_portfolio": {
+        "final_best": 61.243767,
+        "best_so_far_auc": 54.2573,
+        "top10_hit": 0.333333,
+        "composite": 115.501067
+      }
+    },
+    "eligible_skill_modes": [
+      "llm_semantic_cross_skill_rule_bank",
+      "llm_semantic_enhance_chalcogenide_phonon_response_noprior",
+      "llm_semantic_maximize_light_nonmetal_phonon_response",
+      "llm_semantic_maximize_light_nonmetal_phonon_response_conservative",
+      "llm_semantic_maximize_light_nonmetal_phonon_response_noprior",
+      "llm_semantic_optimize_binary_oxide_phonon_fidelity_conservative",
+      "llm_semantic_optimize_binary_oxide_phonon_fidelity_noprior",
+      "llm_semantic_optimize_oxide_ternary_phonon_peak_conservative",
+      "llm_semantic_promote_alkali_oxide_phonon_clarity",
+      "llm_semantic_promote_alkali_oxide_phonon_clarity_conservative",
+      "llm_semantic_promote_alkali_oxide_phonon_clarity_noprior"
+    ],
+    "selected_mode": "llm_semantic_maximize_light_nonmetal_phonon_response_noprior",
+    "selected_llm_skill": true,
+    "skill_diagnostics": {
+      "llm_semantic_optimize_oxide_ternary_phonon_peak": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 1.191667,
+          "std": 19.527076,
+          "se": 3.56514,
+          "normal_95ci_low": -5.796008,
+          "normal_95ci_high": 8.179341,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.5
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.127753,
+          "std": 17.824455,
+          "se": 3.254285,
+          "normal_95ci_low": -6.250646,
+          "normal_95ci_high": 6.506153,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.333333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 1.31942,
+          "std": 36.862731,
+          "se": 6.730183,
+          "normal_95ci_low": -11.871739,
+          "normal_95ci_high": 14.510579,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.333333
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          -2.364317,
+          4.729467,
+          20.269317,
+          -5.199067,
+          -10.8383
+        ],
+        "risk_adjusted_composite_gain": -2.045672,
+        "eligible": false
+      },
+      "llm_semantic_optimize_oxide_ternary_phonon_peak_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -1.976667,
+          "std": 19.01272,
+          "se": 3.471232,
+          "normal_95ci_low": -8.780281,
+          "normal_95ci_high": 4.826948,
+          "win_rate": 0.233333,
+          "non_loss_rate": 0.6
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -1.504897,
+          "std": 17.701113,
+          "se": 3.231766,
+          "normal_95ci_low": -7.839159,
+          "normal_95ci_high": 4.829365,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.4
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -3.481563,
+          "std": 36.364999,
+          "se": 6.63931,
+          "normal_95ci_low": -16.494611,
+          "normal_95ci_high": 9.531485,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.433333
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          -14.291817,
+          -19.2147,
+          19.4089,
+          8.68685,
+          -11.99705
+        ],
+        "risk_adjusted_composite_gain": -6.801218,
+        "eligible": false
+      },
+      "llm_semantic_optimize_oxide_ternary_phonon_peak_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 3.7375,
+          "std": 22.033297,
+          "se": 4.022711,
+          "normal_95ci_low": -4.147014,
+          "normal_95ci_high": 11.622014,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.666667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 2.26977,
+          "std": 19.194114,
+          "se": 3.50435,
+          "normal_95ci_low": -4.598756,
+          "normal_95ci_high": 9.138296,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.466667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 6.00727,
+          "std": 40.815774,
+          "se": 7.451907,
+          "normal_95ci_low": -8.598467,
+          "normal_95ci_high": 20.613007,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.466667
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          2.1661,
+          -6.835117,
+          17.981817,
+          16.705183,
+          0.018367
+        ],
+        "risk_adjusted_composite_gain": 2.281316,
+        "eligible": true
+      },
+      "llm_semantic_enhance_chalcogenide_phonon_response": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 1.117633,
+          "std": 21.593562,
+          "se": 3.942427,
+          "normal_95ci_low": -6.609524,
+          "normal_95ci_high": 8.84479,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.533333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -0.090847,
+          "std": 17.771052,
+          "se": 3.244535,
+          "normal_95ci_low": -6.450136,
+          "normal_95ci_high": 6.268442,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.466667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 1.026787,
+          "std": 38.422818,
+          "se": 7.015015,
+          "normal_95ci_low": -12.722642,
+          "normal_95ci_high": 14.776216,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.4
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          -1.4764,
+          -3.850417,
+          14.18515,
+          9.84515,
+          -13.56955
+        ],
+        "risk_adjusted_composite_gain": -2.480721,
+        "eligible": false
+      },
+      "llm_semantic_enhance_chalcogenide_phonon_response_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 7.165133,
+          "std": 23.339808,
+          "se": 4.261246,
+          "normal_95ci_low": -1.18691,
+          "normal_95ci_high": 15.517176,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.633333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 4.970137,
+          "std": 21.344489,
+          "se": 3.896953,
+          "normal_95ci_low": -2.667891,
+          "normal_95ci_high": 12.608164,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.533333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 12.13527,
+          "std": 43.840773,
+          "se": 8.004193,
+          "normal_95ci_low": -3.552949,
+          "normal_95ci_high": 27.823489,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.533333
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          21.049267,
+          12.127233,
+          19.830467,
+          20.281017,
+          -12.611633
+        ],
+        "risk_adjusted_composite_gain": 8.133173,
+        "eligible": true
+      },
+      "llm_semantic_enhance_chalcogenide_phonon_response_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 5.809567,
+          "std": 20.826458,
+          "se": 3.802374,
+          "normal_95ci_low": -1.643086,
+          "normal_95ci_high": 13.262219,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.766667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 3.346643,
+          "std": 19.069103,
+          "se": 3.481526,
+          "normal_95ci_low": -3.477147,
+          "normal_95ci_high": 10.170434,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.5
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 9.15621,
+          "std": 38.666548,
+          "se": 7.059514,
+          "normal_95ci_low": -4.680437,
+          "normal_95ci_high": 22.992857,
+          "win_rate": 0.6,
+          "non_loss_rate": 0.6
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          11.50485,
+          -2.616267,
+          14.12765,
+          26.8176,
+          -4.052783
+        ],
+        "risk_adjusted_composite_gain": 5.626453,
+        "eligible": false
+      },
+      "llm_semantic_suppress_halide_phonon_damping": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 3.578333,
+          "std": 19.387099,
+          "se": 3.539584,
+          "normal_95ci_low": -3.359251,
+          "normal_95ci_high": 10.515918,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.7
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -0.4089,
+          "std": 12.061691,
+          "se": 2.202153,
+          "normal_95ci_low": -4.725121,
+          "normal_95ci_high": 3.907321,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.433333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 3.169433,
+          "std": 30.422323,
+          "se": 5.554331,
+          "normal_95ci_low": -7.717055,
+          "normal_95ci_high": 14.055922,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.433333
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          -13.494167,
+          4.75155,
+          15.559317,
+          6.237933,
+          2.792533
+        ],
+        "risk_adjusted_composite_gain": 0.392267,
+        "eligible": false
+      },
+      "llm_semantic_suppress_halide_phonon_damping_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 3.48,
+          "std": 19.412464,
+          "se": 3.544215,
+          "normal_95ci_low": -3.466661,
+          "normal_95ci_high": 10.426661,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.666667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -0.453733,
+          "std": 12.066796,
+          "se": 2.203085,
+          "normal_95ci_low": -4.771781,
+          "normal_95ci_high": 3.864314,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.433333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 3.026267,
+          "std": 30.452322,
+          "se": 5.559808,
+          "normal_95ci_low": -7.870957,
+          "normal_95ci_high": 13.92349,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.433333
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          -13.494167,
+          4.75155,
+          15.559317,
+          5.5221,
+          2.792533
+        ],
+        "risk_adjusted_composite_gain": 0.246363,
+        "eligible": false
+      },
+      "llm_semantic_suppress_halide_phonon_damping_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 3.41,
+          "std": 17.671094,
+          "se": 3.226286,
+          "normal_95ci_low": -2.91352,
+          "normal_95ci_high": 9.73352,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.666667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 1.081833,
+          "std": 11.19948,
+          "se": 2.044736,
+          "normal_95ci_low": -2.925849,
+          "normal_95ci_high": 5.089516,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.533333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 4.491833,
+          "std": 27.979551,
+          "se": 5.108344,
+          "normal_95ci_low": -5.52052,
+          "normal_95ci_high": 14.504187,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.5
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          -3.319583,
+          16.626967,
+          0.5139,
+          12.321283,
+          -3.6834
+        ],
+        "risk_adjusted_composite_gain": 1.937661,
+        "eligible": false
+      },
+      "llm_semantic_promote_alkali_oxide_phonon_clarity": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 9.4501,
+          "std": 19.221735,
+          "se": 3.509393,
+          "normal_95ci_low": 2.57169,
+          "normal_95ci_high": 16.32851,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.7
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 8.403903,
+          "std": 18.381732,
+          "se": 3.35603,
+          "normal_95ci_low": 1.826085,
+          "normal_95ci_high": 14.981722,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.5
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 17.854003,
+          "std": 36.497841,
+          "se": 6.663564,
+          "normal_95ci_low": 4.793419,
+          "normal_95ci_high": 30.914588,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.5
+        },
+        "positive_fold_rate": 1.0,
+        "fold_composite_means": [
+          29.493067,
+          7.04075,
+          30.760767,
+          14.396233,
+          7.5792
+        ],
+        "risk_adjusted_composite_gain": 14.522221,
+        "eligible": true
+      },
+      "llm_semantic_promote_alkali_oxide_phonon_clarity_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 9.5126,
+          "std": 24.205001,
+          "se": 4.419208,
+          "normal_95ci_low": 0.850952,
+          "normal_95ci_high": 18.174248,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.666667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 6.371157,
+          "std": 22.1441,
+          "se": 4.042941,
+          "normal_95ci_low": -1.553008,
+          "normal_95ci_high": 14.295321,
+          "win_rate": 0.533333,
+          "non_loss_rate": 0.533333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 15.883757,
+          "std": 44.771985,
+          "se": 8.174209,
+          "normal_95ci_low": -0.137693,
+          "normal_95ci_high": 31.905206,
+          "win_rate": 0.533333,
+          "non_loss_rate": 0.533333
+        },
+        "positive_fold_rate": 1.0,
+        "fold_composite_means": [
+          15.091817,
+          5.9627,
+          39.402333,
+          11.382733,
+          7.5792
+        ],
+        "risk_adjusted_composite_gain": 11.796653,
+        "eligible": true
+      },
+      "llm_semantic_promote_alkali_oxide_phonon_clarity_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 10.8394,
+          "std": 19.77277,
+          "se": 3.609997,
+          "normal_95ci_low": 3.763805,
+          "normal_95ci_high": 17.914995,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.733333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 8.954137,
+          "std": 18.377869,
+          "se": 3.355324,
+          "normal_95ci_low": 2.377701,
+          "normal_95ci_high": 15.530573,
+          "win_rate": 0.533333,
+          "non_loss_rate": 0.533333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 19.793537,
+          "std": 36.972206,
+          "se": 6.75017,
+          "normal_95ci_low": 6.563203,
+          "normal_95ci_high": 33.023871,
+          "win_rate": 0.533333,
+          "non_loss_rate": 0.533333
+        },
+        "positive_fold_rate": 1.0,
+        "fold_composite_means": [
+          29.493067,
+          17.294633,
+          30.760767,
+          13.840017,
+          7.5792
+        ],
+        "risk_adjusted_composite_gain": 16.418452,
+        "eligible": true
+      },
+      "llm_semantic_target_pnictide_phonon_peak_enhancement": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -4.422367,
+          "std": 19.080327,
+          "se": 3.483575,
+          "normal_95ci_low": -11.250174,
+          "normal_95ci_high": 2.405441,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.433333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -2.43778,
+          "std": 18.223494,
+          "se": 3.32714,
+          "normal_95ci_low": -8.958973,
+          "normal_95ci_high": 4.083413,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.4
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -6.860147,
+          "std": 36.64024,
+          "se": 6.689562,
+          "normal_95ci_low": -19.971688,
+          "normal_95ci_high": 6.251395,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.433333
+        },
+        "positive_fold_rate": 0.2,
+        "fold_composite_means": [
+          -8.303767,
+          -15.2893,
+          5.648483,
+          -11.517433,
+          -4.838717
+        ],
+        "risk_adjusted_composite_gain": -10.204928,
+        "eligible": false
+      },
+      "llm_semantic_target_pnictide_phonon_peak_enhancement_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 0.972633,
+          "std": 24.926757,
+          "se": 4.550982,
+          "normal_95ci_low": -7.947292,
+          "normal_95ci_high": 9.892559,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.466667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -0.561423,
+          "std": 19.514074,
+          "se": 3.562766,
+          "normal_95ci_low": -7.544445,
+          "normal_95ci_high": 6.421599,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.4
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 0.41121,
+          "std": 43.122046,
+          "se": 7.872972,
+          "normal_95ci_low": -15.019816,
+          "normal_95ci_high": 15.842236,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.433333
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          0.910817,
+          -17.55805,
+          13.18555,
+          3.6477,
+          1.870033
+        ],
+        "risk_adjusted_composite_gain": -3.525276,
+        "eligible": false
+      },
+      "llm_semantic_target_pnictide_phonon_peak_enhancement_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 1.928733,
+          "std": 20.165717,
+          "se": 3.681739,
+          "normal_95ci_low": -5.287476,
+          "normal_95ci_high": 9.144943,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.566667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -0.099853,
+          "std": 17.115713,
+          "se": 3.124887,
+          "normal_95ci_low": -6.224632,
+          "normal_95ci_high": 6.024926,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.4
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 1.82888,
+          "std": 35.959002,
+          "se": 6.565185,
+          "normal_95ci_low": -11.038883,
+          "normal_95ci_high": 14.696643,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.366667
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          1.9454,
+          -12.482233,
+          6.9439,
+          23.819283,
+          -11.08195
+        ],
+        "risk_adjusted_composite_gain": -1.453712,
+        "eligible": false
+      },
+      "llm_semantic_optimize_binary_oxide_phonon_fidelity": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 4.987767,
+          "std": 17.556051,
+          "se": 3.205282,
+          "normal_95ci_low": -1.294586,
+          "normal_95ci_high": 11.270119,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.7
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.677263,
+          "std": 12.912462,
+          "se": 2.357482,
+          "normal_95ci_low": -3.943402,
+          "normal_95ci_high": 5.297928,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.4
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 5.66503,
+          "std": 28.548532,
+          "se": 5.212225,
+          "normal_95ci_low": -4.550931,
+          "normal_95ci_high": 15.880991,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.4
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          -0.2414,
+          8.90335,
+          16.745983,
+          5.920517,
+          -3.0033
+        ],
+        "risk_adjusted_composite_gain": 3.058917,
+        "eligible": false
+      },
+      "llm_semantic_optimize_binary_oxide_phonon_fidelity_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 5.986667,
+          "std": 17.013601,
+          "se": 3.106244,
+          "normal_95ci_low": -0.101572,
+          "normal_95ci_high": 12.074906,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.733333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 1.03307,
+          "std": 10.381874,
+          "se": 1.895462,
+          "normal_95ci_low": -2.682036,
+          "normal_95ci_high": 4.748176,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.433333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 7.019737,
+          "std": 25.496666,
+          "se": 4.655033,
+          "normal_95ci_low": -2.104128,
+          "normal_95ci_high": 16.143602,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.466667
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          -1.802233,
+          8.90335,
+          4.7814,
+          18.789467,
+          4.4267
+        ],
+        "risk_adjusted_composite_gain": 4.69222,
+        "eligible": true
+      },
+      "llm_semantic_optimize_binary_oxide_phonon_fidelity_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 2.711667,
+          "std": 12.134851,
+          "se": 2.215511,
+          "normal_95ci_low": -1.630734,
+          "normal_95ci_high": 7.054067,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.766667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 1.9386,
+          "std": 8.801108,
+          "se": 1.606855,
+          "normal_95ci_low": -1.210836,
+          "normal_95ci_high": 5.088036,
+          "win_rate": 0.533333,
+          "non_loss_rate": 0.6
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 4.650267,
+          "std": 20.08844,
+          "se": 3.667631,
+          "normal_95ci_low": -2.538289,
+          "normal_95ci_high": 11.838823,
+          "win_rate": 0.533333,
+          "non_loss_rate": 0.6
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          -0.319317,
+          1.456683,
+          0.805983,
+          19.0167,
+          2.291283
+        ],
+        "risk_adjusted_composite_gain": 2.816452,
+        "eligible": true
+      },
+      "llm_semantic_counter_hypothesis_halide_phonon_suppression": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -1.153333,
+          "std": 18.248336,
+          "se": 3.331675,
+          "normal_95ci_low": -7.683417,
+          "normal_95ci_high": 5.37675,
+          "win_rate": 0.233333,
+          "non_loss_rate": 0.633333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -2.38903,
+          "std": 12.630298,
+          "se": 2.305966,
+          "normal_95ci_low": -6.908724,
+          "normal_95ci_high": 2.130664,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.333333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -3.542363,
+          "std": 30.158321,
+          "se": 5.506131,
+          "normal_95ci_low": -14.33438,
+          "normal_95ci_high": 7.249653,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.333333
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          -16.107017,
+          5.577383,
+          6.565567,
+          -2.174767,
+          -11.572983
+        ],
+        "risk_adjusted_composite_gain": -6.295428,
+        "eligible": false
+      },
+      "llm_semantic_counter_hypothesis_halide_phonon_suppression_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -1.506667,
+          "std": 18.288373,
+          "se": 3.338985,
+          "normal_95ci_low": -8.051077,
+          "normal_95ci_high": 5.037743,
+          "win_rate": 0.2,
+          "non_loss_rate": 0.6
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -2.488697,
+          "std": 12.606295,
+          "se": 2.301584,
+          "normal_95ci_low": -6.999801,
+          "normal_95ci_high": 2.022408,
+          "win_rate": 0.233333,
+          "non_loss_rate": 0.3
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -3.995363,
+          "std": 30.143765,
+          "se": 5.503473,
+          "normal_95ci_low": -14.782171,
+          "normal_95ci_high": 6.791444,
+          "win_rate": 0.233333,
+          "non_loss_rate": 0.3
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          -16.107017,
+          5.577383,
+          4.300567,
+          -2.174767,
+          -11.572983
+        ],
+        "risk_adjusted_composite_gain": -6.7471,
+        "eligible": false
+      },
+      "llm_semantic_counter_hypothesis_halide_phonon_suppression_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -2.155833,
+          "std": 14.756624,
+          "se": 2.694179,
+          "normal_95ci_low": -7.436423,
+          "normal_95ci_high": 3.124757,
+          "win_rate": 0.133333,
+          "non_loss_rate": 0.6
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -2.97772,
+          "std": 10.456098,
+          "se": 1.909014,
+          "normal_95ci_low": -6.719387,
+          "normal_95ci_high": 0.763947,
+          "win_rate": 0.2,
+          "non_loss_rate": 0.366667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -5.133553,
+          "std": 24.559815,
+          "se": 4.483988,
+          "normal_95ci_low": -13.92217,
+          "normal_95ci_high": 3.655064,
+          "win_rate": 0.2,
+          "non_loss_rate": 0.366667
+        },
+        "positive_fold_rate": 0.0,
+        "fold_composite_means": [
+          -4.973933,
+          -3.337067,
+          -0.354167,
+          -10.9867,
+          -6.0159
+        ],
+        "risk_adjusted_composite_gain": -7.375547,
+        "eligible": false
+      },
+      "llm_semantic_maximize_light_nonmetal_phonon_response": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 10.1675,
+          "std": 23.096055,
+          "se": 4.216743,
+          "normal_95ci_low": 1.902683,
+          "normal_95ci_high": 18.432317,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.833333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 10.63738,
+          "std": 19.22397,
+          "se": 3.509801,
+          "normal_95ci_low": 3.758171,
+          "normal_95ci_high": 17.516589,
+          "win_rate": 0.666667,
+          "non_loss_rate": 0.666667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 20.80488,
+          "std": 41.19061,
+          "se": 7.520342,
+          "normal_95ci_low": 6.065009,
+          "normal_95ci_high": 35.544751,
+          "win_rate": 0.666667,
+          "non_loss_rate": 0.666667
+        },
+        "positive_fold_rate": 1.0,
+        "fold_composite_means": [
+          21.852767,
+          8.27405,
+          34.39515,
+          29.5731,
+          9.929333
+        ],
+        "risk_adjusted_composite_gain": 17.044709,
+        "eligible": true
+      },
+      "llm_semantic_maximize_light_nonmetal_phonon_response_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 9.979167,
+          "std": 22.993255,
+          "se": 4.197975,
+          "normal_95ci_low": 1.751136,
+          "normal_95ci_high": 18.207197,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.833333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 11.50263,
+          "std": 19.713419,
+          "se": 3.599161,
+          "normal_95ci_low": 4.448274,
+          "normal_95ci_high": 18.556986,
+          "win_rate": 0.666667,
+          "non_loss_rate": 0.666667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 21.481797,
+          "std": 42.245983,
+          "se": 7.713026,
+          "normal_95ci_low": 6.364266,
+          "normal_95ci_high": 36.599327,
+          "win_rate": 0.666667,
+          "non_loss_rate": 0.666667
+        },
+        "positive_fold_rate": 1.0,
+        "fold_composite_means": [
+          21.926933,
+          12.870717,
+          33.81515,
+          28.961433,
+          9.83475
+        ],
+        "risk_adjusted_composite_gain": 17.625284,
+        "eligible": true
+      },
+      "llm_semantic_maximize_light_nonmetal_phonon_response_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 7.525133,
+          "std": 20.567939,
+          "se": 3.755175,
+          "normal_95ci_low": 0.164991,
+          "normal_95ci_high": 14.885276,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.833333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 8.764243,
+          "std": 17.118838,
+          "se": 3.125458,
+          "normal_95ci_low": 2.638346,
+          "normal_95ci_high": 14.890141,
+          "win_rate": 0.633333,
+          "non_loss_rate": 0.666667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 16.289377,
+          "std": 37.119343,
+          "se": 6.777034,
+          "normal_95ci_low": 3.00639,
+          "normal_95ci_high": 29.572363,
+          "win_rate": 0.633333,
+          "non_loss_rate": 0.666667
+        },
+        "positive_fold_rate": 1.0,
+        "fold_composite_means": [
+          18.288083,
+          0.98405,
+          34.094317,
+          16.992683,
+          11.08775
+        ],
+        "risk_adjusted_composite_gain": 12.90086,
+        "eligible": true
+      },
+      "llm_semantic_preserve_lanthanide_phonon_stability": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 2.935,
+          "std": 18.827483,
+          "se": 3.437412,
+          "normal_95ci_low": -3.802328,
+          "normal_95ci_high": 9.672328,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.7
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.606507,
+          "std": 12.503793,
+          "se": 2.28287,
+          "normal_95ci_low": -3.867918,
+          "normal_95ci_high": 5.080931,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.333333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 3.541507,
+          "std": 30.153069,
+          "se": 5.505172,
+          "normal_95ci_low": -7.248631,
+          "normal_95ci_high": 14.331644,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.433333
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          6.43635,
+          9.368217,
+          15.309317,
+          -12.57485,
+          -0.8315
+        ],
+        "risk_adjusted_composite_gain": 0.788921,
+        "eligible": false
+      },
+      "llm_semantic_preserve_lanthanide_phonon_stability_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 2.935,
+          "std": 18.827483,
+          "se": 3.437412,
+          "normal_95ci_low": -3.802328,
+          "normal_95ci_high": 9.672328,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.7
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.656257,
+          "std": 12.159371,
+          "se": 2.219987,
+          "normal_95ci_low": -3.694918,
+          "normal_95ci_high": 5.007432,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.4
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 3.591257,
+          "std": 29.754982,
+          "se": 5.432492,
+          "normal_95ci_low": -7.056427,
+          "normal_95ci_high": 14.23894,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.466667
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          7.2776,
+          9.368217,
+          14.6914,
+          -12.563183,
+          -0.81775
+        ],
+        "risk_adjusted_composite_gain": 0.875011,
+        "eligible": false
+      },
+      "llm_semantic_preserve_lanthanide_phonon_stability_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 2.259167,
+          "std": 19.282537,
+          "se": 3.520493,
+          "normal_95ci_low": -4.641001,
+          "normal_95ci_high": 9.159334,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.733333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -0.679593,
+          "std": 12.237826,
+          "se": 2.234311,
+          "normal_95ci_low": -5.058843,
+          "normal_95ci_high": 3.699656,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.333333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 1.579573,
+          "std": 30.36282,
+          "se": 5.543467,
+          "normal_95ci_low": -9.285622,
+          "normal_95ci_high": 12.444769,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.4
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          3.525233,
+          5.87155,
+          14.734317,
+          -11.917567,
+          -4.315667
+        ],
+        "risk_adjusted_composite_gain": -1.19216,
+        "eligible": false
+      },
+      "llm_semantic_domain_knowledge_oxide_phonon_peak": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 5.843467,
+          "std": 23.171383,
+          "se": 4.230496,
+          "normal_95ci_low": -2.448306,
+          "normal_95ci_high": 14.13524,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.5
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 5.4161,
+          "std": 20.525839,
+          "se": 3.747488,
+          "normal_95ci_low": -1.928977,
+          "normal_95ci_high": 12.761177,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.466667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 11.259567,
+          "std": 42.645439,
+          "se": 7.785956,
+          "normal_95ci_low": -4.000908,
+          "normal_95ci_high": 26.520041,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.466667
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          32.961933,
+          11.034367,
+          27.882233,
+          -10.5274,
+          -5.0533
+        ],
+        "risk_adjusted_composite_gain": 7.366589,
+        "eligible": false
+      },
+      "llm_semantic_domain_knowledge_oxide_phonon_peak_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 1.45,
+          "std": 23.254189,
+          "se": 4.245615,
+          "normal_95ci_low": -6.871405,
+          "normal_95ci_high": 9.771405,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.466667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.837643,
+          "std": 20.356654,
+          "se": 3.7166,
+          "normal_95ci_low": -6.446892,
+          "normal_95ci_high": 8.122179,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.366667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 2.287643,
+          "std": 42.515981,
+          "se": 7.762321,
+          "normal_95ci_low": -12.926505,
+          "normal_95ci_high": 17.501792,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.333333
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          -1.3882,
+          -5.915117,
+          14.96265,
+          8.320933,
+          -4.54205
+        ],
+        "risk_adjusted_composite_gain": -1.593517,
+        "eligible": false
+      },
+      "llm_semantic_domain_knowledge_oxide_phonon_peak_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 1.495833,
+          "std": 23.237431,
+          "se": 4.242555,
+          "normal_95ci_low": -6.819575,
+          "normal_95ci_high": 9.811241,
+          "win_rate": 0.233333,
+          "non_loss_rate": 0.4
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 1.442157,
+          "std": 18.86625,
+          "se": 3.44449,
+          "normal_95ci_low": -5.309044,
+          "normal_95ci_high": 8.193358,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.433333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 2.93799,
+          "std": 40.655131,
+          "se": 7.422577,
+          "normal_95ci_low": -11.610262,
+          "normal_95ci_high": 17.486242,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.4
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          -1.705983,
+          4.8364,
+          16.185983,
+          -6.398567,
+          1.772117
+        ],
+        "risk_adjusted_composite_gain": -0.773299,
+        "eligible": false
+      },
+      "llm_semantic_cross_skill_rule_bank": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 8.306233,
+          "std": 23.186229,
+          "se": 4.233207,
+          "normal_95ci_low": 0.009148,
+          "normal_95ci_high": 16.603319,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.666667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 6.97405,
+          "std": 19.769128,
+          "se": 3.609332,
+          "normal_95ci_low": -0.100241,
+          "normal_95ci_high": 14.048341,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.466667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 15.280283,
+          "std": 42.167214,
+          "se": 7.698645,
+          "normal_95ci_low": 0.19094,
+          "normal_95ci_high": 30.369627,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.466667
+        },
+        "positive_fold_rate": 1.0,
+        "fold_composite_means": [
+          8.974017,
+          4.63705,
+          25.229483,
+          27.263783,
+          10.297083
+        ],
+        "risk_adjusted_composite_gain": 11.430961,
+        "eligible": true
+      }
+    },
+    "thresholds": {
+      "min_risk_adjusted_composite_gain": 0.25,
+      "min_positive_fold_rate": 0.8,
+      "min_final_non_loss_rate": 0.55
+    },
+    "rule": "Choose the strongest target-only anchor on calibration composite. Select an LLM semantic skill only when final and AUC means are non-negative, fold stability and non-loss constraints pass, and risk-adjusted composite gain is positive."
+  },
+  "calibration": {
+    "gp_ucb": {
+      "final_best": 58.600313,
+      "best_so_far_auc": 53.15962,
+      "top10_hit": 0.3,
+      "composite": 111.759933
+    },
+    "llm_semantic_counter_hypothesis_halide_phonon_suppression": {
+      "final_best": 60.090433,
+      "best_so_far_auc": 51.86827,
+      "top10_hit": 0.3,
+      "composite": 111.958703
+    },
+    "llm_semantic_counter_hypothesis_halide_phonon_suppression_conservative": {
+      "final_best": 59.087933,
+      "best_so_far_auc": 51.27958,
+      "top10_hit": 0.266667,
+      "composite": 110.367513
+    },
+    "llm_semantic_counter_hypothesis_halide_phonon_suppression_noprior": {
+      "final_best": 59.7371,
+      "best_so_far_auc": 51.768603,
+      "top10_hit": 0.3,
+      "composite": 111.505703
+    },
+    "llm_semantic_cross_skill_rule_bank": {
+      "final_best": 69.55,
+      "best_so_far_auc": 61.23135,
+      "top10_hit": 0.5,
+      "composite": 130.78135
+    },
+    "llm_semantic_domain_knowledge_oxide_phonon_peak": {
+      "final_best": 67.087233,
+      "best_so_far_auc": 59.6734,
+      "top10_hit": 0.466667,
+      "composite": 126.760633
+    },
+    "llm_semantic_domain_knowledge_oxide_phonon_peak_conservative": {
+      "final_best": 62.7396,
+      "best_so_far_auc": 55.699457,
+      "top10_hit": 0.366667,
+      "composite": 118.439057
+    },
+    "llm_semantic_domain_knowledge_oxide_phonon_peak_noprior": {
+      "final_best": 62.693767,
+      "best_so_far_auc": 55.094943,
+      "top10_hit": 0.366667,
+      "composite": 117.78871
+    },
+    "llm_semantic_enhance_chalcogenide_phonon_response": {
+      "final_best": 62.3614,
+      "best_so_far_auc": 54.166453,
+      "top10_hit": 0.333333,
+      "composite": 116.527853
+    },
+    "llm_semantic_enhance_chalcogenide_phonon_response_conservative": {
+      "final_best": 67.053333,
+      "best_so_far_auc": 57.603943,
+      "top10_hit": 0.433333,
+      "composite": 124.657276
+    },
+    "llm_semantic_enhance_chalcogenide_phonon_response_noprior": {
+      "final_best": 68.4089,
+      "best_so_far_auc": 59.227437,
+      "top10_hit": 0.466667,
+      "composite": 127.636337
+    },
+    "llm_semantic_maximize_light_nonmetal_phonon_response": {
+      "final_best": 71.411267,
+      "best_so_far_auc": 64.89468,
+      "top10_hit": 0.5,
+      "composite": 136.305947
+    },
+    "llm_semantic_maximize_light_nonmetal_phonon_response_conservative": {
+      "final_best": 68.7689,
+      "best_so_far_auc": 63.021543,
+      "top10_hit": 0.433333,
+      "composite": 131.790443
+    },
+    "llm_semantic_maximize_light_nonmetal_phonon_response_noprior": {
+      "final_best": 71.222933,
+      "best_so_far_auc": 65.75993,
+      "top10_hit": 0.5,
+      "composite": 136.982863
+    },
+    "llm_semantic_optimize_binary_oxide_phonon_fidelity": {
+      "final_best": 66.231533,
+      "best_so_far_auc": 54.934563,
+      "top10_hit": 0.4,
+      "composite": 121.166096
+    },
+    "llm_semantic_optimize_binary_oxide_phonon_fidelity_conservative": {
+      "final_best": 63.955433,
+      "best_so_far_auc": 56.1959,
+      "top10_hit": 0.366667,
+      "composite": 120.151333
+    },
+    "llm_semantic_optimize_binary_oxide_phonon_fidelity_noprior": {
+      "final_best": 67.230433,
+      "best_so_far_auc": 55.29037,
+      "top10_hit": 0.433333,
+      "composite": 122.520803
+    },
+    "llm_semantic_optimize_oxide_ternary_phonon_peak": {
+      "final_best": 62.435433,
+      "best_so_far_auc": 54.385053,
+      "top10_hit": 0.333333,
+      "composite": 116.820486
+    },
+    "llm_semantic_optimize_oxide_ternary_phonon_peak_conservative": {
+      "final_best": 64.981267,
+      "best_so_far_auc": 56.52707,
+      "top10_hit": 0.4,
+      "composite": 121.508337
+    },
+    "llm_semantic_optimize_oxide_ternary_phonon_peak_noprior": {
+      "final_best": 59.2671,
+      "best_so_far_auc": 52.752403,
+      "top10_hit": 0.266667,
+      "composite": 112.019503
+    },
+    "llm_semantic_preserve_lanthanide_phonon_stability": {
+      "final_best": 64.178767,
+      "best_so_far_auc": 54.863807,
+      "top10_hit": 0.366667,
+      "composite": 119.042574
+    },
+    "llm_semantic_preserve_lanthanide_phonon_stability_conservative": {
+      "final_best": 63.502933,
+      "best_so_far_auc": 53.577707,
+      "top10_hit": 0.366667,
+      "composite": 117.08064
+    },
+    "llm_semantic_preserve_lanthanide_phonon_stability_noprior": {
+      "final_best": 64.178767,
+      "best_so_far_auc": 54.913557,
+      "top10_hit": 0.366667,
+      "composite": 119.092324
+    },
+    "llm_semantic_promote_alkali_oxide_phonon_clarity": {
+      "final_best": 70.693867,
+      "best_so_far_auc": 62.661203,
+      "top10_hit": 0.533333,
+      "composite": 133.35507
+    },
+    "llm_semantic_promote_alkali_oxide_phonon_clarity_conservative": {
+      "final_best": 72.083167,
+      "best_so_far_auc": 63.211437,
+      "top10_hit": 0.566667,
+      "composite": 135.294604
+    },
+    "llm_semantic_promote_alkali_oxide_phonon_clarity_noprior": {
+      "final_best": 70.756367,
+      "best_so_far_auc": 60.628457,
+      "top10_hit": 0.533333,
+      "composite": 131.384824
+    },
+    "llm_semantic_suppress_halide_phonon_damping": {
+      "final_best": 64.8221,
+      "best_so_far_auc": 53.8484,
+      "top10_hit": 0.366667,
+      "composite": 118.6705
+    },
+    "llm_semantic_suppress_halide_phonon_damping_conservative": {
+      "final_best": 64.653767,
+      "best_so_far_auc": 55.339133,
+      "top10_hit": 0.4,
+      "composite": 119.9929
+    },
+    "llm_semantic_suppress_halide_phonon_damping_noprior": {
+      "final_best": 64.723767,
+      "best_so_far_auc": 53.803567,
+      "top10_hit": 0.366667,
+      "composite": 118.527334
+    },
+    "llm_semantic_target_pnictide_phonon_peak_enhancement": {
+      "final_best": 56.8214,
+      "best_so_far_auc": 51.81952,
+      "top10_hit": 0.166667,
+      "composite": 108.64092
+    },
+    "llm_semantic_target_pnictide_phonon_peak_enhancement_conservative": {
+      "final_best": 63.1725,
+      "best_so_far_auc": 54.157447,
+      "top10_hit": 0.333333,
+      "composite": 117.329947
+    },
+    "llm_semantic_target_pnictide_phonon_peak_enhancement_noprior": {
+      "final_best": 62.2164,
+      "best_so_far_auc": 53.695877,
+      "top10_hit": 0.3,
+      "composite": 115.912277
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 61.464033,
+      "best_so_far_auc": 53.364407,
+      "top10_hit": 0.333333,
+      "composite": 114.82844
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 61.243767,
+      "best_so_far_auc": 54.2573,
+      "top10_hit": 0.333333,
+      "composite": 115.501067
+    }
+  },
+  "heldout": {
+    "care_strategy_router": {
+      "final_best": 69.35935,
+      "best_so_far_auc": 60.659366,
+      "top10_hit": 0.48,
+      "composite": 130.018716
+    },
+    "gp_ucb": {
+      "final_best": 58.383083,
+      "best_so_far_auc": 47.219335,
+      "top10_hit": 0.31,
+      "composite": 105.602418
+    },
+    "llm_calibrated_selector": {
+      "final_best": 69.35935,
+      "best_so_far_auc": 60.659366,
+      "top10_hit": 0.48,
+      "composite": 130.018716
+    },
+    "llm_semantic_counter_hypothesis_halide_phonon_suppression": {
+      "final_best": 62.90975,
+      "best_so_far_auc": 51.011333,
+      "top10_hit": 0.37,
+      "composite": 113.921083
+    },
+    "llm_semantic_counter_hypothesis_halide_phonon_suppression_conservative": {
+      "final_best": 62.99146,
+      "best_so_far_auc": 49.904852,
+      "top10_hit": 0.37,
+      "composite": 112.896312
+    },
+    "llm_semantic_counter_hypothesis_halide_phonon_suppression_noprior": {
+      "final_best": 62.70471,
+      "best_so_far_auc": 50.652702,
+      "top10_hit": 0.36,
+      "composite": 113.357412
+    },
+    "llm_semantic_cross_skill_rule_bank": {
+      "final_best": 68.49079,
+      "best_so_far_auc": 55.282874,
+      "top10_hit": 0.48,
+      "composite": 123.773664
+    },
+    "llm_semantic_domain_knowledge_oxide_phonon_peak": {
+      "final_best": 68.165899,
+      "best_so_far_auc": 57.634148,
+      "top10_hit": 0.45,
+      "composite": 125.800047
+    },
+    "llm_semantic_domain_knowledge_oxide_phonon_peak_conservative": {
+      "final_best": 67.71059,
+      "best_so_far_auc": 57.499315,
+      "top10_hit": 0.45,
+      "composite": 125.209905
+    },
+    "llm_semantic_domain_knowledge_oxide_phonon_peak_noprior": {
+      "final_best": 65.361229,
+      "best_so_far_auc": 56.110677,
+      "top10_hit": 0.38,
+      "composite": 121.471906
+    },
+    "llm_semantic_enhance_chalcogenide_phonon_response": {
+      "final_best": 65.985059,
+      "best_so_far_auc": 52.827459,
+      "top10_hit": 0.4,
+      "composite": 118.812518
+    },
+    "llm_semantic_enhance_chalcogenide_phonon_response_conservative": {
+      "final_best": 65.40626,
+      "best_so_far_auc": 55.357712,
+      "top10_hit": 0.41,
+      "composite": 120.763972
+    },
+    "llm_semantic_enhance_chalcogenide_phonon_response_noprior": {
+      "final_best": 67.63447,
+      "best_so_far_auc": 56.352256,
+      "top10_hit": 0.44,
+      "composite": 123.986726
+    },
+    "llm_semantic_maximize_light_nonmetal_phonon_response": {
+      "final_best": 69.80635,
+      "best_so_far_auc": 60.988016,
+      "top10_hit": 0.49,
+      "composite": 130.794366
+    },
+    "llm_semantic_maximize_light_nonmetal_phonon_response_conservative": {
+      "final_best": 66.76922,
+      "best_so_far_auc": 58.813556,
+      "top10_hit": 0.42,
+      "composite": 125.582776
+    },
+    "llm_semantic_maximize_light_nonmetal_phonon_response_noprior": {
+      "final_best": 69.35935,
+      "best_so_far_auc": 60.659366,
+      "top10_hit": 0.48,
+      "composite": 130.018716
+    },
+    "llm_semantic_optimize_binary_oxide_phonon_fidelity": {
+      "final_best": 60.37185,
+      "best_so_far_auc": 50.63333,
+      "top10_hit": 0.32,
+      "composite": 111.00518
+    },
+    "llm_semantic_optimize_binary_oxide_phonon_fidelity_conservative": {
+      "final_best": 62.84318,
+      "best_so_far_auc": 52.330526,
+      "top10_hit": 0.36,
+      "composite": 115.173706
+    },
+    "llm_semantic_optimize_binary_oxide_phonon_fidelity_noprior": {
+      "final_best": 59.3461,
+      "best_so_far_auc": 50.036598,
+      "top10_hit": 0.3,
+      "composite": 109.382698
+    },
+    "llm_semantic_optimize_oxide_ternary_phonon_peak": {
+      "final_best": 58.4456,
+      "best_so_far_auc": 49.889101,
+      "top10_hit": 0.25,
+      "composite": 108.334701
+    },
+    "llm_semantic_optimize_oxide_ternary_phonon_peak_conservative": {
+      "final_best": 60.5706,
+      "best_so_far_auc": 50.98985,
+      "top10_hit": 0.3,
+      "composite": 111.56045
+    },
+    "llm_semantic_optimize_oxide_ternary_phonon_peak_noprior": {
+      "final_best": 60.2826,
+      "best_so_far_auc": 51.230781,
+      "top10_hit": 0.3,
+      "composite": 111.513381
+    },
+    "llm_semantic_preserve_lanthanide_phonon_stability": {
+      "final_best": 59.13818,
+      "best_so_far_auc": 49.05433,
+      "top10_hit": 0.25,
+      "composite": 108.19251
+    },
+    "llm_semantic_preserve_lanthanide_phonon_stability_conservative": {
+      "final_best": 60.49326,
+      "best_so_far_auc": 49.47176,
+      "top10_hit": 0.28,
+      "composite": 109.96502
+    },
+    "llm_semantic_preserve_lanthanide_phonon_stability_noprior": {
+      "final_best": 58.44993,
+      "best_so_far_auc": 49.045503,
+      "top10_hit": 0.24,
+      "composite": 107.495433
+    },
+    "llm_semantic_promote_alkali_oxide_phonon_clarity": {
+      "final_best": 69.96629,
+      "best_so_far_auc": 58.367653,
+      "top10_hit": 0.51,
+      "composite": 128.333943
+    },
+    "llm_semantic_promote_alkali_oxide_phonon_clarity_conservative": {
+      "final_best": 68.82426,
+      "best_so_far_auc": 58.335742,
+      "top10_hit": 0.48,
+      "composite": 127.160002
+    },
+    "llm_semantic_promote_alkali_oxide_phonon_clarity_noprior": {
+      "final_best": 70.47626,
+      "best_so_far_auc": 59.212307,
+      "top10_hit": 0.52,
+      "composite": 129.688567
+    },
+    "llm_semantic_suppress_halide_phonon_damping": {
+      "final_best": 63.1508,
+      "best_so_far_auc": 51.318604,
+      "top10_hit": 0.36,
+      "composite": 114.469404
+    },
+    "llm_semantic_suppress_halide_phonon_damping_conservative": {
+      "final_best": 61.552054,
+      "best_so_far_auc": 49.527825,
+      "top10_hit": 0.31,
+      "composite": 111.079879
+    },
+    "llm_semantic_suppress_halide_phonon_damping_noprior": {
+      "final_best": 63.48305,
+      "best_so_far_auc": 51.805127,
+      "top10_hit": 0.37,
+      "composite": 115.288177
+    },
+    "llm_semantic_target_pnictide_phonon_peak_enhancement": {
+      "final_best": 59.04935,
+      "best_so_far_auc": 50.221888,
+      "top10_hit": 0.25,
+      "composite": 109.271238
+    },
+    "llm_semantic_target_pnictide_phonon_peak_enhancement_conservative": {
+      "final_best": 62.35935,
+      "best_so_far_auc": 53.417859,
+      "top10_hit": 0.34,
+      "composite": 115.777209
+    },
+    "llm_semantic_target_pnictide_phonon_peak_enhancement_noprior": {
+      "final_best": 62.17785,
+      "best_so_far_auc": 52.696167,
+      "top10_hit": 0.33,
+      "composite": 114.874017
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 58.657583,
+      "best_so_far_auc": 47.737435,
+      "top10_hit": 0.29,
+      "composite": 106.395018
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 60.787804,
+      "best_so_far_auc": 48.589024,
+      "top10_hit": 0.32,
+      "composite": 109.376828
+    }
+  },
+  "heldout_strongest_target_mode_descriptive_only": "target_acquisition_portfolio",
+  "heldout_pairwise": {
+    "gp_ucb": {
+      "final_best": {
+        "n": 100.0,
+        "mean": 10.976267,
+        "std": 22.64273,
+        "se": 2.264273,
+        "normal_95ci_low": 6.538292,
+        "normal_95ci_high": 15.414242,
+        "win_rate": 0.64,
+        "non_loss_rate": 0.8
+      },
+      "best_so_far_auc": {
+        "n": 100.0,
+        "mean": 13.440031,
+        "std": 17.065133,
+        "se": 1.706513,
+        "normal_95ci_low": 10.095265,
+        "normal_95ci_high": 16.784797,
+        "win_rate": 0.84,
+        "non_loss_rate": 0.85
+      },
+      "top10_hit": {
+        "n": 100.0,
+        "mean": 0.17,
+        "std": 0.510979,
+        "se": 0.051098,
+        "normal_95ci_low": 0.069848,
+        "normal_95ci_high": 0.270152,
+        "win_rate": 0.23,
+        "non_loss_rate": 0.94
+      }
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": {
+        "n": 100.0,
+        "mean": 10.701767,
+        "std": 20.960017,
+        "se": 2.096002,
+        "normal_95ci_low": 6.593604,
+        "normal_95ci_high": 14.80993,
+        "win_rate": 0.68,
+        "non_loss_rate": 0.82
+      },
+      "best_so_far_auc": {
+        "n": 100.0,
+        "mean": 12.921931,
+        "std": 16.366425,
+        "se": 1.636643,
+        "normal_95ci_low": 9.714112,
+        "normal_95ci_high": 16.12975,
+        "win_rate": 0.84,
+        "non_loss_rate": 0.85
+      },
+      "top10_hit": {
+        "n": 100.0,
+        "mean": 0.19,
+        "std": 0.523355,
+        "se": 0.052335,
+        "normal_95ci_low": 0.087423,
+        "normal_95ci_high": 0.292577,
+        "win_rate": 0.25,
+        "non_loss_rate": 0.94
+      }
+    },
+    "target_acquisition_portfolio": {
+      "final_best": {
+        "n": 100.0,
+        "mean": 8.571546,
+        "std": 22.486451,
+        "se": 2.248645,
+        "normal_95ci_low": 4.164202,
+        "normal_95ci_high": 12.97889,
+        "win_rate": 0.52,
+        "non_loss_rate": 0.78
+      },
+      "best_so_far_auc": {
+        "n": 100.0,
+        "mean": 12.070342,
+        "std": 16.942146,
+        "se": 1.694215,
+        "normal_95ci_low": 8.749681,
+        "normal_95ci_high": 15.391003,
+        "win_rate": 0.78,
+        "non_loss_rate": 0.79
+      },
+      "top10_hit": {
+        "n": 100.0,
+        "mean": 0.16,
+        "std": 0.542586,
+        "se": 0.054259,
+        "normal_95ci_low": 0.053653,
+        "normal_95ci_high": 0.266347,
+        "win_rate": 0.24,
+        "non_loss_rate": 0.92
+      }
+    }
+  },
+  "external_llm_baselines": {},
+  "care_vs_external_llm": {},
+  "heldout_validation": {
+    "selected_llm_skill": true,
+    "strongest_target_mode": "target_acquisition_portfolio",
+    "final_95ci_positive": true,
+    "auc_95ci_positive": true,
+    "top10_95ci_positive": true
+  },
+  "evidence_boundary": {
+    "generation": "No source identity, source schema, source outcomes, source effects, or source value priors are provided. The LLM must use the public target schema and its pretrained domain knowledge only.",
+    "evaluation": "Calibration selects a skill before held-out evaluation. Every per-round fit uses only previously revealed target outcomes."
+  },
+  "strategy_router": {
+    "selected_mode": "llm_semantic_maximize_light_nonmetal_phonon_response_noprior",
+    "selected_llm_strategy": true,
+    "target_anchor_mode": "target_acquisition_portfolio",
+    "candidate_modes": [
+      "target_acquisition_portfolio",
+      "llm_semantic_maximize_light_nonmetal_phonon_response_noprior"
+    ],
+    "eligible_modes": [
+      "target_acquisition_portfolio",
+      "llm_semantic_maximize_light_nonmetal_phonon_response_noprior"
+    ],
+    "diagnostics": {
+      "target_acquisition_portfolio": {
+        "eligible": true,
+        "risk_adjusted_composite_gain": 0.0,
+        "reason": "target-only fallback"
+      },
+      "llm_semantic_maximize_light_nonmetal_phonon_response_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 9.979167,
+          "std": 22.993255,
+          "se": 4.197975,
+          "normal_95ci_low": 1.751136,
+          "normal_95ci_high": 18.207197,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.833333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 11.50263,
+          "std": 19.713419,
+          "se": 3.599161,
+          "normal_95ci_low": 4.448274,
+          "normal_95ci_high": 18.556986,
+          "win_rate": 0.666667,
+          "non_loss_rate": 0.666667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 21.481797,
+          "std": 42.245983,
+          "se": 7.713026,
+          "normal_95ci_low": 6.364266,
+          "normal_95ci_high": 36.599327,
+          "win_rate": 0.666667,
+          "non_loss_rate": 0.666667
+        },
+        "positive_fold_rate": 1.0,
+        "fold_composite_means": [
+          21.926933,
+          12.870717,
+          33.81515,
+          28.961433,
+          9.83475
+        ],
+        "risk_adjusted_composite_gain": 17.625284,
+        "eligible": true
+      }
+    },
+    "thresholds": {
+      "min_risk_adjusted_composite_gain": 0.25,
+      "min_positive_fold_rate": 0.8,
+      "min_final_non_loss_rate": 0.55
+    },
+    "rule": "Choose among the frozen semantic selector, LLM-direct prior, LLAMBO-style warm-start, and the target-only anchor using calibration seeds only. Require non-negative final-best and AUC deltas, stable folds, and a positive risk-adjusted composite gain; otherwise fall back to the target-only anchor.",
+    "evidence_boundary": "Only calibration outcomes choose the strategy. Held-out outcomes are used once for the frozen comparison."
+  },
+  "strategy_router_strongest_target_mode": "target_acquisition_portfolio",
+  "strategy_router_pairwise": {
+    "gp_ucb": {
+      "final_best": {
+        "n": 100.0,
+        "mean": 10.976267,
+        "std": 22.64273,
+        "se": 2.264273,
+        "normal_95ci_low": 6.538292,
+        "normal_95ci_high": 15.414242,
+        "win_rate": 0.64,
+        "non_loss_rate": 0.8
+      },
+      "best_so_far_auc": {
+        "n": 100.0,
+        "mean": 13.440031,
+        "std": 17.065133,
+        "se": 1.706513,
+        "normal_95ci_low": 10.095265,
+        "normal_95ci_high": 16.784797,
+        "win_rate": 0.84,
+        "non_loss_rate": 0.85
+      },
+      "top10_hit": {
+        "n": 100.0,
+        "mean": 0.17,
+        "std": 0.510979,
+        "se": 0.051098,
+        "normal_95ci_low": 0.069848,
+        "normal_95ci_high": 0.270152,
+        "win_rate": 0.23,
+        "non_loss_rate": 0.94
+      }
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": {
+        "n": 100.0,
+        "mean": 10.701767,
+        "std": 20.960017,
+        "se": 2.096002,
+        "normal_95ci_low": 6.593604,
+        "normal_95ci_high": 14.80993,
+        "win_rate": 0.68,
+        "non_loss_rate": 0.82
+      },
+      "best_so_far_auc": {
+        "n": 100.0,
+        "mean": 12.921931,
+        "std": 16.366425,
+        "se": 1.636643,
+        "normal_95ci_low": 9.714112,
+        "normal_95ci_high": 16.12975,
+        "win_rate": 0.84,
+        "non_loss_rate": 0.85
+      },
+      "top10_hit": {
+        "n": 100.0,
+        "mean": 0.19,
+        "std": 0.523355,
+        "se": 0.052335,
+        "normal_95ci_low": 0.087423,
+        "normal_95ci_high": 0.292577,
+        "win_rate": 0.25,
+        "non_loss_rate": 0.94
+      }
+    },
+    "target_acquisition_portfolio": {
+      "final_best": {
+        "n": 100.0,
+        "mean": 8.571546,
+        "std": 22.486451,
+        "se": 2.248645,
+        "normal_95ci_low": 4.164202,
+        "normal_95ci_high": 12.97889,
+        "win_rate": 0.52,
+        "non_loss_rate": 0.78
+      },
+      "best_so_far_auc": {
+        "n": 100.0,
+        "mean": 12.070342,
+        "std": 16.942146,
+        "se": 1.694215,
+        "normal_95ci_low": 8.749681,
+        "normal_95ci_high": 15.391003,
+        "win_rate": 0.78,
+        "non_loss_rate": 0.79
+      },
+      "top10_hit": {
+        "n": 100.0,
+        "mean": 0.16,
+        "std": 0.542586,
+        "se": 0.054259,
+        "normal_95ci_low": 0.053653,
+        "normal_95ci_high": 0.266347,
+        "win_rate": 0.24,
+        "non_loss_rate": 0.92
+      }
+    }
+  },
+  "strategy_router_vs_external_llm": {},
+  "strategy_router_validation": {
+    "selected_llm_strategy": true,
+    "strongest_target_mode": "target_acquisition_portfolio",
+    "final_95ci_positive": true,
+    "auc_95ci_positive": true,
+    "top10_95ci_positive": true
+  }
+}

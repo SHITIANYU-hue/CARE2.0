@@ -1,5 +1,49 @@
 # Overview
 
+## 2026-07-22：多领域 LLM Strategy Router 冻结结果
+
+这一轮解决了一个之前没有拆开的变量：同一份 LLM skill 应该怎样执行。系统现在
+不再固定使用 target-calibrated semantic model，而是在 calibration seeds 上
+自动比较 target-only BO、semantic calibration、LLM direct prior 和
+LLAMBO-style warm-start；通过稳定性门槛后冻结策略，否则回退到 target-only
+optimizer。held-out 结果不参与选择。
+
+汇总中的 9 个预设 target 条件里，6 个得到至少一项统计显著正增益，3 个自动
+回退。确认正结果覆盖三个领域：
+
+| Target | Router 选择 | Seeds | 强 baseline | Final best delta | AUC delta |
+| --- | --- | ---: | --- | ---: | ---: |
+| Matbench band gap | calibrated semantic | 500 | target portfolio | +7.0090 | +6.1666 |
+| Matbench phonons | LLM warm-start | 500 | target portfolio | +24.4382 | +36.2661 |
+| FreeSolv | calibrated semantic | 500 | target portfolio | +3.3023 | +0.8524（CI 跨 0） |
+| Lipophilicity | calibrated semantic | 500 | GP-UCB | +1.5660 | +1.2607 |
+| ESOL | calibrated semantic | 500 | GP-UCB | +0.4737 | +1.0567 |
+| ChemLex Acid-Amine | LLM direct prior | 200 | GP-UCB | +3.1828 | +2.9214 |
+
+ChemLex 使用了真实 updated wetlab record，并把原来的短字符串统计替换为
+RDKit reaction representation：酸和胺各自的 12 个归一化数值描述符、官能团
+类别和 ring-system 类别。forced semantic execution 在 ChemLex 上是负的，
+但 calibration router 正确选择了 direct prior；这说明 LLM 规则本身有用，
+问题在执行方式，不需要用 held-out 结果手动挑策略。
+
+Phonons 平均提前 8.534 轮命中全局 top-10，ChemLex 提前 0.325 轮；ESOL
+没有显著缩短首次 top-10 命中时间，但第 5 轮 best-so-far 提升 +0.8574。
+Suzuki/source-schema -> Buchwald-Hartwig、source-schema -> ChemLex 和
+Matbench log bulk modulus 没有得到可靠 LLM 增益，router 保留了 target-only
+fallback。
+
+边界也比之前清楚：FreeSolv 是 source-schema transfer；其余正结果主要证明
+LLM target-schema generalization。LLM direct prior 和 LLAMBO-style
+warm-start 是在同一 replay 协议下的适配版，不是外部系统完整复现。当前
+CARE 2.0 的系统优势是 calibration routing、自动 fallback、统一 held-out
+协议、逐轮 trace 和知识库沉淀，而不是声称一个固定 CARE acquisition rule
+全面击败所有外部方法。
+
+完整结果在
+`experiments/care_replay/results/2026-07-22-multidomain-llm-completion/`，
+包括 7 次真实 LLM 调用、每 seed metrics、压缩 audit logs、轮数分析、图和
+知识库 ingest 所需文件。
+
 ## 2026-07-21：LLM 证据来源和实验轮数审计
 
 这一轮把过去混在一起的两个问题拆开了：一是收益到底来自 source task，还是 LLM 只看 target schema 也能写出有用的 skill；二是 LLM 加进来以后，是否能更早找到高价值候选，而不只是最终分数略高。

@@ -1,0 +1,781 @@
+{
+  "experiment": "care_calibrated_llm_semantic_skill_selector",
+  "source_dataset": "real_moleculenet_freesolv",
+  "target_dataset": "real_moleculenet_esol",
+  "evidence_mode": "target_only",
+  "llm_model": "deepspeek-v3.2",
+  "llm_generation_call_count": 1,
+  "new_llm_call_count": 0,
+  "rule_prior_enabled": true,
+  "semantic_model_enabled": true,
+  "semantic_field_catalog": {
+    "smiles_length_bin": {
+      "smiles_long": 61,
+      "smiles_mid": 476,
+      "smiles_short": 589,
+      "smiles_very_long": 2
+    },
+    "hbond_donor_bin": {
+      "donor_high": 10,
+      "donor_low": 444,
+      "donor_mid": 39,
+      "donor_none": 635
+    },
+    "ring_bin": {
+      "rings_high": 25,
+      "rings_low": 607,
+      "rings_mid": 179,
+      "rings_none": 317
+    },
+    "rotatable_bond_bin": {
+      "rot_high": 143,
+      "rot_low": 593,
+      "rot_mid": 362,
+      "rot_very_high": 30
+    }
+  },
+  "skills": [
+    {
+      "skill_id": "counter_hypothesis_low_hbond_donors_conservative",
+      "rules": [
+        {
+          "rule_id": "increase_hbond_donors",
+          "conditions": [
+            [
+              "hbond_donor_bin",
+              "donor_high"
+            ]
+          ],
+          "weight": -1.0,
+          "rationale": "This skill reverses the common assumption that low H-bond donors improve solubility; may be relevant in polar solvents."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.3,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.65,
+      "hypothesis": "This skill challenges the standard rule; may fail in systems where H-bonding enhances solvation."
+    }
+  ],
+  "skill_variant_policy": "expanded",
+  "calibration_seed_start": 32000,
+  "calibration_seed_count": 50,
+  "heldout_seed_start": 33000,
+  "heldout_seed_count": 500,
+  "selection": {
+    "target_anchor_mode": "gp_ucb",
+    "target_anchor_summary": {
+      "gp_ucb": {
+        "final_best": 94.992008,
+        "best_so_far_auc": 92.857162,
+        "top10_hit": 0.94,
+        "composite": 187.84917
+      },
+      "mixed_kernel_gp_ei": {
+        "final_best": 94.727726,
+        "best_so_far_auc": 92.535604,
+        "top10_hit": 0.92,
+        "composite": 187.26333
+      },
+      "target_acquisition_portfolio": {
+        "final_best": 94.370582,
+        "best_so_far_auc": 92.504366,
+        "top10_hit": 0.84,
+        "composite": 186.874948
+      }
+    },
+    "eligible_skill_modes": [
+      "llm_semantic_counter_hypothesis_low_hbond_donors_conservative"
+    ],
+    "selected_mode": "llm_semantic_counter_hypothesis_low_hbond_donors_conservative",
+    "selected_llm_skill": true,
+    "skill_diagnostics": {
+      "llm_semantic_counter_hypothesis_low_hbond_donors_conservative": {
+        "final_best": {
+          "n": 50.0,
+          "mean": 0.41514,
+          "std": 2.017059,
+          "se": 0.285255,
+          "normal_95ci_low": -0.14396,
+          "normal_95ci_high": 0.97424,
+          "win_rate": 0.2,
+          "non_loss_rate": 0.84
+        },
+        "best_so_far_auc": {
+          "n": 50.0,
+          "mean": 0.7574,
+          "std": 2.94696,
+          "se": 0.416763,
+          "normal_95ci_low": -0.059456,
+          "normal_95ci_high": 1.574256,
+          "win_rate": 0.56,
+          "non_loss_rate": 0.68
+        },
+        "composite": {
+          "n": 50.0,
+          "mean": 1.17254,
+          "std": 4.577336,
+          "se": 0.647333,
+          "normal_95ci_low": -0.096233,
+          "normal_95ci_high": 2.441313,
+          "win_rate": 0.6,
+          "non_loss_rate": 0.72
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          -0.38071,
+          1.58785,
+          2.3395,
+          1.22115,
+          1.09491
+        ],
+        "risk_adjusted_composite_gain": 0.848873,
+        "eligible": true
+      }
+    },
+    "thresholds": {
+      "min_risk_adjusted_composite_gain": 0.25,
+      "min_positive_fold_rate": 0.8,
+      "min_final_non_loss_rate": 0.55
+    },
+    "rule": "The skill was selected on an earlier development range and frozen before these seeds. Calibration seeds in this run select only the target-only comparison anchor.",
+    "calibration_selected_mode": "llm_semantic_counter_hypothesis_low_hbond_donors_conservative",
+    "preselected_skill_id": "counter_hypothesis_low_hbond_donors_conservative"
+  },
+  "calibration": {
+    "gp_ucb": {
+      "final_best": 94.992008,
+      "best_so_far_auc": 92.857162,
+      "top10_hit": 0.94,
+      "composite": 187.84917
+    },
+    "llambo_warmstart_counter_hypothesis_low_hbond_donors_conservative": {
+      "final_best": 94.670006,
+      "best_so_far_auc": 92.573658,
+      "top10_hit": 0.92,
+      "composite": 187.243664
+    },
+    "llm_direct_prior_counter_hypothesis_low_hbond_donors_conservative": {
+      "final_best": 95.000438,
+      "best_so_far_auc": 91.009798,
+      "top10_hit": 0.82,
+      "composite": 186.010236
+    },
+    "llm_semantic_counter_hypothesis_low_hbond_donors_conservative": {
+      "final_best": 95.407148,
+      "best_so_far_auc": 93.614562,
+      "top10_hit": 0.96,
+      "composite": 189.02171
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 94.727726,
+      "best_so_far_auc": 92.535604,
+      "top10_hit": 0.92,
+      "composite": 187.26333
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 94.370582,
+      "best_so_far_auc": 92.504366,
+      "top10_hit": 0.84,
+      "composite": 186.874948
+    }
+  },
+  "heldout": {
+    "care_strategy_router": {
+      "final_best": 95.446607,
+      "best_so_far_auc": 93.434739,
+      "top10_hit": 0.96,
+      "composite": 188.881346
+    },
+    "gp_ucb": {
+      "final_best": 94.972937,
+      "best_so_far_auc": 92.378034,
+      "top10_hit": 0.966,
+      "composite": 187.350971
+    },
+    "llambo_warmstart_counter_hypothesis_low_hbond_donors_conservative": {
+      "final_best": 94.994094,
+      "best_so_far_auc": 92.178408,
+      "top10_hit": 0.928,
+      "composite": 187.172502
+    },
+    "llambo_warmstart_selector": {
+      "final_best": 94.994094,
+      "best_so_far_auc": 92.178408,
+      "top10_hit": 0.928,
+      "composite": 187.172502
+    },
+    "llm_calibrated_selector": {
+      "final_best": 95.446607,
+      "best_so_far_auc": 93.434739,
+      "top10_hit": 0.96,
+      "composite": 188.881346
+    },
+    "llm_direct_prior_counter_hypothesis_low_hbond_donors_conservative": {
+      "final_best": 95.491036,
+      "best_so_far_auc": 91.127312,
+      "top10_hit": 0.896,
+      "composite": 186.618348
+    },
+    "llm_direct_prior_selector": {
+      "final_best": 95.491036,
+      "best_so_far_auc": 91.127312,
+      "top10_hit": 0.896,
+      "composite": 186.618348
+    },
+    "llm_semantic_counter_hypothesis_low_hbond_donors_conservative": {
+      "final_best": 95.446607,
+      "best_so_far_auc": 93.434739,
+      "top10_hit": 0.96,
+      "composite": 188.881346
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 94.794308,
+      "best_so_far_auc": 92.183133,
+      "top10_hit": 0.972,
+      "composite": 186.977441
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 94.776908,
+      "best_so_far_auc": 92.119312,
+      "top10_hit": 0.946,
+      "composite": 186.89622
+    }
+  },
+  "heldout_strongest_target_mode_descriptive_only": "gp_ucb",
+  "heldout_pairwise": {
+    "gp_ucb": {
+      "final_best": {
+        "n": 500.0,
+        "mean": 0.47367,
+        "std": 1.97503,
+        "se": 0.088326,
+        "normal_95ci_low": 0.300551,
+        "normal_95ci_high": 0.646789,
+        "win_rate": 0.33,
+        "non_loss_rate": 0.842
+      },
+      "best_so_far_auc": {
+        "n": 500.0,
+        "mean": 1.056704,
+        "std": 2.703137,
+        "se": 0.120888,
+        "normal_95ci_low": 0.819764,
+        "normal_95ci_high": 1.293645,
+        "win_rate": 0.578,
+        "non_loss_rate": 0.73
+      },
+      "top10_hit": {
+        "n": 500.0,
+        "mean": -0.006,
+        "std": 0.204851,
+        "se": 0.009161,
+        "normal_95ci_low": -0.023956,
+        "normal_95ci_high": 0.011956,
+        "win_rate": 0.018,
+        "non_loss_rate": 0.976
+      }
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": {
+        "n": 500.0,
+        "mean": 0.652299,
+        "std": 1.813563,
+        "se": 0.081105,
+        "normal_95ci_low": 0.493333,
+        "normal_95ci_high": 0.811265,
+        "win_rate": 0.378,
+        "non_loss_rate": 0.902
+      },
+      "best_so_far_auc": {
+        "n": 500.0,
+        "mean": 1.251606,
+        "std": 2.792387,
+        "se": 0.124879,
+        "normal_95ci_low": 1.006842,
+        "normal_95ci_high": 1.496369,
+        "win_rate": 0.578,
+        "non_loss_rate": 0.756
+      },
+      "top10_hit": {
+        "n": 500.0,
+        "mean": -0.012,
+        "std": 0.209418,
+        "se": 0.009365,
+        "normal_95ci_low": -0.030356,
+        "normal_95ci_high": 0.006356,
+        "win_rate": 0.016,
+        "non_loss_rate": 0.972
+      }
+    },
+    "target_acquisition_portfolio": {
+      "final_best": {
+        "n": 500.0,
+        "mean": 0.669699,
+        "std": 1.85819,
+        "se": 0.083101,
+        "normal_95ci_low": 0.506821,
+        "normal_95ci_high": 0.832577,
+        "win_rate": 0.358,
+        "non_loss_rate": 0.89
+      },
+      "best_so_far_auc": {
+        "n": 500.0,
+        "mean": 1.315426,
+        "std": 2.759094,
+        "se": 0.12339,
+        "normal_95ci_low": 1.073581,
+        "normal_95ci_high": 1.557271,
+        "win_rate": 0.61,
+        "non_loss_rate": 0.78
+      },
+      "top10_hit": {
+        "n": 500.0,
+        "mean": 0.014,
+        "std": 0.248604,
+        "se": 0.011118,
+        "normal_95ci_low": -0.007791,
+        "normal_95ci_high": 0.035791,
+        "win_rate": 0.038,
+        "non_loss_rate": 0.976
+      }
+    }
+  },
+  "external_llm_baselines": {
+    "llm_direct_prior": {
+      "selected_mode": "llm_direct_prior_counter_hypothesis_low_hbond_donors_conservative",
+      "selector_alias": "llm_direct_prior_selector",
+      "calibration": {
+        "llm_direct_prior_counter_hypothesis_low_hbond_donors_conservative": {
+          "final_best": 95.000438,
+          "best_so_far_auc": 91.009798,
+          "top10_hit": 0.82,
+          "composite": 186.010236
+        }
+      },
+      "rule": "Select the strongest llm_direct_prior variant on calibration final_best + AUC; held-out outcomes do not affect this choice."
+    },
+    "llambo_warmstart": {
+      "selected_mode": "llambo_warmstart_counter_hypothesis_low_hbond_donors_conservative",
+      "selector_alias": "llambo_warmstart_selector",
+      "calibration": {
+        "llambo_warmstart_counter_hypothesis_low_hbond_donors_conservative": {
+          "final_best": 94.670006,
+          "best_so_far_auc": 92.573658,
+          "top10_hit": 0.92,
+          "composite": 187.243664
+        }
+      },
+      "rule": "Select the strongest llambo_warmstart variant on calibration final_best + AUC; held-out outcomes do not affect this choice."
+    }
+  },
+  "care_vs_external_llm": {
+    "llm_direct_prior_selector": {
+      "final_best": {
+        "n": 500.0,
+        "mean": -0.044429,
+        "std": 2.416123,
+        "se": 0.108052,
+        "normal_95ci_low": -0.256211,
+        "normal_95ci_high": 0.167354,
+        "win_rate": 0.274,
+        "non_loss_rate": 0.662
+      },
+      "best_so_far_auc": {
+        "n": 500.0,
+        "mean": 2.307426,
+        "std": 3.126928,
+        "se": 0.13984,
+        "normal_95ci_low": 2.033339,
+        "normal_95ci_high": 2.581514,
+        "win_rate": 0.778,
+        "non_loss_rate": 0.81
+      },
+      "top10_hit": {
+        "n": 500.0,
+        "mean": 0.064,
+        "std": 0.316076,
+        "se": 0.014135,
+        "normal_95ci_low": 0.036295,
+        "normal_95ci_high": 0.091705,
+        "win_rate": 0.084,
+        "non_loss_rate": 0.98
+      }
+    },
+    "llambo_warmstart_selector": {
+      "final_best": {
+        "n": 500.0,
+        "mean": 0.452513,
+        "std": 2.778981,
+        "se": 0.12428,
+        "normal_95ci_low": 0.208924,
+        "normal_95ci_high": 0.696101,
+        "win_rate": 0.404,
+        "non_loss_rate": 0.7
+      },
+      "best_so_far_auc": {
+        "n": 500.0,
+        "mean": 1.256331,
+        "std": 5.589022,
+        "se": 0.249949,
+        "normal_95ci_low": 0.766431,
+        "normal_95ci_high": 1.74623,
+        "win_rate": 0.58,
+        "non_loss_rate": 0.598
+      },
+      "top10_hit": {
+        "n": 500.0,
+        "mean": 0.032,
+        "std": 0.327072,
+        "se": 0.014627,
+        "normal_95ci_low": 0.003331,
+        "normal_95ci_high": 0.060669,
+        "win_rate": 0.07,
+        "non_loss_rate": 0.962
+      }
+    }
+  },
+  "heldout_validation": {
+    "selected_llm_skill": true,
+    "strongest_target_mode": "gp_ucb",
+    "final_95ci_positive": true,
+    "auc_95ci_positive": true,
+    "top10_95ci_positive": false
+  },
+  "evidence_boundary": {
+    "generation": "No source identity, source schema, source outcomes, source effects, or source value priors are provided. The LLM must use the public target schema and its pretrained domain knowledge only.",
+    "evaluation": "Calibration selects a skill before held-out evaluation. Every per-round fit uses only previously revealed target outcomes."
+  },
+  "strategy_router": {
+    "selected_mode": "llm_semantic_counter_hypothesis_low_hbond_donors_conservative",
+    "selected_llm_strategy": true,
+    "target_anchor_mode": "gp_ucb",
+    "candidate_modes": [
+      "gp_ucb",
+      "llm_semantic_counter_hypothesis_low_hbond_donors_conservative",
+      "llm_direct_prior_counter_hypothesis_low_hbond_donors_conservative",
+      "llambo_warmstart_counter_hypothesis_low_hbond_donors_conservative"
+    ],
+    "eligible_modes": [
+      "gp_ucb",
+      "llm_semantic_counter_hypothesis_low_hbond_donors_conservative"
+    ],
+    "diagnostics": {
+      "gp_ucb": {
+        "eligible": true,
+        "risk_adjusted_composite_gain": 0.0,
+        "reason": "target-only fallback"
+      },
+      "llm_semantic_counter_hypothesis_low_hbond_donors_conservative": {
+        "final_best": {
+          "n": 50.0,
+          "mean": 0.41514,
+          "std": 2.017059,
+          "se": 0.285255,
+          "normal_95ci_low": -0.14396,
+          "normal_95ci_high": 0.97424,
+          "win_rate": 0.2,
+          "non_loss_rate": 0.84
+        },
+        "best_so_far_auc": {
+          "n": 50.0,
+          "mean": 0.7574,
+          "std": 2.94696,
+          "se": 0.416763,
+          "normal_95ci_low": -0.059456,
+          "normal_95ci_high": 1.574256,
+          "win_rate": 0.56,
+          "non_loss_rate": 0.68
+        },
+        "composite": {
+          "n": 50.0,
+          "mean": 1.17254,
+          "std": 4.577336,
+          "se": 0.647333,
+          "normal_95ci_low": -0.096233,
+          "normal_95ci_high": 2.441313,
+          "win_rate": 0.6,
+          "non_loss_rate": 0.72
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          -0.38071,
+          1.58785,
+          2.3395,
+          1.22115,
+          1.09491
+        ],
+        "risk_adjusted_composite_gain": 0.848873,
+        "eligible": true
+      },
+      "llm_direct_prior_counter_hypothesis_low_hbond_donors_conservative": {
+        "final_best": {
+          "n": 50.0,
+          "mean": 0.00843,
+          "std": 3.344475,
+          "se": 0.47298,
+          "normal_95ci_low": -0.918611,
+          "normal_95ci_high": 0.935471,
+          "win_rate": 0.36,
+          "non_loss_rate": 0.66
+        },
+        "best_so_far_auc": {
+          "n": 50.0,
+          "mean": -1.847364,
+          "std": 3.20104,
+          "se": 0.452695,
+          "normal_95ci_low": -2.734647,
+          "normal_95ci_high": -0.960081,
+          "win_rate": 0.16,
+          "non_loss_rate": 0.2
+        },
+        "composite": {
+          "n": 50.0,
+          "mean": -1.838934,
+          "std": 5.846607,
+          "se": 0.826835,
+          "normal_95ci_low": -3.459531,
+          "normal_95ci_high": -0.218337,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.34
+        },
+        "positive_fold_rate": 0.0,
+        "fold_composite_means": [
+          -1.37498,
+          -0.9173,
+          -1.94444,
+          -2.4247,
+          -2.53325
+        ],
+        "risk_adjusted_composite_gain": -2.252352,
+        "eligible": false
+      },
+      "llambo_warmstart_counter_hypothesis_low_hbond_donors_conservative": {
+        "final_best": {
+          "n": 50.0,
+          "mean": -0.322002,
+          "std": 3.534629,
+          "se": 0.499872,
+          "normal_95ci_low": -1.301751,
+          "normal_95ci_high": 0.657747,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.48
+        },
+        "best_so_far_auc": {
+          "n": 50.0,
+          "mean": -0.283504,
+          "std": 5.266987,
+          "se": 0.744864,
+          "normal_95ci_low": -1.743438,
+          "normal_95ci_high": 1.17643,
+          "win_rate": 0.44,
+          "non_loss_rate": 0.44
+        },
+        "composite": {
+          "n": 50.0,
+          "mean": -0.605506,
+          "std": 8.364016,
+          "se": 1.18285,
+          "normal_95ci_low": -2.923893,
+          "normal_95ci_high": 1.712881,
+          "win_rate": 0.42,
+          "non_loss_rate": 0.42
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          -3.91914,
+          -1.9042,
+          3.25116,
+          0.19387,
+          -0.64922
+        ],
+        "risk_adjusted_composite_gain": -1.196931,
+        "eligible": false
+      }
+    },
+    "thresholds": {
+      "min_risk_adjusted_composite_gain": 0.25,
+      "min_positive_fold_rate": 0.8,
+      "min_final_non_loss_rate": 0.55
+    },
+    "rule": "Choose among the frozen semantic selector, LLM-direct prior, LLAMBO-style warm-start, and the target-only anchor using calibration seeds only. Require non-negative final-best and AUC deltas, stable folds, and a positive risk-adjusted composite gain; otherwise fall back to the target-only anchor.",
+    "evidence_boundary": "Only calibration outcomes choose the strategy. Held-out outcomes are used once for the frozen comparison."
+  },
+  "strategy_router_strongest_target_mode": "gp_ucb",
+  "strategy_router_pairwise": {
+    "gp_ucb": {
+      "final_best": {
+        "n": 500.0,
+        "mean": 0.47367,
+        "std": 1.97503,
+        "se": 0.088326,
+        "normal_95ci_low": 0.300551,
+        "normal_95ci_high": 0.646789,
+        "win_rate": 0.33,
+        "non_loss_rate": 0.842
+      },
+      "best_so_far_auc": {
+        "n": 500.0,
+        "mean": 1.056704,
+        "std": 2.703137,
+        "se": 0.120888,
+        "normal_95ci_low": 0.819764,
+        "normal_95ci_high": 1.293645,
+        "win_rate": 0.578,
+        "non_loss_rate": 0.73
+      },
+      "top10_hit": {
+        "n": 500.0,
+        "mean": -0.006,
+        "std": 0.204851,
+        "se": 0.009161,
+        "normal_95ci_low": -0.023956,
+        "normal_95ci_high": 0.011956,
+        "win_rate": 0.018,
+        "non_loss_rate": 0.976
+      }
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": {
+        "n": 500.0,
+        "mean": 0.652299,
+        "std": 1.813563,
+        "se": 0.081105,
+        "normal_95ci_low": 0.493333,
+        "normal_95ci_high": 0.811265,
+        "win_rate": 0.378,
+        "non_loss_rate": 0.902
+      },
+      "best_so_far_auc": {
+        "n": 500.0,
+        "mean": 1.251606,
+        "std": 2.792387,
+        "se": 0.124879,
+        "normal_95ci_low": 1.006842,
+        "normal_95ci_high": 1.496369,
+        "win_rate": 0.578,
+        "non_loss_rate": 0.756
+      },
+      "top10_hit": {
+        "n": 500.0,
+        "mean": -0.012,
+        "std": 0.209418,
+        "se": 0.009365,
+        "normal_95ci_low": -0.030356,
+        "normal_95ci_high": 0.006356,
+        "win_rate": 0.016,
+        "non_loss_rate": 0.972
+      }
+    },
+    "target_acquisition_portfolio": {
+      "final_best": {
+        "n": 500.0,
+        "mean": 0.669699,
+        "std": 1.85819,
+        "se": 0.083101,
+        "normal_95ci_low": 0.506821,
+        "normal_95ci_high": 0.832577,
+        "win_rate": 0.358,
+        "non_loss_rate": 0.89
+      },
+      "best_so_far_auc": {
+        "n": 500.0,
+        "mean": 1.315426,
+        "std": 2.759094,
+        "se": 0.12339,
+        "normal_95ci_low": 1.073581,
+        "normal_95ci_high": 1.557271,
+        "win_rate": 0.61,
+        "non_loss_rate": 0.78
+      },
+      "top10_hit": {
+        "n": 500.0,
+        "mean": 0.014,
+        "std": 0.248604,
+        "se": 0.011118,
+        "normal_95ci_low": -0.007791,
+        "normal_95ci_high": 0.035791,
+        "win_rate": 0.038,
+        "non_loss_rate": 0.976
+      }
+    }
+  },
+  "strategy_router_vs_external_llm": {
+    "llm_direct_prior_selector": {
+      "final_best": {
+        "n": 500.0,
+        "mean": -0.044429,
+        "std": 2.416123,
+        "se": 0.108052,
+        "normal_95ci_low": -0.256211,
+        "normal_95ci_high": 0.167354,
+        "win_rate": 0.274,
+        "non_loss_rate": 0.662
+      },
+      "best_so_far_auc": {
+        "n": 500.0,
+        "mean": 2.307426,
+        "std": 3.126928,
+        "se": 0.13984,
+        "normal_95ci_low": 2.033339,
+        "normal_95ci_high": 2.581514,
+        "win_rate": 0.778,
+        "non_loss_rate": 0.81
+      },
+      "top10_hit": {
+        "n": 500.0,
+        "mean": 0.064,
+        "std": 0.316076,
+        "se": 0.014135,
+        "normal_95ci_low": 0.036295,
+        "normal_95ci_high": 0.091705,
+        "win_rate": 0.084,
+        "non_loss_rate": 0.98
+      }
+    },
+    "llambo_warmstart_selector": {
+      "final_best": {
+        "n": 500.0,
+        "mean": 0.452513,
+        "std": 2.778981,
+        "se": 0.12428,
+        "normal_95ci_low": 0.208924,
+        "normal_95ci_high": 0.696101,
+        "win_rate": 0.404,
+        "non_loss_rate": 0.7
+      },
+      "best_so_far_auc": {
+        "n": 500.0,
+        "mean": 1.256331,
+        "std": 5.589022,
+        "se": 0.249949,
+        "normal_95ci_low": 0.766431,
+        "normal_95ci_high": 1.74623,
+        "win_rate": 0.58,
+        "non_loss_rate": 0.598
+      },
+      "top10_hit": {
+        "n": 500.0,
+        "mean": 0.032,
+        "std": 0.327072,
+        "se": 0.014627,
+        "normal_95ci_low": 0.003331,
+        "normal_95ci_high": 0.060669,
+        "win_rate": 0.07,
+        "non_loss_rate": 0.962
+      }
+    }
+  },
+  "strategy_router_validation": {
+    "selected_llm_strategy": true,
+    "strongest_target_mode": "gp_ucb",
+    "final_95ci_positive": true,
+    "auc_95ci_positive": true,
+    "top10_95ci_positive": false
+  }
+}

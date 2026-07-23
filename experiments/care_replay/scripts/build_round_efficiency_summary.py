@@ -74,6 +74,33 @@ def initial_context(
     )
 
 
+def llm_initial_context(
+    adapter: replay.DatasetAdapter,
+    seed: int,
+    initial: int,
+    top10_ids: set[str],
+    events: list[dict[str, Any]],
+) -> tuple[float, bool]:
+    snapshot = events[0].get("hypothesis_snapshot", {}) if events else {}
+    warmstart_ids = snapshot.get("warmstart_candidates")
+    if isinstance(warmstart_ids, list) and warmstart_ids:
+        by_id = {
+            candidate.candidate_id: candidate
+            for candidate in adapter.candidates
+        }
+        observed = [
+            by_id[candidate_id]
+            for candidate_id in warmstart_ids
+            if candidate_id in by_id
+        ]
+        if observed:
+            return (
+                max(candidate.objective_value for candidate in observed),
+                any(candidate.candidate_id in top10_ids for candidate in observed),
+            )
+    return initial_context(adapter, seed, initial, top10_ids)
+
+
 def audit_path(audit_dir: Path, output_id: str, mode: str, seed: int) -> Path:
     return audit_dir / f"{output_id}_audit_{mode}_seed{seed}.jsonl"
 
@@ -86,9 +113,11 @@ def summarize_round_efficiency(
     rounds: int,
     baseline_output_id: str | None = None,
     baseline_mode_override: str | None = None,
+    llm_mode_override: str | None = None,
 ) -> dict[str, Any]:
     dataset_id = str(summary["target_dataset"])
     baseline_mode = baseline_mode_override or str(summary["selection"]["target_anchor_mode"])
+    llm_mode = llm_mode_override or SELECTOR_MODE
     baseline_output_id = baseline_output_id or output_id
     seed_start = int(summary["heldout_seed_start"])
     seed_count = int(summary["heldout_seed_count"])
@@ -118,19 +147,24 @@ def summarize_round_efficiency(
 
     for seed in seeds:
         baseline_events = load_events(audit_path(audit_dir, baseline_output_id, baseline_mode, seed))
-        llm_events = load_events(audit_path(audit_dir, output_id, SELECTOR_MODE, seed))
-        initial_best, initial_top10_hit = initial_context(adapter, seed, initial, top10_ids)
+        llm_events = load_events(audit_path(audit_dir, output_id, llm_mode, seed))
+        baseline_initial_best, baseline_initial_top10_hit = initial_context(
+            adapter, seed, initial, top10_ids
+        )
+        llm_initial_best, llm_initial_top10_hit = llm_initial_context(
+            adapter, seed, initial, top10_ids, llm_events
+        )
 
         baseline_final = float(baseline_events[-1]["best_so_far"])
         baseline_round, _ = first_round_to_threshold(
             baseline_events,
-            initial_best,
+            baseline_initial_best,
             baseline_final,
             censor_round,
         )
         llm_round, llm_reached = first_round_to_threshold(
             llm_events,
-            initial_best,
+            llm_initial_best,
             baseline_final,
             censor_round,
         )
@@ -141,13 +175,13 @@ def summarize_round_efficiency(
 
         baseline_top10_round, baseline_top10_hit = first_round_to_top10(
             baseline_events,
-            initial_top10_hit,
+            baseline_initial_top10_hit,
             top10_ids,
             censor_round,
         )
         llm_top10_round, llm_top10_hit = first_round_to_top10(
             llm_events,
-            initial_top10_hit,
+            llm_initial_top10_hit,
             top10_ids,
             censor_round,
         )
@@ -159,16 +193,23 @@ def summarize_round_efficiency(
 
         for checkpoint in checkpoints:
             early_deltas[checkpoint].append(
-                best_at_round(llm_events, initial_best, checkpoint)
-                - best_at_round(baseline_events, initial_best, checkpoint)
+                best_at_round(llm_events, llm_initial_best, checkpoint)
+                - best_at_round(
+                    baseline_events,
+                    baseline_initial_best,
+                    checkpoint,
+                )
             )
 
     return {
         "experiment": "round_efficiency",
         "dataset": dataset_id,
         "evidence_mode": summary.get("evidence_mode", "unknown"),
-        "llm_mode": SELECTOR_MODE,
-        "llm_selected_source_mode": summary["selection"]["selected_mode"],
+        "llm_mode": llm_mode,
+        "llm_selected_source_mode": (
+            summary.get("strategy_router", {}).get("selected_mode")
+            or summary["selection"]["selected_mode"]
+        ),
         "llm_skill_selected": bool(summary["selection"]["selected_llm_skill"]),
         "baseline_mode": baseline_mode,
         "llm_output_id": output_id,
@@ -225,6 +266,11 @@ def main() -> None:
         default="",
         help="Optional comparison mode; defaults to the calibration-selected target anchor.",
     )
+    parser.add_argument(
+        "--llm-mode",
+        default="",
+        help="Optional audit mode; defaults to llm_calibrated_selector.",
+    )
     parser.add_argument("--initial", type=int, default=5)
     parser.add_argument("--rounds", type=int, default=10)
     parser.add_argument("--output", type=Path, required=True)
@@ -239,6 +285,7 @@ def main() -> None:
         args.rounds,
         args.baseline_output_id or None,
         args.baseline_mode or None,
+        args.llm_mode or None,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(output, indent=2) + "\n", encoding="utf-8")

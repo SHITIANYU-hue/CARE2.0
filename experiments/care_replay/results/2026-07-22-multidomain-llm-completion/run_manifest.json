@@ -1,0 +1,129 @@
+{
+  "study": "multidomain_llm_strategy_routing",
+  "date": "2026-07-22",
+  "branch": "exploration-aware-llm",
+  "model": "deepspeek-v3.2",
+  "api_provider": "XtalPi OpenAI-compatible endpoint",
+  "retained_llm_calls": 7,
+  "retained_token_usage": {
+    "prompt_tokens": 24938,
+    "completion_tokens": 18336,
+    "total_tokens": 43274
+  },
+  "problem": "Compile public task schemas into executable LLM skills, select an execution strategy on calibration seeds, and freeze it before finite-pool held-out replay.",
+  "strategy_router": {
+    "candidate_families": [
+      "target_only_bo",
+      "target_calibrated_semantic_skill",
+      "llm_direct_prior",
+      "llambo_style_warmstart"
+    ],
+    "selection_data": "calibration seeds only",
+    "selection_metric": "risk-adjusted final-best plus AUC gain with fold and non-loss checks",
+    "fallback": "calibration-selected target-only optimizer"
+  },
+  "current_confirmation_protocols": [
+    {
+      "target": "real_matbench_phonons",
+      "calibration_seed_start": 30000,
+      "calibration_seeds": 50,
+      "heldout_seed_start": 31000,
+      "heldout_seeds": 500,
+      "initial_observations": 5,
+      "replay_rounds": 10
+    },
+    {
+      "target": "real_moleculenet_esol",
+      "calibration_seed_start": 32000,
+      "calibration_seeds": 50,
+      "heldout_seed_start": 33000,
+      "heldout_seeds": 500,
+      "initial_observations": 5,
+      "replay_rounds": 10
+    },
+    {
+      "target": "real_chemlex_acidamine",
+      "calibration_seed_start": 27000,
+      "calibration_seeds": 30,
+      "heldout_seed_start": 27100,
+      "heldout_seeds": 200,
+      "initial_observations": 5,
+      "replay_rounds": 10
+    }
+  ],
+  "confirmed_skills": [
+    {
+      "target": "real_matbench_expt_gap",
+      "evidence_mode": "target_only",
+      "strategy": "target_calibrated_semantic_skill",
+      "skill_id": "high_element_count"
+    },
+    {
+      "target": "real_moleculenet_freesolv",
+      "evidence_mode": "source_schema_only",
+      "strategy": "target_calibrated_semantic_skill",
+      "skill_id": "branching_effect"
+    },
+    {
+      "target": "real_moleculenet_lipophilicity",
+      "evidence_mode": "target_only",
+      "strategy": "target_calibrated_semantic_skill",
+      "skill_id": "high_aromatic_content"
+    },
+    {
+      "target": "real_matbench_phonons",
+      "evidence_mode": "target_only",
+      "strategy": "llambo_style_warmstart",
+      "skill_id": "maximize_light_nonmetal_phonon_response_noprior"
+    },
+    {
+      "target": "real_moleculenet_esol",
+      "evidence_mode": "target_only",
+      "strategy": "target_calibrated_semantic_skill",
+      "skill_id": "counter_hypothesis_low_hbond_donors_conservative"
+    },
+    {
+      "target": "real_chemlex_acidamine",
+      "evidence_mode": "target_only",
+      "strategy": "llm_direct_prior",
+      "skill_id": "minimize_nitrogen_content_in_acid_to_reduce_side_reactions"
+    }
+  ],
+  "negative_results": [
+    {
+      "source": "real_suzuki_miyaura",
+      "target": "real_buchwald_hartwig",
+      "case": "calibration-fallback",
+      "result": "Source-schema and target-only LLM strategies failed calibration; the router selected GP-UCB."
+    },
+    {
+      "source": "source_schema_only",
+      "target": "real_chemlex_acidamine",
+      "case": "negative-heldout",
+      "result": "The router selected GP-UCB; the descriptive held-out strongest target portfolio remained higher on the 20-seed development range."
+    },
+    {
+      "source": "target_only_schema",
+      "target": "real_matbench_log_kvrh",
+      "case": "calibration-fallback",
+      "result": "No LLM strategy passed calibration; the selected GP-EI anchor did not beat the held-out target portfolio."
+    }
+  ],
+  "execution_boundary": {
+    "llm_generation": "Local machine using the private OpenAI-compatible endpoint.",
+    "replay_and_statistics": "GPU server for development, routing inputs, held-out replay, and confidence intervals.",
+    "credential_storage": "No API keys, passwords, or private endpoint addresses are stored in this archive."
+  },
+  "external_baseline_boundary": "LLM-direct and LLAMBO-style methods are finite-pool adaptations under the CARE replay protocol, not complete reproductions of external systems.",
+  "raw_data_paths": [
+    "experiments/care_replay/data/raw/chemlex_acidamine_wetlab_v3.xlsx",
+    "experiments/care_replay/data/raw/dreher_doyle_buchwald_hartwig.xlsx",
+    "experiments/care_replay/data/raw/matbench_expt_gap.json.gz",
+    "experiments/care_replay/data/raw/matbench_log_kvrh.json.gz",
+    "experiments/care_replay/data/raw/matbench_phonons.json.gz",
+    "experiments/care_replay/data/raw/moleculenet_esol_delaney.csv",
+    "experiments/care_replay/data/raw/moleculenet_freesolv_sampl.csv",
+    "experiments/care_replay/data/raw/moleculenet_lipophilicity.csv",
+    "experiments/care_replay/data/raw/perera_suzuki_miyaura.xlsx"
+  ]
+}

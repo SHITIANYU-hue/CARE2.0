@@ -14,12 +14,20 @@ Current status:
   molecular-property generalization checks.
 - Includes a Matbench experimental band-gap adapter for real materials
   composition-property replay.
+- Includes Matbench phonons and log bulk-modulus adapters for additional real
+  materials-property generalization checks.
+- Uses an RDKit reaction representation for the updated ChemLex Acid-Amine
+  wetlab record: 24 normalized acid/amine descriptors plus public functional
+  and ring-system classes.
 - Supports optional LLM-in-the-loop modes through an OpenAI-compatible endpoint.
 - Implements the CARE 2.0 minimum loop:
   `TaskSpec -> SkillCard -> HypothesisEntry -> GateCertificate -> AuditLog -> Metrics`.
 - Does not claim to reproduce CARE 1.0 paper numbers. It is a smoke test for the experiment interface while the original CARE 1.0 repo / public candidate tables are being confirmed.
 - Tracks upcoming dataset intake requirements in `datasets/intake.md`,
   including Kimi-Lex and Materials Project blockers.
+- Supports a calibration-only strategy router over target-only BO,
+  target-calibrated semantic skills, LLM-direct priors, and LLAMBO-style
+  warm-starting. The selected route is frozen before held-out replay.
 
 Run:
 
@@ -177,6 +185,15 @@ Use `--disable-semantic-model` for the acquisition-schedule-only ablation and
 initial coefficient direction. The cross-domain confirmation and these paired
 ablations are archived under
 [`results/2026-07-21-cross-domain-semantic-skills`](results/2026-07-21-cross-domain-semantic-skills/README.md).
+
+The July 22 multidomain completion adds the calibration-only execution router,
+real ChemLex RDKit descriptors, real Matbench phonons/log-modulus adapters,
+finite-pool LLM-direct and LLAMBO-style comparisons, and automatic ingestion
+of successful and failed transfer cases into the CARE knowledge base. The
+frozen aggregate confirms gains on 6 of 9 predeclared target conditions across
+materials, molecular-property, and wetlab-reaction domains. Full model calls,
+per-seed metrics, compressed audits, and figures are archived under
+[`results/2026-07-22-multidomain-llm-completion`](results/2026-07-22-multidomain-llm-completion/README.md).
 
 Run a strong-model LLM transfer follow-up:
 
