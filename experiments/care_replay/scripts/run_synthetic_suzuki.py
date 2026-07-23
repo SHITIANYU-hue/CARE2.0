@@ -54,8 +54,17 @@ REACTION_DESCRIPTOR_METADATA_FIELDS = {
     "descriptor_mw_bin": "mw_bin",
     "descriptor_logp_bin": "logp_bin",
     "descriptor_tpsa_bin": "tpsa_bin",
+    "descriptor_hbd_bin": "hbd_bin",
+    "descriptor_hba_bin": "hba_bin",
     "descriptor_rotatable_bin": "rotatable_bin",
     "descriptor_aromatic_ring_bin": "aromatic_ring_bin",
+    "descriptor_fraction_csp3_bin": "fraction_csp3_bin",
+    "descriptor_complexity_bin": "complexity_bin",
+    "formal_charge_class": "formal_charge_class",
+    "ring_system_class": "ring_system_class",
+    "acid_functional_class": "acid_functional_class",
+    "amine_functional_class": "amine_functional_class",
+    "amide_count_bin": "amide_count_bin",
     "has_phosphorus": "has_phosphorus",
     "has_phosphine": "has_phosphine",
     "has_boron": "has_boron",
@@ -102,6 +111,7 @@ class Candidate:
     x3: float
     objective_value: float
     metadata: dict[str, Any] = field(default_factory=dict)
+    numeric_features: tuple[float, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -278,6 +288,34 @@ def reaction_component_metadata(dataset_id: str, role: str, raw_name: Any, prefi
     for source_field, target_suffix in REACTION_DESCRIPTOR_METADATA_FIELDS.items():
         out[f"{prefix}_{target_suffix}"] = row.get(source_field, "")
     return out
+
+
+def normalized_descriptor(value: str, lower: float, upper: float) -> float:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return 0.0
+    if upper <= lower:
+        return 0.0
+    return max(0.0, min(1.0, (number - lower) / (upper - lower)))
+
+
+def reaction_component_numeric_features(dataset_id: str, role: str, raw_name: Any) -> tuple[float, ...]:
+    row = load_reaction_component_descriptors().get(
+        (dataset_id, role, clean_component_name(raw_name))
+    )
+    if row is None or row.get("rdkit_parse_ok") != "yes":
+        return (0.0,) * 8
+    return (
+        normalized_descriptor(row.get("mol_weight", ""), 0.0, 1000.0),
+        normalized_descriptor(row.get("logp", ""), -5.0, 10.0),
+        normalized_descriptor(row.get("tpsa", ""), 0.0, 250.0),
+        normalized_descriptor(row.get("hbd", ""), 0.0, 10.0),
+        normalized_descriptor(row.get("hba", ""), 0.0, 20.0),
+        normalized_descriptor(row.get("rotatable_bonds", ""), 0.0, 25.0),
+        normalized_descriptor(row.get("aromatic_ring_count", ""), 0.0, 8.0),
+        normalized_descriptor(row.get("fraction_csp3", ""), 0.0, 1.0),
+    )
 
 
 def excel_col_index(cell_ref: str) -> int:
@@ -1028,13 +1066,23 @@ def real_chemlex_acidamine_adapter() -> DatasetAdapter:
         amine = amine_labels[amine_smiles]
         reagent = reagent_labels[reagent_smiles]
         solvent = solvent_labels[solvent_smiles]
+        acid_numeric = reaction_component_numeric_features(
+            "real_chemlex_acidamine", "acid", acid_smiles
+        )
+        amine_numeric = reaction_component_numeric_features(
+            "real_chemlex_acidamine", "amine", amine_smiles
+        )
+        reagent_numeric = reaction_component_numeric_features(
+            "real_chemlex_acidamine", "reagent", reagent_smiles
+        )
+        reaction_numeric = (*acid_numeric, *amine_numeric, *reagent_numeric)
         pool.append(
             Candidate(
                 candidate_id=f"chemlex_{idx:05d}_{acid}_{amine}_{reagent}_{solvent}",
                 group=f"{acid}_{amine}",
-                x1=stable_fraction(acid),
-                x2=stable_fraction(amine),
-                x3=stable_fraction(reagent, solvent),
+                x1=sum(acid_numeric) / len(acid_numeric),
+                x2=sum(amine_numeric) / len(amine_numeric),
+                x3=sum(reagent_numeric) / len(reagent_numeric),
                 objective_value=clamp_score(float(conversion)),
                 metadata={
                     "acid": acid,
@@ -1052,6 +1100,15 @@ def real_chemlex_acidamine_adapter() -> DatasetAdapter:
                     **prefixed_smiles_motif_descriptors("acid", acid_smiles),
                     **prefixed_smiles_motif_descriptors("amine", amine_smiles),
                     **prefixed_smiles_motif_descriptors("reagent", reagent_smiles),
+                    **reaction_component_metadata(
+                        "real_chemlex_acidamine", "acid", acid_smiles, "acid_rdkit"
+                    ),
+                    **reaction_component_metadata(
+                        "real_chemlex_acidamine", "amine", amine_smiles, "amine_rdkit"
+                    ),
+                    **reaction_component_metadata(
+                        "real_chemlex_acidamine", "reagent", reagent_smiles, "reagent_rdkit"
+                    ),
                     "reagent_coupling_family": chemlex_reagent_family(reagent_smiles),
                     "random_split": str(row.get("Random_Split", "")),
                     "stratified_split_one_unseen": str(row.get("Stratified_Split_One_Unseen", "")),
@@ -1059,6 +1116,7 @@ def real_chemlex_acidamine_adapter() -> DatasetAdapter:
                     "conversion_value": clamp_score(float(conversion)),
                     "source_row": idx + 2,
                 },
+                numeric_features=reaction_numeric,
             )
         )
     return DatasetAdapter(

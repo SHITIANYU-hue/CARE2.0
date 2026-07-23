@@ -41,7 +41,11 @@ def parse_modes(raw: str) -> tuple[BaselineMode, ...]:
 
 
 def candidate_features(adapter: replay.DatasetAdapter, candidate: replay.Candidate) -> FeatureRecord:
-    numeric = (float(candidate.x1), float(candidate.x2), float(candidate.x3))
+    numeric = candidate.numeric_features or (
+        float(candidate.x1),
+        float(candidate.x2),
+        float(candidate.x3),
+    )
     categorical = [candidate.group]
     for field_name in adapter.decision_columns:
         categorical.append(str(candidate.metadata.get(field_name, "")))

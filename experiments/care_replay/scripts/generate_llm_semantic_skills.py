@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
@@ -13,6 +14,12 @@ from typing import Any
 import llm_semantic_skills as semantic
 import run_synthetic_suzuki as replay
 import run_transfer_ablation as transfer
+
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+KNOWLEDGE_BASE_ROOT = REPO_ROOT / "knowledge_base"
+sys.path.insert(0, str(KNOWLEDGE_BASE_ROOT))
+import retrieval as kb_retrieval  # noqa: E402
 
 
 EVIDENCE_MODES = ("full", "source_schema_only", "target_only")
@@ -107,6 +114,7 @@ def build_prompt_payload(
     discount: float,
     skill_count: int,
     evidence_mode: str = "full",
+    knowledge_context: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     target = replay.DATASET_BUILDERS[target_dataset]()
     catalog = semantic.semantic_field_catalog(target)
@@ -121,7 +129,7 @@ def build_prompt_payload(
             "source outcomes were observed."
         ),
     }[evidence_mode]
-    return {
+    payload = {
         "task": (
             "Design a diverse library of executable semantic optimization skills for finite-pool "
             "scientific search. Each skill defines interpretable rule features plus a conservative "
@@ -219,6 +227,16 @@ def build_prompt_payload(
             }]
         },
     }
+    if knowledge_context:
+        payload["care_knowledge_context"] = {
+            "cards": knowledge_context,
+            "instruction": (
+                "Use these public, previously archived cards only as reusable design lessons. "
+                "Do not copy reported target values into a rule and do not imply that the current "
+                "target outcomes were observed. Prefer lessons that survived held-out calibration."
+            ),
+        }
+    return payload
 
 
 def main() -> None:
@@ -235,10 +253,24 @@ def main() -> None:
     parser.add_argument("--llm-api-key-env", default="COMMONSTACK_API_KEY")
     parser.add_argument("--llm-temperature", type=float, default=0.45)
     parser.add_argument("--llm-max-tokens", type=int, default=5000)
+    parser.add_argument("--kb-db", type=Path)
+    parser.add_argument("--kb-limit", type=int, default=5)
+    parser.add_argument("--kb-cutoff", default="")
     args = parser.parse_args()
     api_key = os.environ.get(args.llm_api_key_env) or os.environ.get("CARE_LLM_API_KEY")
     if not api_key:
         raise RuntimeError(f"Set {args.llm_api_key_env} or CARE_LLM_API_KEY.")
+    knowledge_context: list[dict[str, Any]] = []
+    if args.kb_db:
+        knowledge_context = kb_retrieval.retrieve_runtime_cards(
+            args.kb_db,
+            (
+                f"{args.source_dataset} {args.target_dataset} semantic skill transfer "
+                "target calibration negative transfer gate"
+            ),
+            args.kb_limit,
+            cutoff=args.kb_cutoff,
+        )
     payload = build_prompt_payload(
         args.source_dataset,
         args.target_dataset,
@@ -246,6 +278,7 @@ def main() -> None:
         args.discount,
         args.skill_count,
         args.evidence_mode,
+        knowledge_context,
     )
     config = replay.LLMConfig(
         base_url=args.llm_base_url,
@@ -290,6 +323,12 @@ def main() -> None:
         "raw_response": content,
         "parsed_response": parsed,
         "normalized_skills": [asdict(skill) for skill in skills],
+        "knowledge_retrieval": {
+            "enabled": bool(args.kb_db),
+            "db": str(args.kb_db) if args.kb_db else "",
+            "cutoff": args.kb_cutoff,
+            "card_ids": [card["id"] for card in knowledge_context],
+        },
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

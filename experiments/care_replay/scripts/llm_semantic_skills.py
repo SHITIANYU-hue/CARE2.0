@@ -112,6 +112,38 @@ SEMANTIC_FIELDS: dict[str, tuple[str, ...]] = {
         "reagent_phosphorus_flag",
         "reagent_formal_charge_flag",
         "reagent_coupling_family",
+        "acid_rdkit_mw_bin",
+        "acid_rdkit_logp_bin",
+        "acid_rdkit_tpsa_bin",
+        "acid_rdkit_hbd_bin",
+        "acid_rdkit_hba_bin",
+        "acid_rdkit_rotatable_bin",
+        "acid_rdkit_aromatic_ring_bin",
+        "acid_rdkit_fraction_csp3_bin",
+        "acid_rdkit_complexity_bin",
+        "acid_rdkit_formal_charge_class",
+        "acid_rdkit_ring_system_class",
+        "acid_rdkit_acid_functional_class",
+        "acid_rdkit_amide_count_bin",
+        "amine_rdkit_mw_bin",
+        "amine_rdkit_logp_bin",
+        "amine_rdkit_tpsa_bin",
+        "amine_rdkit_hbd_bin",
+        "amine_rdkit_hba_bin",
+        "amine_rdkit_rotatable_bin",
+        "amine_rdkit_aromatic_ring_bin",
+        "amine_rdkit_fraction_csp3_bin",
+        "amine_rdkit_complexity_bin",
+        "amine_rdkit_formal_charge_class",
+        "amine_rdkit_ring_system_class",
+        "amine_rdkit_amine_functional_class",
+        "amine_rdkit_amide_count_bin",
+        "reagent_rdkit_mw_bin",
+        "reagent_rdkit_logp_bin",
+        "reagent_rdkit_tpsa_bin",
+        "reagent_rdkit_formal_charge_class",
+        "reagent_rdkit_ring_system_class",
+        "reagent_rdkit_functional_class",
     ),
     "real_moleculenet_esol": (
         "smiles_length_bin",
@@ -267,11 +299,10 @@ def rule_matches(rule: SemanticRule, candidate: replay.Candidate) -> bool:
 
 
 def feature_vector(skill: SemanticSkill, candidate: replay.Candidate) -> tuple[float, ...]:
+    numeric = candidate.numeric_features or (candidate.x1, candidate.x2, candidate.x3)
     return (
         1.0,
-        2.0 * float(candidate.x1) - 1.0,
-        2.0 * float(candidate.x2) - 1.0,
-        2.0 * float(candidate.x3) - 1.0,
+        *(2.0 * float(value) - 1.0 for value in numeric),
         *(1.0 if rule_matches(rule, candidate) else 0.0 for rule in skill.rules),
     )
 
@@ -304,7 +335,8 @@ def semantic_model_scores(
     dimension = len(vectors[0])
     precision = [[0.0] * dimension for _ in range(dimension)]
     target = [0.0] * dimension
-    prior = [0.0, 0.0, 0.0, 0.0, *(
+    numeric_dimension = len(vectors[0]) - len(skill.rules)
+    prior = [*([0.0] * numeric_dimension), *(
         skill.prior_scale * rule.weight for rule in skill.rules
     )]
     for i in range(dimension):
@@ -360,6 +392,241 @@ def scheduled_value(start: float, end: float, round_index: int, rounds: int) -> 
 
 def skill_mode(skill: SemanticSkill) -> str:
     return f"llm_semantic_{skill.skill_id}"
+
+
+def direct_prior_mode(skill: SemanticSkill) -> str:
+    return f"llm_direct_prior_{skill.skill_id}"
+
+
+def llambo_warmstart_mode(skill: SemanticSkill) -> str:
+    return f"llambo_warmstart_{skill.skill_id}"
+
+
+def fixed_rule_score(skill: SemanticSkill, candidate: replay.Candidate) -> float:
+    denominator = max(1.0, sum(abs(rule.weight) for rule in skill.rules))
+    return sum(
+        rule.weight for rule in skill.rules if rule_matches(rule, candidate)
+    ) / denominator
+
+
+def run_direct_prior_skill(
+    adapter: replay.DatasetAdapter,
+    task: replay.TaskSpec,
+    seed: int,
+    skill: SemanticSkill,
+    numeric_length_scale: float,
+    categorical_length_scale: float,
+    gp_noise: float,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """LLM-only semantic prior blended with BO, without CARE target calibration."""
+    pool = adapter.candidates
+    by_id = {candidate.candidate_id: candidate for candidate in pool}
+    features_by_id = {
+        candidate.candidate_id: surrogate.candidate_features(adapter, candidate)
+        for candidate in pool
+    }
+    shuffled = list(pool)
+    random.Random(seed).shuffle(shuffled)
+    observed = shuffled[:task.initial_observations]
+    observed_ids = {candidate.candidate_id for candidate in observed}
+    top10 = {
+        candidate.candidate_id
+        for candidate in sorted(pool, key=lambda item: item.objective_value, reverse=True)[:10]
+    }
+    selected_top10 = any(candidate.candidate_id in top10 for candidate in observed)
+    best_trace: list[float] = []
+    audit: list[dict[str, Any]] = []
+    for round_index in range(task.reveal_budget):
+        beta = scheduled_value(skill.gp_beta_start, skill.gp_beta_end, round_index, task.reveal_budget)
+        semantic_mass = scheduled_value(
+            skill.semantic_mass_start,
+            skill.semantic_mass_end,
+            round_index,
+            task.reveal_budget,
+        )
+        anchors, anchor_diagnostics = router.target_anchor_scores(
+            adapter,
+            observed_ids,
+            observed,
+            features_by_id,
+            beta,
+            skill.gp_xi,
+            numeric_length_scale,
+            categorical_length_scale,
+            gp_noise,
+        )
+        ucb_rank = weighted.rank_normalized(anchors["gp_ucb"])
+        ei_rank = weighted.rank_normalized(anchors["gp_ei"])
+        anchor_rank = {
+            candidate_id: skill.ucb_weight * ucb_rank[candidate_id]
+            + (1.0 - skill.ucb_weight) * ei_rank[candidate_id]
+            for candidate_id in ucb_rank
+        }
+        prior_scores = {
+            candidate.candidate_id: fixed_rule_score(skill, candidate)
+            for candidate in pool
+            if candidate.candidate_id not in observed_ids
+        }
+        prior_rank = weighted.rank_normalized(prior_scores)
+        scores = {
+            candidate_id: (1.0 - semantic_mass) * anchor_rank[candidate_id]
+            + semantic_mass * prior_rank[candidate_id]
+            for candidate_id in anchor_rank
+        }
+        selected_id = replay.top_candidate(scores)
+        selected = by_id[selected_id]
+        observed.append(selected)
+        observed_ids.add(selected_id)
+        selected_top10 = selected_top10 or selected_id in top10
+        best_so_far = max(candidate.objective_value for candidate in observed)
+        best_trace.append(best_so_far)
+        audit.append({
+            "dataset_id": adapter.dataset_id,
+            "seed": seed,
+            "round_index": round_index,
+            "mode": direct_prior_mode(skill),
+            "public_observed_count": len(observed) - 1,
+            "selected_candidate": selected_id,
+            "selected_score": round(scores[selected_id], 6),
+            "revealed_value": selected.objective_value,
+            "best_so_far": best_so_far,
+            "hypothesis_snapshot": {
+                "skill": asdict(skill),
+                "matched_rules": [
+                    rule.rule_id for rule in skill.rules if rule_matches(rule, selected)
+                ],
+                "fixed_llm_prior_score": round(prior_scores[selected_id], 6),
+                "semantic_mass": round(semantic_mass, 6),
+                "anchor_diagnostics": anchor_diagnostics,
+                "evidence_boundary": (
+                    "Finite-pool LLM-direct baseline: rule weights remain frozen and are not "
+                    "calibrated from target observations. Target observations only update the "
+                    "shared GP-UCB/EI anchor."
+                ),
+            },
+        })
+    final_best = max(candidate.objective_value for candidate in observed)
+    return {
+        "dataset": adapter.dataset_id,
+        "mode": direct_prior_mode(skill),
+        "seed": seed,
+        "final_best": round(final_best, 4),
+        "best_so_far_auc": round(mean(best_trace), 4),
+        "simple_regret": round(task.oracle_value - final_best, 4),
+        "top10_hit": int(selected_top10),
+    }, audit
+
+
+def run_llambo_warmstart(
+    adapter: replay.DatasetAdapter,
+    task: replay.TaskSpec,
+    seed: int,
+    skill: SemanticSkill,
+    numeric_length_scale: float,
+    categorical_length_scale: float,
+    gp_noise: float,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """Finite-pool adaptation of LLAMBO zero-shot LLM warmstarting."""
+    pool = adapter.candidates
+    by_id = {candidate.candidate_id: candidate for candidate in pool}
+    rng = random.Random(seed)
+    jitter = {candidate.candidate_id: rng.random() * 1e-8 for candidate in pool}
+    ordered = sorted(
+        pool,
+        key=lambda candidate: (
+            fixed_rule_score(skill, candidate) + jitter[candidate.candidate_id],
+            candidate.candidate_id,
+        ),
+        reverse=True,
+    )
+    observed: list[replay.Candidate] = []
+    seen_groups: set[str] = set()
+    for candidate in ordered:
+        if candidate.group in seen_groups and len(seen_groups) < task.initial_observations:
+            continue
+        observed.append(candidate)
+        seen_groups.add(candidate.group)
+        if len(observed) == task.initial_observations:
+            break
+    if len(observed) < task.initial_observations:
+        selected_ids = {candidate.candidate_id for candidate in observed}
+        observed.extend(
+            candidate
+            for candidate in ordered
+            if candidate.candidate_id not in selected_ids
+        )
+        observed = observed[:task.initial_observations]
+    observed_ids = {candidate.candidate_id for candidate in observed}
+    warmstart_ids = sorted(observed_ids)
+    top10 = {
+        candidate.candidate_id
+        for candidate in sorted(pool, key=lambda item: item.objective_value, reverse=True)[:10]
+    }
+    selected_top10 = any(candidate.candidate_id in top10 for candidate in observed)
+    features_by_id = {
+        candidate.candidate_id: surrogate.candidate_features(adapter, candidate)
+        for candidate in pool
+    }
+    best_trace: list[float] = []
+    audit: list[dict[str, Any]] = []
+    for round_index in range(task.reveal_budget):
+        beta = scheduled_value(skill.gp_beta_start, skill.gp_beta_end, round_index, task.reveal_budget)
+        anchors, anchor_diagnostics = router.target_anchor_scores(
+            adapter,
+            observed_ids,
+            observed,
+            features_by_id,
+            beta,
+            skill.gp_xi,
+            numeric_length_scale,
+            categorical_length_scale,
+            gp_noise,
+        )
+        ucb_rank = weighted.rank_normalized(anchors["gp_ucb"])
+        ei_rank = weighted.rank_normalized(anchors["gp_ei"])
+        scores = {
+            candidate_id: skill.ucb_weight * ucb_rank[candidate_id]
+            + (1.0 - skill.ucb_weight) * ei_rank[candidate_id]
+            for candidate_id in ucb_rank
+        }
+        selected_id = replay.top_candidate(scores)
+        selected = by_id[selected_id]
+        observed.append(selected)
+        observed_ids.add(selected_id)
+        selected_top10 = selected_top10 or selected_id in top10
+        best_so_far = max(candidate.objective_value for candidate in observed)
+        best_trace.append(best_so_far)
+        audit.append({
+            "dataset_id": adapter.dataset_id,
+            "seed": seed,
+            "round_index": round_index,
+            "mode": llambo_warmstart_mode(skill),
+            "public_observed_count": len(observed) - 1,
+            "selected_candidate": selected_id,
+            "selected_score": round(scores[selected_id], 6),
+            "revealed_value": selected.objective_value,
+            "best_so_far": best_so_far,
+            "hypothesis_snapshot": {
+                "skill": asdict(skill),
+                "warmstart_candidates": warmstart_ids,
+                "anchor_diagnostics": anchor_diagnostics,
+                "evidence_boundary": (
+                    "Finite-pool adaptation of LLAMBO zero-shot warmstarting. The LLM skill "
+                    "selects only the initial batch; subsequent rounds use the shared target-only "
+                    "GP-UCB/EI anchor."
+                ),
+            },
+        })
+    final_best = max(candidate.objective_value for candidate in observed)
+    return {
+        "dataset": adapter.dataset_id,
+        "mode": llambo_warmstart_mode(skill),
+        "seed": seed,
+        "final_best": round(final_best, 4),
+        "best_so_far_auc": round(mean(best_trace), 4),
+        "simple_regret": round(task.oracle_value - final_best, 4),
+        "top10_hit": int(selected_top10),
+    }, audit
 
 
 def run_semantic_skill(

@@ -6,7 +6,15 @@ from pathlib import Path
 from typing import Any
 
 from rdkit import Chem, DataStructs
-from rdkit.Chem import Crippen, Descriptors, Lipinski, MACCSkeys, rdFingerprintGenerator, rdMolDescriptors
+from rdkit.Chem import (
+    Crippen,
+    Descriptors,
+    GraphDescriptors,
+    Lipinski,
+    MACCSkeys,
+    rdFingerprintGenerator,
+    rdMolDescriptors,
+)
 
 import run_synthetic_suzuki as replay
 
@@ -30,11 +38,25 @@ DESCRIPTOR_FIELDS = (
     "rotatable_bonds",
     "aromatic_ring_count",
     "hetero_atom_count",
+    "heavy_atom_count",
+    "fraction_csp3",
+    "formal_charge",
+    "chiral_center_count",
+    "bertz_complexity",
     "descriptor_mw_bin",
     "descriptor_logp_bin",
     "descriptor_tpsa_bin",
+    "descriptor_hbd_bin",
+    "descriptor_hba_bin",
     "descriptor_rotatable_bin",
     "descriptor_aromatic_ring_bin",
+    "descriptor_fraction_csp3_bin",
+    "descriptor_complexity_bin",
+    "formal_charge_class",
+    "ring_system_class",
+    "acid_functional_class",
+    "amine_functional_class",
+    "amide_count_bin",
     "has_phosphorus",
     "has_phosphine",
     "has_boron",
@@ -151,7 +173,81 @@ def smiles_for(dataset_id: str, role: str, raw_name: str) -> str:
         return ""
     if dataset_id == "real_buchwald_hartwig":
         return raw_name
+    if dataset_id == "real_chemlex_acidamine":
+        return raw_name
     return SUZUKI_SMILES.get((role, raw_name), "")
+
+
+def smarts_count(mol: Chem.Mol | None, pattern: str) -> int:
+    if mol is None:
+        return 0
+    query = Chem.MolFromSmarts(pattern)
+    return 0 if query is None else len(mol.GetSubstructMatches(query))
+
+
+def ring_system_class(mol: Chem.Mol | None) -> str:
+    if mol is None:
+        return "unknown"
+    ring_count = int(rdMolDescriptors.CalcNumRings(mol))
+    aromatic_rings = int(rdMolDescriptors.CalcNumAromaticRings(mol))
+    has_aromatic_hetero = has_heteroaromatic(mol)
+    if ring_count == 0:
+        return "acyclic"
+    if aromatic_rings == 0:
+        return "aliphatic_ring"
+    if has_aromatic_hetero and aromatic_rings >= 2:
+        return "fused_or_multi_heteroaromatic"
+    if has_aromatic_hetero:
+        return "heteroaromatic"
+    if aromatic_rings >= 2:
+        return "fused_or_multi_carbocyclic_aromatic"
+    return "single_carbocyclic_aromatic"
+
+
+def acid_functional_class(mol: Chem.Mol | None) -> str:
+    acid_count = smarts_count(mol, "[CX3](=O)[OX2H1,O-]")
+    if acid_count == 0:
+        return "no_carboxylic_acid"
+    if acid_count > 1:
+        return "polycarboxylic_acid"
+    if smarts_count(mol, "[NX3;!$(N[C,S,P]=O)]"):
+        return "amino_acid_like"
+    if smarts_count(mol, "[c][CX3](=O)[OX2H1,O-]"):
+        return "aromatic_carboxylic_acid"
+    if smarts_count(mol, "[n][CX3](=O)[OX2H1,O-]"):
+        return "heteroaromatic_carboxylic_acid"
+    return "aliphatic_carboxylic_acid"
+
+
+def amine_functional_class(mol: Chem.Mol | None) -> str:
+    if mol is None:
+        return "unknown"
+    free_nitrogens = [
+        atom
+        for atom in mol.GetAtoms()
+        if atom.GetSymbol() == "N"
+        and not atom.GetIsAromatic()
+        and not any(
+            neighbor.GetSymbol() in {"C", "S", "P"}
+            and any(bond.GetBondTypeAsDouble() == 2.0 for bond in neighbor.GetBonds())
+            for neighbor in atom.GetNeighbors()
+        )
+    ]
+    if not free_nitrogens:
+        return "no_free_amine"
+    atom = max(free_nitrogens, key=lambda item: item.GetTotalNumHs())
+    aromatic_neighbor = any(neighbor.GetIsAromatic() for neighbor in atom.GetNeighbors())
+    ring_member = atom.IsInRing()
+    hydrogens = atom.GetTotalNumHs()
+    if aromatic_neighbor and hydrogens >= 1:
+        return "aniline_like_amine"
+    if ring_member:
+        return "cyclic_amine"
+    if hydrogens >= 2:
+        return "primary_amine"
+    if hydrogens == 1:
+        return "secondary_amine"
+    return "tertiary_amine"
 
 
 def halide_type(raw_name: str, mol: Chem.Mol | None) -> str:
@@ -197,6 +293,12 @@ def role_functional_class(dataset_id: str, role: str, raw_name: str, mol: Chem.M
         return "none"
     if role == "ligand":
         return ligand_family(raw_name, mol)
+    if dataset_id == "real_chemlex_acidamine" and role == "acid":
+        return acid_functional_class(mol)
+    if dataset_id == "real_chemlex_acidamine" and role == "amine":
+        return amine_functional_class(mol)
+    if dataset_id == "real_chemlex_acidamine" and role == "reagent":
+        return replay.chemlex_reagent_family(raw_name)
     if role in {"base", "reagent"}:
         return reagent_family(dataset_id, raw_name)
     if role in {"solvent"}:
@@ -243,6 +345,7 @@ def descriptor_row(dataset_id: str, role: str, local_label: str, raw_name: str) 
     canonical = Chem.MolToSmiles(mol, canonical=True) if mol is not None else ""
     if mol is None:
         mw = logp = tpsa = hbd = hba = rotatable = aromatic_rings = hetero_atoms = 0.0
+        heavy_atoms = fraction_csp3 = formal_charge = chiral_centers = bertz = 0.0
         morgan_fp = ""
         maccs_fp = ""
     else:
@@ -254,6 +357,11 @@ def descriptor_row(dataset_id: str, role: str, local_label: str, raw_name: str) 
         rotatable = float(Lipinski.NumRotatableBonds(mol))
         aromatic_rings = float(rdMolDescriptors.CalcNumAromaticRings(mol))
         hetero_atoms = float(sum(1 for atom in mol.GetAtoms() if atom.GetSymbol() not in {"C", "H"}))
+        heavy_atoms = float(mol.GetNumHeavyAtoms())
+        fraction_csp3 = float(rdMolDescriptors.CalcFractionCSP3(mol))
+        formal_charge = float(sum(atom.GetFormalCharge() for atom in mol.GetAtoms()))
+        chiral_centers = float(len(Chem.FindMolChiralCenters(mol, includeUnassigned=True)))
+        bertz = float(GraphDescriptors.BertzCT(mol))
         morgan_fp = bitvect_to_text(MORGAN_GENERATOR.GetFingerprint(mol))
         maccs_fp = bitvect_to_text(MACCSkeys.GenMACCSKeys(mol))
     has_phosphorus = mol is not None and any(atom.GetSymbol() == "P" for atom in mol.GetAtoms())
@@ -280,11 +388,25 @@ def descriptor_row(dataset_id: str, role: str, local_label: str, raw_name: str) 
         "rotatable_bonds": f"{rotatable:.0f}",
         "aromatic_ring_count": f"{aromatic_rings:.0f}",
         "hetero_atom_count": f"{hetero_atoms:.0f}",
+        "heavy_atom_count": f"{heavy_atoms:.0f}",
+        "fraction_csp3": f"{fraction_csp3:.6f}",
+        "formal_charge": f"{formal_charge:.0f}",
+        "chiral_center_count": f"{chiral_centers:.0f}",
+        "bertz_complexity": f"{bertz:.4f}",
         "descriptor_mw_bin": numeric_bin(mw, (120.0, 250.0, 450.0), ("mw_none_or_low", "mw_mid", "mw_high", "mw_very_high")),
         "descriptor_logp_bin": numeric_bin(logp, (0.0, 2.0, 5.0), ("logp_low", "logp_mid", "logp_high", "logp_very_high")),
         "descriptor_tpsa_bin": numeric_bin(tpsa, (20.0, 60.0, 120.0), ("tpsa_low", "tpsa_mid", "tpsa_high", "tpsa_very_high")),
+        "descriptor_hbd_bin": numeric_bin(hbd, (0.0, 1.0, 3.0), ("hbd_none", "hbd_one", "hbd_few", "hbd_many")),
+        "descriptor_hba_bin": numeric_bin(hba, (1.0, 3.0, 7.0), ("hba_low", "hba_mid", "hba_high", "hba_very_high")),
         "descriptor_rotatable_bin": numeric_bin(rotatable, (0.0, 3.0, 8.0), ("rot_none", "rot_low", "rot_mid", "rot_high")),
         "descriptor_aromatic_ring_bin": numeric_bin(aromatic_rings, (0.0, 1.0, 3.0), ("aromatic_none", "aromatic_low", "aromatic_mid", "aromatic_high")),
+        "descriptor_fraction_csp3_bin": numeric_bin(fraction_csp3, (0.1, 0.35, 0.7), ("fsp3_low", "fsp3_mid", "fsp3_high", "fsp3_very_high")),
+        "descriptor_complexity_bin": numeric_bin(bertz, (150.0, 400.0, 800.0), ("complexity_low", "complexity_mid", "complexity_high", "complexity_very_high")),
+        "formal_charge_class": "negative" if formal_charge < 0 else "positive" if formal_charge > 0 else "neutral",
+        "ring_system_class": ring_system_class(mol),
+        "acid_functional_class": acid_functional_class(mol) if role == "acid" else "not_acid",
+        "amine_functional_class": amine_functional_class(mol) if role == "amine" else "not_amine",
+        "amide_count_bin": numeric_bin(float(smarts_count(mol, "[NX3][CX3](=[OX1])")), (0.0, 1.0, 3.0), ("amide_none", "amide_one", "amide_few", "amide_many")),
         "has_phosphorus": yes_no(has_phosphorus),
         "has_phosphine": yes_no(ligand != "none" and "phosphine" in ligand),
         "has_boron": yes_no(has_boron_flag or b_species != "none"),
@@ -374,6 +496,33 @@ def collect_components() -> list[dict[str, str]]:
                 "real_suzuki_miyaura",
                 role,
                 label_for(suzuki_labels[role], row[suzuki_label_sources[role]]),
+                raw_name,
+            )
+
+    chemlex_records = replay.rows_to_dicts(
+        replay.read_xlsx_rows(
+            replay.ensure_public_data_file("chemlex_acidamine_wetlab_v3.xlsx"),
+            "Sheet1",
+        )
+    )
+    chemlex_columns = {
+        "acid": ("Acid", "A"),
+        "amine": ("Amine", "N"),
+        "reagent": ("Reagents", "R"),
+        "solvent": ("Solvent", "S"),
+    }
+    chemlex_labels = {
+        role: replay.label_map([row[column] for row in chemlex_records], prefix)
+        for role, (column, prefix) in chemlex_columns.items()
+    }
+    for row in chemlex_records:
+        for role, (column, _prefix) in chemlex_columns.items():
+            raw_name = clean_text(row[column])
+            key = ("real_chemlex_acidamine", role, raw_name)
+            components[key] = descriptor_row(
+                "real_chemlex_acidamine",
+                role,
+                label_for(chemlex_labels[role], row[column]),
                 raw_name,
             )
 

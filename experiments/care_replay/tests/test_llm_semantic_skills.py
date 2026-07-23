@@ -11,6 +11,7 @@ sys.path.insert(0, str(SCRIPTS))
 
 import llm_semantic_skills as semantic  # noqa: E402
 import generate_llm_semantic_skills as generate  # noqa: E402
+import run_calibrated_llm_semantic_selector as calibrated  # noqa: E402
 import run_synthetic_suzuki as replay  # noqa: E402
 
 
@@ -90,7 +91,59 @@ class LlmSemanticSkillsTest(unittest.TestCase):
         self.assertIn("acid_carbonyl_bin", catalog)
         self.assertIn("amine_nitrogen_bin", catalog)
         self.assertIn("reagent_coupling_family", catalog)
+        self.assertIn("acid_rdkit_acid_functional_class", catalog)
+        self.assertIn("amine_rdkit_amine_functional_class", catalog)
+        self.assertIn("acid_rdkit_ring_system_class", catalog)
         self.assertNotIn(adapter.hidden_target, catalog)
+
+    def test_chemlex_uses_rdkit_numeric_reaction_representation(self) -> None:
+        adapter = replay.real_chemlex_acidamine_adapter()
+        candidate = adapter.candidates[0]
+        self.assertEqual(len(candidate.numeric_features), 24)
+        self.assertTrue(any(value > 0.0 for value in candidate.numeric_features))
+        self.assertTrue(all(0.0 <= value <= 1.0 for value in candidate.numeric_features))
+
+    def test_expanded_skill_variants_include_target_calibrated_forms(self) -> None:
+        skill = semantic.SemanticSkill(
+            skill_id="base",
+            rules=(semantic.SemanticRule("r", (("family", "oxide"),), 0.8, "test"),),
+            ridge=1.0,
+            prior_scale=0.5,
+            semantic_mass_start=0.4,
+            semantic_mass_end=0.2,
+            ucb_weight=0.5,
+            gp_beta_start=1.5,
+            gp_beta_end=1.0,
+            gp_xi=0.01,
+            confidence=0.7,
+            hypothesis="test",
+        )
+        variants = calibrated.expand_skill_variants((skill,), "expanded")
+        by_id = {item.skill_id: item for item in variants}
+        self.assertEqual(by_id["base_noprior"].prior_scale, 0.0)
+        self.assertLessEqual(by_id["base_conservative"].semantic_mass_start, 0.30)
+
+    def test_direct_llm_prior_does_not_use_candidate_outcome(self) -> None:
+        skill = semantic.SemanticSkill(
+            skill_id="base",
+            rules=(semantic.SemanticRule("r", (("family", "oxide"),), 0.8, "test"),),
+            ridge=1.0,
+            prior_scale=0.5,
+            semantic_mass_start=0.4,
+            semantic_mass_end=0.2,
+            ucb_weight=0.5,
+            gp_beta_start=1.5,
+            gp_beta_end=1.0,
+            gp_xi=0.01,
+            confidence=0.7,
+            hypothesis="test",
+        )
+        left = replay.Candidate("a", "g", 0.0, 0.0, 0.0, -999.0, {"family": "oxide"})
+        right = replace(left, objective_value=999.0)
+        self.assertEqual(
+            semantic.fixed_rule_score(skill, left),
+            semantic.fixed_rule_score(skill, right),
+        )
 
     def test_chemlex_reagent_family_is_derived_from_public_smiles(self) -> None:
         self.assertEqual(

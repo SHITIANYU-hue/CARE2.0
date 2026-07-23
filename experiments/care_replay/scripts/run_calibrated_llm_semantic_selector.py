@@ -7,6 +7,7 @@ import argparse
 import concurrent.futures
 import json
 import os
+from copy import deepcopy
 from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any
@@ -17,6 +18,88 @@ import run_llm_transfer_router as router
 import run_surrogate_baselines as surrogate
 import run_synthetic_suzuki as replay
 import run_transfer_weighted_kernel as weighted
+
+
+LLM_DIRECT_SELECTOR_MODE = "llm_direct_prior_selector"
+LLAMBO_WARMSTART_SELECTOR_MODE = "llambo_warmstart_selector"
+
+
+def expand_skill_variants(
+    skills: tuple[semantic.SemanticSkill, ...],
+    policy: str,
+) -> tuple[semantic.SemanticSkill, ...]:
+    if policy == "record":
+        return skills
+    variants: list[semantic.SemanticSkill] = []
+    for skill in skills:
+        variants.append(skill)
+        variants.append(replace(
+            skill,
+            skill_id=f"{skill.skill_id}_noprior",
+            prior_scale=0.0,
+        ))
+        if policy == "expanded":
+            variants.append(replace(
+                skill,
+                skill_id=f"{skill.skill_id}_conservative",
+                ridge=max(1.5, skill.ridge),
+                prior_scale=0.0,
+                semantic_mass_start=min(0.30, skill.semantic_mass_start),
+                semantic_mass_end=min(0.08, skill.semantic_mass_end),
+            ))
+    if policy == "expanded" and len(skills) > 1:
+        unique_rules: dict[tuple[tuple[str, str], ...], semantic.SemanticRule] = {}
+        for skill in skills:
+            for rule in skill.rules:
+                unique_rules.setdefault(rule.conditions, rule)
+        bank_rules = tuple(unique_rules.values())[:36]
+        if bank_rules:
+            variants.append(semantic.SemanticSkill(
+                skill_id="cross_skill_rule_bank",
+                rules=bank_rules,
+                ridge=4.0,
+                prior_scale=0.0,
+                semantic_mass_start=0.25,
+                semantic_mass_end=0.08,
+                ucb_weight=0.60,
+                gp_beta_start=2.0,
+                gp_beta_end=1.0,
+                gp_xi=0.01,
+                confidence=max(skill.confidence for skill in skills),
+                hypothesis=(
+                    "Union of independently proposed LLM rule features. Rule signs are ignored; "
+                    "revealed target observations fit a strongly regularized coefficient vector."
+                ),
+            ))
+    return tuple(variants)
+
+
+def add_mode_alias(
+    rows: list[dict[str, Any]],
+    audits: dict[tuple[str, int], list[dict[str, Any]]],
+    source_mode: str,
+    alias_mode: str,
+    heldout_seeds: set[int],
+    selection_rule: str,
+) -> None:
+    for source_row in list(rows):
+        if str(source_row["mode"]) != source_mode or int(source_row["seed"]) not in heldout_seeds:
+            continue
+        row = dict(source_row)
+        row["mode"] = alias_mode
+        row["selected_source_mode"] = source_mode
+        rows.append(row)
+        seed = int(row["seed"])
+        alias_audit: list[dict[str, Any]] = []
+        for source_event in audits[(source_mode, seed)]:
+            event = deepcopy(source_event)
+            event["mode"] = alias_mode
+            event["external_baseline_selector"] = {
+                "selected_source_mode": source_mode,
+                "selection_rule": selection_rule,
+            }
+            alias_audit.append(event)
+        audits[(alias_mode, seed)] = alias_audit
 
 
 def evaluate_seed(
@@ -31,6 +114,7 @@ def evaluate_seed(
     numeric_length_scale: float,
     categorical_length_scale: float,
     gp_noise: float,
+    include_llm_baselines: bool,
 ) -> tuple[list[dict[str, Any]], dict[tuple[str, int], list[dict[str, Any]]]]:
     adapter = replay.DATASET_BUILDERS[target_dataset]()
     task = replay.make_task(adapter, initial, rounds)
@@ -99,6 +183,35 @@ def evaluate_seed(
             event["split"] = split
         rows.append(metrics)
         audits[(semantic.skill_mode(skill), seed)] = audit
+        if include_llm_baselines:
+            direct_metrics, direct_audit = semantic.run_direct_prior_skill(
+                adapter,
+                task,
+                seed,
+                skill,
+                numeric_length_scale,
+                categorical_length_scale,
+                gp_noise,
+            )
+            warmstart_metrics, warmstart_audit = semantic.run_llambo_warmstart(
+                adapter,
+                task,
+                seed,
+                skill,
+                numeric_length_scale,
+                categorical_length_scale,
+                gp_noise,
+            )
+            for baseline_metrics, baseline_audit in (
+                (direct_metrics, direct_audit),
+                (warmstart_metrics, warmstart_audit),
+            ):
+                baseline_metrics["split"] = split
+                baseline_metrics["selected_source_mode"] = ""
+                for event in baseline_audit:
+                    event["split"] = split
+                rows.append(baseline_metrics)
+                audits[(str(baseline_metrics["mode"]), seed)] = baseline_audit
     return rows, audits
 
 
@@ -189,6 +302,17 @@ def main() -> None:
     parser.add_argument("--min-positive-fold-rate", type=float, default=0.8)
     parser.add_argument("--preselected-skill-id", default="")
     parser.add_argument(
+        "--skill-variants",
+        choices=("record", "noprior", "expanded"),
+        default="expanded",
+        help="Predeclared algorithmic variants. expanded adds no-prior, conservative, and rule-bank variants.",
+    )
+    parser.add_argument(
+        "--include-llm-baselines",
+        action="store_true",
+        help="Evaluate frozen LLM-direct and LLAMBO-style warm-start baselines on the same seeds.",
+    )
+    parser.add_argument(
         "--disable-rule-prior",
         action="store_true",
         help="Keep the learned semantic rule features but set their LLM coefficient prior to zero.",
@@ -218,6 +342,7 @@ def main() -> None:
         catalog,
         max_skills=100,
     )
+    skills = expand_skill_variants(skills, args.skill_variants)
     if args.preselected_skill_id:
         skills = tuple(skill for skill in skills if skill.skill_id == args.preselected_skill_id)
     if args.disable_rule_prior:
@@ -245,6 +370,7 @@ def main() -> None:
         "numeric_length_scale": args.numeric_length_scale,
         "categorical_length_scale": args.categorical_length_scale,
         "gp_noise": args.gp_noise,
+        "include_llm_baselines": args.include_llm_baselines,
     }
     if args.workers == 1:
         results = [evaluate_seed(seed=seed, split=split, **worker_args) for seed, split in jobs]
@@ -282,9 +408,41 @@ def main() -> None:
         "target_anchor_mode": selection["target_anchor_mode"],
         "rule": selection["rule"],
     })
+    external_selection: dict[str, Any] = {}
+    external_modes: tuple[str, ...] = ()
+    if args.include_llm_baselines:
+        direct_modes = tuple(semantic.direct_prior_mode(skill) for skill in skills)
+        warmstart_modes = tuple(semantic.llambo_warmstart_mode(skill) for skill in skills)
+        external_modes = (*direct_modes, *warmstart_modes)
+        for family, modes, alias in (
+            ("llm_direct_prior", direct_modes, LLM_DIRECT_SELECTOR_MODE),
+            ("llambo_warmstart", warmstart_modes, LLAMBO_WARMSTART_SELECTOR_MODE),
+        ):
+            calibration_means = selector.mode_means(rows, modes, calibration_seeds)
+            chosen = max(
+                modes,
+                key=lambda mode: (calibration_means[mode]["composite"], mode),
+            )
+            rule = (
+                f"Select the strongest {family} variant on calibration final_best + AUC; "
+                "held-out outcomes do not affect this choice."
+            )
+            add_mode_alias(rows, audits, chosen, alias, heldout_seeds, rule)
+            external_selection[family] = {
+                "selected_mode": chosen,
+                "selector_alias": alias,
+                "calibration": calibration_means,
+                "rule": rule,
+            }
     all_modes = (
         *selector.TARGET_MODES,
         *(semantic.skill_mode(skill) for skill in skills),
+        *external_modes,
+        *(
+            (LLM_DIRECT_SELECTOR_MODE, LLAMBO_WARMSTART_SELECTOR_MODE)
+            if args.include_llm_baselines
+            else ()
+        ),
         selector.SELECTOR_MODE,
     )
     calibration = selector.mode_means(rows, all_modes, calibration_seeds)
@@ -307,6 +465,19 @@ def main() -> None:
         key=lambda mode: (heldout[mode]["composite"], mode),
     )
     strongest_stats = pairwise[strongest_target]
+    care_vs_external = {
+        alias: {
+            field: selector.delta_summary(selector.paired_deltas(
+                rows,
+                selector.SELECTOR_MODE,
+                alias,
+                heldout_seeds,
+                field,
+            ))
+            for field in ("final_best", "best_so_far_auc", "top10_hit")
+        }
+        for alias in (LLM_DIRECT_SELECTOR_MODE, LLAMBO_WARMSTART_SELECTOR_MODE)
+    } if args.include_llm_baselines else {}
     summary = {
         "experiment": "care_calibrated_llm_semantic_skill_selector",
         "source_dataset": record.get("source_dataset"),
@@ -319,6 +490,7 @@ def main() -> None:
         "semantic_model_enabled": not args.disable_semantic_model,
         "semantic_field_catalog": catalog,
         "skills": [asdict(skill) for skill in skills],
+        "skill_variant_policy": args.skill_variants,
         "calibration_seed_start": args.calibration_seed_start,
         "calibration_seed_count": args.calibration_seeds,
         "heldout_seed_start": args.heldout_seed_start,
@@ -328,6 +500,8 @@ def main() -> None:
         "heldout": heldout,
         "heldout_strongest_target_mode_descriptive_only": strongest_target,
         "heldout_pairwise": pairwise,
+        "external_llm_baselines": external_selection,
+        "care_vs_external_llm": care_vs_external,
         "heldout_validation": {
             "selected_llm_skill": selection["selected_llm_skill"],
             "strongest_target_mode": strongest_target,

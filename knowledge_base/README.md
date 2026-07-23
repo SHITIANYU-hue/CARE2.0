@@ -9,6 +9,20 @@ The public seed file intentionally contains only public, release-safe cards.
 Internal chat logs, private notes, and generated SQLite databases are not
 tracked in this repository.
 
+Replay result snapshots can be converted into public cards automatically. The
+ingester creates `experiment_result`, reusable `skill`, negative-transfer, and
+`run_log` cards while preserving the result directory as provenance:
+
+```bash
+python3 knowledge_base/ingest_experiment_results.py \
+  experiments/care_replay/results/2026-07-21-llm-evidence-causality
+python3 knowledge_base/build_kb.py
+```
+
+Generated card JSON is tracked under `knowledge_base/generated_cards/`.
+SQLite, Markdown exports, and embedding indexes remain reproducible generated
+artifacts and are ignored by git.
+
 ## Build
 
 ```bash
@@ -29,6 +43,11 @@ python3 knowledge_base/query_kb.py gate --limit 5
 python3 knowledge_base/query_kb.py --type dataset
 python3 knowledge_base/query_kb.py "Suzuki ChemLex"
 ```
+
+`retrieval.py` is the runtime API used by the LLM skill generator. Runtime
+retrieval accepts only public `skill`, `transfer`, and `mechanism` cards and
+supports an experiment-date cutoff. Model-call records retain the retrieved
+card IDs so every prompt can be reconstructed.
 
 ## Embeddings
 

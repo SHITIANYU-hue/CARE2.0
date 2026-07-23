@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parent
 DEFAULT_SEED = ROOT / "seed_cards.json"
 DEFAULT_DB = ROOT / "care_kb.sqlite"
 DEFAULT_EXPORT = ROOT / "exports" / "CARE-KB-index.md"
+DEFAULT_GENERATED_DIR = ROOT / "generated_cards"
 
 
 CARD_COLUMNS = [
@@ -30,8 +31,10 @@ CARD_COLUMNS = [
 ]
 
 
-def load_cards(path: Path) -> list[dict]:
-    cards = json.loads(path.read_text(encoding="utf-8"))
+def load_cards(paths: list[Path]) -> list[dict]:
+    cards: list[dict] = []
+    for path in paths:
+        cards.extend(json.loads(path.read_text(encoding="utf-8")))
     seen: set[str] = set()
     for card in cards:
         missing = [key for key in CARD_COLUMNS if key not in card]
@@ -228,11 +231,19 @@ def write_markdown(cards: list[dict], out: Path) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=Path, default=DEFAULT_SEED)
+    parser.add_argument(
+        "--extra-card-file",
+        type=Path,
+        action="append",
+        default=[],
+        help="Additional JSON card file. generated_cards/*.json is included automatically.",
+    )
     parser.add_argument("--db", type=Path, default=DEFAULT_DB)
     parser.add_argument("--export", type=Path, default=DEFAULT_EXPORT)
     args = parser.parse_args()
 
-    cards = load_cards(args.seed)
+    generated = sorted(DEFAULT_GENERATED_DIR.glob("*.json"))
+    cards = load_cards([args.seed, *generated, *args.extra_card_file])
     build_sqlite(cards, args.db)
     write_markdown(cards, args.export)
     print(f"cards={len(cards)}")
