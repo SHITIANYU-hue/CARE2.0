@@ -20,10 +20,11 @@ Current contents:
   transfer design, covering representation, mechanism, model, acquisition,
   gate/risk, and workflow transfer.
 
-The current replay experiments are smoke tests. Synthetic adapters validate the
-interface and audit flow; public adapters let the same loop run on real measured
-yields and molecular property targets. Reproducing CARE paper numbers still
-requires the original benchmark candidate tables and matched evaluation setup.
+The repository includes both interface smoke tests and held-out confirmation
+studies on public measured data. Synthetic adapters validate the audit flow;
+MoleculeNet, Matbench, ChemLex, and reaction HTE adapters support matched
+finite-pool evaluation. Reproducing CARE paper numbers still requires the
+original benchmark candidate tables and matched evaluation setup.
 
 ## Branches
 
@@ -55,6 +56,8 @@ The latest project sync focuses on three workstreams:
 
 The latest tracked replay output is in:
 
+- `experiments/care_replay/results/2026-07-23-source-evidence-extension/`
+- `experiments/care_replay/results/2026-07-22-multidomain-llm-completion/`
 - `experiments/care_replay/results/2026-06-28-doc-guided-sweep/`
 - `experiments/care_replay/results/2026-06-29-materials-baselines/`
 - `experiments/care_replay/results/2026-06-30-generalization-sweep/`
@@ -90,6 +93,14 @@ categorical kernel, producing a small positive acquisition-level result over
 GP-UCB on Suzuki-to-Buchwald-Hartwig and FreeSolv-to-Lipophilicity replay.
 Raw public data files, per-mode metrics, audit logs, and knowledge snapshots
 are kept under `experiments/care_replay/`.
+
+The 2026-07-23 extension is the current confirmation result. It freezes LLM
+skill identity before 300 paired held-out seeds and compares source-schema
+transfer directly against matched target-only LLM routing. Four of five
+source-target paths show a significant gain on final best or best-so-far AUC,
+covering molecular properties, materials properties, and reaction HTE. The
+negative Lipophilicity-to-FreeSolv result and the Phonons-to-Dielectric top-10
+tradeoff are retained in the same report.
 
 ## Quick Start
 

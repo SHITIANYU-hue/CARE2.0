@@ -1,5 +1,42 @@
 # Overview
 
+## 2026-07-23：Source-schema 迁移扩展验证
+
+这一轮把“LLM 能不能赢 BO”和“source task 是否真的带来额外信息”拆开验证。
+新增 5 条真实数据 source-target 路径，覆盖 MoleculeNet、Matbench、ChemLex
+和 Buchwald–Hartwig。每条路径先在 development seeds 上选择 skill identity，
+再冻结 skill，用 50 个新 calibration seeds 选择执行方式，最后在 300 个新
+held-out seeds 上确认。所有结果都和 matched target-only LLM router 做配对比较。
+
+5 条路径中有 4 条在 `final_best` 或 AUC 上得到显著 source 增量：
+
+| Source → target | Final best delta | AUC delta | Top-10 hit delta |
+| --- | ---: | ---: | ---: |
+| ESOL → Lipophilicity | +0.602 `[+0.096, +1.108]` | +1.376 `[+0.841, +1.911]` | -0.050（CI 跨 0） |
+| Matbench expt. gap → dielectric | +15.265 `[+13.052, +17.478]` | +13.085 `[+11.892, +14.278]` | +0.203 |
+| Matbench phonons → dielectric | +6.789 `[+4.799, +8.779]` | +4.416 `[+3.013, +5.819]` | -0.213 |
+| ChemLex → Buchwald–Hartwig | +3.971 `[+2.777, +5.164]` | +4.398 `[+3.277, +5.519]` | +0.193 |
+
+Lipophilicity → FreeSolv 是明确负迁移；target-only LLM 在 FreeSolv 上明显更强。
+Phonons → dielectric 则是 tradeoff：最终质量和 AUC 提升，但极值命中率下降。
+因此主结论是 4/5 路径在 primary metrics 上确认了 source-schema 增量，不是
+“所有指标、所有路径都提升”。
+
+和各自最强 BO 比，5 条路径在第 5 轮的 best-so-far 都显著提高；达到 BO
+最终值的严格轮数指标在 3/5 条路径上显著节省。Expt. gap → dielectric 平均
+节省 3.887 轮，Lipophilicity → FreeSolv 节省 1.003 轮，Phonons →
+dielectric 节省 0.650 轮。ChemLex → Buchwald–Hartwig 没有显著缩短这个
+严格阈值，但平均提前 1.310 轮命中全局 top-10。
+
+source-schema router 同时在 5/5 条路径上显著优于最强 target-only BO；
+target-only LLM 自身在 4 个唯一 target 中的 3 个上优于 BO。这里迁移的是
+source identity、任务目标和公开字段映射，不包含 source labels，所以更准确地
+说是 semantic/schema transfer，还不是 source outcome transfer。
+
+完整结果、9 次真实 LLM 调用、每 seed raw metrics、2,700 份 held-out router
+trace、日志和可复现图在
+`experiments/care_replay/results/2026-07-23-source-evidence-extension/`。
+
 ## 2026-07-22：多领域 LLM Strategy Router 冻结结果
 
 这一轮解决了一个之前没有拆开的变量：同一份 LLM skill 应该怎样执行。系统现在

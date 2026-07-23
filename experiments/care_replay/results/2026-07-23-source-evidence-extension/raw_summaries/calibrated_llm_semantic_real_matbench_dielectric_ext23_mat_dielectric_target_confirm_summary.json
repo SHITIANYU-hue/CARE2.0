@@ -1,0 +1,831 @@
+{
+  "experiment": "care_calibrated_llm_semantic_skill_selector",
+  "source_dataset": "real_matbench_expt_gap",
+  "target_dataset": "real_matbench_dielectric",
+  "evidence_mode": "target_only",
+  "llm_model": "deepspeek-v3.2",
+  "llm_generation_call_count": 1,
+  "new_llm_call_count": 0,
+  "rule_prior_enabled": true,
+  "semantic_model_enabled": true,
+  "semantic_field_catalog": {
+    "anion_family": {
+      "carbide_or_carbon": 22,
+      "chalcogenide": 831,
+      "halide": 788,
+      "other": 172,
+      "oxide": 2259,
+      "pnictide": 692
+    },
+    "element_count_bin": {
+      "binary": 974,
+      "quinary_senary": 225,
+      "ternary_quaternary": 3565
+    },
+    "dominant_family": {
+      "alkali": 269,
+      "alkaline_earth": 103,
+      "chalcogen": 2447,
+      "halogen": 813,
+      "lanthanide": 11,
+      "light_nonmetal": 219,
+      "metalloid": 283,
+      "other": 3,
+      "pnictogen": 376,
+      "post_transition": 72,
+      "transition_metal": 168
+    },
+    "transition_metal_flag": {
+      "has_transition_metal": 2550,
+      "no_transition_metal": 2214
+    },
+    "lanthanide_flag": {
+      "has_lanthanide": 285,
+      "no_lanthanide": 4479
+    },
+    "mean_atomic_number_bin": {
+      "mean_z_high": 426,
+      "mean_z_low": 2693,
+      "mean_z_mid": 1600,
+      "mean_z_very_high": 45
+    },
+    "max_element_fraction_bin": {
+      "balanced": 317,
+      "concentrated": 2673,
+      "dominant_element_heavy": 128,
+      "moderately_concentrated": 1646
+    }
+  },
+  "skills": [
+    {
+      "skill_id": "domain_knowledge_electron_density_optimization",
+      "rules": [
+        {
+          "rule_id": "high_mean_z_interaction_balanced",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "balanced"
+            ],
+            [
+              "mean_atomic_number_bin",
+              "mean_z_high"
+            ]
+          ],
+          "weight": 0.9,
+          "rationale": "Combining high electron density from high atomic number with balanced composition optimizes uniform polarizability for high refractive index."
+        },
+        {
+          "rule_id": "transition_metal_present",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Transition metals can contribute d-electron polarizability but risk absorption; moderate positive weight reflects cautious optimism."
+        },
+        {
+          "rule_id": "binary_element_count_risk",
+          "conditions": [
+            [
+              "element_count_bin",
+              "binary"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "Binary compounds may lack compositional degrees of freedom to tune refractive index optimally."
+        }
+      ],
+      "ridge": 1.8,
+      "prior_scale": 0.7,
+      "semantic_mass_start": 0.65,
+      "semantic_mass_end": 0.45,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.8,
+      "gp_beta_end": 1.8,
+      "gp_xi": 0.04,
+      "confidence": 0.78,
+      "hypothesis": "Transfers domain knowledge that maximizing electron density via high atomic number and balanced compositions boosts refractive index, with careful handling of transition metals. May fail if absorption from transition metals dominates."
+    }
+  ],
+  "skill_variant_policy": "expanded",
+  "calibration_seed_start": 28000,
+  "calibration_seed_count": 50,
+  "heldout_seed_start": 29000,
+  "heldout_seed_count": 300,
+  "selection": {
+    "target_anchor_mode": "target_acquisition_portfolio",
+    "target_anchor_summary": {
+      "gp_ucb": {
+        "final_best": 49.55054,
+        "best_so_far_auc": 45.225292,
+        "top10_hit": 0.04,
+        "composite": 94.775832
+      },
+      "mixed_kernel_gp_ei": {
+        "final_best": 50.211146,
+        "best_so_far_auc": 45.470902,
+        "top10_hit": 0.04,
+        "composite": 95.682048
+      },
+      "target_acquisition_portfolio": {
+        "final_best": 52.28238,
+        "best_so_far_auc": 46.1538,
+        "top10_hit": 0.12,
+        "composite": 98.43618
+      }
+    },
+    "eligible_skill_modes": [
+      "llm_semantic_domain_knowledge_electron_density_optimization"
+    ],
+    "selected_mode": "llm_semantic_domain_knowledge_electron_density_optimization",
+    "selected_llm_skill": true,
+    "skill_diagnostics": {
+      "llm_semantic_domain_knowledge_electron_density_optimization": {
+        "final_best": {
+          "n": 50.0,
+          "mean": 3.313262,
+          "std": 13.727437,
+          "se": 1.941353,
+          "normal_95ci_low": -0.491789,
+          "normal_95ci_high": 7.118313,
+          "win_rate": 0.54,
+          "non_loss_rate": 0.74
+        },
+        "best_so_far_auc": {
+          "n": 50.0,
+          "mean": 6.08397,
+          "std": 11.608852,
+          "se": 1.64174,
+          "normal_95ci_low": 2.86616,
+          "normal_95ci_high": 9.30178,
+          "win_rate": 0.68,
+          "non_loss_rate": 0.76
+        },
+        "composite": {
+          "n": 50.0,
+          "mean": 9.397232,
+          "std": 24.504309,
+          "se": 3.465433,
+          "normal_95ci_low": 2.604984,
+          "normal_95ci_high": 16.18948,
+          "win_rate": 0.64,
+          "non_loss_rate": 0.72
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          29.61788,
+          3.53025,
+          5.74013,
+          15.53508,
+          -7.43718
+        ],
+        "risk_adjusted_composite_gain": 7.664516,
+        "eligible": true
+      }
+    },
+    "thresholds": {
+      "min_risk_adjusted_composite_gain": 0.25,
+      "min_positive_fold_rate": 0.8,
+      "min_final_non_loss_rate": 0.55
+    },
+    "rule": "The skill was selected on an earlier development range and frozen before these seeds. Calibration seeds in this run select only the target-only comparison anchor.",
+    "calibration_selected_mode": "llm_semantic_domain_knowledge_electron_density_optimization",
+    "preselected_skill_id": "domain_knowledge_electron_density_optimization"
+  },
+  "calibration": {
+    "gp_ucb": {
+      "final_best": 49.55054,
+      "best_so_far_auc": 45.225292,
+      "top10_hit": 0.04,
+      "composite": 94.775832
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 50.211146,
+      "best_so_far_auc": 45.470902,
+      "top10_hit": 0.04,
+      "composite": 95.682048
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 52.28238,
+      "best_so_far_auc": 46.1538,
+      "top10_hit": 0.12,
+      "composite": 98.43618
+    },
+    "llm_semantic_domain_knowledge_electron_density_optimization": {
+      "final_best": 55.595642,
+      "best_so_far_auc": 52.23777,
+      "top10_hit": 0.22,
+      "composite": 107.833412
+    },
+    "llm_direct_prior_domain_knowledge_electron_density_optimization": {
+      "final_best": 60.28976,
+      "best_so_far_auc": 48.314688,
+      "top10_hit": 0.4,
+      "composite": 108.604448
+    },
+    "llambo_warmstart_domain_knowledge_electron_density_optimization": {
+      "final_best": 53.656862,
+      "best_so_far_auc": 51.001474,
+      "top10_hit": 0.1,
+      "composite": 104.658336
+    }
+  },
+  "heldout": {
+    "gp_ucb": {
+      "final_best": 48.93464,
+      "best_so_far_auc": 44.346832,
+      "top10_hit": 0.023333,
+      "composite": 93.281472
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 49.202855,
+      "best_so_far_auc": 44.311415,
+      "top10_hit": 0.016667,
+      "composite": 93.51427
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 50.743218,
+      "best_so_far_auc": 45.061289,
+      "top10_hit": 0.076667,
+      "composite": 95.804507
+    },
+    "llm_semantic_domain_knowledge_electron_density_optimization": {
+      "final_best": 55.280547,
+      "best_so_far_auc": 50.504552,
+      "top10_hit": 0.21,
+      "composite": 105.785099
+    },
+    "llm_direct_prior_domain_knowledge_electron_density_optimization": {
+      "final_best": 55.925697,
+      "best_so_far_auc": 47.759867,
+      "top10_hit": 0.263333,
+      "composite": 103.685564
+    },
+    "llambo_warmstart_domain_knowledge_electron_density_optimization": {
+      "final_best": 54.876839,
+      "best_so_far_auc": 52.016305,
+      "top10_hit": 0.17,
+      "composite": 106.893144
+    },
+    "llm_direct_prior_selector": {
+      "final_best": 55.925697,
+      "best_so_far_auc": 47.759867,
+      "top10_hit": 0.263333,
+      "composite": 103.685564
+    },
+    "llambo_warmstart_selector": {
+      "final_best": 54.876839,
+      "best_so_far_auc": 52.016305,
+      "top10_hit": 0.17,
+      "composite": 106.893144
+    },
+    "llm_calibrated_selector": {
+      "final_best": 55.280547,
+      "best_so_far_auc": 50.504552,
+      "top10_hit": 0.21,
+      "composite": 105.785099
+    },
+    "care_strategy_router": {
+      "final_best": 55.925697,
+      "best_so_far_auc": 47.759867,
+      "top10_hit": 0.263333,
+      "composite": 103.685564
+    }
+  },
+  "heldout_strongest_target_mode_descriptive_only": "target_acquisition_portfolio",
+  "heldout_pairwise": {
+    "gp_ucb": {
+      "final_best": {
+        "n": 300.0,
+        "mean": 6.345907,
+        "std": 14.567478,
+        "se": 0.841054,
+        "normal_95ci_low": 4.697442,
+        "normal_95ci_high": 7.994372,
+        "win_rate": 0.676667,
+        "non_loss_rate": 0.726667
+      },
+      "best_so_far_auc": {
+        "n": 300.0,
+        "mean": 6.15772,
+        "std": 11.782942,
+        "se": 0.680288,
+        "normal_95ci_low": 4.824355,
+        "normal_95ci_high": 7.491085,
+        "win_rate": 0.716667,
+        "non_loss_rate": 0.753333
+      },
+      "top10_hit": {
+        "n": 300.0,
+        "mean": 0.186667,
+        "std": 0.422479,
+        "se": 0.024392,
+        "normal_95ci_low": 0.138859,
+        "normal_95ci_high": 0.234475,
+        "win_rate": 0.2,
+        "non_loss_rate": 0.986667
+      }
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": {
+        "n": 300.0,
+        "mean": 6.077692,
+        "std": 13.787848,
+        "se": 0.796042,
+        "normal_95ci_low": 4.51745,
+        "normal_95ci_high": 7.637934,
+        "win_rate": 0.656667,
+        "non_loss_rate": 0.706667
+      },
+      "best_so_far_auc": {
+        "n": 300.0,
+        "mean": 6.193138,
+        "std": 11.040819,
+        "se": 0.637442,
+        "normal_95ci_low": 4.943751,
+        "normal_95ci_high": 7.442524,
+        "win_rate": 0.726667,
+        "non_loss_rate": 0.76
+      },
+      "top10_hit": {
+        "n": 300.0,
+        "mean": 0.193333,
+        "std": 0.419471,
+        "se": 0.024218,
+        "normal_95ci_low": 0.145866,
+        "normal_95ci_high": 0.240801,
+        "win_rate": 0.203333,
+        "non_loss_rate": 0.99
+      }
+    },
+    "target_acquisition_portfolio": {
+      "final_best": {
+        "n": 300.0,
+        "mean": 4.537328,
+        "std": 15.253175,
+        "se": 0.880642,
+        "normal_95ci_low": 2.811269,
+        "normal_95ci_high": 6.263388,
+        "win_rate": 0.613333,
+        "non_loss_rate": 0.696667
+      },
+      "best_so_far_auc": {
+        "n": 300.0,
+        "mean": 5.443264,
+        "std": 12.162563,
+        "se": 0.702206,
+        "normal_95ci_low": 4.06694,
+        "normal_95ci_high": 6.819587,
+        "win_rate": 0.7,
+        "non_loss_rate": 0.73
+      },
+      "top10_hit": {
+        "n": 300.0,
+        "mean": 0.133333,
+        "std": 0.46428,
+        "se": 0.026805,
+        "normal_95ci_low": 0.080795,
+        "normal_95ci_high": 0.185872,
+        "win_rate": 0.183333,
+        "non_loss_rate": 0.95
+      }
+    }
+  },
+  "external_llm_baselines": {
+    "llm_direct_prior": {
+      "selected_mode": "llm_direct_prior_domain_knowledge_electron_density_optimization",
+      "selector_alias": "llm_direct_prior_selector",
+      "calibration": {
+        "llm_direct_prior_domain_knowledge_electron_density_optimization": {
+          "final_best": 60.28976,
+          "best_so_far_auc": 48.314688,
+          "top10_hit": 0.4,
+          "composite": 108.604448
+        }
+      },
+      "rule": "Select the strongest llm_direct_prior variant on calibration final_best + AUC; held-out outcomes do not affect this choice."
+    },
+    "llambo_warmstart": {
+      "selected_mode": "llambo_warmstart_domain_knowledge_electron_density_optimization",
+      "selector_alias": "llambo_warmstart_selector",
+      "calibration": {
+        "llambo_warmstart_domain_knowledge_electron_density_optimization": {
+          "final_best": 53.656862,
+          "best_so_far_auc": 51.001474,
+          "top10_hit": 0.1,
+          "composite": 104.658336
+        }
+      },
+      "rule": "Select the strongest llambo_warmstart variant on calibration final_best + AUC; held-out outcomes do not affect this choice."
+    }
+  },
+  "care_vs_external_llm": {
+    "llm_direct_prior_selector": {
+      "final_best": {
+        "n": 300.0,
+        "mean": -0.645151,
+        "std": 18.651166,
+        "se": 1.076826,
+        "normal_95ci_low": -2.755729,
+        "normal_95ci_high": 1.465427,
+        "win_rate": 0.516667,
+        "non_loss_rate": 0.646667
+      },
+      "best_so_far_auc": {
+        "n": 300.0,
+        "mean": 2.744686,
+        "std": 12.730877,
+        "se": 0.735018,
+        "normal_95ci_low": 1.304051,
+        "normal_95ci_high": 4.18532,
+        "win_rate": 0.603333,
+        "non_loss_rate": 0.66
+      },
+      "top10_hit": {
+        "n": 300.0,
+        "mean": -0.053333,
+        "std": 0.53897,
+        "se": 0.031117,
+        "normal_95ci_low": -0.114324,
+        "normal_95ci_high": 0.007657,
+        "win_rate": 0.12,
+        "non_loss_rate": 0.826667
+      }
+    },
+    "llambo_warmstart_selector": {
+      "final_best": {
+        "n": 300.0,
+        "mean": 0.403707,
+        "std": 17.893143,
+        "se": 1.033061,
+        "normal_95ci_low": -1.621092,
+        "normal_95ci_high": 2.428507,
+        "win_rate": 0.496667,
+        "non_loss_rate": 0.57
+      },
+      "best_so_far_auc": {
+        "n": 300.0,
+        "mean": -1.511752,
+        "std": 16.656752,
+        "se": 0.961678,
+        "normal_95ci_low": -3.396641,
+        "normal_95ci_high": 0.373137,
+        "win_rate": 0.436667,
+        "non_loss_rate": 0.443333
+      },
+      "top10_hit": {
+        "n": 300.0,
+        "mean": 0.04,
+        "std": 0.54626,
+        "se": 0.031538,
+        "normal_95ci_low": -0.021815,
+        "normal_95ci_high": 0.101815,
+        "win_rate": 0.17,
+        "non_loss_rate": 0.87
+      }
+    }
+  },
+  "strategy_router": {
+    "selected_mode": "llm_direct_prior_domain_knowledge_electron_density_optimization",
+    "selected_llm_strategy": true,
+    "target_anchor_mode": "target_acquisition_portfolio",
+    "candidate_modes": [
+      "target_acquisition_portfolio",
+      "llm_semantic_domain_knowledge_electron_density_optimization",
+      "llm_direct_prior_domain_knowledge_electron_density_optimization",
+      "llambo_warmstart_domain_knowledge_electron_density_optimization"
+    ],
+    "eligible_modes": [
+      "target_acquisition_portfolio",
+      "llm_semantic_domain_knowledge_electron_density_optimization",
+      "llm_direct_prior_domain_knowledge_electron_density_optimization",
+      "llambo_warmstart_domain_knowledge_electron_density_optimization"
+    ],
+    "diagnostics": {
+      "target_acquisition_portfolio": {
+        "eligible": true,
+        "risk_adjusted_composite_gain": 0.0,
+        "reason": "target-only fallback"
+      },
+      "llm_semantic_domain_knowledge_electron_density_optimization": {
+        "final_best": {
+          "n": 50.0,
+          "mean": 3.313262,
+          "std": 13.727437,
+          "se": 1.941353,
+          "normal_95ci_low": -0.491789,
+          "normal_95ci_high": 7.118313,
+          "win_rate": 0.54,
+          "non_loss_rate": 0.74
+        },
+        "best_so_far_auc": {
+          "n": 50.0,
+          "mean": 6.08397,
+          "std": 11.608852,
+          "se": 1.64174,
+          "normal_95ci_low": 2.86616,
+          "normal_95ci_high": 9.30178,
+          "win_rate": 0.68,
+          "non_loss_rate": 0.76
+        },
+        "composite": {
+          "n": 50.0,
+          "mean": 9.397232,
+          "std": 24.504309,
+          "se": 3.465433,
+          "normal_95ci_low": 2.604984,
+          "normal_95ci_high": 16.18948,
+          "win_rate": 0.64,
+          "non_loss_rate": 0.72
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          29.61788,
+          3.53025,
+          5.74013,
+          15.53508,
+          -7.43718
+        ],
+        "risk_adjusted_composite_gain": 7.664516,
+        "eligible": true
+      },
+      "llm_direct_prior_domain_knowledge_electron_density_optimization": {
+        "final_best": {
+          "n": 50.0,
+          "mean": 8.00738,
+          "std": 18.49073,
+          "se": 2.614984,
+          "normal_95ci_low": 2.882011,
+          "normal_95ci_high": 13.132749,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.66
+        },
+        "best_so_far_auc": {
+          "n": 50.0,
+          "mean": 2.160888,
+          "std": 9.255496,
+          "se": 1.308925,
+          "normal_95ci_low": -0.404604,
+          "normal_95ci_high": 4.72638,
+          "win_rate": 0.56,
+          "non_loss_rate": 0.66
+        },
+        "composite": {
+          "n": 50.0,
+          "mean": 10.168268,
+          "std": 26.081848,
+          "se": 3.68853,
+          "normal_95ci_low": 2.938749,
+          "normal_95ci_high": 17.397787,
+          "win_rate": 0.54,
+          "non_loss_rate": 0.64
+        },
+        "positive_fold_rate": 1.0,
+        "fold_composite_means": [
+          4.44279,
+          14.76028,
+          18.10182,
+          6.85649,
+          6.67996
+        ],
+        "risk_adjusted_composite_gain": 8.324003,
+        "eligible": true
+      },
+      "llambo_warmstart_domain_knowledge_electron_density_optimization": {
+        "final_best": {
+          "n": 50.0,
+          "mean": 1.374482,
+          "std": 15.726297,
+          "se": 2.224034,
+          "normal_95ci_low": -2.984625,
+          "normal_95ci_high": 5.733589,
+          "win_rate": 0.6,
+          "non_loss_rate": 0.64
+        },
+        "best_so_far_auc": {
+          "n": 50.0,
+          "mean": 4.847674,
+          "std": 12.863613,
+          "se": 1.81919,
+          "normal_95ci_low": 1.282062,
+          "normal_95ci_high": 8.413286,
+          "win_rate": 0.74,
+          "non_loss_rate": 0.74
+        },
+        "composite": {
+          "n": 50.0,
+          "mean": 6.222156,
+          "std": 27.951858,
+          "se": 3.95299,
+          "normal_95ci_low": -1.525704,
+          "normal_95ci_high": 13.970016,
+          "win_rate": 0.7,
+          "non_loss_rate": 0.7
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          13.17199,
+          11.10725,
+          9.14617,
+          7.80042,
+          -10.11505
+        ],
+        "risk_adjusted_composite_gain": 4.245661,
+        "eligible": true
+      }
+    },
+    "thresholds": {
+      "min_risk_adjusted_composite_gain": 0.25,
+      "min_positive_fold_rate": 0.8,
+      "min_final_non_loss_rate": 0.55
+    },
+    "rule": "Choose among the frozen semantic selector, LLM-direct prior, LLAMBO-style warm-start, and the target-only anchor using calibration seeds only. Require non-negative final-best and AUC deltas, stable folds, and a positive risk-adjusted composite gain; otherwise fall back to the target-only anchor.",
+    "evidence_boundary": "Only calibration outcomes choose the strategy. Held-out outcomes are used once for the frozen comparison."
+  },
+  "strategy_router_strongest_target_mode": "target_acquisition_portfolio",
+  "strategy_router_pairwise": {
+    "gp_ucb": {
+      "final_best": {
+        "n": 300.0,
+        "mean": 6.991058,
+        "std": 17.94302,
+        "se": 1.035941,
+        "normal_95ci_low": 4.960614,
+        "normal_95ci_high": 9.021502,
+        "win_rate": 0.54,
+        "non_loss_rate": 0.593333
+      },
+      "best_so_far_auc": {
+        "n": 300.0,
+        "mean": 3.413034,
+        "std": 10.694037,
+        "se": 0.617421,
+        "normal_95ci_low": 2.20289,
+        "normal_95ci_high": 4.623179,
+        "win_rate": 0.586667,
+        "non_loss_rate": 0.633333
+      },
+      "top10_hit": {
+        "n": 300.0,
+        "mean": 0.24,
+        "std": 0.457238,
+        "se": 0.026399,
+        "normal_95ci_low": 0.188259,
+        "normal_95ci_high": 0.291741,
+        "win_rate": 0.253333,
+        "non_loss_rate": 0.986667
+      }
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": {
+        "n": 300.0,
+        "mean": 6.722843,
+        "std": 17.377471,
+        "se": 1.003289,
+        "normal_95ci_low": 4.756397,
+        "normal_95ci_high": 8.689289,
+        "win_rate": 0.543333,
+        "non_loss_rate": 0.59
+      },
+      "best_so_far_auc": {
+        "n": 300.0,
+        "mean": 3.448452,
+        "std": 10.262365,
+        "se": 0.592498,
+        "normal_95ci_low": 2.287156,
+        "normal_95ci_high": 4.609748,
+        "win_rate": 0.583333,
+        "non_loss_rate": 0.623333
+      },
+      "top10_hit": {
+        "n": 300.0,
+        "mean": 0.246667,
+        "std": 0.453676,
+        "se": 0.026193,
+        "normal_95ci_low": 0.195328,
+        "normal_95ci_high": 0.298005,
+        "win_rate": 0.256667,
+        "non_loss_rate": 0.99
+      }
+    },
+    "target_acquisition_portfolio": {
+      "final_best": {
+        "n": 300.0,
+        "mean": 5.182479,
+        "std": 18.946327,
+        "se": 1.093867,
+        "normal_95ci_low": 3.0385,
+        "normal_95ci_high": 7.326458,
+        "win_rate": 0.5,
+        "non_loss_rate": 0.57
+      },
+      "best_so_far_auc": {
+        "n": 300.0,
+        "mean": 2.698578,
+        "std": 11.387436,
+        "se": 0.657454,
+        "normal_95ci_low": 1.409968,
+        "normal_95ci_high": 3.987188,
+        "win_rate": 0.563333,
+        "non_loss_rate": 0.6
+      },
+      "top10_hit": {
+        "n": 300.0,
+        "mean": 0.186667,
+        "std": 0.495132,
+        "se": 0.028586,
+        "normal_95ci_low": 0.130637,
+        "normal_95ci_high": 0.242696,
+        "win_rate": 0.233333,
+        "non_loss_rate": 0.953333
+      }
+    }
+  },
+  "strategy_router_vs_external_llm": {
+    "llm_direct_prior_selector": {
+      "final_best": {
+        "n": 300.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      },
+      "best_so_far_auc": {
+        "n": 300.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      },
+      "top10_hit": {
+        "n": 300.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      }
+    },
+    "llambo_warmstart_selector": {
+      "final_best": {
+        "n": 300.0,
+        "mean": 1.048858,
+        "std": 20.100984,
+        "se": 1.160531,
+        "normal_95ci_low": -1.225783,
+        "normal_95ci_high": 3.323499,
+        "win_rate": 0.41,
+        "non_loss_rate": 0.433333
+      },
+      "best_so_far_auc": {
+        "n": 300.0,
+        "mean": -4.256438,
+        "std": 15.0344,
+        "se": 0.868011,
+        "normal_95ci_low": -5.957741,
+        "normal_95ci_high": -2.555135,
+        "win_rate": 0.336667,
+        "non_loss_rate": 0.336667
+      },
+      "top10_hit": {
+        "n": 300.0,
+        "mean": 0.093333,
+        "std": 0.587045,
+        "se": 0.033893,
+        "normal_95ci_low": 0.026903,
+        "normal_95ci_high": 0.159764,
+        "win_rate": 0.223333,
+        "non_loss_rate": 0.87
+      }
+    }
+  },
+  "strategy_router_validation": {
+    "selected_llm_strategy": true,
+    "strongest_target_mode": "target_acquisition_portfolio",
+    "final_95ci_positive": true,
+    "auc_95ci_positive": true,
+    "top10_95ci_positive": true
+  },
+  "heldout_validation": {
+    "selected_llm_skill": true,
+    "strongest_target_mode": "target_acquisition_portfolio",
+    "final_95ci_positive": true,
+    "auc_95ci_positive": true,
+    "top10_95ci_positive": true
+  },
+  "evidence_boundary": {
+    "generation": "No source identity, source schema, source outcomes, source effects, or source value priors are provided. The LLM must use the public target schema and its pretrained domain knowledge only.",
+    "evaluation": "Calibration selects a skill before held-out evaluation. Every per-round fit uses only previously revealed target outcomes."
+  }
+}

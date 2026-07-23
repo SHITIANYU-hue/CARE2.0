@@ -1,0 +1,1010 @@
+{
+  "model": "deepspeek-v3.2",
+  "usage": {
+    "prompt_tokens": 2635,
+    "total_tokens": 5901,
+    "completion_tokens": 3266,
+    "prompt_tokens_details": null,
+    "reasoning_tokens": 0
+  },
+  "llm_generation_call_count": 1,
+  "api_configuration": {
+    "base_url": "http://127.0.0.1:31300/v1",
+    "api_mode": "chat",
+    "structured_mode": "json",
+    "temperature": 0.35,
+    "max_tokens": 5000
+  },
+  "source_dataset": "real_matbench_expt_gap",
+  "target_dataset": "real_matbench_dielectric",
+  "evidence_mode": "source_schema_only",
+  "prompt_payload": {
+    "task": "Design a diverse library of executable semantic optimization skills for finite-pool scientific search. Each skill defines interpretable rule features plus a conservative Bayesian linear surrogate blended with strong target-only GP-UCB and GP-EI anchors.",
+    "target": {
+      "dataset": "real_matbench_dielectric",
+      "title": "Matbench refractive-index replay",
+      "objective": "maximize_refractive_index",
+      "candidate_count": 4764,
+      "public_semantic_fields": {
+        "anion_family": {
+          "carbide_or_carbon": 22,
+          "chalcogenide": 831,
+          "halide": 788,
+          "other": 172,
+          "oxide": 2259,
+          "pnictide": 692
+        },
+        "element_count_bin": {
+          "binary": 974,
+          "quinary_senary": 225,
+          "ternary_quaternary": 3565
+        },
+        "dominant_family": {
+          "alkali": 269,
+          "alkaline_earth": 103,
+          "chalcogen": 2447,
+          "halogen": 813,
+          "lanthanide": 11,
+          "light_nonmetal": 219,
+          "metalloid": 283,
+          "other": 3,
+          "pnictogen": 376,
+          "post_transition": 72,
+          "transition_metal": 168
+        },
+        "transition_metal_flag": {
+          "has_transition_metal": 2550,
+          "no_transition_metal": 2214
+        },
+        "lanthanide_flag": {
+          "has_lanthanide": 285,
+          "no_lanthanide": 4479
+        },
+        "mean_atomic_number_bin": {
+          "mean_z_high": 426,
+          "mean_z_low": 2693,
+          "mean_z_mid": 1600,
+          "mean_z_very_high": 45
+        },
+        "max_element_fraction_bin": {
+          "balanced": 317,
+          "concentrated": 2673,
+          "dominant_element_heavy": 128,
+          "moderately_concentrated": 1646
+        }
+      },
+      "hidden_target": "normalized_property_score",
+      "boundary": "Field values and counts are public; target outcomes are not included."
+    },
+    "source_transfer_evidence": {
+      "evidence_mode": "source_schema_only",
+      "source_dataset": "real_matbench_expt_gap",
+      "source_objective": "maximize_normalized_experimental_band_gap",
+      "mapped_roles": [
+        {
+          "source_field": "anion_family",
+          "target_field": "anion_family"
+        },
+        {
+          "source_field": "dominant_family",
+          "target_field": "dominant_family"
+        },
+        {
+          "source_field": "element_count_bin",
+          "target_field": "element_count_bin"
+        },
+        {
+          "source_field": "lanthanide_flag",
+          "target_field": "lanthanide_flag"
+        },
+        {
+          "source_field": "max_element_fraction_bin",
+          "target_field": "max_element_fraction_bin"
+        },
+        {
+          "source_field": "mean_atomic_number_bin",
+          "target_field": "mean_atomic_number_bin"
+        },
+        {
+          "source_field": "transition_metal_flag",
+          "target_field": "transition_metal_flag"
+        }
+      ],
+      "source_outcome_statistics": null,
+      "shared_value_priors": [],
+      "boundary": "Only source identity, objective, and public source-target field alignment are provided. Source outcomes, effects, support counts, and value priors are withheld."
+    },
+    "executor": {
+      "semantic_model": "Rules become binary features. Revealed target outcomes fit a ridge Bayesian linear surrogate whose coefficient prior follows rule weights.",
+      "anchor": "A rank blend of target-only GP-UCB and GP-EI.",
+      "fusion": "semantic_mass_start/end controls the rank mass assigned to the semantic surrogate; the remaining mass stays on the target-only anchor.",
+      "selection": "Independent calibration seeds select one frozen skill. Independent held-out seeds are evaluated only after selection."
+    },
+    "design_requirements": [
+      "Return exactly 8 diverse skills.",
+      "Use only exact field/value pairs in public_semantic_fields.",
+      "Each conditions object must map a real catalog field name directly to one exact catalog value, for example {\"dominant_family\": \"oxide\"}. Never use literal placeholder keys such as exact_field, field_name, field, or value.",
+      "Give every skill a distinct, descriptive scientific skill_id. Never copy schema placeholders such as short_unique_name or add numeric suffixes to a placeholder.",
+      "Give every skill 3-10 rules; use two-condition interactions only when scientifically meaningful.",
+      "Include at least one conservative low-semantic-mass skill.",
+      "Include at least one skill grounded only in the supplied source-target field alignment; do not imply that source outcome effects were observed.",
+      "Include at least one domain-knowledge skill.",
+      "Include a counter-hypothesis skill that reverses or downweights an uncertain source relation.",
+      "Prefer mechanistic, chemically or physically interpretable rules over arbitrary coverage rules.",
+      "Use positive weights for conditions expected to improve the target objective and negative weights for risks.",
+      "Do not claim access to target outcomes and do not output candidate identifiers."
+    ],
+    "allowed_ranges": {
+      "rule_weight": "[-1, 1]",
+      "ridge": "[0.05, 20]",
+      "prior_scale": "[0, 1.5]",
+      "semantic_mass_start_end": "[0, 0.85]",
+      "ucb_weight": "[0, 1]; EI weight is 1 - ucb_weight",
+      "gp_beta_start_end": "[0.2, 4]",
+      "gp_xi": "[0, 0.2]",
+      "confidence": "[0.05, 1]"
+    },
+    "output_contract": {
+      "skills": [
+        {
+          "skill_id": "descriptive_scientific_skill_id",
+          "rules": [
+            {
+              "rule_id": "mechanistic_rule",
+              "conditions": {
+                "field_name_from_public_semantic_fields": "exact_catalog_value"
+              },
+              "weight": 0.5,
+              "rationale": "short scientific rationale"
+            }
+          ],
+          "ridge": 1.0,
+          "prior_scale": 0.25,
+          "semantic_mass_start": 0.3,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.7,
+          "hypothesis": "what this skill transfers and when it may fail"
+        }
+      ]
+    },
+    "care_knowledge_context": {
+      "cards": [
+        {
+          "id": "transfer.real-suzuki-miyaura-to-real-buchwald-hartwig-gate-reject-2026-07-21",
+          "type": "transfer",
+          "title": "Gate-rejected transfer: real_suzuki_miyaura to real_buchwald_hartwig",
+          "summary": "All evidence modes failed calibration and fell back to the target acquisition portfolio.",
+          "content": "Reusable lesson: do not force a source-derived semantic policy when every evidence mode fails calibration. Preserve the target-only fallback and improve the reaction representation before retrying.",
+          "tags": [
+            "real_suzuki_miyaura",
+            "real_buchwald_hartwig",
+            "negative-transfer",
+            "gate-reject"
+          ],
+          "updated_at": "2026-07-21",
+          "score": -11.66422346572538
+        },
+        {
+          "id": "transfer.real-suzuki-miyaura-to-real-buchwald-hartwig-calibration-fallback-2026-07-22",
+          "type": "transfer",
+          "title": "Gate-rejected transfer: real_suzuki_miyaura to real_buchwald_hartwig",
+          "summary": "Source-schema and target-only LLM strategies failed calibration; the router selected GP-UCB.",
+          "content": "Reusable lesson: do not force a source-derived semantic policy when every evidence mode fails calibration. Preserve the target-only fallback and improve the reaction representation before retrying.",
+          "tags": [
+            "real_suzuki_miyaura",
+            "real_buchwald_hartwig",
+            "negative-transfer",
+            "gate-reject"
+          ],
+          "updated_at": "2026-07-22",
+          "score": -11.66422346572538
+        },
+        {
+          "id": "transfer.target-only-schema-to-real-matbench-log-kvrh-calibration-fallback-2026-07-22",
+          "type": "transfer",
+          "title": "Gate-rejected transfer: target_only_schema to real_matbench_log_kvrh",
+          "summary": "No LLM strategy passed calibration; the selected GP-EI anchor did not beat the held-out target portfolio.",
+          "content": "Reusable lesson: do not force a source-derived semantic policy when every evidence mode fails calibration. Preserve the target-only fallback and improve the reaction representation before retrying.",
+          "tags": [
+            "target_only_schema",
+            "real_matbench_log_kvrh",
+            "negative-transfer",
+            "gate-reject"
+          ],
+          "updated_at": "2026-07-22",
+          "score": -11.534897167486928
+        },
+        {
+          "id": "transfer.source-schema-only-to-real-chemlex-acidamine-negative-heldout-2026-07-22",
+          "type": "transfer",
+          "title": "Gate-rejected transfer: source_schema_only to real_chemlex_acidamine",
+          "summary": "The router selected GP-UCB; the descriptive held-out strongest target portfolio remained higher on the 20-seed development range.",
+          "content": "Reusable lesson: do not force a source-derived semantic policy when every evidence mode fails calibration. Preserve the target-only fallback and improve the reaction representation before retrying.",
+          "tags": [
+            "source_schema_only",
+            "real_chemlex_acidamine",
+            "negative-transfer",
+            "gate-reject"
+          ],
+          "updated_at": "2026-07-22",
+          "score": -11.06103204264512
+        },
+        {
+          "id": "mechanism.layered-skill-transfer",
+          "type": "mechanism",
+          "title": "Layered transferable skill artifact",
+          "summary": "CARE 2.0 skill transfer should not be limited to acquisition-level score adjustment; a reusable skill should specify representation mapping, mechanism hypothesis, model binding, acquisition binding, gate/risk checks, and workflow boundaries.",
+          "content": "A layered transferable skill artifact records six linked layers. Representation layer: what source fields or descriptors can be mapped to the target task. Mechanism layer: what scientific hypothesis is being reused, such as role importance, descriptor relevance, solvation, sterics, electronics, or stability. Model layer: how the skill changes a surrogate model, embedding, kernel, feature transform, or uncertainty prior. Acquisition layer: how it changes candidate ranking, UCB/EI, exploration strength, or candidate filtering. Gate/risk layer: when the transfer is allowed, when it should be rejected, and what negative-transfer failure modes are known. Workflow layer: experiment constraints, budget, batch design, data reveal protocol, and audit outputs. This card is the intended CARE 2.0 abstraction behind the current transfer-weighted kernel experiments.",
+          "tags": [
+            "mechanism",
+            "skill transfer",
+            "transferable skill",
+            "representation",
+            "mechanism",
+            "acquisition",
+            "gate",
+            "workflow"
+          ],
+          "updated_at": "2026-07-04",
+          "score": -7.496185438477648
+        },
+        {
+          "id": "skill.semantic-real-matbench-expt-gap-high-element-count-2026-07-22",
+          "type": "skill",
+          "title": "Reusable semantic feature pattern: high_element_count",
+          "summary": "For real_matbench_expt_gap, use the LLM to define the high_element_count feature partition, then fit its direction and magnitude from revealed target observations.",
+          "content": "Evidence mode: target_only. Execution: disabled. Reusable lesson: preserve the LLM-proposed feature partition, but calibrate or remove unsupported coefficient signs before held-out evaluation.",
+          "tags": [
+            "real_matbench_expt_gap",
+            "high_element_count",
+            "target_only",
+            "schema-to-skill",
+            "target-calibration"
+          ],
+          "updated_at": "2026-07-22",
+          "score": -7.453621164019742
+        }
+      ],
+      "instruction": "Use these public, previously archived cards only as reusable design lessons. Do not copy reported target values into a rule and do not imply that the current target outcomes were observed. Prefer lessons that survived held-out calibration."
+    }
+  },
+  "raw_response": "{\n  \"skills\": [\n    {\n      \"skill_id\": \"oxide_chalcogen_high_refractivity\",\n      \"rules\": [\n        {\n          \"rule_id\": \"oxide_anion_high_refractive\",\n          \"conditions\": {\n            \"anion_family\": \"oxide\"\n          },\n          \"weight\": 0.8,\n          \"rationale\": \"Oxides often exhibit high refractive indices due to high electronic polarizability and dense packing.\"\n        },\n        {\n          \"rule_id\": \"chalcogen_dominant_high_refractive\",\n          \"conditions\": {\n            \"dominant_family\": \"chalcogen\"\n          },\n          \"weight\": 0.7,\n          \"rationale\": \"Chalcogen-dominated materials (e.g., S, Se, Te) can show high refractive indices from high atomic number and polarizability.\"\n        },\n        {\n          \"rule_id\": \"no_lanthanide_risk_reduction\",\n          \"conditions\": {\n            \"lanthanide_flag\": \"no_lanthanide\"\n          },\n          \"weight\": 0.3,\n          \"rationale\": \"Absence of lanthanides may reduce electronic complexity and promote more predictable, high refractive index behavior.\"\n        },\n        {\n          \"rule_id\": \"concentrated_composition_stability\",\n          \"conditions\": {\n            \"max_element_fraction_bin\": \"concentrated\"\n          },\n          \"weight\": 0.4,\n          \"rationale\": \"Concentrated compositions often form stable, high-density phases favorable for high refractive index.\"\n        }\n      ],\n      \"ridge\": 2.0,\n      \"prior_scale\": 0.5,\n      \"semantic_mass_start\": 0.6,\n      \"semantic_mass_end\": 0.4,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 2.5,\n      \"gp_beta_end\": 1.5,\n      \"gp_xi\": 0.05,\n      \"confidence\": 0.8,\n      \"hypothesis\": \"Transfers the hypothesis that oxide and chalcogen-dominated materials without lanthanides yield high refractive indices. May fail if high polarizability leads to absorption losses or if concentrated compositions limit compositional diversity.\"\n    },\n    {\n      \"skill_id\": \"source_schema_alignment_only\",\n      \"rules\": [\n        {\n          \"rule_id\": \"source_anion_family_alignment\",\n          \"conditions\": {\n            \"anion_family\": \"oxide\"\n          },\n          \"weight\": 0.2,\n          \"rationale\": \"Source-target field alignment suggests anion_family is a relevant descriptor; oxide is a common high-performing family in many material properties.\"\n        },\n        {\n          \"rule_id\": \"source_element_count_alignment\",\n          \"conditions\": {\n            \"element_count_bin\": \"ternary_quaternary\"\n          },\n          \"weight\": 0.1,\n          \"rationale\": \"Source-target field alignment suggests element_count_bin is a relevant descriptor; moderate complexity may balance diversity and stability.\"\n        },\n        {\n          \"rule_id\": \"source_transition_metal_alignment\",\n          \"conditions\": {\n            \"transition_metal_flag\": \"has_transition_metal\"\n          },\n          \"weight\": 0.15,\n          \"rationale\": \"Source-target field alignment suggests transition_metal_flag is a relevant descriptor; transition metals can influence electronic structure.\"\n        }\n      ],\n      \"ridge\": 5.0,\n      \"prior_scale\": 0.1,\n      \"semantic_mass_start\": 0.2,\n      \"semantic_mass_end\": 0.1,\n      \"ucb_weight\": 0.7,\n      \"gp_beta_start\": 1.0,\n      \"gp_beta_end\": 0.5,\n      \"gp_xi\": 0.01,\n      \"confidence\": 0.5,\n      \"hypothesis\": \"Transfers only the source-target field alignment without assuming observed effects. May fail if the aligned fields are not predictive for refractive index, relying heavily on the target-only anchor.\"\n    },\n    {\n      \"skill_id\": \"low_polarizability_risk_avoidance\",\n      \"rules\": [\n        {\n          \"rule_id\": \"halide_anion_low_refractive\",\n          \"conditions\": {\n            \"anion_family\": \"halide\"\n          },\n          \"weight\": -0.6,\n          \"rationale\": \"Halides typically have lower electronic polarizability and lower refractive indices compared to oxides or chalcogenides.\"\n        },\n        {\n          \"rule_id\": \"light_nonmetal_dominant_low_refractive\",\n          \"conditions\": {\n            \"dominant_family\": \"light_nonmetal\"\n          },\n          \"weight\": -0.5,\n          \"rationale\": \"Light nonmetals (e.g., B, C, N) often form covalent bonds with lower polarizability, reducing refractive index.\"\n        },\n        {\n          \"rule_id\": \"mean_z_low_low_refractive\",\n          \"conditions\": {\n            \"mean_atomic_number_bin\": \"mean_z_low\"\n          },\n          \"weight\": -0.4,\n          \"rationale\": \"Lower mean atomic number generally correlates with lower electronic density and polarizability, decreasing refractive index.\"\n        }\n      ],\n      \"ridge\": 1.5,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.5,\n      \"semantic_mass_end\": 0.3,\n      \"ucb_weight\": 0.4,\n      \"gp_beta_start\": 2.0,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.02,\n      \"confidence\": 0.75,\n      \"hypothesis\": \"Transfers the hypothesis that halides, light nonmetal dominance, and low mean atomic number reduce refractive index. May fail if these materials exhibit unexpected high refractive indices due to structural effects or if the rules are overly conservative.\"\n    },\n    {\n      \"skill_id\": \"transition_metal_high_z_refractivity\",\n      \"rules\": [\n        {\n          \"rule_id\": \"transition_metal_presence_high_refractive\",\n          \"conditions\": {\n            \"transition_metal_flag\": \"has_transition_metal\"\n          },\n          \"weight\": 0.6,\n          \"rationale\": \"Transition metals contribute d-electrons that enhance electronic polarizability and refractive index.\"\n        },\n        {\n          \"rule_id\": \"mean_z_high_high_refractive\",\n          \"conditions\": {\n            \"mean_atomic_number_bin\": \"mean_z_high\"\n          },\n          \"weight\": 0.7,\n          \"rationale\": \"Higher mean atomic number increases electron density and polarizability, boosting refractive index.\"\n        },\n        {\n          \"rule_id\": \"chalcogenide_anion_synergy\",\n          \"conditions\": {\n            \"anion_family\": \"chalcogenide\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Chalcogenides paired with transition metals can form highly polarizable compounds with high refractive indices.\"\n        }\n      ],\n      \"ridge\": 3.0,\n      \"prior_scale\": 0.4,\n      \"semantic_mass_start\": 0.7,\n      \"semantic_mass_end\": 0.5,\n      \"ucb_weight\": 0.6,\n      \"gp_beta_start\": 3.0,\n      \"gp_beta_end\": 2.0,\n      \"gp_xi\": 0.03,\n      \"confidence\": 0.85,\n      \"hypothesis\": \"Transfers the hypothesis that transition metals and high mean atomic number in chalcogenides yield high refractive indices. May fail if high atomic number leads to absorption or if transition metals cause metallic behavior reducing transparency.\"\n    },\n    {\n      \"skill_id\": \"binary_oxide_simple_composition\",\n      \"rules\": [\n        {\n          \"rule_id\": \"binary_composition_simplicity\",\n          \"conditions\": {\n            \"element_count_bin\": \"binary\"\n          },\n          \"weight\": 0.3,\n          \"rationale\": \"Binary compositions often form stable, well-defined phases with predictable high refractive indices.\"\n        },\n        {\n          \"rule_id\": \"oxide_anion_binary_synergy\",\n          \"conditions\": {\n            \"anion_family\": \"oxide\"\n          },\n          \"weight\": 0.8,\n          \"rationale\": \"Binary oxides are known for high refractive indices due to ionic character and high polarizability.\"\n        },\n        {\n          \"rule_id\": \"no_lanthanide_binary_stability\",\n          \"conditions\": {\n            \"lanthanide_flag\": \"no_lanthanide\"\n          },\n          \"weight\": 0.2,\n          \"rationale\": \"Absence of lanthanides in binary oxides may enhance phase stability and optical clarity.\"\n        }\n      ],\n      \"ridge\": 2.5,\n      \"prior_scale\": 0.35,\n      \"semantic_mass_start\": 0.4,\n      \"semantic_mass_end\": 0.2,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 2.0,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.01,\n      \"confidence\": 0.7,\n      \"hypothesis\": \"Transfers the hypothesis that binary oxides without lanthanides offer high refractive indices with simplicity. May fail if binary compositions lack the diversity needed for optimal refractive index or if other families outperform.\"\n    },\n    {\n      \"skill_id\": \"counter_source_bandgap_refractive\",\n      \"rules\": [\n        {\n          \"rule_id\": \"pnictide_anion_high_refractive_counter\",\n          \"conditions\": {\n            \"anion_family\": \"pnictide\"\n          },\n          \"weight\": 0.4,\n          \"rationale\": \"While source targeted band gap, pnictides may have high refractive indices due to moderate polarizability, countering uncertain source relation.\"\n        },\n        {\n          \"rule_id\": \"balanced_composition_diversity\",\n          \"conditions\": {\n            \"max_element_fraction_bin\": \"balanced\"\n          },\n          \"weight\": 0.3,\n          \"rationale\": \"Balanced compositions may offer diverse electronic environments for high refractive index, downweighting source preference for concentrated.\"\n        },\n        {\n          \"rule_id\": \"has_lanthanide_possible_benefit\",\n          \"conditions\": {\n            \"lanthanide_flag\": \"has_lanthanide\"\n          },\n          \"weight\": 0.1,\n          \"rationale\": \"Lanthanides could enhance refractive index via f-electron effects, reversing source risk assumption.\"\n        }\n      ],\n      \"ridge\": 4.0,\n      \"prior_scale\": 0.2,\n      \"semantic_mass_start\": 0.3,\n      \"semantic_mass_end\": 0.15,\n      \"ucb_weight\": 0.4,\n      \"gp_beta_start\": 1.5,\n      \"gp_beta_end\": 0.8,\n      \"gp_xi\": 0.05,\n      \"confidence\": 0.6,\n      \"hypothesis\": \"Transfers counter-hypotheses to source band gap relations, suggesting pnictides, balanced compositions, and lanthanides may benefit refractive index. May fail if these reversals are not supported by target data, leading to negative transfer.\"\n    },\n    {\n      \"skill_id\": \"conservative_low_semantic_mass\",\n      \"rules\": [\n        {\n          \"rule_id\": \"oxide_anion_conservative\",\n          \"conditions\": {\n            \"anion_family\": \"oxide\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Oxides are a conservative choice for high refractive index based on known material science.\"\n        },\n        {\n          \"rule_id\": \"mean_z_mid_moderate_refractive\",\n          \"conditions\": {\n            \"mean_atomic_number_bin\": \"mean_z_mid\"\n          },\n          \"weight\": 0.3,\n          \"rationale\": \"Moderate mean atomic number balances polarizability and transparency, a conservative heuristic.\"\n        }\n      ],\n      \"ridge\": 10.0,\n      \"prior_scale\": 0.05,\n      \"semantic_mass_start\": 0.1,\n      \"semantic_mass_end\": 0.05,\n      \"ucb_weight\": 0.8,\n      \"gp_beta_start\": 0.5,\n      \"gp_beta_end\": 0.3,\n      \"gp_xi\": 0.0,\n      \"confidence\": 0.9,\n      \"hypothesis\": \"Transfers a minimal, conservative semantic signal focused on oxides and moderate atomic number, heavily relying on the target-only anchor. May fail if the semantic signal is too weak to improve over random search.\"\n    },\n    {\n      \"skill_id\": \"domain_knowledge_high_density_refractivity\",\n      \"rules\": [\n        {\n          \"rule_id\": \"alkaline_earth_dominant_high_density\",\n          \"conditions\": {\n            \"dominant_family\": \"alkaline_earth\"\n          },\n          \"weight\": 0.6,\n          \"rationale\": \"Alkaline earth metals (e.g., Mg, Ca) often form dense, high-refractive-index oxides and chalcogenides.\"\n        },\n        {\n          \"rule_id\": \"mean_z_very_high_extreme_polarizability\",\n          \"conditions\": {\n            \"mean_atomic_number_bin\": \"mean_z_very_high\"\n          },\n          \"weight\": 0.9,\n          \"rationale\": \"Very high mean atomic number indicates heavy elements that significantly increase electronic polarizability and refractive index.\"\n        },\n        {\n          \"rule_id\": \"concentrated_high_density_phase\",\n          \"conditions\": {\n            \"max_element_fraction_bin\": \"concentrated\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Concentrated compositions favor formation of dense, single-phase materials with high refractive index.\"\n        },\n        {\n          \"rule_id\": \"chalcogenide_anion_high_polarizability\",\n          \"conditions\": {\n            \"anion_family\": \"chalcogenide\"\n          },\n          \"weight\": 0.7,\n          \"rationale\": \"Chalcogenides (S, Se, Te) have high polarizability, contributing to high refractive index in dense compounds.\"\n        }\n      ],\n      \"ridge\": 1.0,\n      \"prior_scale\": 0.6,\n      \"semantic_mass_start\": 0.8,\n      \"semantic_mass_end\": 0.6,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 3.5,\n      \"gp_beta_end\": 2.5,\n      \"gp_xi\": 0.1,\n      \"confidence\": 0.85,\n      \"hypothesis\": \"Transfers domain knowledge that dense materials with heavy elements and alkaline earth dominance in chalcogenides yield high refractive indices. May fail if high density leads to brittleness or if very high atomic number causes absorption losses.\"\n    }\n  ]\n}",
+  "parsed_response": {
+    "skills": [
+      {
+        "skill_id": "oxide_chalcogen_high_refractivity",
+        "rules": [
+          {
+            "rule_id": "oxide_anion_high_refractive",
+            "conditions": {
+              "anion_family": "oxide"
+            },
+            "weight": 0.8,
+            "rationale": "Oxides often exhibit high refractive indices due to high electronic polarizability and dense packing."
+          },
+          {
+            "rule_id": "chalcogen_dominant_high_refractive",
+            "conditions": {
+              "dominant_family": "chalcogen"
+            },
+            "weight": 0.7,
+            "rationale": "Chalcogen-dominated materials (e.g., S, Se, Te) can show high refractive indices from high atomic number and polarizability."
+          },
+          {
+            "rule_id": "no_lanthanide_risk_reduction",
+            "conditions": {
+              "lanthanide_flag": "no_lanthanide"
+            },
+            "weight": 0.3,
+            "rationale": "Absence of lanthanides may reduce electronic complexity and promote more predictable, high refractive index behavior."
+          },
+          {
+            "rule_id": "concentrated_composition_stability",
+            "conditions": {
+              "max_element_fraction_bin": "concentrated"
+            },
+            "weight": 0.4,
+            "rationale": "Concentrated compositions often form stable, high-density phases favorable for high refractive index."
+          }
+        ],
+        "ridge": 2.0,
+        "prior_scale": 0.5,
+        "semantic_mass_start": 0.6,
+        "semantic_mass_end": 0.4,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 2.5,
+        "gp_beta_end": 1.5,
+        "gp_xi": 0.05,
+        "confidence": 0.8,
+        "hypothesis": "Transfers the hypothesis that oxide and chalcogen-dominated materials without lanthanides yield high refractive indices. May fail if high polarizability leads to absorption losses or if concentrated compositions limit compositional diversity."
+      },
+      {
+        "skill_id": "source_schema_alignment_only",
+        "rules": [
+          {
+            "rule_id": "source_anion_family_alignment",
+            "conditions": {
+              "anion_family": "oxide"
+            },
+            "weight": 0.2,
+            "rationale": "Source-target field alignment suggests anion_family is a relevant descriptor; oxide is a common high-performing family in many material properties."
+          },
+          {
+            "rule_id": "source_element_count_alignment",
+            "conditions": {
+              "element_count_bin": "ternary_quaternary"
+            },
+            "weight": 0.1,
+            "rationale": "Source-target field alignment suggests element_count_bin is a relevant descriptor; moderate complexity may balance diversity and stability."
+          },
+          {
+            "rule_id": "source_transition_metal_alignment",
+            "conditions": {
+              "transition_metal_flag": "has_transition_metal"
+            },
+            "weight": 0.15,
+            "rationale": "Source-target field alignment suggests transition_metal_flag is a relevant descriptor; transition metals can influence electronic structure."
+          }
+        ],
+        "ridge": 5.0,
+        "prior_scale": 0.1,
+        "semantic_mass_start": 0.2,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.7,
+        "gp_beta_start": 1.0,
+        "gp_beta_end": 0.5,
+        "gp_xi": 0.01,
+        "confidence": 0.5,
+        "hypothesis": "Transfers only the source-target field alignment without assuming observed effects. May fail if the aligned fields are not predictive for refractive index, relying heavily on the target-only anchor."
+      },
+      {
+        "skill_id": "low_polarizability_risk_avoidance",
+        "rules": [
+          {
+            "rule_id": "halide_anion_low_refractive",
+            "conditions": {
+              "anion_family": "halide"
+            },
+            "weight": -0.6,
+            "rationale": "Halides typically have lower electronic polarizability and lower refractive indices compared to oxides or chalcogenides."
+          },
+          {
+            "rule_id": "light_nonmetal_dominant_low_refractive",
+            "conditions": {
+              "dominant_family": "light_nonmetal"
+            },
+            "weight": -0.5,
+            "rationale": "Light nonmetals (e.g., B, C, N) often form covalent bonds with lower polarizability, reducing refractive index."
+          },
+          {
+            "rule_id": "mean_z_low_low_refractive",
+            "conditions": {
+              "mean_atomic_number_bin": "mean_z_low"
+            },
+            "weight": -0.4,
+            "rationale": "Lower mean atomic number generally correlates with lower electronic density and polarizability, decreasing refractive index."
+          }
+        ],
+        "ridge": 1.5,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.5,
+        "semantic_mass_end": 0.3,
+        "ucb_weight": 0.4,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.02,
+        "confidence": 0.75,
+        "hypothesis": "Transfers the hypothesis that halides, light nonmetal dominance, and low mean atomic number reduce refractive index. May fail if these materials exhibit unexpected high refractive indices due to structural effects or if the rules are overly conservative."
+      },
+      {
+        "skill_id": "transition_metal_high_z_refractivity",
+        "rules": [
+          {
+            "rule_id": "transition_metal_presence_high_refractive",
+            "conditions": {
+              "transition_metal_flag": "has_transition_metal"
+            },
+            "weight": 0.6,
+            "rationale": "Transition metals contribute d-electrons that enhance electronic polarizability and refractive index."
+          },
+          {
+            "rule_id": "mean_z_high_high_refractive",
+            "conditions": {
+              "mean_atomic_number_bin": "mean_z_high"
+            },
+            "weight": 0.7,
+            "rationale": "Higher mean atomic number increases electron density and polarizability, boosting refractive index."
+          },
+          {
+            "rule_id": "chalcogenide_anion_synergy",
+            "conditions": {
+              "anion_family": "chalcogenide"
+            },
+            "weight": 0.5,
+            "rationale": "Chalcogenides paired with transition metals can form highly polarizable compounds with high refractive indices."
+          }
+        ],
+        "ridge": 3.0,
+        "prior_scale": 0.4,
+        "semantic_mass_start": 0.7,
+        "semantic_mass_end": 0.5,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 3.0,
+        "gp_beta_end": 2.0,
+        "gp_xi": 0.03,
+        "confidence": 0.85,
+        "hypothesis": "Transfers the hypothesis that transition metals and high mean atomic number in chalcogenides yield high refractive indices. May fail if high atomic number leads to absorption or if transition metals cause metallic behavior reducing transparency."
+      },
+      {
+        "skill_id": "binary_oxide_simple_composition",
+        "rules": [
+          {
+            "rule_id": "binary_composition_simplicity",
+            "conditions": {
+              "element_count_bin": "binary"
+            },
+            "weight": 0.3,
+            "rationale": "Binary compositions often form stable, well-defined phases with predictable high refractive indices."
+          },
+          {
+            "rule_id": "oxide_anion_binary_synergy",
+            "conditions": {
+              "anion_family": "oxide"
+            },
+            "weight": 0.8,
+            "rationale": "Binary oxides are known for high refractive indices due to ionic character and high polarizability."
+          },
+          {
+            "rule_id": "no_lanthanide_binary_stability",
+            "conditions": {
+              "lanthanide_flag": "no_lanthanide"
+            },
+            "weight": 0.2,
+            "rationale": "Absence of lanthanides in binary oxides may enhance phase stability and optical clarity."
+          }
+        ],
+        "ridge": 2.5,
+        "prior_scale": 0.35,
+        "semantic_mass_start": 0.4,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.01,
+        "confidence": 0.7,
+        "hypothesis": "Transfers the hypothesis that binary oxides without lanthanides offer high refractive indices with simplicity. May fail if binary compositions lack the diversity needed for optimal refractive index or if other families outperform."
+      },
+      {
+        "skill_id": "counter_source_bandgap_refractive",
+        "rules": [
+          {
+            "rule_id": "pnictide_anion_high_refractive_counter",
+            "conditions": {
+              "anion_family": "pnictide"
+            },
+            "weight": 0.4,
+            "rationale": "While source targeted band gap, pnictides may have high refractive indices due to moderate polarizability, countering uncertain source relation."
+          },
+          {
+            "rule_id": "balanced_composition_diversity",
+            "conditions": {
+              "max_element_fraction_bin": "balanced"
+            },
+            "weight": 0.3,
+            "rationale": "Balanced compositions may offer diverse electronic environments for high refractive index, downweighting source preference for concentrated."
+          },
+          {
+            "rule_id": "has_lanthanide_possible_benefit",
+            "conditions": {
+              "lanthanide_flag": "has_lanthanide"
+            },
+            "weight": 0.1,
+            "rationale": "Lanthanides could enhance refractive index via f-electron effects, reversing source risk assumption."
+          }
+        ],
+        "ridge": 4.0,
+        "prior_scale": 0.2,
+        "semantic_mass_start": 0.3,
+        "semantic_mass_end": 0.15,
+        "ucb_weight": 0.4,
+        "gp_beta_start": 1.5,
+        "gp_beta_end": 0.8,
+        "gp_xi": 0.05,
+        "confidence": 0.6,
+        "hypothesis": "Transfers counter-hypotheses to source band gap relations, suggesting pnictides, balanced compositions, and lanthanides may benefit refractive index. May fail if these reversals are not supported by target data, leading to negative transfer."
+      },
+      {
+        "skill_id": "conservative_low_semantic_mass",
+        "rules": [
+          {
+            "rule_id": "oxide_anion_conservative",
+            "conditions": {
+              "anion_family": "oxide"
+            },
+            "weight": 0.5,
+            "rationale": "Oxides are a conservative choice for high refractive index based on known material science."
+          },
+          {
+            "rule_id": "mean_z_mid_moderate_refractive",
+            "conditions": {
+              "mean_atomic_number_bin": "mean_z_mid"
+            },
+            "weight": 0.3,
+            "rationale": "Moderate mean atomic number balances polarizability and transparency, a conservative heuristic."
+          }
+        ],
+        "ridge": 10.0,
+        "prior_scale": 0.05,
+        "semantic_mass_start": 0.1,
+        "semantic_mass_end": 0.05,
+        "ucb_weight": 0.8,
+        "gp_beta_start": 0.5,
+        "gp_beta_end": 0.3,
+        "gp_xi": 0.0,
+        "confidence": 0.9,
+        "hypothesis": "Transfers a minimal, conservative semantic signal focused on oxides and moderate atomic number, heavily relying on the target-only anchor. May fail if the semantic signal is too weak to improve over random search."
+      },
+      {
+        "skill_id": "domain_knowledge_high_density_refractivity",
+        "rules": [
+          {
+            "rule_id": "alkaline_earth_dominant_high_density",
+            "conditions": {
+              "dominant_family": "alkaline_earth"
+            },
+            "weight": 0.6,
+            "rationale": "Alkaline earth metals (e.g., Mg, Ca) often form dense, high-refractive-index oxides and chalcogenides."
+          },
+          {
+            "rule_id": "mean_z_very_high_extreme_polarizability",
+            "conditions": {
+              "mean_atomic_number_bin": "mean_z_very_high"
+            },
+            "weight": 0.9,
+            "rationale": "Very high mean atomic number indicates heavy elements that significantly increase electronic polarizability and refractive index."
+          },
+          {
+            "rule_id": "concentrated_high_density_phase",
+            "conditions": {
+              "max_element_fraction_bin": "concentrated"
+            },
+            "weight": 0.5,
+            "rationale": "Concentrated compositions favor formation of dense, single-phase materials with high refractive index."
+          },
+          {
+            "rule_id": "chalcogenide_anion_high_polarizability",
+            "conditions": {
+              "anion_family": "chalcogenide"
+            },
+            "weight": 0.7,
+            "rationale": "Chalcogenides (S, Se, Te) have high polarizability, contributing to high refractive index in dense compounds."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.6,
+        "semantic_mass_start": 0.8,
+        "semantic_mass_end": 0.6,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 3.5,
+        "gp_beta_end": 2.5,
+        "gp_xi": 0.1,
+        "confidence": 0.85,
+        "hypothesis": "Transfers domain knowledge that dense materials with heavy elements and alkaline earth dominance in chalcogenides yield high refractive indices. May fail if high density leads to brittleness or if very high atomic number causes absorption losses."
+      }
+    ]
+  },
+  "normalized_skills": [
+    {
+      "skill_id": "oxide_chalcogen_high_refractivity",
+      "rules": [
+        {
+          "rule_id": "oxide_anion_high_refractive",
+          "conditions": [
+            [
+              "anion_family",
+              "oxide"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Oxides often exhibit high refractive indices due to high electronic polarizability and dense packing."
+        },
+        {
+          "rule_id": "chalcogen_dominant_high_refractive",
+          "conditions": [
+            [
+              "dominant_family",
+              "chalcogen"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Chalcogen-dominated materials (e.g., S, Se, Te) can show high refractive indices from high atomic number and polarizability."
+        },
+        {
+          "rule_id": "no_lanthanide_risk_reduction",
+          "conditions": [
+            [
+              "lanthanide_flag",
+              "no_lanthanide"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Absence of lanthanides may reduce electronic complexity and promote more predictable, high refractive index behavior."
+        },
+        {
+          "rule_id": "concentrated_composition_stability",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "concentrated"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Concentrated compositions often form stable, high-density phases favorable for high refractive index."
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.5,
+      "semantic_mass_start": 0.6,
+      "semantic_mass_end": 0.4,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.05,
+      "confidence": 0.8,
+      "hypothesis": "Transfers the hypothesis that oxide and chalcogen-dominated materials without lanthanides yield high refractive indices. May fail if high polarizability leads to absorption losses or if concentrated compositions limit compositional diversity."
+    },
+    {
+      "skill_id": "source_schema_alignment_only",
+      "rules": [
+        {
+          "rule_id": "source_anion_family_alignment",
+          "conditions": [
+            [
+              "anion_family",
+              "oxide"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Source-target field alignment suggests anion_family is a relevant descriptor; oxide is a common high-performing family in many material properties."
+        },
+        {
+          "rule_id": "source_element_count_alignment",
+          "conditions": [
+            [
+              "element_count_bin",
+              "ternary_quaternary"
+            ]
+          ],
+          "weight": 0.1,
+          "rationale": "Source-target field alignment suggests element_count_bin is a relevant descriptor; moderate complexity may balance diversity and stability."
+        },
+        {
+          "rule_id": "source_transition_metal_alignment",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": 0.15,
+          "rationale": "Source-target field alignment suggests transition_metal_flag is a relevant descriptor; transition metals can influence electronic structure."
+        }
+      ],
+      "ridge": 5.0,
+      "prior_scale": 0.1,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 1.0,
+      "gp_beta_end": 0.5,
+      "gp_xi": 0.01,
+      "confidence": 0.5,
+      "hypothesis": "Transfers only the source-target field alignment without assuming observed effects. May fail if the aligned fields are not predictive for refractive index, relying heavily on the target-only anchor."
+    },
+    {
+      "skill_id": "low_polarizability_risk_avoidance",
+      "rules": [
+        {
+          "rule_id": "halide_anion_low_refractive",
+          "conditions": [
+            [
+              "anion_family",
+              "halide"
+            ]
+          ],
+          "weight": -0.6,
+          "rationale": "Halides typically have lower electronic polarizability and lower refractive indices compared to oxides or chalcogenides."
+        },
+        {
+          "rule_id": "light_nonmetal_dominant_low_refractive",
+          "conditions": [
+            [
+              "dominant_family",
+              "light_nonmetal"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Light nonmetals (e.g., B, C, N) often form covalent bonds with lower polarizability, reducing refractive index."
+        },
+        {
+          "rule_id": "mean_z_low_low_refractive",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_low"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "Lower mean atomic number generally correlates with lower electronic density and polarizability, decreasing refractive index."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.3,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.02,
+      "confidence": 0.75,
+      "hypothesis": "Transfers the hypothesis that halides, light nonmetal dominance, and low mean atomic number reduce refractive index. May fail if these materials exhibit unexpected high refractive indices due to structural effects or if the rules are overly conservative."
+    },
+    {
+      "skill_id": "transition_metal_high_z_refractivity",
+      "rules": [
+        {
+          "rule_id": "transition_metal_presence_high_refractive",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Transition metals contribute d-electrons that enhance electronic polarizability and refractive index."
+        },
+        {
+          "rule_id": "mean_z_high_high_refractive",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_high"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Higher mean atomic number increases electron density and polarizability, boosting refractive index."
+        },
+        {
+          "rule_id": "chalcogenide_anion_synergy",
+          "conditions": [
+            [
+              "anion_family",
+              "chalcogenide"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Chalcogenides paired with transition metals can form highly polarizable compounds with high refractive indices."
+        }
+      ],
+      "ridge": 3.0,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.7,
+      "semantic_mass_end": 0.5,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 3.0,
+      "gp_beta_end": 2.0,
+      "gp_xi": 0.03,
+      "confidence": 0.85,
+      "hypothesis": "Transfers the hypothesis that transition metals and high mean atomic number in chalcogenides yield high refractive indices. May fail if high atomic number leads to absorption or if transition metals cause metallic behavior reducing transparency."
+    },
+    {
+      "skill_id": "binary_oxide_simple_composition",
+      "rules": [
+        {
+          "rule_id": "binary_composition_simplicity",
+          "conditions": [
+            [
+              "element_count_bin",
+              "binary"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Binary compositions often form stable, well-defined phases with predictable high refractive indices."
+        },
+        {
+          "rule_id": "oxide_anion_binary_synergy",
+          "conditions": [
+            [
+              "anion_family",
+              "oxide"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Binary oxides are known for high refractive indices due to ionic character and high polarizability."
+        },
+        {
+          "rule_id": "no_lanthanide_binary_stability",
+          "conditions": [
+            [
+              "lanthanide_flag",
+              "no_lanthanide"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Absence of lanthanides in binary oxides may enhance phase stability and optical clarity."
+        }
+      ],
+      "ridge": 2.5,
+      "prior_scale": 0.35,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.7,
+      "hypothesis": "Transfers the hypothesis that binary oxides without lanthanides offer high refractive indices with simplicity. May fail if binary compositions lack the diversity needed for optimal refractive index or if other families outperform."
+    },
+    {
+      "skill_id": "counter_source_bandgap_refractive",
+      "rules": [
+        {
+          "rule_id": "pnictide_anion_high_refractive_counter",
+          "conditions": [
+            [
+              "anion_family",
+              "pnictide"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "While source targeted band gap, pnictides may have high refractive indices due to moderate polarizability, countering uncertain source relation."
+        },
+        {
+          "rule_id": "balanced_composition_diversity",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "balanced"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Balanced compositions may offer diverse electronic environments for high refractive index, downweighting source preference for concentrated."
+        },
+        {
+          "rule_id": "has_lanthanide_possible_benefit",
+          "conditions": [
+            [
+              "lanthanide_flag",
+              "has_lanthanide"
+            ]
+          ],
+          "weight": 0.1,
+          "rationale": "Lanthanides could enhance refractive index via f-electron effects, reversing source risk assumption."
+        }
+      ],
+      "ridge": 4.0,
+      "prior_scale": 0.2,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 0.8,
+      "gp_xi": 0.05,
+      "confidence": 0.6,
+      "hypothesis": "Transfers counter-hypotheses to source band gap relations, suggesting pnictides, balanced compositions, and lanthanides may benefit refractive index. May fail if these reversals are not supported by target data, leading to negative transfer."
+    },
+    {
+      "skill_id": "conservative_low_semantic_mass",
+      "rules": [
+        {
+          "rule_id": "oxide_anion_conservative",
+          "conditions": [
+            [
+              "anion_family",
+              "oxide"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Oxides are a conservative choice for high refractive index based on known material science."
+        },
+        {
+          "rule_id": "mean_z_mid_moderate_refractive",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_mid"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Moderate mean atomic number balances polarizability and transparency, a conservative heuristic."
+        }
+      ],
+      "ridge": 10.0,
+      "prior_scale": 0.05,
+      "semantic_mass_start": 0.1,
+      "semantic_mass_end": 0.05,
+      "ucb_weight": 0.8,
+      "gp_beta_start": 0.5,
+      "gp_beta_end": 0.3,
+      "gp_xi": 0.0,
+      "confidence": 0.9,
+      "hypothesis": "Transfers a minimal, conservative semantic signal focused on oxides and moderate atomic number, heavily relying on the target-only anchor. May fail if the semantic signal is too weak to improve over random search."
+    },
+    {
+      "skill_id": "domain_knowledge_high_density_refractivity",
+      "rules": [
+        {
+          "rule_id": "alkaline_earth_dominant_high_density",
+          "conditions": [
+            [
+              "dominant_family",
+              "alkaline_earth"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Alkaline earth metals (e.g., Mg, Ca) often form dense, high-refractive-index oxides and chalcogenides."
+        },
+        {
+          "rule_id": "mean_z_very_high_extreme_polarizability",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_very_high"
+            ]
+          ],
+          "weight": 0.9,
+          "rationale": "Very high mean atomic number indicates heavy elements that significantly increase electronic polarizability and refractive index."
+        },
+        {
+          "rule_id": "concentrated_high_density_phase",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "concentrated"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Concentrated compositions favor formation of dense, single-phase materials with high refractive index."
+        },
+        {
+          "rule_id": "chalcogenide_anion_high_polarizability",
+          "conditions": [
+            [
+              "anion_family",
+              "chalcogenide"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Chalcogenides (S, Se, Te) have high polarizability, contributing to high refractive index in dense compounds."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.6,
+      "semantic_mass_start": 0.8,
+      "semantic_mass_end": 0.6,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 3.5,
+      "gp_beta_end": 2.5,
+      "gp_xi": 0.1,
+      "confidence": 0.85,
+      "hypothesis": "Transfers domain knowledge that dense materials with heavy elements and alkaline earth dominance in chalcogenides yield high refractive indices. May fail if high density leads to brittleness or if very high atomic number causes absorption losses."
+    }
+  ],
+  "knowledge_retrieval": {
+    "enabled": true,
+    "db": "knowledge_base/runtime/care_kb.sqlite",
+    "cutoff": "2026-07-22",
+    "card_ids": [
+      "transfer.real-suzuki-miyaura-to-real-buchwald-hartwig-gate-reject-2026-07-21",
+      "transfer.real-suzuki-miyaura-to-real-buchwald-hartwig-calibration-fallback-2026-07-22",
+      "transfer.target-only-schema-to-real-matbench-log-kvrh-calibration-fallback-2026-07-22",
+      "transfer.source-schema-only-to-real-chemlex-acidamine-negative-heldout-2026-07-22",
+      "mechanism.layered-skill-transfer",
+      "skill.semantic-real-matbench-expt-gap-high-element-count-2026-07-22"
+    ]
+  }
+}

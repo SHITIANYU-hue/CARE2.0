@@ -1,0 +1,1053 @@
+{
+  "model": "deepspeek-v3.2",
+  "usage": {
+    "prompt_tokens": 2639,
+    "total_tokens": 5988,
+    "completion_tokens": 3349,
+    "prompt_tokens_details": null,
+    "reasoning_tokens": 0
+  },
+  "llm_generation_call_count": 1,
+  "api_configuration": {
+    "base_url": "http://127.0.0.1:31300/v1",
+    "api_mode": "chat",
+    "structured_mode": "json",
+    "temperature": 0.35,
+    "max_tokens": 5000
+  },
+  "source_dataset": "real_moleculenet_lipophilicity",
+  "target_dataset": "real_moleculenet_freesolv",
+  "evidence_mode": "source_schema_only",
+  "prompt_payload": {
+    "task": "Design a diverse library of executable semantic optimization skills for finite-pool scientific search. Each skill defines interpretable rule features plus a conservative Bayesian linear surrogate blended with strong target-only GP-UCB and GP-EI anchors.",
+    "target": {
+      "dataset": "real_moleculenet_freesolv",
+      "title": "MoleculeNet FreeSolv hydration free-energy replay",
+      "objective": "maximize_hydration_affinity_score",
+      "candidate_count": 642,
+      "public_semantic_fields": {
+        "smiles_length_bin": {
+          "smiles_long": 13,
+          "smiles_mid": 122,
+          "smiles_short": 506,
+          "smiles_very_long": 1
+        },
+        "hetero_atom_bin": {
+          "hetero_high": 28,
+          "hetero_low": 316,
+          "hetero_mid": 91,
+          "hetero_none": 207
+        },
+        "halogen_bin": {
+          "halogen_high": 43,
+          "halogen_low": 73,
+          "halogen_mid": 59,
+          "halogen_none": 467
+        },
+        "aromatic_bin": {
+          "aromatic_high": 3,
+          "aromatic_low": 203,
+          "aromatic_mid": 61,
+          "aromatic_none": 375
+        },
+        "ring_token_bin": {
+          "ring_token_high": 2,
+          "ring_token_low": 247,
+          "ring_token_mid": 73,
+          "ring_token_none": 320
+        },
+        "branch_bin": {
+          "branch_high": 20,
+          "branch_low": 311,
+          "branch_mid": 116,
+          "branch_none": 195
+        },
+        "double_bond_bin": {
+          "double_bond_low": 179,
+          "double_bond_mid": 71,
+          "double_bond_none": 392
+        }
+      },
+      "hidden_target": "hydration_affinity_score",
+      "boundary": "Field values and counts are public; target outcomes are not included."
+    },
+    "source_transfer_evidence": {
+      "evidence_mode": "source_schema_only",
+      "source_dataset": "real_moleculenet_lipophilicity",
+      "source_objective": "maximize_normalized_lipophilicity",
+      "mapped_roles": [
+        {
+          "source_field": "aromatic_bin",
+          "target_field": "aromatic_bin"
+        },
+        {
+          "source_field": "branch_bin",
+          "target_field": "branch_bin"
+        },
+        {
+          "source_field": "double_bond_bin",
+          "target_field": "double_bond_bin"
+        },
+        {
+          "source_field": "halogen_bin",
+          "target_field": "halogen_bin"
+        },
+        {
+          "source_field": "hetero_atom_bin",
+          "target_field": "hetero_atom_bin"
+        },
+        {
+          "source_field": "ring_token_bin",
+          "target_field": "ring_token_bin"
+        },
+        {
+          "source_field": "smiles_length_bin",
+          "target_field": "smiles_length_bin"
+        }
+      ],
+      "source_outcome_statistics": null,
+      "shared_value_priors": [],
+      "boundary": "Only source identity, objective, and public source-target field alignment are provided. Source outcomes, effects, support counts, and value priors are withheld."
+    },
+    "executor": {
+      "semantic_model": "Rules become binary features. Revealed target outcomes fit a ridge Bayesian linear surrogate whose coefficient prior follows rule weights.",
+      "anchor": "A rank blend of target-only GP-UCB and GP-EI.",
+      "fusion": "semantic_mass_start/end controls the rank mass assigned to the semantic surrogate; the remaining mass stays on the target-only anchor.",
+      "selection": "Independent calibration seeds select one frozen skill. Independent held-out seeds are evaluated only after selection."
+    },
+    "design_requirements": [
+      "Return exactly 8 diverse skills.",
+      "Use only exact field/value pairs in public_semantic_fields.",
+      "Each conditions object must map a real catalog field name directly to one exact catalog value, for example {\"dominant_family\": \"oxide\"}. Never use literal placeholder keys such as exact_field, field_name, field, or value.",
+      "Give every skill a distinct, descriptive scientific skill_id. Never copy schema placeholders such as short_unique_name or add numeric suffixes to a placeholder.",
+      "Give every skill 3-10 rules; use two-condition interactions only when scientifically meaningful.",
+      "Include at least one conservative low-semantic-mass skill.",
+      "Include at least one skill grounded only in the supplied source-target field alignment; do not imply that source outcome effects were observed.",
+      "Include at least one domain-knowledge skill.",
+      "Include a counter-hypothesis skill that reverses or downweights an uncertain source relation.",
+      "Prefer mechanistic, chemically or physically interpretable rules over arbitrary coverage rules.",
+      "Use positive weights for conditions expected to improve the target objective and negative weights for risks.",
+      "Do not claim access to target outcomes and do not output candidate identifiers."
+    ],
+    "allowed_ranges": {
+      "rule_weight": "[-1, 1]",
+      "ridge": "[0.05, 20]",
+      "prior_scale": "[0, 1.5]",
+      "semantic_mass_start_end": "[0, 0.85]",
+      "ucb_weight": "[0, 1]; EI weight is 1 - ucb_weight",
+      "gp_beta_start_end": "[0.2, 4]",
+      "gp_xi": "[0, 0.2]",
+      "confidence": "[0.05, 1]"
+    },
+    "output_contract": {
+      "skills": [
+        {
+          "skill_id": "descriptive_scientific_skill_id",
+          "rules": [
+            {
+              "rule_id": "mechanistic_rule",
+              "conditions": {
+                "field_name_from_public_semantic_fields": "exact_catalog_value"
+              },
+              "weight": 0.5,
+              "rationale": "short scientific rationale"
+            }
+          ],
+          "ridge": 1.0,
+          "prior_scale": 0.25,
+          "semantic_mass_start": 0.3,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.7,
+          "hypothesis": "what this skill transfers and when it may fail"
+        }
+      ]
+    },
+    "care_knowledge_context": {
+      "cards": [
+        {
+          "id": "transfer.real-suzuki-miyaura-to-real-buchwald-hartwig-gate-reject-2026-07-21",
+          "type": "transfer",
+          "title": "Gate-rejected transfer: real_suzuki_miyaura to real_buchwald_hartwig",
+          "summary": "All evidence modes failed calibration and fell back to the target acquisition portfolio.",
+          "content": "Reusable lesson: do not force a source-derived semantic policy when every evidence mode fails calibration. Preserve the target-only fallback and improve the reaction representation before retrying.",
+          "tags": [
+            "real_suzuki_miyaura",
+            "real_buchwald_hartwig",
+            "negative-transfer",
+            "gate-reject"
+          ],
+          "updated_at": "2026-07-21",
+          "score": -11.66422346572538
+        },
+        {
+          "id": "transfer.real-suzuki-miyaura-to-real-buchwald-hartwig-calibration-fallback-2026-07-22",
+          "type": "transfer",
+          "title": "Gate-rejected transfer: real_suzuki_miyaura to real_buchwald_hartwig",
+          "summary": "Source-schema and target-only LLM strategies failed calibration; the router selected GP-UCB.",
+          "content": "Reusable lesson: do not force a source-derived semantic policy when every evidence mode fails calibration. Preserve the target-only fallback and improve the reaction representation before retrying.",
+          "tags": [
+            "real_suzuki_miyaura",
+            "real_buchwald_hartwig",
+            "negative-transfer",
+            "gate-reject"
+          ],
+          "updated_at": "2026-07-22",
+          "score": -11.66422346572538
+        },
+        {
+          "id": "transfer.target-only-schema-to-real-matbench-log-kvrh-calibration-fallback-2026-07-22",
+          "type": "transfer",
+          "title": "Gate-rejected transfer: target_only_schema to real_matbench_log_kvrh",
+          "summary": "No LLM strategy passed calibration; the selected GP-EI anchor did not beat the held-out target portfolio.",
+          "content": "Reusable lesson: do not force a source-derived semantic policy when every evidence mode fails calibration. Preserve the target-only fallback and improve the reaction representation before retrying.",
+          "tags": [
+            "target_only_schema",
+            "real_matbench_log_kvrh",
+            "negative-transfer",
+            "gate-reject"
+          ],
+          "updated_at": "2026-07-22",
+          "score": -11.534897167486928
+        },
+        {
+          "id": "transfer.source-schema-only-to-real-chemlex-acidamine-negative-heldout-2026-07-22",
+          "type": "transfer",
+          "title": "Gate-rejected transfer: source_schema_only to real_chemlex_acidamine",
+          "summary": "The router selected GP-UCB; the descriptive held-out strongest target portfolio remained higher on the 20-seed development range.",
+          "content": "Reusable lesson: do not force a source-derived semantic policy when every evidence mode fails calibration. Preserve the target-only fallback and improve the reaction representation before retrying.",
+          "tags": [
+            "source_schema_only",
+            "real_chemlex_acidamine",
+            "negative-transfer",
+            "gate-reject"
+          ],
+          "updated_at": "2026-07-22",
+          "score": -11.06103204264512
+        },
+        {
+          "id": "transfer.freesolv-to-lipophilicity-transferable-skill",
+          "type": "transfer",
+          "title": "FreeSolv to Lipophilicity transferable skill",
+          "summary": "A molecular-property transferable skill instance using shared SMILES-derived descriptor fields as the representation bridge.",
+          "content": "Representation mapping: shared descriptor bins such as smiles_length_bin, hetero_atom_bin, halogen_bin, aromatic_bin, ring_token_bin, branch_bin, and double_bond_bin transfer directly because the source and target adapters use the same public vocabulary. Mechanism hypothesis: coarse SMILES-derived structure descriptors can indicate reusable molecular-property search geometry across hydration free energy and lipophilicity tasks. Model binding: transfer-card role confidence reweights the categorical GP kernel. Acquisition binding: GP-UCB remains the selector. Gate/risk boundary: value-level transfer is only allowed for shared descriptor vocabularies; dataset-local labels should not be transferred this way. Current 50-seed result: GP-UCB final_best 88.4775 / AUC 86.4578; transfer_weighted_gp_ucb_scale_1p5 final_best 88.5650 / AUC 86.6808.",
+          "tags": [
+            "transfer",
+            "MoleculeNet",
+            "FreeSolv",
+            "Lipophilicity",
+            "SMILES descriptors",
+            "GP-UCB",
+            "molecular property"
+          ],
+          "updated_at": "2026-07-04",
+          "score": -8.567108623777399
+        },
+        {
+          "id": "skill.semantic-real-moleculenet-lipophilicity-high-aromatic-content-2026-07-22",
+          "type": "skill",
+          "title": "Reusable semantic feature pattern: high_aromatic_content",
+          "summary": "For real_moleculenet_lipophilicity, use the LLM to define the high_aromatic_content feature partition, then fit its direction and magnitude from revealed target observations.",
+          "content": "Evidence mode: target_only. Execution: disabled. Reusable lesson: preserve the LLM-proposed feature partition, but calibrate or remove unsupported coefficient signs before held-out evaluation.",
+          "tags": [
+            "real_moleculenet_lipophilicity",
+            "high_aromatic_content",
+            "target_only",
+            "schema-to-skill",
+            "target-calibration"
+          ],
+          "updated_at": "2026-07-22",
+          "score": -7.748353695481185
+        }
+      ],
+      "instruction": "Use these public, previously archived cards only as reusable design lessons. Do not copy reported target values into a rule and do not imply that the current target outcomes were observed. Prefer lessons that survived held-out calibration."
+    }
+  },
+  "raw_response": "{\n  \"skills\": [\n    {\n      \"skill_id\": \"halogenated_aromatic_hydration_enhancer\",\n      \"rules\": [\n        {\n          \"rule_id\": \"halogen_high_aromatic_low_synergy\",\n          \"conditions\": {\n            \"halogen_bin\": \"halogen_high\",\n            \"aromatic_bin\": \"aromatic_low\"\n          },\n          \"weight\": 0.8,\n          \"rationale\": \"Halogenated non-aromatic/aliphatic regions may enhance hydration affinity via halogen-bonding with water, while avoiding aromatic stacking that reduces solvent accessibility.\"\n        },\n        {\n          \"rule_id\": \"hetero_atom_low_risk\",\n          \"conditions\": {\n            \"hetero_atom_bin\": \"hetero_low\"\n          },\n          \"weight\": -0.3,\n          \"rationale\": \"Low heteroatom count may reduce polarity and hydrogen-bonding capacity, potentially decreasing favorable aqueous interactions.\"\n        },\n        {\n          \"rule_id\": \"branch_mid_favorable\",\n          \"conditions\": {\n            \"branch_bin\": \"branch_mid\"\n          },\n          \"weight\": 0.4,\n          \"rationale\": \"Moderate branching can increase molecular surface area and create cavities favorable for water binding without excessive hydrophobicity.\"\n        },\n        {\n          \"rule_id\": \"smiles_short_preference\",\n          \"conditions\": {\n            \"smiles_length_bin\": \"smiles_short\"\n          },\n          \"weight\": 0.2,\n          \"rationale\": \"Shorter SMILES often correspond to smaller, more polar molecules with higher solubility and hydration affinity.\"\n        }\n      ],\n      \"ridge\": 2.5,\n      \"prior_scale\": 0.6,\n      \"semantic_mass_start\": 0.7,\n      \"semantic_mass_end\": 0.5,\n      \"ucb_weight\": 0.7,\n      \"gp_beta_start\": 3.0,\n      \"gp_beta_end\": 1.5,\n      \"gp_xi\": 0.05,\n      \"confidence\": 0.8,\n      \"hypothesis\": \"Transfers the structural hypothesis that halogenation in non-aromatic contexts promotes hydration. May fail if halogen bonding is weak or if aromatic rings are needed for specific binding motifs.\"\n    },\n    {\n      \"skill_id\": \"polar_surface_optimizer\",\n      \"rules\": [\n        {\n          \"rule_id\": \"hetero_atom_high_positive\",\n          \"conditions\": {\n            \"hetero_atom_bin\": \"hetero_high\"\n          },\n          \"weight\": 0.9,\n          \"rationale\": \"High heteroatom count increases polarity and hydrogen-bond donor/acceptor capacity, strongly favoring hydration free energy.\"\n        },\n        {\n          \"rule_id\": \"ring_token_none_benefit\",\n          \"conditions\": {\n            \"ring_token_bin\": \"ring_token_none\"\n          },\n          \"weight\": 0.3,\n          \"rationale\": \"Absence of ring structures may increase conformational flexibility and solvent-accessible surface area for water interaction.\"\n        },\n        {\n          \"rule_id\": \"double_bond_none_risk\",\n          \"conditions\": {\n            \"double_bond_bin\": \"double_bond_none\"\n          },\n          \"weight\": -0.2,\n          \"rationale\": \"Lack of double bonds may reduce molecular rigidity and polarity, potentially decreasing specific aqueous interactions.\"\n        }\n      ],\n      \"ridge\": 1.0,\n      \"prior_scale\": 0.8,\n      \"semantic_mass_start\": 0.5,\n      \"semantic_mass_end\": 0.3,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 2.5,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.1,\n      \"confidence\": 0.75,\n      \"hypothesis\": \"Transfers the general principle that polar surface area enhances hydration. May fail if excessive polarity leads to poor membrane permeability or if specific rigid scaffolds are required.\"\n    },\n    {\n      \"skill_id\": \"conservative_schema_alignment_only\",\n      \"rules\": [\n        {\n          \"rule_id\": \"source_aligned_aromatic_bin\",\n          \"conditions\": {\n            \"aromatic_bin\": \"aromatic_low\"\n          },\n          \"weight\": 0.1,\n          \"rationale\": \"Conservative weight based solely on source-target field alignment for aromatic_bin, without assuming effect direction from source outcomes.\"\n        },\n        {\n          \"rule_id\": \"source_aligned_halogen_bin\",\n          \"conditions\": {\n            \"halogen_bin\": \"halogen_none\"\n          },\n          \"weight\": 0.05,\n          \"rationale\": \"Minimal weight reflecting field mapping from source, agnostic to target effect.\"\n        },\n        {\n          \"rule_id\": \"source_aligned_smiles_length_bin\",\n          \"conditions\": {\n            \"smiles_length_bin\": \"smiles_mid\"\n          },\n          \"weight\": 0.05,\n          \"rationale\": \"Neutral weight based on schema alignment, awaiting target calibration.\"\n        }\n      ],\n      \"ridge\": 10.0,\n      \"prior_scale\": 0.1,\n      \"semantic_mass_start\": 0.1,\n      \"semantic_mass_end\": 0.05,\n      \"ucb_weight\": 0.9,\n      \"gp_beta_start\": 0.5,\n      \"gp_beta_end\": 0.3,\n      \"gp_xi\": 0.01,\n      \"confidence\": 0.3,\n      \"hypothesis\": \"Grounds skill only in supplied source-target field alignment, avoiding transfer of unobserved source effects. May fail if alignment is non-informative, but protects against negative transfer.\"\n    },\n    {\n      \"skill_id\": \"hydrophobic_core_with_polar_shell\",\n      \"rules\": [\n        {\n          \"rule_id\": \"aromatic_none_branch_low_interaction\",\n          \"conditions\": {\n            \"aromatic_bin\": \"aromatic_none\",\n            \"branch_bin\": \"branch_low\"\n          },\n          \"weight\": 0.6,\n          \"rationale\": \"Non-aromatic, linear molecules may form a hydrophobic core with a polar shell, optimizing entropy of hydration.\"\n        },\n        {\n          \"rule_id\": \"hetero_atom_mid_optimal\",\n          \"conditions\": {\n            \"hetero_atom_bin\": \"hetero_mid\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Moderate heteroatom count balances hydrophilicity and lipophilicity for optimal hydration free energy.\"\n        },\n        {\n          \"rule_id\": \"ring_token_low_favorable\",\n          \"conditions\": {\n            \"ring_token_bin\": \"ring_token_low\"\n          },\n          \"weight\": 0.3,\n          \"rationale\": \"Low ring count may allow sufficient flexibility for water organization without excessive hydrophobicity.\"\n        },\n        {\n          \"rule_id\": \"double_bond_low_benefit\",\n          \"conditions\": {\n            \"double_bond_bin\": \"double_bond_low\"\n          },\n          \"weight\": 0.2,\n          \"rationale\": \"Few double bonds maintain moderate polarity and prevent over-rigidity.\"\n        }\n      ],\n      \"ridge\": 3.0,\n      \"prior_scale\": 0.4,\n      \"semantic_mass_start\": 0.6,\n      \"semantic_mass_end\": 0.4,\n      \"ucb_weight\": 0.6,\n      \"gp_beta_start\": 2.0,\n      \"gp_beta_end\": 1.2,\n      \"gp_xi\": 0.08,\n      \"confidence\": 0.7,\n      \"hypothesis\": \"Transfers a domain-knowledge model of amphiphilic balance for hydration. May fail if specific aromatic or rigid structures are critical for high affinity.\"\n    },\n    {\n      \"skill_id\": \"counter_hypothesis_halogen_aromatic_reversal\",\n      \"rules\": [\n        {\n          \"rule_id\": \"halogen_none_aromatic_high_synergy\",\n          \"conditions\": {\n            \"halogen_bin\": \"halogen_none\",\n            \"aromatic_bin\": \"aromatic_high\"\n          },\n          \"weight\": 0.7,\n          \"rationale\": \"Reverses uncertain source relation; high aromaticity without halogens may promote pi-stacking with water or polar aromatics, enhancing hydration.\"\n        },\n        {\n          \"rule_id\": \"hetero_atom_none_downweight\",\n          \"conditions\": {\n            \"hetero_atom_bin\": \"hetero_none\"\n          },\n          \"weight\": -0.5,\n          \"rationale\": \"Downweights absence of heteroatoms as a strong negative, countering potential over-reliance on heteroatom counts from source.\"\n        },\n        {\n          \"rule_id\": \"branch_high_risk\",\n          \"conditions\": {\n            \"branch_bin\": \"branch_high\"\n          },\n          \"weight\": -0.4,\n          \"rationale\": \"High branching may create steric hindrance reducing solvent accessibility, a counter to assumptions of beneficial complexity.\"\n        }\n      ],\n      \"ridge\": 5.0,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.4,\n      \"semantic_mass_end\": 0.2,\n      \"ucb_weight\": 0.4,\n      \"gp_beta_start\": 1.5,\n      \"gp_beta_end\": 0.8,\n      \"gp_xi\": 0.15,\n      \"confidence\": 0.6,\n      \"hypothesis\": \"Counters uncertain source-derived relations by emphasizing aromaticity without halogens and downplaying heteroatom absence. May fail if halogen bonding is indeed critical or if heteroatoms are essential.\"\n    },\n    {\n      \"skill_id\": \"low_semantic_mass_flexible_explorer\",\n      \"rules\": [\n        {\n          \"rule_id\": \"smiles_very_long_caution\",\n          \"conditions\": {\n            \"smiles_length_bin\": \"smiles_very_long\"\n          },\n          \"weight\": -0.2,\n          \"rationale\": \"Very long SMILES may indicate large, hydrophobic molecules with poor hydration affinity.\"\n        },\n        {\n          \"rule_id\": \"ring_token_high_risk\",\n          \"conditions\": {\n            \"ring_token_bin\": \"ring_token_high\"\n          },\n          \"weight\": -0.3,\n          \"rationale\": \"High ring count often correlates with rigidity and hydrophobicity, potentially unfavorable.\"\n        }\n      ],\n      \"ridge\": 15.0,\n      \"prior_scale\": 0.05,\n      \"semantic_mass_start\": 0.05,\n      \"semantic_mass_end\": 0.01,\n      \"ucb_weight\": 0.95,\n      \"gp_beta_start\": 3.5,\n      \"gp_beta_end\": 2.0,\n      \"gp_xi\": 0.02,\n      \"confidence\": 0.4,\n      \"hypothesis\": \"Uses minimal semantic guidance to avoid overcommitment, heavily relying on target-only GP-UCB for exploration. May fail if strong semantic signals exist but are ignored.\"\n    },\n    {\n      \"skill_id\": \"entropy_driven_hydration_seeker\",\n      \"rules\": [\n        {\n          \"rule_id\": \"branch_none_entropy_penalty\",\n          \"conditions\": {\n            \"branch_bin\": \"branch_none\"\n          },\n          \"weight\": -0.6,\n          \"rationale\": \"Unbranched chains may have lower conformational entropy change upon hydration, reducing favorable entropy contribution.\"\n        },\n        {\n          \"rule_id\": \"double_bond_mid_favorable\",\n          \"conditions\": {\n            \"double_bond_bin\": \"double_bond_mid\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Moderate double bond count introduces rigidity and polarity, optimizing enthalpy-entropy balance for water binding.\"\n        },\n        {\n          \"rule_id\": \"aromatic_mid_benefit\",\n          \"conditions\": {\n            \"aromatic_bin\": \"aromatic_mid\"\n          },\n          \"weight\": 0.4,\n          \"rationale\": \"Moderate aromaticity can provide polarizable pi-systems for water interaction without excessive hydrophobicity.\"\n        },\n        {\n          \"rule_id\": \"halogen_low_positive\",\n          \"conditions\": {\n            \"halogen_bin\": \"halogen_low\"\n          },\n          \"weight\": 0.3,\n          \"rationale\": \"Low halogenation may offer mild polarity enhancement without steric or toxicity issues.\"\n        }\n      ],\n      \"ridge\": 2.0,\n      \"prior_scale\": 0.5,\n      \"semantic_mass_start\": 0.65,\n      \"semantic_mass_end\": 0.45,\n      \"ucb_weight\": 0.55,\n      \"gp_beta_start\": 2.2,\n      \"gp_beta_end\": 1.3,\n      \"gp_xi\": 0.07,\n      \"confidence\": 0.75,\n      \"hypothesis\": \"Transfers an entropy-focused model of hydration, emphasizing molecular flexibility and moderate polarity. May fail if enthalpy-dominated interactions are primary.\"\n    },\n    {\n      \"skill_id\": \"size_polarity_composite_descriptor\",\n      \"rules\": [\n        {\n          \"rule_id\": \"smiles_mid_hetero_low_interaction\",\n          \"conditions\": {\n            \"smiles_length_bin\": \"smiles_mid\",\n            \"hetero_atom_bin\": \"hetero_low\"\n          },\n          \"weight\": 0.4,\n          \"rationale\": \"Mid-sized molecules with low heteroatom count may have optimal size-to-polarity ratio for hydration free energy.\"\n        },\n        {\n          \"rule_id\": \"ring_token_none_double_bond_none_interaction\",\n          \"conditions\": {\n            \"ring_token_bin\": \"ring_token_none\",\n            \"double_bond_bin\": \"double_bond_none\"\n          },\n          \"weight\": -0.5,\n          \"rationale\": \"Complete lack of rings and double bonds may indicate saturated alkanes with high hydrophobicity and poor hydration affinity.\"\n        },\n        {\n          \"rule_id\": \"halogen_mid_aromatic_none_interaction\",\n          \"conditions\": {\n            \"halogen_bin\": \"halogen_mid\",\n            \"aromatic_bin\": \"aromatic_none\"\n          },\n          \"weight\": 0.6,\n          \"rationale\": \"Moderate halogenation in non-aromatic systems may enhance polarity and halogen-bonding without aromatic quenching.\"\n        }\n      ],\n      \"ridge\": 4.0,\n      \"prior_scale\": 0.35,\n      \"semantic_mass_start\": 0.55,\n      \"semantic_mass_end\": 0.35,\n      \"ucb_weight\": 0.65,\n      \"gp_beta_start\": 2.8,\n      \"gp_beta_end\": 1.8,\n      \"gp_xi\": 0.12,\n      \"confidence\": 0.65,\n      \"hypothesis\": \"Transfers a composite descriptor approach using interactions of size and polarity features. May fail if interactions are non-additive or if key features are omitted.\"\n    }\n  ]\n}",
+  "parsed_response": {
+    "skills": [
+      {
+        "skill_id": "halogenated_aromatic_hydration_enhancer",
+        "rules": [
+          {
+            "rule_id": "halogen_high_aromatic_low_synergy",
+            "conditions": {
+              "halogen_bin": "halogen_high",
+              "aromatic_bin": "aromatic_low"
+            },
+            "weight": 0.8,
+            "rationale": "Halogenated non-aromatic/aliphatic regions may enhance hydration affinity via halogen-bonding with water, while avoiding aromatic stacking that reduces solvent accessibility."
+          },
+          {
+            "rule_id": "hetero_atom_low_risk",
+            "conditions": {
+              "hetero_atom_bin": "hetero_low"
+            },
+            "weight": -0.3,
+            "rationale": "Low heteroatom count may reduce polarity and hydrogen-bonding capacity, potentially decreasing favorable aqueous interactions."
+          },
+          {
+            "rule_id": "branch_mid_favorable",
+            "conditions": {
+              "branch_bin": "branch_mid"
+            },
+            "weight": 0.4,
+            "rationale": "Moderate branching can increase molecular surface area and create cavities favorable for water binding without excessive hydrophobicity."
+          },
+          {
+            "rule_id": "smiles_short_preference",
+            "conditions": {
+              "smiles_length_bin": "smiles_short"
+            },
+            "weight": 0.2,
+            "rationale": "Shorter SMILES often correspond to smaller, more polar molecules with higher solubility and hydration affinity."
+          }
+        ],
+        "ridge": 2.5,
+        "prior_scale": 0.6,
+        "semantic_mass_start": 0.7,
+        "semantic_mass_end": 0.5,
+        "ucb_weight": 0.7,
+        "gp_beta_start": 3.0,
+        "gp_beta_end": 1.5,
+        "gp_xi": 0.05,
+        "confidence": 0.8,
+        "hypothesis": "Transfers the structural hypothesis that halogenation in non-aromatic contexts promotes hydration. May fail if halogen bonding is weak or if aromatic rings are needed for specific binding motifs."
+      },
+      {
+        "skill_id": "polar_surface_optimizer",
+        "rules": [
+          {
+            "rule_id": "hetero_atom_high_positive",
+            "conditions": {
+              "hetero_atom_bin": "hetero_high"
+            },
+            "weight": 0.9,
+            "rationale": "High heteroatom count increases polarity and hydrogen-bond donor/acceptor capacity, strongly favoring hydration free energy."
+          },
+          {
+            "rule_id": "ring_token_none_benefit",
+            "conditions": {
+              "ring_token_bin": "ring_token_none"
+            },
+            "weight": 0.3,
+            "rationale": "Absence of ring structures may increase conformational flexibility and solvent-accessible surface area for water interaction."
+          },
+          {
+            "rule_id": "double_bond_none_risk",
+            "conditions": {
+              "double_bond_bin": "double_bond_none"
+            },
+            "weight": -0.2,
+            "rationale": "Lack of double bonds may reduce molecular rigidity and polarity, potentially decreasing specific aqueous interactions."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.8,
+        "semantic_mass_start": 0.5,
+        "semantic_mass_end": 0.3,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 2.5,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.1,
+        "confidence": 0.75,
+        "hypothesis": "Transfers the general principle that polar surface area enhances hydration. May fail if excessive polarity leads to poor membrane permeability or if specific rigid scaffolds are required."
+      },
+      {
+        "skill_id": "conservative_schema_alignment_only",
+        "rules": [
+          {
+            "rule_id": "source_aligned_aromatic_bin",
+            "conditions": {
+              "aromatic_bin": "aromatic_low"
+            },
+            "weight": 0.1,
+            "rationale": "Conservative weight based solely on source-target field alignment for aromatic_bin, without assuming effect direction from source outcomes."
+          },
+          {
+            "rule_id": "source_aligned_halogen_bin",
+            "conditions": {
+              "halogen_bin": "halogen_none"
+            },
+            "weight": 0.05,
+            "rationale": "Minimal weight reflecting field mapping from source, agnostic to target effect."
+          },
+          {
+            "rule_id": "source_aligned_smiles_length_bin",
+            "conditions": {
+              "smiles_length_bin": "smiles_mid"
+            },
+            "weight": 0.05,
+            "rationale": "Neutral weight based on schema alignment, awaiting target calibration."
+          }
+        ],
+        "ridge": 10.0,
+        "prior_scale": 0.1,
+        "semantic_mass_start": 0.1,
+        "semantic_mass_end": 0.05,
+        "ucb_weight": 0.9,
+        "gp_beta_start": 0.5,
+        "gp_beta_end": 0.3,
+        "gp_xi": 0.01,
+        "confidence": 0.3,
+        "hypothesis": "Grounds skill only in supplied source-target field alignment, avoiding transfer of unobserved source effects. May fail if alignment is non-informative, but protects against negative transfer."
+      },
+      {
+        "skill_id": "hydrophobic_core_with_polar_shell",
+        "rules": [
+          {
+            "rule_id": "aromatic_none_branch_low_interaction",
+            "conditions": {
+              "aromatic_bin": "aromatic_none",
+              "branch_bin": "branch_low"
+            },
+            "weight": 0.6,
+            "rationale": "Non-aromatic, linear molecules may form a hydrophobic core with a polar shell, optimizing entropy of hydration."
+          },
+          {
+            "rule_id": "hetero_atom_mid_optimal",
+            "conditions": {
+              "hetero_atom_bin": "hetero_mid"
+            },
+            "weight": 0.5,
+            "rationale": "Moderate heteroatom count balances hydrophilicity and lipophilicity for optimal hydration free energy."
+          },
+          {
+            "rule_id": "ring_token_low_favorable",
+            "conditions": {
+              "ring_token_bin": "ring_token_low"
+            },
+            "weight": 0.3,
+            "rationale": "Low ring count may allow sufficient flexibility for water organization without excessive hydrophobicity."
+          },
+          {
+            "rule_id": "double_bond_low_benefit",
+            "conditions": {
+              "double_bond_bin": "double_bond_low"
+            },
+            "weight": 0.2,
+            "rationale": "Few double bonds maintain moderate polarity and prevent over-rigidity."
+          }
+        ],
+        "ridge": 3.0,
+        "prior_scale": 0.4,
+        "semantic_mass_start": 0.6,
+        "semantic_mass_end": 0.4,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.2,
+        "gp_xi": 0.08,
+        "confidence": 0.7,
+        "hypothesis": "Transfers a domain-knowledge model of amphiphilic balance for hydration. May fail if specific aromatic or rigid structures are critical for high affinity."
+      },
+      {
+        "skill_id": "counter_hypothesis_halogen_aromatic_reversal",
+        "rules": [
+          {
+            "rule_id": "halogen_none_aromatic_high_synergy",
+            "conditions": {
+              "halogen_bin": "halogen_none",
+              "aromatic_bin": "aromatic_high"
+            },
+            "weight": 0.7,
+            "rationale": "Reverses uncertain source relation; high aromaticity without halogens may promote pi-stacking with water or polar aromatics, enhancing hydration."
+          },
+          {
+            "rule_id": "hetero_atom_none_downweight",
+            "conditions": {
+              "hetero_atom_bin": "hetero_none"
+            },
+            "weight": -0.5,
+            "rationale": "Downweights absence of heteroatoms as a strong negative, countering potential over-reliance on heteroatom counts from source."
+          },
+          {
+            "rule_id": "branch_high_risk",
+            "conditions": {
+              "branch_bin": "branch_high"
+            },
+            "weight": -0.4,
+            "rationale": "High branching may create steric hindrance reducing solvent accessibility, a counter to assumptions of beneficial complexity."
+          }
+        ],
+        "ridge": 5.0,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.4,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.4,
+        "gp_beta_start": 1.5,
+        "gp_beta_end": 0.8,
+        "gp_xi": 0.15,
+        "confidence": 0.6,
+        "hypothesis": "Counters uncertain source-derived relations by emphasizing aromaticity without halogens and downplaying heteroatom absence. May fail if halogen bonding is indeed critical or if heteroatoms are essential."
+      },
+      {
+        "skill_id": "low_semantic_mass_flexible_explorer",
+        "rules": [
+          {
+            "rule_id": "smiles_very_long_caution",
+            "conditions": {
+              "smiles_length_bin": "smiles_very_long"
+            },
+            "weight": -0.2,
+            "rationale": "Very long SMILES may indicate large, hydrophobic molecules with poor hydration affinity."
+          },
+          {
+            "rule_id": "ring_token_high_risk",
+            "conditions": {
+              "ring_token_bin": "ring_token_high"
+            },
+            "weight": -0.3,
+            "rationale": "High ring count often correlates with rigidity and hydrophobicity, potentially unfavorable."
+          }
+        ],
+        "ridge": 15.0,
+        "prior_scale": 0.05,
+        "semantic_mass_start": 0.05,
+        "semantic_mass_end": 0.01,
+        "ucb_weight": 0.95,
+        "gp_beta_start": 3.5,
+        "gp_beta_end": 2.0,
+        "gp_xi": 0.02,
+        "confidence": 0.4,
+        "hypothesis": "Uses minimal semantic guidance to avoid overcommitment, heavily relying on target-only GP-UCB for exploration. May fail if strong semantic signals exist but are ignored."
+      },
+      {
+        "skill_id": "entropy_driven_hydration_seeker",
+        "rules": [
+          {
+            "rule_id": "branch_none_entropy_penalty",
+            "conditions": {
+              "branch_bin": "branch_none"
+            },
+            "weight": -0.6,
+            "rationale": "Unbranched chains may have lower conformational entropy change upon hydration, reducing favorable entropy contribution."
+          },
+          {
+            "rule_id": "double_bond_mid_favorable",
+            "conditions": {
+              "double_bond_bin": "double_bond_mid"
+            },
+            "weight": 0.5,
+            "rationale": "Moderate double bond count introduces rigidity and polarity, optimizing enthalpy-entropy balance for water binding."
+          },
+          {
+            "rule_id": "aromatic_mid_benefit",
+            "conditions": {
+              "aromatic_bin": "aromatic_mid"
+            },
+            "weight": 0.4,
+            "rationale": "Moderate aromaticity can provide polarizable pi-systems for water interaction without excessive hydrophobicity."
+          },
+          {
+            "rule_id": "halogen_low_positive",
+            "conditions": {
+              "halogen_bin": "halogen_low"
+            },
+            "weight": 0.3,
+            "rationale": "Low halogenation may offer mild polarity enhancement without steric or toxicity issues."
+          }
+        ],
+        "ridge": 2.0,
+        "prior_scale": 0.5,
+        "semantic_mass_start": 0.65,
+        "semantic_mass_end": 0.45,
+        "ucb_weight": 0.55,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 1.3,
+        "gp_xi": 0.07,
+        "confidence": 0.75,
+        "hypothesis": "Transfers an entropy-focused model of hydration, emphasizing molecular flexibility and moderate polarity. May fail if enthalpy-dominated interactions are primary."
+      },
+      {
+        "skill_id": "size_polarity_composite_descriptor",
+        "rules": [
+          {
+            "rule_id": "smiles_mid_hetero_low_interaction",
+            "conditions": {
+              "smiles_length_bin": "smiles_mid",
+              "hetero_atom_bin": "hetero_low"
+            },
+            "weight": 0.4,
+            "rationale": "Mid-sized molecules with low heteroatom count may have optimal size-to-polarity ratio for hydration free energy."
+          },
+          {
+            "rule_id": "ring_token_none_double_bond_none_interaction",
+            "conditions": {
+              "ring_token_bin": "ring_token_none",
+              "double_bond_bin": "double_bond_none"
+            },
+            "weight": -0.5,
+            "rationale": "Complete lack of rings and double bonds may indicate saturated alkanes with high hydrophobicity and poor hydration affinity."
+          },
+          {
+            "rule_id": "halogen_mid_aromatic_none_interaction",
+            "conditions": {
+              "halogen_bin": "halogen_mid",
+              "aromatic_bin": "aromatic_none"
+            },
+            "weight": 0.6,
+            "rationale": "Moderate halogenation in non-aromatic systems may enhance polarity and halogen-bonding without aromatic quenching."
+          }
+        ],
+        "ridge": 4.0,
+        "prior_scale": 0.35,
+        "semantic_mass_start": 0.55,
+        "semantic_mass_end": 0.35,
+        "ucb_weight": 0.65,
+        "gp_beta_start": 2.8,
+        "gp_beta_end": 1.8,
+        "gp_xi": 0.12,
+        "confidence": 0.65,
+        "hypothesis": "Transfers a composite descriptor approach using interactions of size and polarity features. May fail if interactions are non-additive or if key features are omitted."
+      }
+    ]
+  },
+  "normalized_skills": [
+    {
+      "skill_id": "halogenated_aromatic_hydration_enhancer",
+      "rules": [
+        {
+          "rule_id": "halogen_high_aromatic_low_synergy",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_low"
+            ],
+            [
+              "halogen_bin",
+              "halogen_high"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Halogenated non-aromatic/aliphatic regions may enhance hydration affinity via halogen-bonding with water, while avoiding aromatic stacking that reduces solvent accessibility."
+        },
+        {
+          "rule_id": "hetero_atom_low_risk",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_low"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "Low heteroatom count may reduce polarity and hydrogen-bonding capacity, potentially decreasing favorable aqueous interactions."
+        },
+        {
+          "rule_id": "branch_mid_favorable",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_mid"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Moderate branching can increase molecular surface area and create cavities favorable for water binding without excessive hydrophobicity."
+        },
+        {
+          "rule_id": "smiles_short_preference",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Shorter SMILES often correspond to smaller, more polar molecules with higher solubility and hydration affinity."
+        }
+      ],
+      "ridge": 2.5,
+      "prior_scale": 0.6,
+      "semantic_mass_start": 0.7,
+      "semantic_mass_end": 0.5,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 3.0,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.05,
+      "confidence": 0.8,
+      "hypothesis": "Transfers the structural hypothesis that halogenation in non-aromatic contexts promotes hydration. May fail if halogen bonding is weak or if aromatic rings are needed for specific binding motifs."
+    },
+    {
+      "skill_id": "polar_surface_optimizer",
+      "rules": [
+        {
+          "rule_id": "hetero_atom_high_positive",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": 0.9,
+          "rationale": "High heteroatom count increases polarity and hydrogen-bond donor/acceptor capacity, strongly favoring hydration free energy."
+        },
+        {
+          "rule_id": "ring_token_none_benefit",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_none"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Absence of ring structures may increase conformational flexibility and solvent-accessible surface area for water interaction."
+        },
+        {
+          "rule_id": "double_bond_none_risk",
+          "conditions": [
+            [
+              "double_bond_bin",
+              "double_bond_none"
+            ]
+          ],
+          "weight": -0.2,
+          "rationale": "Lack of double bonds may reduce molecular rigidity and polarity, potentially decreasing specific aqueous interactions."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.8,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.3,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.1,
+      "confidence": 0.75,
+      "hypothesis": "Transfers the general principle that polar surface area enhances hydration. May fail if excessive polarity leads to poor membrane permeability or if specific rigid scaffolds are required."
+    },
+    {
+      "skill_id": "conservative_schema_alignment_only",
+      "rules": [
+        {
+          "rule_id": "source_aligned_aromatic_bin",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_low"
+            ]
+          ],
+          "weight": 0.1,
+          "rationale": "Conservative weight based solely on source-target field alignment for aromatic_bin, without assuming effect direction from source outcomes."
+        },
+        {
+          "rule_id": "source_aligned_halogen_bin",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_none"
+            ]
+          ],
+          "weight": 0.05,
+          "rationale": "Minimal weight reflecting field mapping from source, agnostic to target effect."
+        },
+        {
+          "rule_id": "source_aligned_smiles_length_bin",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": 0.05,
+          "rationale": "Neutral weight based on schema alignment, awaiting target calibration."
+        }
+      ],
+      "ridge": 10.0,
+      "prior_scale": 0.1,
+      "semantic_mass_start": 0.1,
+      "semantic_mass_end": 0.05,
+      "ucb_weight": 0.9,
+      "gp_beta_start": 0.5,
+      "gp_beta_end": 0.3,
+      "gp_xi": 0.01,
+      "confidence": 0.3,
+      "hypothesis": "Grounds skill only in supplied source-target field alignment, avoiding transfer of unobserved source effects. May fail if alignment is non-informative, but protects against negative transfer."
+    },
+    {
+      "skill_id": "hydrophobic_core_with_polar_shell",
+      "rules": [
+        {
+          "rule_id": "aromatic_none_branch_low_interaction",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_none"
+            ],
+            [
+              "branch_bin",
+              "branch_low"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Non-aromatic, linear molecules may form a hydrophobic core with a polar shell, optimizing entropy of hydration."
+        },
+        {
+          "rule_id": "hetero_atom_mid_optimal",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_mid"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Moderate heteroatom count balances hydrophilicity and lipophilicity for optimal hydration free energy."
+        },
+        {
+          "rule_id": "ring_token_low_favorable",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_low"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Low ring count may allow sufficient flexibility for water organization without excessive hydrophobicity."
+        },
+        {
+          "rule_id": "double_bond_low_benefit",
+          "conditions": [
+            [
+              "double_bond_bin",
+              "double_bond_low"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Few double bonds maintain moderate polarity and prevent over-rigidity."
+        }
+      ],
+      "ridge": 3.0,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.6,
+      "semantic_mass_end": 0.4,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.08,
+      "confidence": 0.7,
+      "hypothesis": "Transfers a domain-knowledge model of amphiphilic balance for hydration. May fail if specific aromatic or rigid structures are critical for high affinity."
+    },
+    {
+      "skill_id": "counter_hypothesis_halogen_aromatic_reversal",
+      "rules": [
+        {
+          "rule_id": "halogen_none_aromatic_high_synergy",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ],
+            [
+              "halogen_bin",
+              "halogen_none"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Reverses uncertain source relation; high aromaticity without halogens may promote pi-stacking with water or polar aromatics, enhancing hydration."
+        },
+        {
+          "rule_id": "hetero_atom_none_downweight",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_none"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Downweights absence of heteroatoms as a strong negative, countering potential over-reliance on heteroatom counts from source."
+        },
+        {
+          "rule_id": "branch_high_risk",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_high"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "High branching may create steric hindrance reducing solvent accessibility, a counter to assumptions of beneficial complexity."
+        }
+      ],
+      "ridge": 5.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 0.8,
+      "gp_xi": 0.15,
+      "confidence": 0.6,
+      "hypothesis": "Counters uncertain source-derived relations by emphasizing aromaticity without halogens and downplaying heteroatom absence. May fail if halogen bonding is indeed critical or if heteroatoms are essential."
+    },
+    {
+      "skill_id": "low_semantic_mass_flexible_explorer",
+      "rules": [
+        {
+          "rule_id": "smiles_very_long_caution",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_very_long"
+            ]
+          ],
+          "weight": -0.2,
+          "rationale": "Very long SMILES may indicate large, hydrophobic molecules with poor hydration affinity."
+        },
+        {
+          "rule_id": "ring_token_high_risk",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "High ring count often correlates with rigidity and hydrophobicity, potentially unfavorable."
+        }
+      ],
+      "ridge": 15.0,
+      "prior_scale": 0.05,
+      "semantic_mass_start": 0.05,
+      "semantic_mass_end": 0.01,
+      "ucb_weight": 0.95,
+      "gp_beta_start": 3.5,
+      "gp_beta_end": 2.0,
+      "gp_xi": 0.02,
+      "confidence": 0.4,
+      "hypothesis": "Uses minimal semantic guidance to avoid overcommitment, heavily relying on target-only GP-UCB for exploration. May fail if strong semantic signals exist but are ignored."
+    },
+    {
+      "skill_id": "entropy_driven_hydration_seeker",
+      "rules": [
+        {
+          "rule_id": "branch_none_entropy_penalty",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_none"
+            ]
+          ],
+          "weight": -0.6,
+          "rationale": "Unbranched chains may have lower conformational entropy change upon hydration, reducing favorable entropy contribution."
+        },
+        {
+          "rule_id": "double_bond_mid_favorable",
+          "conditions": [
+            [
+              "double_bond_bin",
+              "double_bond_mid"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Moderate double bond count introduces rigidity and polarity, optimizing enthalpy-entropy balance for water binding."
+        },
+        {
+          "rule_id": "aromatic_mid_benefit",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_mid"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Moderate aromaticity can provide polarizable pi-systems for water interaction without excessive hydrophobicity."
+        },
+        {
+          "rule_id": "halogen_low_positive",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_low"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Low halogenation may offer mild polarity enhancement without steric or toxicity issues."
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.5,
+      "semantic_mass_start": 0.65,
+      "semantic_mass_end": 0.45,
+      "ucb_weight": 0.55,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.3,
+      "gp_xi": 0.07,
+      "confidence": 0.75,
+      "hypothesis": "Transfers an entropy-focused model of hydration, emphasizing molecular flexibility and moderate polarity. May fail if enthalpy-dominated interactions are primary."
+    },
+    {
+      "skill_id": "size_polarity_composite_descriptor",
+      "rules": [
+        {
+          "rule_id": "smiles_mid_hetero_low_interaction",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_low"
+            ],
+            [
+              "smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Mid-sized molecules with low heteroatom count may have optimal size-to-polarity ratio for hydration free energy."
+        },
+        {
+          "rule_id": "ring_token_none_double_bond_none_interaction",
+          "conditions": [
+            [
+              "double_bond_bin",
+              "double_bond_none"
+            ],
+            [
+              "ring_token_bin",
+              "ring_token_none"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Complete lack of rings and double bonds may indicate saturated alkanes with high hydrophobicity and poor hydration affinity."
+        },
+        {
+          "rule_id": "halogen_mid_aromatic_none_interaction",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_none"
+            ],
+            [
+              "halogen_bin",
+              "halogen_mid"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Moderate halogenation in non-aromatic systems may enhance polarity and halogen-bonding without aromatic quenching."
+        }
+      ],
+      "ridge": 4.0,
+      "prior_scale": 0.35,
+      "semantic_mass_start": 0.55,
+      "semantic_mass_end": 0.35,
+      "ucb_weight": 0.65,
+      "gp_beta_start": 2.8,
+      "gp_beta_end": 1.8,
+      "gp_xi": 0.12,
+      "confidence": 0.65,
+      "hypothesis": "Transfers a composite descriptor approach using interactions of size and polarity features. May fail if interactions are non-additive or if key features are omitted."
+    }
+  ],
+  "knowledge_retrieval": {
+    "enabled": true,
+    "db": "knowledge_base/runtime/care_kb.sqlite",
+    "cutoff": "2026-07-22",
+    "card_ids": [
+      "transfer.real-suzuki-miyaura-to-real-buchwald-hartwig-gate-reject-2026-07-21",
+      "transfer.real-suzuki-miyaura-to-real-buchwald-hartwig-calibration-fallback-2026-07-22",
+      "transfer.target-only-schema-to-real-matbench-log-kvrh-calibration-fallback-2026-07-22",
+      "transfer.source-schema-only-to-real-chemlex-acidamine-negative-heldout-2026-07-22",
+      "transfer.freesolv-to-lipophilicity-transferable-skill",
+      "skill.semantic-real-moleculenet-lipophilicity-high-aromatic-content-2026-07-22"
+    ]
+  }
+}

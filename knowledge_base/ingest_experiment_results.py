@@ -82,11 +82,13 @@ def cards_from_result_dir(result_dir: Path) -> list[dict[str, Any]]:
         "high",
     )]
     for row in load_rows(result_dir / "headline_results.csv"):
+        source = row.get("source", "")
         target = row["target"]
         skill = row["selected_skill"]
         label = metric_label(row)
-        result_id = f"experiment-result.{slug(study)}-{slug(target)}-{date}"
-        skill_id = f"skill.semantic-{slug(target)}-{slug(skill)}-{date}"
+        pair_slug = f"{slug(source)}-to-{slug(target)}" if source else slug(target)
+        result_id = f"experiment-result.{slug(study)}-{pair_slug}-{date}"
+        skill_id = f"skill.semantic-{pair_slug}-{slug(skill)}-{date}"
         evidence_mode = row.get("evidence_mode", "unknown")
         final_delta = float(row.get("delta_final_best", 0.0) or 0.0)
         auc_delta = float(row.get("delta_auc", 0.0) or 0.0)
@@ -128,14 +130,25 @@ def cards_from_result_dir(result_dir: Path) -> list[dict[str, Any]]:
         cards.append(make_card(
             result_id,
             "experiment_result",
-            f"{target}: {skill} ({evidence_mode})",
+            f"{source + ' → ' if source else ''}{target}: {skill} ({evidence_mode})",
             summary,
             (
                 f"Compared with {row.get('baseline')} on {row.get('seeds')} paired seeds. "
                 f"Final-best 95% CI [{row.get('final_ci_low')}, {row.get('final_ci_high')}]; "
                 f"AUC 95% CI [{row.get('auc_ci_low')}, {row.get('auc_ci_high')}]."
             ),
-            [target, skill, evidence_mode, label, "llm-semantic-skill"],
+            [
+                value
+                for value in (
+                    source,
+                    target,
+                    skill,
+                    evidence_mode,
+                    label,
+                    "llm-semantic-skill",
+                )
+                if value
+            ],
             [run_id, skill_id],
             date,
             "high" if label == "confirmed_positive" else "medium",
@@ -149,7 +162,18 @@ def cards_from_result_dir(result_dir: Path) -> list[dict[str, Any]]:
                 f"Evidence mode: {evidence_mode}. Execution: {execution}. "
                 f"{reusable_lesson}"
             ),
-            [target, skill, evidence_mode, "schema-to-skill", "target-calibration"],
+            [
+                value
+                for value in (
+                    source,
+                    target,
+                    skill,
+                    evidence_mode,
+                    "schema-to-skill",
+                    "target-calibration",
+                )
+                if value
+            ],
             [run_id, result_id],
             date,
             "high" if label == "confirmed_positive" else "medium",

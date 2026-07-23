@@ -148,8 +148,8 @@ def summarize_round_efficiency(
     for seed in seeds:
         baseline_events = load_events(audit_path(audit_dir, baseline_output_id, baseline_mode, seed))
         llm_events = load_events(audit_path(audit_dir, output_id, llm_mode, seed))
-        baseline_initial_best, baseline_initial_top10_hit = initial_context(
-            adapter, seed, initial, top10_ids
+        baseline_initial_best, baseline_initial_top10_hit = llm_initial_context(
+            adapter, seed, initial, top10_ids, baseline_events
         )
         llm_initial_best, llm_initial_top10_hit = llm_initial_context(
             adapter, seed, initial, top10_ids, llm_events

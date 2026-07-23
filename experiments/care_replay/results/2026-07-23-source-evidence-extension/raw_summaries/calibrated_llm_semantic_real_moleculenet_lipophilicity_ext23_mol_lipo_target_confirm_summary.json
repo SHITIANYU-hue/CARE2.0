@@ -1,0 +1,847 @@
+{
+  "experiment": "care_calibrated_llm_semantic_skill_selector",
+  "source_dataset": "real_moleculenet_esol",
+  "target_dataset": "real_moleculenet_lipophilicity",
+  "evidence_mode": "target_only",
+  "llm_model": "deepspeek-v3.2",
+  "llm_generation_call_count": 1,
+  "new_llm_call_count": 0,
+  "rule_prior_enabled": true,
+  "semantic_model_enabled": true,
+  "semantic_field_catalog": {
+    "smiles_length_bin": {
+      "smiles_long": 2265,
+      "smiles_mid": 1764,
+      "smiles_short": 93,
+      "smiles_very_long": 78
+    },
+    "hetero_atom_bin": {
+      "hetero_high": 2661,
+      "hetero_low": 194,
+      "hetero_mid": 1344,
+      "hetero_none": 1
+    },
+    "halogen_bin": {
+      "halogen_high": 98,
+      "halogen_low": 961,
+      "halogen_mid": 743,
+      "halogen_none": 2398
+    },
+    "aromatic_bin": {
+      "aromatic_high": 1982,
+      "aromatic_low": 545,
+      "aromatic_mid": 1619,
+      "aromatic_none": 54
+    },
+    "ring_token_bin": {
+      "ring_token_high": 1976,
+      "ring_token_low": 113,
+      "ring_token_mid": 2106,
+      "ring_token_none": 5
+    },
+    "branch_bin": {
+      "branch_high": 1183,
+      "branch_low": 817,
+      "branch_mid": 2147,
+      "branch_none": 53
+    },
+    "double_bond_bin": {
+      "double_bond_high": 147,
+      "double_bond_low": 1333,
+      "double_bond_mid": 1843,
+      "double_bond_none": 877
+    }
+  },
+  "skills": [
+    {
+      "skill_id": "domain_knowledge_polar_surface_control_noprior",
+      "rules": [
+        {
+          "rule_id": "heteroatom_none_high_risk",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_none"
+            ]
+          ],
+          "weight": -0.9,
+          "rationale": "No heteroatoms likely indicate simple hydrocarbons, which may have lower than expected lipophilicity due to lack of functional group interactions."
+        },
+        {
+          "rule_id": "aromatic_high_halogen_low_interaction",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ],
+            [
+              "halogen_bin",
+              "halogen_low"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "High aromaticity with low halogenation balances hydrophobicity and avoids excessive molecular weight."
+        },
+        {
+          "rule_id": "ring_token_mid",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_mid"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Moderate ring token count indicates optimal molecular rigidity for membrane partitioning."
+        },
+        {
+          "rule_id": "branch_low_risk",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_low"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "Low branching may reduce hydrophobic surface area, lowering lipophilicity."
+        },
+        {
+          "rule_id": "double_bond_none_benefit",
+          "conditions": [
+            [
+              "double_bond_bin",
+              "double_bond_none"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "No double bonds minimizes polarity, favoring lipophilicity in saturated systems."
+        }
+      ],
+      "ridge": 2.2,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.55,
+      "semantic_mass_end": 0.35,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.04,
+      "confidence": 0.8,
+      "hypothesis": "Transfers domain knowledge about polar surface area and molecular rigidity; may fail for molecules where specific polar groups enhance lipophilicity through unconventional mechanisms."
+    }
+  ],
+  "skill_variant_policy": "expanded",
+  "calibration_seed_start": 28000,
+  "calibration_seed_count": 50,
+  "heldout_seed_start": 29000,
+  "heldout_seed_count": 300,
+  "selection": {
+    "target_anchor_mode": "gp_ucb",
+    "target_anchor_summary": {
+      "gp_ucb": {
+        "final_best": 88.985,
+        "best_so_far_auc": 86.37175,
+        "top10_hit": 0.2,
+        "composite": 175.35675
+      },
+      "mixed_kernel_gp_ei": {
+        "final_best": 88.67,
+        "best_so_far_auc": 85.63675,
+        "top10_hit": 0.24,
+        "composite": 174.30675
+      },
+      "target_acquisition_portfolio": {
+        "final_best": 88.925,
+        "best_so_far_auc": 86.32575,
+        "top10_hit": 0.18,
+        "composite": 175.25075
+      }
+    },
+    "eligible_skill_modes": [
+      "llm_semantic_domain_knowledge_polar_surface_control_noprior"
+    ],
+    "selected_mode": "llm_semantic_domain_knowledge_polar_surface_control_noprior",
+    "selected_llm_skill": true,
+    "skill_diagnostics": {
+      "llm_semantic_domain_knowledge_polar_surface_control_noprior": {
+        "final_best": {
+          "n": 50.0,
+          "mean": 1.7475,
+          "std": 4.33211,
+          "se": 0.612653,
+          "normal_95ci_low": 0.5467,
+          "normal_95ci_high": 2.9483,
+          "win_rate": 0.6,
+          "non_loss_rate": 0.76
+        },
+        "best_so_far_auc": {
+          "n": 50.0,
+          "mean": 1.8755,
+          "std": 3.550784,
+          "se": 0.502157,
+          "normal_95ci_low": 0.891273,
+          "normal_95ci_high": 2.859727,
+          "win_rate": 0.68,
+          "non_loss_rate": 0.74
+        },
+        "composite": {
+          "n": 50.0,
+          "mean": 3.623,
+          "std": 7.494473,
+          "se": 1.059879,
+          "normal_95ci_low": 1.545638,
+          "normal_95ci_high": 5.700362,
+          "win_rate": 0.66,
+          "non_loss_rate": 0.72
+        },
+        "positive_fold_rate": 1.0,
+        "fold_composite_means": [
+          0.4575,
+          3.62125,
+          2.75375,
+          5.72625,
+          5.55625
+        ],
+        "risk_adjusted_composite_gain": 3.09306,
+        "eligible": true
+      }
+    },
+    "thresholds": {
+      "min_risk_adjusted_composite_gain": 0.25,
+      "min_positive_fold_rate": 0.8,
+      "min_final_non_loss_rate": 0.55
+    },
+    "rule": "The skill was selected on an earlier development range and frozen before these seeds. Calibration seeds in this run select only the target-only comparison anchor.",
+    "calibration_selected_mode": "llm_semantic_domain_knowledge_polar_surface_control_noprior",
+    "preselected_skill_id": "domain_knowledge_polar_surface_control_noprior"
+  },
+  "calibration": {
+    "gp_ucb": {
+      "final_best": 88.985,
+      "best_so_far_auc": 86.37175,
+      "top10_hit": 0.2,
+      "composite": 175.35675
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 88.67,
+      "best_so_far_auc": 85.63675,
+      "top10_hit": 0.24,
+      "composite": 174.30675
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 88.925,
+      "best_so_far_auc": 86.32575,
+      "top10_hit": 0.18,
+      "composite": 175.25075
+    },
+    "llm_semantic_domain_knowledge_polar_surface_control_noprior": {
+      "final_best": 90.7325,
+      "best_so_far_auc": 88.24725,
+      "top10_hit": 0.44,
+      "composite": 178.97975
+    },
+    "llm_direct_prior_domain_knowledge_polar_surface_control_noprior": {
+      "final_best": 89.6025,
+      "best_so_far_auc": 86.59775,
+      "top10_hit": 0.28,
+      "composite": 176.20025
+    },
+    "llambo_warmstart_domain_knowledge_polar_surface_control_noprior": {
+      "final_best": 87.59,
+      "best_so_far_auc": 84.87975,
+      "top10_hit": 0.24,
+      "composite": 172.46975
+    }
+  },
+  "heldout": {
+    "gp_ucb": {
+      "final_best": 87.897917,
+      "best_so_far_auc": 85.5715,
+      "top10_hit": 0.146667,
+      "composite": 173.469417
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 87.400417,
+      "best_so_far_auc": 85.223958,
+      "top10_hit": 0.116667,
+      "composite": 172.624375
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 87.852917,
+      "best_so_far_auc": 85.449333,
+      "top10_hit": 0.15,
+      "composite": 173.30225
+    },
+    "llm_semantic_domain_knowledge_polar_surface_control_noprior": {
+      "final_best": 89.664167,
+      "best_so_far_auc": 87.287542,
+      "top10_hit": 0.323333,
+      "composite": 176.951709
+    },
+    "llm_direct_prior_domain_knowledge_polar_surface_control_noprior": {
+      "final_best": 88.737083,
+      "best_so_far_auc": 85.883708,
+      "top10_hit": 0.213333,
+      "composite": 174.620791
+    },
+    "llambo_warmstart_domain_knowledge_polar_surface_control_noprior": {
+      "final_best": 88.187083,
+      "best_so_far_auc": 85.203667,
+      "top10_hit": 0.266667,
+      "composite": 173.39075
+    },
+    "llm_direct_prior_selector": {
+      "final_best": 88.737083,
+      "best_so_far_auc": 85.883708,
+      "top10_hit": 0.213333,
+      "composite": 174.620791
+    },
+    "llambo_warmstart_selector": {
+      "final_best": 88.187083,
+      "best_so_far_auc": 85.203667,
+      "top10_hit": 0.266667,
+      "composite": 173.39075
+    },
+    "llm_calibrated_selector": {
+      "final_best": 89.664167,
+      "best_so_far_auc": 87.287542,
+      "top10_hit": 0.323333,
+      "composite": 176.951709
+    },
+    "care_strategy_router": {
+      "final_best": 89.664167,
+      "best_so_far_auc": 87.287542,
+      "top10_hit": 0.323333,
+      "composite": 176.951709
+    }
+  },
+  "heldout_strongest_target_mode_descriptive_only": "gp_ucb",
+  "heldout_pairwise": {
+    "gp_ucb": {
+      "final_best": {
+        "n": 300.0,
+        "mean": 1.76625,
+        "std": 5.294435,
+        "se": 0.305674,
+        "normal_95ci_low": 1.167128,
+        "normal_95ci_high": 2.365372,
+        "win_rate": 0.54,
+        "non_loss_rate": 0.693333
+      },
+      "best_so_far_auc": {
+        "n": 300.0,
+        "mean": 1.716042,
+        "std": 4.71847,
+        "se": 0.272421,
+        "normal_95ci_low": 1.182097,
+        "normal_95ci_high": 2.249987,
+        "win_rate": 0.613333,
+        "non_loss_rate": 0.686667
+      },
+      "top10_hit": {
+        "n": 300.0,
+        "mean": 0.176667,
+        "std": 0.55268,
+        "se": 0.031909,
+        "normal_95ci_low": 0.114125,
+        "normal_95ci_high": 0.239208,
+        "win_rate": 0.256667,
+        "non_loss_rate": 0.92
+      }
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": {
+        "n": 300.0,
+        "mean": 2.26375,
+        "std": 5.122456,
+        "se": 0.295745,
+        "normal_95ci_low": 1.68409,
+        "normal_95ci_high": 2.84341,
+        "win_rate": 0.603333,
+        "non_loss_rate": 0.75
+      },
+      "best_so_far_auc": {
+        "n": 300.0,
+        "mean": 2.063583,
+        "std": 4.595416,
+        "se": 0.265316,
+        "normal_95ci_low": 1.543563,
+        "normal_95ci_high": 2.583604,
+        "win_rate": 0.673333,
+        "non_loss_rate": 0.743333
+      },
+      "top10_hit": {
+        "n": 300.0,
+        "mean": 0.206667,
+        "std": 0.532875,
+        "se": 0.030766,
+        "normal_95ci_low": 0.146366,
+        "normal_95ci_high": 0.266967,
+        "win_rate": 0.266667,
+        "non_loss_rate": 0.94
+      }
+    },
+    "target_acquisition_portfolio": {
+      "final_best": {
+        "n": 300.0,
+        "mean": 1.81125,
+        "std": 5.013476,
+        "se": 0.289453,
+        "normal_95ci_low": 1.243922,
+        "normal_95ci_high": 2.378578,
+        "win_rate": 0.563333,
+        "non_loss_rate": 0.73
+      },
+      "best_so_far_auc": {
+        "n": 300.0,
+        "mean": 1.838208,
+        "std": 4.573654,
+        "se": 0.26406,
+        "normal_95ci_low": 1.320651,
+        "normal_95ci_high": 2.355766,
+        "win_rate": 0.646667,
+        "non_loss_rate": 0.716667
+      },
+      "top10_hit": {
+        "n": 300.0,
+        "mean": 0.173333,
+        "std": 0.54463,
+        "se": 0.031444,
+        "normal_95ci_low": 0.111703,
+        "normal_95ci_high": 0.234964,
+        "win_rate": 0.25,
+        "non_loss_rate": 0.923333
+      }
+    }
+  },
+  "external_llm_baselines": {
+    "llm_direct_prior": {
+      "selected_mode": "llm_direct_prior_domain_knowledge_polar_surface_control_noprior",
+      "selector_alias": "llm_direct_prior_selector",
+      "calibration": {
+        "llm_direct_prior_domain_knowledge_polar_surface_control_noprior": {
+          "final_best": 89.6025,
+          "best_so_far_auc": 86.59775,
+          "top10_hit": 0.28,
+          "composite": 176.20025
+        }
+      },
+      "rule": "Select the strongest llm_direct_prior variant on calibration final_best + AUC; held-out outcomes do not affect this choice."
+    },
+    "llambo_warmstart": {
+      "selected_mode": "llambo_warmstart_domain_knowledge_polar_surface_control_noprior",
+      "selector_alias": "llambo_warmstart_selector",
+      "calibration": {
+        "llambo_warmstart_domain_knowledge_polar_surface_control_noprior": {
+          "final_best": 87.59,
+          "best_so_far_auc": 84.87975,
+          "top10_hit": 0.24,
+          "composite": 172.46975
+        }
+      },
+      "rule": "Select the strongest llambo_warmstart variant on calibration final_best + AUC; held-out outcomes do not affect this choice."
+    }
+  },
+  "care_vs_external_llm": {
+    "llm_direct_prior_selector": {
+      "final_best": {
+        "n": 300.0,
+        "mean": 0.927083,
+        "std": 5.06003,
+        "se": 0.292141,
+        "normal_95ci_low": 0.354487,
+        "normal_95ci_high": 1.49968,
+        "win_rate": 0.48,
+        "non_loss_rate": 0.673333
+      },
+      "best_so_far_auc": {
+        "n": 300.0,
+        "mean": 1.403833,
+        "std": 4.234531,
+        "se": 0.244481,
+        "normal_95ci_low": 0.924651,
+        "normal_95ci_high": 1.883016,
+        "win_rate": 0.583333,
+        "non_loss_rate": 0.646667
+      },
+      "top10_hit": {
+        "n": 300.0,
+        "mean": 0.11,
+        "std": 0.563826,
+        "se": 0.032553,
+        "normal_95ci_low": 0.046197,
+        "normal_95ci_high": 0.173803,
+        "win_rate": 0.22,
+        "non_loss_rate": 0.89
+      }
+    },
+    "llambo_warmstart_selector": {
+      "final_best": {
+        "n": 300.0,
+        "mean": 1.477083,
+        "std": 5.677858,
+        "se": 0.327811,
+        "normal_95ci_low": 0.834573,
+        "normal_95ci_high": 2.119593,
+        "win_rate": 0.563333,
+        "non_loss_rate": 0.66
+      },
+      "best_so_far_auc": {
+        "n": 300.0,
+        "mean": 2.083875,
+        "std": 6.251285,
+        "se": 0.360918,
+        "normal_95ci_low": 1.376475,
+        "normal_95ci_high": 2.791275,
+        "win_rate": 0.646667,
+        "non_loss_rate": 0.656667
+      },
+      "top10_hit": {
+        "n": 300.0,
+        "mean": 0.056667,
+        "std": 0.632552,
+        "se": 0.03652,
+        "normal_95ci_low": -0.014913,
+        "normal_95ci_high": 0.128247,
+        "win_rate": 0.23,
+        "non_loss_rate": 0.826667
+      }
+    }
+  },
+  "strategy_router": {
+    "selected_mode": "llm_semantic_domain_knowledge_polar_surface_control_noprior",
+    "selected_llm_strategy": true,
+    "target_anchor_mode": "gp_ucb",
+    "candidate_modes": [
+      "gp_ucb",
+      "llm_semantic_domain_knowledge_polar_surface_control_noprior",
+      "llm_direct_prior_domain_knowledge_polar_surface_control_noprior",
+      "llambo_warmstart_domain_knowledge_polar_surface_control_noprior"
+    ],
+    "eligible_modes": [
+      "gp_ucb",
+      "llm_semantic_domain_knowledge_polar_surface_control_noprior"
+    ],
+    "diagnostics": {
+      "gp_ucb": {
+        "eligible": true,
+        "risk_adjusted_composite_gain": 0.0,
+        "reason": "target-only fallback"
+      },
+      "llm_semantic_domain_knowledge_polar_surface_control_noprior": {
+        "final_best": {
+          "n": 50.0,
+          "mean": 1.7475,
+          "std": 4.33211,
+          "se": 0.612653,
+          "normal_95ci_low": 0.5467,
+          "normal_95ci_high": 2.9483,
+          "win_rate": 0.6,
+          "non_loss_rate": 0.76
+        },
+        "best_so_far_auc": {
+          "n": 50.0,
+          "mean": 1.8755,
+          "std": 3.550784,
+          "se": 0.502157,
+          "normal_95ci_low": 0.891273,
+          "normal_95ci_high": 2.859727,
+          "win_rate": 0.68,
+          "non_loss_rate": 0.74
+        },
+        "composite": {
+          "n": 50.0,
+          "mean": 3.623,
+          "std": 7.494473,
+          "se": 1.059879,
+          "normal_95ci_low": 1.545638,
+          "normal_95ci_high": 5.700362,
+          "win_rate": 0.66,
+          "non_loss_rate": 0.72
+        },
+        "positive_fold_rate": 1.0,
+        "fold_composite_means": [
+          0.4575,
+          3.62125,
+          2.75375,
+          5.72625,
+          5.55625
+        ],
+        "risk_adjusted_composite_gain": 3.09306,
+        "eligible": true
+      },
+      "llm_direct_prior_domain_knowledge_polar_surface_control_noprior": {
+        "final_best": {
+          "n": 50.0,
+          "mean": 0.6175,
+          "std": 4.059203,
+          "se": 0.574058,
+          "normal_95ci_low": -0.507654,
+          "normal_95ci_high": 1.742654,
+          "win_rate": 0.46,
+          "non_loss_rate": 0.6
+        },
+        "best_so_far_auc": {
+          "n": 50.0,
+          "mean": 0.226,
+          "std": 3.307596,
+          "se": 0.467765,
+          "normal_95ci_low": -0.690819,
+          "normal_95ci_high": 1.142819,
+          "win_rate": 0.44,
+          "non_loss_rate": 0.52
+        },
+        "composite": {
+          "n": 50.0,
+          "mean": 0.8435,
+          "std": 6.924853,
+          "se": 0.979322,
+          "normal_95ci_low": -1.075971,
+          "normal_95ci_high": 2.762971,
+          "win_rate": 0.44,
+          "non_loss_rate": 0.52
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          2.0425,
+          -1.65375,
+          1.63375,
+          -0.38625,
+          2.58125
+        ],
+        "risk_adjusted_composite_gain": 0.353839,
+        "eligible": false
+      },
+      "llambo_warmstart_domain_knowledge_polar_surface_control_noprior": {
+        "final_best": {
+          "n": 50.0,
+          "mean": -1.395,
+          "std": 5.715623,
+          "se": 0.808311,
+          "normal_95ci_low": -2.97929,
+          "normal_95ci_high": 0.18929,
+          "win_rate": 0.34,
+          "non_loss_rate": 0.4
+        },
+        "best_so_far_auc": {
+          "n": 50.0,
+          "mean": -1.492,
+          "std": 6.009803,
+          "se": 0.849914,
+          "normal_95ci_low": -3.157832,
+          "normal_95ci_high": 0.173832,
+          "win_rate": 0.38,
+          "non_loss_rate": 0.38
+        },
+        "composite": {
+          "n": 50.0,
+          "mean": -2.887,
+          "std": 11.239271,
+          "se": 1.589473,
+          "normal_95ci_low": -6.002367,
+          "normal_95ci_high": 0.228367,
+          "win_rate": 0.34,
+          "non_loss_rate": 0.34
+        },
+        "positive_fold_rate": 0.2,
+        "fold_composite_means": [
+          -6.6075,
+          -0.755,
+          -6.95125,
+          2.84125,
+          -2.9625
+        ],
+        "risk_adjusted_composite_gain": -3.681736,
+        "eligible": false
+      }
+    },
+    "thresholds": {
+      "min_risk_adjusted_composite_gain": 0.25,
+      "min_positive_fold_rate": 0.8,
+      "min_final_non_loss_rate": 0.55
+    },
+    "rule": "Choose among the frozen semantic selector, LLM-direct prior, LLAMBO-style warm-start, and the target-only anchor using calibration seeds only. Require non-negative final-best and AUC deltas, stable folds, and a positive risk-adjusted composite gain; otherwise fall back to the target-only anchor.",
+    "evidence_boundary": "Only calibration outcomes choose the strategy. Held-out outcomes are used once for the frozen comparison."
+  },
+  "strategy_router_strongest_target_mode": "gp_ucb",
+  "strategy_router_pairwise": {
+    "gp_ucb": {
+      "final_best": {
+        "n": 300.0,
+        "mean": 1.76625,
+        "std": 5.294435,
+        "se": 0.305674,
+        "normal_95ci_low": 1.167128,
+        "normal_95ci_high": 2.365372,
+        "win_rate": 0.54,
+        "non_loss_rate": 0.693333
+      },
+      "best_so_far_auc": {
+        "n": 300.0,
+        "mean": 1.716042,
+        "std": 4.71847,
+        "se": 0.272421,
+        "normal_95ci_low": 1.182097,
+        "normal_95ci_high": 2.249987,
+        "win_rate": 0.613333,
+        "non_loss_rate": 0.686667
+      },
+      "top10_hit": {
+        "n": 300.0,
+        "mean": 0.176667,
+        "std": 0.55268,
+        "se": 0.031909,
+        "normal_95ci_low": 0.114125,
+        "normal_95ci_high": 0.239208,
+        "win_rate": 0.256667,
+        "non_loss_rate": 0.92
+      }
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": {
+        "n": 300.0,
+        "mean": 2.26375,
+        "std": 5.122456,
+        "se": 0.295745,
+        "normal_95ci_low": 1.68409,
+        "normal_95ci_high": 2.84341,
+        "win_rate": 0.603333,
+        "non_loss_rate": 0.75
+      },
+      "best_so_far_auc": {
+        "n": 300.0,
+        "mean": 2.063583,
+        "std": 4.595416,
+        "se": 0.265316,
+        "normal_95ci_low": 1.543563,
+        "normal_95ci_high": 2.583604,
+        "win_rate": 0.673333,
+        "non_loss_rate": 0.743333
+      },
+      "top10_hit": {
+        "n": 300.0,
+        "mean": 0.206667,
+        "std": 0.532875,
+        "se": 0.030766,
+        "normal_95ci_low": 0.146366,
+        "normal_95ci_high": 0.266967,
+        "win_rate": 0.266667,
+        "non_loss_rate": 0.94
+      }
+    },
+    "target_acquisition_portfolio": {
+      "final_best": {
+        "n": 300.0,
+        "mean": 1.81125,
+        "std": 5.013476,
+        "se": 0.289453,
+        "normal_95ci_low": 1.243922,
+        "normal_95ci_high": 2.378578,
+        "win_rate": 0.563333,
+        "non_loss_rate": 0.73
+      },
+      "best_so_far_auc": {
+        "n": 300.0,
+        "mean": 1.838208,
+        "std": 4.573654,
+        "se": 0.26406,
+        "normal_95ci_low": 1.320651,
+        "normal_95ci_high": 2.355766,
+        "win_rate": 0.646667,
+        "non_loss_rate": 0.716667
+      },
+      "top10_hit": {
+        "n": 300.0,
+        "mean": 0.173333,
+        "std": 0.54463,
+        "se": 0.031444,
+        "normal_95ci_low": 0.111703,
+        "normal_95ci_high": 0.234964,
+        "win_rate": 0.25,
+        "non_loss_rate": 0.923333
+      }
+    }
+  },
+  "strategy_router_vs_external_llm": {
+    "llm_direct_prior_selector": {
+      "final_best": {
+        "n": 300.0,
+        "mean": 0.927083,
+        "std": 5.06003,
+        "se": 0.292141,
+        "normal_95ci_low": 0.354487,
+        "normal_95ci_high": 1.49968,
+        "win_rate": 0.48,
+        "non_loss_rate": 0.673333
+      },
+      "best_so_far_auc": {
+        "n": 300.0,
+        "mean": 1.403833,
+        "std": 4.234531,
+        "se": 0.244481,
+        "normal_95ci_low": 0.924651,
+        "normal_95ci_high": 1.883016,
+        "win_rate": 0.583333,
+        "non_loss_rate": 0.646667
+      },
+      "top10_hit": {
+        "n": 300.0,
+        "mean": 0.11,
+        "std": 0.563826,
+        "se": 0.032553,
+        "normal_95ci_low": 0.046197,
+        "normal_95ci_high": 0.173803,
+        "win_rate": 0.22,
+        "non_loss_rate": 0.89
+      }
+    },
+    "llambo_warmstart_selector": {
+      "final_best": {
+        "n": 300.0,
+        "mean": 1.477083,
+        "std": 5.677858,
+        "se": 0.327811,
+        "normal_95ci_low": 0.834573,
+        "normal_95ci_high": 2.119593,
+        "win_rate": 0.563333,
+        "non_loss_rate": 0.66
+      },
+      "best_so_far_auc": {
+        "n": 300.0,
+        "mean": 2.083875,
+        "std": 6.251285,
+        "se": 0.360918,
+        "normal_95ci_low": 1.376475,
+        "normal_95ci_high": 2.791275,
+        "win_rate": 0.646667,
+        "non_loss_rate": 0.656667
+      },
+      "top10_hit": {
+        "n": 300.0,
+        "mean": 0.056667,
+        "std": 0.632552,
+        "se": 0.03652,
+        "normal_95ci_low": -0.014913,
+        "normal_95ci_high": 0.128247,
+        "win_rate": 0.23,
+        "non_loss_rate": 0.826667
+      }
+    }
+  },
+  "strategy_router_validation": {
+    "selected_llm_strategy": true,
+    "strongest_target_mode": "gp_ucb",
+    "final_95ci_positive": true,
+    "auc_95ci_positive": true,
+    "top10_95ci_positive": true
+  },
+  "heldout_validation": {
+    "selected_llm_skill": true,
+    "strongest_target_mode": "gp_ucb",
+    "final_95ci_positive": true,
+    "auc_95ci_positive": true,
+    "top10_95ci_positive": true
+  },
+  "evidence_boundary": {
+    "generation": "No source identity, source schema, source outcomes, source effects, or source value priors are provided. The LLM must use the public target schema and its pretrained domain knowledge only.",
+    "evaluation": "Calibration selects a skill before held-out evaluation. Every per-round fit uses only previously revealed target outcomes."
+  }
+}

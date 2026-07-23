@@ -1,0 +1,843 @@
+nohup: ignoring input
+{
+  "experiment": "care_calibrated_llm_semantic_skill_selector",
+  "source_dataset": "real_matbench_phonons",
+  "target_dataset": "real_matbench_dielectric",
+  "evidence_mode": "source_schema_only",
+  "llm_model": "deepspeek-v3.2",
+  "llm_generation_call_count": 1,
+  "new_llm_call_count": 0,
+  "rule_prior_enabled": true,
+  "semantic_model_enabled": true,
+  "semantic_field_catalog": {
+    "anion_family": {
+      "carbide_or_carbon": 22,
+      "chalcogenide": 831,
+      "halide": 788,
+      "other": 172,
+      "oxide": 2259,
+      "pnictide": 692
+    },
+    "element_count_bin": {
+      "binary": 974,
+      "quinary_senary": 225,
+      "ternary_quaternary": 3565
+    },
+    "dominant_family": {
+      "alkali": 269,
+      "alkaline_earth": 103,
+      "chalcogen": 2447,
+      "halogen": 813,
+      "lanthanide": 11,
+      "light_nonmetal": 219,
+      "metalloid": 283,
+      "other": 3,
+      "pnictogen": 376,
+      "post_transition": 72,
+      "transition_metal": 168
+    },
+    "transition_metal_flag": {
+      "has_transition_metal": 2550,
+      "no_transition_metal": 2214
+    },
+    "lanthanide_flag": {
+      "has_lanthanide": 285,
+      "no_lanthanide": 4479
+    },
+    "mean_atomic_number_bin": {
+      "mean_z_high": 426,
+      "mean_z_low": 2693,
+      "mean_z_mid": 1600,
+      "mean_z_very_high": 45
+    },
+    "max_element_fraction_bin": {
+      "balanced": 317,
+      "concentrated": 2673,
+      "dominant_element_heavy": 128,
+      "moderately_concentrated": 1646
+    }
+  },
+  "skills": [
+    {
+      "skill_id": "ionic_covalent_balance_refractive_conservative",
+      "rules": [
+        {
+          "rule_id": "oxide_ionic_character_high_refractive",
+          "conditions": [
+            [
+              "anion_family",
+              "oxide"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Oxides combine ionic and covalent bonding, enhancing electronic polarizability and refractive index."
+        },
+        {
+          "rule_id": "alkaline_earth_cation_high_polarizability",
+          "conditions": [
+            [
+              "dominant_family",
+              "alkaline_earth"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Alkaline earth cations (e.g., Ba, Sr) have high polarizability, beneficial for refractive index."
+        },
+        {
+          "rule_id": "mean_z_low_wide_band_gap",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_low"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Low mean atomic number may correlate with wide band gaps, reducing absorption for refractive index."
+        },
+        {
+          "rule_id": "interaction_oxide_alkaline_earth_synergy",
+          "conditions": [
+            [
+              "anion_family",
+              "oxide"
+            ],
+            [
+              "dominant_family",
+              "alkaline_earth"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Interaction: Oxide anions with alkaline earth cations may synergistically enhance polarizability and refractive index."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 2.8,
+      "gp_beta_end": 1.8,
+      "gp_xi": 0.04,
+      "confidence": 0.78,
+      "hypothesis": "Transfers the hypothesis that ionic-covalent balance (oxides with alkaline earth) favors high refractive index; may fail for highly ionic or covalent extremes."
+    }
+  ],
+  "skill_variant_policy": "expanded",
+  "calibration_seed_start": 28000,
+  "calibration_seed_count": 50,
+  "heldout_seed_start": 29000,
+  "heldout_seed_count": 300,
+  "selection": {
+    "target_anchor_mode": "target_acquisition_portfolio",
+    "target_anchor_summary": {
+      "gp_ucb": {
+        "final_best": 49.55054,
+        "best_so_far_auc": 45.225292,
+        "top10_hit": 0.04,
+        "composite": 94.775832
+      },
+      "mixed_kernel_gp_ei": {
+        "final_best": 50.211146,
+        "best_so_far_auc": 45.470902,
+        "top10_hit": 0.04,
+        "composite": 95.682048
+      },
+      "target_acquisition_portfolio": {
+        "final_best": 52.28238,
+        "best_so_far_auc": 46.1538,
+        "top10_hit": 0.12,
+        "composite": 98.43618
+      }
+    },
+    "eligible_skill_modes": [
+      "llm_semantic_ionic_covalent_balance_refractive_conservative"
+    ],
+    "selected_mode": "llm_semantic_ionic_covalent_balance_refractive_conservative",
+    "selected_llm_skill": true,
+    "skill_diagnostics": {
+      "llm_semantic_ionic_covalent_balance_refractive_conservative": {
+        "final_best": {
+          "n": 50.0,
+          "mean": 6.636988,
+          "std": 14.427424,
+          "se": 2.040346,
+          "normal_95ci_low": 2.63791,
+          "normal_95ci_high": 10.636066,
+          "win_rate": 0.7,
+          "non_loss_rate": 0.78
+        },
+        "best_so_far_auc": {
+          "n": 50.0,
+          "mean": 6.561674,
+          "std": 9.487527,
+          "se": 1.341739,
+          "normal_95ci_low": 3.931866,
+          "normal_95ci_high": 9.191482,
+          "win_rate": 0.74,
+          "non_loss_rate": 0.8
+        },
+        "composite": {
+          "n": 50.0,
+          "mean": 13.198662,
+          "std": 23.208245,
+          "se": 3.282141,
+          "normal_95ci_low": 6.765665,
+          "normal_95ci_high": 19.631659,
+          "win_rate": 0.72,
+          "non_loss_rate": 0.78
+        },
+        "positive_fold_rate": 1.0,
+        "fold_composite_means": [
+          13.36746,
+          21.60265,
+          13.00805,
+          8.36048,
+          9.65467
+        ],
+        "risk_adjusted_composite_gain": 11.557592,
+        "eligible": true
+      }
+    },
+    "thresholds": {
+      "min_risk_adjusted_composite_gain": 0.25,
+      "min_positive_fold_rate": 0.8,
+      "min_final_non_loss_rate": 0.55
+    },
+    "rule": "The skill was selected on an earlier development range and frozen before these seeds. Calibration seeds in this run select only the target-only comparison anchor.",
+    "calibration_selected_mode": "llm_semantic_ionic_covalent_balance_refractive_conservative",
+    "preselected_skill_id": "ionic_covalent_balance_refractive_conservative"
+  },
+  "calibration": {
+    "gp_ucb": {
+      "final_best": 49.55054,
+      "best_so_far_auc": 45.225292,
+      "top10_hit": 0.04,
+      "composite": 94.775832
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 50.211146,
+      "best_so_far_auc": 45.470902,
+      "top10_hit": 0.04,
+      "composite": 95.682048
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 52.28238,
+      "best_so_far_auc": 46.1538,
+      "top10_hit": 0.12,
+      "composite": 98.43618
+    },
+    "llm_semantic_ionic_covalent_balance_refractive_conservative": {
+      "final_best": 58.919368,
+      "best_so_far_auc": 52.715474,
+      "top10_hit": 0.12,
+      "composite": 111.634842
+    },
+    "llm_direct_prior_ionic_covalent_balance_refractive_conservative": {
+      "final_best": 62.498508,
+      "best_so_far_auc": 51.569028,
+      "top10_hit": 0.04,
+      "composite": 114.067536
+    },
+    "llambo_warmstart_ionic_covalent_balance_refractive_conservative": {
+      "final_best": 56.38942,
+      "best_so_far_auc": 50.864882,
+      "top10_hit": 0.12,
+      "composite": 107.254302
+    }
+  },
+  "heldout": {
+    "gp_ucb": {
+      "final_best": 48.93464,
+      "best_so_far_auc": 44.346832,
+      "top10_hit": 0.023333,
+      "composite": 93.281472
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 49.202855,
+      "best_so_far_auc": 44.311415,
+      "top10_hit": 0.016667,
+      "composite": 93.51427
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 50.743218,
+      "best_so_far_auc": 45.061289,
+      "top10_hit": 0.076667,
+      "composite": 95.804507
+    },
+    "llm_semantic_ionic_covalent_balance_refractive_conservative": {
+      "final_best": 58.982777,
+      "best_so_far_auc": 52.088641,
+      "top10_hit": 0.063333,
+      "composite": 111.071418
+    },
+    "llm_direct_prior_ionic_covalent_balance_refractive_conservative": {
+      "final_best": 62.71465,
+      "best_so_far_auc": 52.175629,
+      "top10_hit": 0.05,
+      "composite": 114.890279
+    },
+    "llambo_warmstart_ionic_covalent_balance_refractive_conservative": {
+      "final_best": 54.152389,
+      "best_so_far_auc": 49.307563,
+      "top10_hit": 0.066667,
+      "composite": 103.459952
+    },
+    "llm_direct_prior_selector": {
+      "final_best": 62.71465,
+      "best_so_far_auc": 52.175629,
+      "top10_hit": 0.05,
+      "composite": 114.890279
+    },
+    "llambo_warmstart_selector": {
+      "final_best": 54.152389,
+      "best_so_far_auc": 49.307563,
+      "top10_hit": 0.066667,
+      "composite": 103.459952
+    },
+    "llm_calibrated_selector": {
+      "final_best": 58.982777,
+      "best_so_far_auc": 52.088641,
+      "top10_hit": 0.063333,
+      "composite": 111.071418
+    },
+    "care_strategy_router": {
+      "final_best": 62.71465,
+      "best_so_far_auc": 52.175629,
+      "top10_hit": 0.05,
+      "composite": 114.890279
+    }
+  },
+  "heldout_strongest_target_mode_descriptive_only": "target_acquisition_portfolio",
+  "heldout_pairwise": {
+    "gp_ucb": {
+      "final_best": {
+        "n": 300.0,
+        "mean": 10.048137,
+        "std": 12.821497,
+        "se": 0.740249,
+        "normal_95ci_low": 8.597248,
+        "normal_95ci_high": 11.499026,
+        "win_rate": 0.723333,
+        "non_loss_rate": 0.813333
+      },
+      "best_so_far_auc": {
+        "n": 300.0,
+        "mean": 7.741808,
+        "std": 9.060176,
+        "se": 0.52309,
+        "normal_95ci_low": 6.716553,
+        "normal_95ci_high": 8.767064,
+        "win_rate": 0.79,
+        "non_loss_rate": 0.836667
+      },
+      "top10_hit": {
+        "n": 300.0,
+        "mean": 0.04,
+        "std": 0.267831,
+        "se": 0.015463,
+        "normal_95ci_low": 0.009692,
+        "normal_95ci_high": 0.070308,
+        "win_rate": 0.056667,
+        "non_loss_rate": 0.983333
+      }
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": {
+        "n": 300.0,
+        "mean": 9.779922,
+        "std": 11.990768,
+        "se": 0.692287,
+        "normal_95ci_low": 8.423039,
+        "normal_95ci_high": 11.136805,
+        "win_rate": 0.723333,
+        "non_loss_rate": 0.816667
+      },
+      "best_so_far_auc": {
+        "n": 300.0,
+        "mean": 7.777226,
+        "std": 8.687506,
+        "se": 0.501573,
+        "normal_95ci_low": 6.794142,
+        "normal_95ci_high": 8.76031,
+        "win_rate": 0.79,
+        "non_loss_rate": 0.836667
+      },
+      "top10_hit": {
+        "n": 300.0,
+        "mean": 0.046667,
+        "std": 0.253947,
+        "se": 0.014662,
+        "normal_95ci_low": 0.01793,
+        "normal_95ci_high": 0.075403,
+        "win_rate": 0.056667,
+        "non_loss_rate": 0.99
+      }
+    },
+    "target_acquisition_portfolio": {
+      "final_best": {
+        "n": 300.0,
+        "mean": 8.239559,
+        "std": 13.61441,
+        "se": 0.786028,
+        "normal_95ci_low": 6.698943,
+        "normal_95ci_high": 9.780174,
+        "win_rate": 0.68,
+        "non_loss_rate": 0.763333
+      },
+      "best_so_far_auc": {
+        "n": 300.0,
+        "mean": 7.027352,
+        "std": 9.236503,
+        "se": 0.53327,
+        "normal_95ci_low": 5.982143,
+        "normal_95ci_high": 8.072561,
+        "win_rate": 0.783333,
+        "non_loss_rate": 0.823333
+      },
+      "top10_hit": {
+        "n": 300.0,
+        "mean": -0.013333,
+        "std": 0.336386,
+        "se": 0.019421,
+        "normal_95ci_low": -0.051399,
+        "normal_95ci_high": 0.024732,
+        "win_rate": 0.05,
+        "non_loss_rate": 0.936667
+      }
+    }
+  },
+  "external_llm_baselines": {
+    "llm_direct_prior": {
+      "selected_mode": "llm_direct_prior_ionic_covalent_balance_refractive_conservative",
+      "selector_alias": "llm_direct_prior_selector",
+      "calibration": {
+        "llm_direct_prior_ionic_covalent_balance_refractive_conservative": {
+          "final_best": 62.498508,
+          "best_so_far_auc": 51.569028,
+          "top10_hit": 0.04,
+          "composite": 114.067536
+        }
+      },
+      "rule": "Select the strongest llm_direct_prior variant on calibration final_best + AUC; held-out outcomes do not affect this choice."
+    },
+    "llambo_warmstart": {
+      "selected_mode": "llambo_warmstart_ionic_covalent_balance_refractive_conservative",
+      "selector_alias": "llambo_warmstart_selector",
+      "calibration": {
+        "llambo_warmstart_ionic_covalent_balance_refractive_conservative": {
+          "final_best": 56.38942,
+          "best_so_far_auc": 50.864882,
+          "top10_hit": 0.12,
+          "composite": 107.254302
+        }
+      },
+      "rule": "Select the strongest llambo_warmstart variant on calibration final_best + AUC; held-out outcomes do not affect this choice."
+    }
+  },
+  "care_vs_external_llm": {
+    "llm_direct_prior_selector": {
+      "final_best": {
+        "n": 300.0,
+        "mean": -3.731873,
+        "std": 13.897876,
+        "se": 0.802394,
+        "normal_95ci_low": -5.304566,
+        "normal_95ci_high": -2.15918,
+        "win_rate": 0.23,
+        "non_loss_rate": 0.573333
+      },
+      "best_so_far_auc": {
+        "n": 300.0,
+        "mean": -0.086988,
+        "std": 11.364661,
+        "se": 0.656139,
+        "normal_95ci_low": -1.373021,
+        "normal_95ci_high": 1.199044,
+        "win_rate": 0.503333,
+        "non_loss_rate": 0.523333
+      },
+      "top10_hit": {
+        "n": 300.0,
+        "mean": 0.013333,
+        "std": 0.305214,
+        "se": 0.017622,
+        "normal_95ci_low": -0.021205,
+        "normal_95ci_high": 0.047872,
+        "win_rate": 0.053333,
+        "non_loss_rate": 0.96
+      }
+    },
+    "llambo_warmstart_selector": {
+      "final_best": {
+        "n": 300.0,
+        "mean": 4.830388,
+        "std": 14.199551,
+        "se": 0.819811,
+        "normal_95ci_low": 3.223557,
+        "normal_95ci_high": 6.437218,
+        "win_rate": 0.626667,
+        "non_loss_rate": 0.626667
+      },
+      "best_so_far_auc": {
+        "n": 300.0,
+        "mean": 2.781078,
+        "std": 10.242731,
+        "se": 0.591364,
+        "normal_95ci_low": 1.622004,
+        "normal_95ci_high": 3.940152,
+        "win_rate": 0.6,
+        "non_loss_rate": 0.6
+      },
+      "top10_hit": {
+        "n": 300.0,
+        "mean": -0.003333,
+        "std": 0.351173,
+        "se": 0.020275,
+        "normal_95ci_low": -0.043072,
+        "normal_95ci_high": 0.036406,
+        "win_rate": 0.06,
+        "non_loss_rate": 0.936667
+      }
+    }
+  },
+  "strategy_router": {
+    "selected_mode": "llm_direct_prior_ionic_covalent_balance_refractive_conservative",
+    "selected_llm_strategy": true,
+    "target_anchor_mode": "target_acquisition_portfolio",
+    "candidate_modes": [
+      "target_acquisition_portfolio",
+      "llm_semantic_ionic_covalent_balance_refractive_conservative",
+      "llm_direct_prior_ionic_covalent_balance_refractive_conservative",
+      "llambo_warmstart_ionic_covalent_balance_refractive_conservative"
+    ],
+    "eligible_modes": [
+      "target_acquisition_portfolio",
+      "llm_semantic_ionic_covalent_balance_refractive_conservative",
+      "llm_direct_prior_ionic_covalent_balance_refractive_conservative",
+      "llambo_warmstart_ionic_covalent_balance_refractive_conservative"
+    ],
+    "diagnostics": {
+      "target_acquisition_portfolio": {
+        "eligible": true,
+        "risk_adjusted_composite_gain": 0.0,
+        "reason": "target-only fallback"
+      },
+      "llm_semantic_ionic_covalent_balance_refractive_conservative": {
+        "final_best": {
+          "n": 50.0,
+          "mean": 6.636988,
+          "std": 14.427424,
+          "se": 2.040346,
+          "normal_95ci_low": 2.63791,
+          "normal_95ci_high": 10.636066,
+          "win_rate": 0.7,
+          "non_loss_rate": 0.78
+        },
+        "best_so_far_auc": {
+          "n": 50.0,
+          "mean": 6.561674,
+          "std": 9.487527,
+          "se": 1.341739,
+          "normal_95ci_low": 3.931866,
+          "normal_95ci_high": 9.191482,
+          "win_rate": 0.74,
+          "non_loss_rate": 0.8
+        },
+        "composite": {
+          "n": 50.0,
+          "mean": 13.198662,
+          "std": 23.208245,
+          "se": 3.282141,
+          "normal_95ci_low": 6.765665,
+          "normal_95ci_high": 19.631659,
+          "win_rate": 0.72,
+          "non_loss_rate": 0.78
+        },
+        "positive_fold_rate": 1.0,
+        "fold_composite_means": [
+          13.36746,
+          21.60265,
+          13.00805,
+          8.36048,
+          9.65467
+        ],
+        "risk_adjusted_composite_gain": 11.557592,
+        "eligible": true
+      },
+      "llm_direct_prior_ionic_covalent_balance_refractive_conservative": {
+        "final_best": {
+          "n": 50.0,
+          "mean": 10.216128,
+          "std": 12.435202,
+          "se": 1.758603,
+          "normal_95ci_low": 6.769266,
+          "normal_95ci_high": 13.66299,
+          "win_rate": 0.72,
+          "non_loss_rate": 0.8
+        },
+        "best_so_far_auc": {
+          "n": 50.0,
+          "mean": 5.415228,
+          "std": 7.953784,
+          "se": 1.124835,
+          "normal_95ci_low": 3.210552,
+          "normal_95ci_high": 7.619904,
+          "win_rate": 0.66,
+          "non_loss_rate": 0.74
+        },
+        "composite": {
+          "n": 50.0,
+          "mean": 15.631356,
+          "std": 19.040511,
+          "se": 2.692735,
+          "normal_95ci_low": 10.353596,
+          "normal_95ci_high": 20.909116,
+          "win_rate": 0.72,
+          "non_loss_rate": 0.8
+        },
+        "positive_fold_rate": 1.0,
+        "fold_composite_means": [
+          24.63345,
+          15.33085,
+          9.45044,
+          15.363,
+          13.37904
+        ],
+        "risk_adjusted_composite_gain": 14.284989,
+        "eligible": true
+      },
+      "llambo_warmstart_ionic_covalent_balance_refractive_conservative": {
+        "final_best": {
+          "n": 50.0,
+          "mean": 4.10704,
+          "std": 15.429616,
+          "se": 2.182077,
+          "normal_95ci_low": -0.169831,
+          "normal_95ci_high": 8.383911,
+          "win_rate": 0.7,
+          "non_loss_rate": 0.7
+        },
+        "best_so_far_auc": {
+          "n": 50.0,
+          "mean": 4.711082,
+          "std": 11.388168,
+          "se": 1.61053,
+          "normal_95ci_low": 1.554443,
+          "normal_95ci_high": 7.867721,
+          "win_rate": 0.78,
+          "non_loss_rate": 0.78
+        },
+        "composite": {
+          "n": 50.0,
+          "mean": 8.818122,
+          "std": 25.979959,
+          "se": 3.674121,
+          "normal_95ci_low": 1.616845,
+          "normal_95ci_high": 16.019399,
+          "win_rate": 0.8,
+          "non_loss_rate": 0.8
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          16.03383,
+          20.19826,
+          3.29135,
+          10.89332,
+          -6.32615
+        ],
+        "risk_adjusted_composite_gain": 6.981062,
+        "eligible": true
+      }
+    },
+    "thresholds": {
+      "min_risk_adjusted_composite_gain": 0.25,
+      "min_positive_fold_rate": 0.8,
+      "min_final_non_loss_rate": 0.55
+    },
+    "rule": "Choose among the frozen semantic selector, LLM-direct prior, LLAMBO-style warm-start, and the target-only anchor using calibration seeds only. Require non-negative final-best and AUC deltas, stable folds, and a positive risk-adjusted composite gain; otherwise fall back to the target-only anchor.",
+    "evidence_boundary": "Only calibration outcomes choose the strategy. Held-out outcomes are used once for the frozen comparison."
+  },
+  "strategy_router_strongest_target_mode": "target_acquisition_portfolio",
+  "strategy_router_pairwise": {
+    "gp_ucb": {
+      "final_best": {
+        "n": 300.0,
+        "mean": 13.78001,
+        "std": 12.204067,
+        "se": 0.704602,
+        "normal_95ci_low": 12.39899,
+        "normal_95ci_high": 15.161031,
+        "win_rate": 0.846667,
+        "non_loss_rate": 0.896667
+      },
+      "best_so_far_auc": {
+        "n": 300.0,
+        "mean": 7.828797,
+        "std": 10.552491,
+        "se": 0.609248,
+        "normal_95ci_low": 6.63467,
+        "normal_95ci_high": 9.022923,
+        "win_rate": 0.763333,
+        "non_loss_rate": 0.793333
+      },
+      "top10_hit": {
+        "n": 300.0,
+        "mean": 0.026667,
+        "std": 0.243493,
+        "se": 0.014058,
+        "normal_95ci_low": -0.000887,
+        "normal_95ci_high": 0.054221,
+        "win_rate": 0.043333,
+        "non_loss_rate": 0.983333
+      }
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": {
+        "n": 300.0,
+        "mean": 13.511795,
+        "std": 11.604366,
+        "se": 0.669978,
+        "normal_95ci_low": 12.198638,
+        "normal_95ci_high": 14.824953,
+        "win_rate": 0.846667,
+        "non_loss_rate": 0.893333
+      },
+      "best_so_far_auc": {
+        "n": 300.0,
+        "mean": 7.864214,
+        "std": 10.469896,
+        "se": 0.60448,
+        "normal_95ci_low": 6.679434,
+        "normal_95ci_high": 9.048995,
+        "win_rate": 0.766667,
+        "non_loss_rate": 0.79
+      },
+      "top10_hit": {
+        "n": 300.0,
+        "mean": 0.033333,
+        "std": 0.228522,
+        "se": 0.013194,
+        "normal_95ci_low": 0.007474,
+        "normal_95ci_high": 0.059193,
+        "win_rate": 0.043333,
+        "non_loss_rate": 0.99
+      }
+    },
+    "target_acquisition_portfolio": {
+      "final_best": {
+        "n": 300.0,
+        "mean": 11.971432,
+        "std": 13.514911,
+        "se": 0.780284,
+        "normal_95ci_low": 10.442076,
+        "normal_95ci_high": 13.500788,
+        "win_rate": 0.77,
+        "non_loss_rate": 0.813333
+      },
+      "best_so_far_auc": {
+        "n": 300.0,
+        "mean": 7.11434,
+        "std": 11.185215,
+        "se": 0.645779,
+        "normal_95ci_low": 5.848614,
+        "normal_95ci_high": 8.380067,
+        "win_rate": 0.746667,
+        "non_loss_rate": 0.766667
+      },
+      "top10_hit": {
+        "n": 300.0,
+        "mean": -0.026667,
+        "std": 0.335592,
+        "se": 0.019375,
+        "normal_95ci_low": -0.064643,
+        "normal_95ci_high": 0.011309,
+        "win_rate": 0.043333,
+        "non_loss_rate": 0.93
+      }
+    }
+  },
+  "strategy_router_vs_external_llm": {
+    "llm_direct_prior_selector": {
+      "final_best": {
+        "n": 300.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      },
+      "best_so_far_auc": {
+        "n": 300.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      },
+      "top10_hit": {
+        "n": 300.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      }
+    },
+    "llambo_warmstart_selector": {
+      "final_best": {
+        "n": 300.0,
+        "mean": 8.562261,
+        "std": 13.34154,
+        "se": 0.770274,
+        "normal_95ci_low": 7.052523,
+        "normal_95ci_high": 10.071998,
+        "win_rate": 0.793333,
+        "non_loss_rate": 0.793333
+      },
+      "best_so_far_auc": {
+        "n": 300.0,
+        "mean": 2.868066,
+        "std": 12.2105,
+        "se": 0.704974,
+        "normal_95ci_low": 1.486318,
+        "normal_95ci_high": 4.249814,
+        "win_rate": 0.62,
+        "non_loss_rate": 0.62
+      },
+      "top10_hit": {
+        "n": 300.0,
+        "mean": -0.016667,
+        "std": 0.341158,
+        "se": 0.019697,
+        "normal_95ci_low": -0.055272,
+        "normal_95ci_high": 0.021939,
+        "win_rate": 0.05,
+        "non_loss_rate": 0.933333
+      }
+    }
+  },
+  "strategy_router_validation": {
+    "selected_llm_strategy": true,
+    "strongest_target_mode": "target_acquisition_portfolio",
+    "final_95ci_positive": true,
+    "auc_95ci_positive": true,
+    "top10_95ci_positive": false
+  },
+  "heldout_validation": {
+    "selected_llm_skill": true,
+    "strongest_target_mode": "target_acquisition_portfolio",
+    "final_95ci_positive": true,
+    "auc_95ci_positive": true,
+    "top10_95ci_positive": false
+  },
+  "evidence_boundary": {
+    "generation": "Only source identity, objective, and public source-target field alignment are provided. Source outcomes, effects, support counts, and value priors are withheld.",
+    "evaluation": "Calibration selects a skill before held-out evaluation. Every per-round fit uses only previously revealed target outcomes."
+  }
+}

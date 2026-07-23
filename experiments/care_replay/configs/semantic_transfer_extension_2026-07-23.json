@@ -1,0 +1,96 @@
+{
+  "study": "care2_source_evidence_extension_2026_07_23",
+  "registered_date": "2026-07-23",
+  "pair_membership_frozen_before_first_llm_call": true,
+  "confirmation_protocol_frozen_before_confirmation": true,
+  "registration_note": "Pair membership, evidence modes, and the independent confirmation seed range were fixed before model selection. Screening seed counts and the shared target-only bookkeeping were finalized after runtime smoke testing, so this file is not described as a fully preregistered protocol.",
+  "objective": "Test whether source-schema evidence adds value beyond target-only LLM skills across new transfer directions and a previously unreported target dataset.",
+  "llm_generation": {
+    "model": "deepspeek-v3.2",
+    "temperature": 0.35,
+    "max_tokens": 5000,
+    "skill_count": 8,
+    "evidence_modes": [
+      "source_schema_only",
+      "target_only"
+    ],
+    "knowledge_cutoff": "2026-07-22",
+    "generation_rule": "Generate one source-schema skill record per pair and one shared target-only record per unique target, so different sources do not receive different target-only samples."
+  },
+  "screening_protocol": {
+    "calibration_seed_start": 27000,
+    "calibration_seeds": 30,
+    "heldout_seed_start": 27100,
+    "heldout_seeds": 50,
+    "initial_target_observations": 5,
+    "replay_rounds": 10,
+    "skill_variants": "expanded",
+    "include_llm_baselines": true
+  },
+  "runtime_smoke_test": {
+    "calibration_seed_start": 26990,
+    "calibration_seeds": 2,
+    "heldout_seed_start": 26995,
+    "heldout_seeds": 2,
+    "purpose": "Validate the server runtime and output contract only. These seeds are excluded from skill, strategy, and claim selection."
+  },
+  "confirmation_protocol": {
+    "calibration_seed_start": 28000,
+    "calibration_seeds": 50,
+    "heldout_seed_start": 29000,
+    "heldout_seeds": 300,
+    "initial_target_observations": 5,
+    "replay_rounds": 10,
+    "include_llm_baselines": true,
+    "rule": "Freeze the development-selected skill family before confirmation. Confirmation calibration may choose only its execution strategy and target-only anchor."
+  },
+  "primary_metrics": [
+    "final_best",
+    "best_so_far_auc",
+    "top10_hit",
+    "rounds_to_top10"
+  ],
+  "primary_comparisons": [
+    "source_schema_only router versus strongest target-only optimizer",
+    "target_only LLM router versus strongest target-only optimizer",
+    "source_schema_only router versus target_only LLM router"
+  ],
+  "pairs": [
+    {
+      "pair_id": "molecular_esol_to_lipophilicity_source_extension",
+      "domain": "molecular_property",
+      "source_dataset": "real_moleculenet_esol",
+      "target_dataset": "real_moleculenet_lipophilicity",
+      "novelty": "Source-schema ablation was not part of the frozen 2026-07-22 headline result."
+    },
+    {
+      "pair_id": "molecular_lipophilicity_to_freesolv_source_extension",
+      "domain": "molecular_property",
+      "source_dataset": "real_moleculenet_lipophilicity",
+      "target_dataset": "real_moleculenet_freesolv",
+      "novelty": "Reverse molecular transfer direction with an explicit public role map."
+    },
+    {
+      "pair_id": "materials_expt_gap_to_dielectric_source_extension",
+      "domain": "materials_property",
+      "source_dataset": "real_matbench_expt_gap",
+      "target_dataset": "real_matbench_dielectric",
+      "novelty": "Matbench dielectric is a new held-out target in the frozen multidomain report."
+    },
+    {
+      "pair_id": "materials_phonons_to_dielectric_source_extension",
+      "domain": "materials_property",
+      "source_dataset": "real_matbench_phonons",
+      "target_dataset": "real_matbench_dielectric",
+      "novelty": "Tests whether a different materials source changes the strategy selected for the same new target."
+    },
+    {
+      "pair_id": "reaction_chemlex_to_buchwald_hartwig_source_extension",
+      "domain": "reaction_hte",
+      "source_dataset": "real_chemlex_acidamine",
+      "target_dataset": "real_buchwald_hartwig",
+      "novelty": "New reverse reaction-transfer direction; previous Buchwald-Hartwig evidence used Suzuki as source."
+    }
+  ],
+  "reporting_rule": "Report all five pairs and both evidence modes, including fallback, null, and negative outcomes. Do not use confirmation outcomes to revise prompts, skills, router thresholds, or pair membership."
+}

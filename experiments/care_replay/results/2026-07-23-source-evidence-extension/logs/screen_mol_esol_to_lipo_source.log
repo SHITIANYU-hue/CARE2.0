@@ -1,0 +1,4428 @@
+{
+  "experiment": "care_calibrated_llm_semantic_skill_selector",
+  "source_dataset": "real_moleculenet_esol",
+  "target_dataset": "real_moleculenet_lipophilicity",
+  "evidence_mode": "source_schema_only",
+  "llm_model": "deepspeek-v3.2",
+  "llm_generation_call_count": 1,
+  "new_llm_call_count": 0,
+  "rule_prior_enabled": true,
+  "semantic_model_enabled": true,
+  "semantic_field_catalog": {
+    "smiles_length_bin": {
+      "smiles_long": 2265,
+      "smiles_mid": 1764,
+      "smiles_short": 93,
+      "smiles_very_long": 78
+    },
+    "hetero_atom_bin": {
+      "hetero_high": 2661,
+      "hetero_low": 194,
+      "hetero_mid": 1344,
+      "hetero_none": 1
+    },
+    "halogen_bin": {
+      "halogen_high": 98,
+      "halogen_low": 961,
+      "halogen_mid": 743,
+      "halogen_none": 2398
+    },
+    "aromatic_bin": {
+      "aromatic_high": 1982,
+      "aromatic_low": 545,
+      "aromatic_mid": 1619,
+      "aromatic_none": 54
+    },
+    "ring_token_bin": {
+      "ring_token_high": 1976,
+      "ring_token_low": 113,
+      "ring_token_mid": 2106,
+      "ring_token_none": 5
+    },
+    "branch_bin": {
+      "branch_high": 1183,
+      "branch_low": 817,
+      "branch_mid": 2147,
+      "branch_none": 53
+    },
+    "double_bond_bin": {
+      "double_bond_high": 147,
+      "double_bond_low": 1333,
+      "double_bond_mid": 1843,
+      "double_bond_none": 877
+    }
+  },
+  "skills": [
+    {
+      "skill_id": "aromatic_hydrophobic_enhancement",
+      "rules": [
+        {
+          "rule_id": "high_aromaticity_lipophilicity",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "High aromatic content increases hydrophobicity via pi-stacking and reduced polarity."
+        },
+        {
+          "rule_id": "low_heteroatom_lipophilicity",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_low"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Fewer heteroatoms reduce hydrogen bonding capacity, favoring lipid solubility."
+        },
+        {
+          "rule_id": "moderate_halogen_lipophilicity",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_mid"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Moderate halogenation increases lipophilicity through hydrophobic surface area without excessive molecular weight."
+        },
+        {
+          "rule_id": "high_branching_lipophilicity",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_high"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "High branching can disrupt crystal packing, enhancing solubility in lipids."
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.5,
+      "semantic_mass_start": 0.7,
+      "semantic_mass_end": 0.5,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 3.0,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.05,
+      "confidence": 0.8,
+      "hypothesis": "Transfers the principle that aromaticity and low polarity enhance lipophilicity; may fail for molecules where halogenation or branching leads to unfavorable steric effects."
+    },
+    {
+      "skill_id": "aromatic_hydrophobic_enhancement_noprior",
+      "rules": [
+        {
+          "rule_id": "high_aromaticity_lipophilicity",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "High aromatic content increases hydrophobicity via pi-stacking and reduced polarity."
+        },
+        {
+          "rule_id": "low_heteroatom_lipophilicity",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_low"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Fewer heteroatoms reduce hydrogen bonding capacity, favoring lipid solubility."
+        },
+        {
+          "rule_id": "moderate_halogen_lipophilicity",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_mid"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Moderate halogenation increases lipophilicity through hydrophobic surface area without excessive molecular weight."
+        },
+        {
+          "rule_id": "high_branching_lipophilicity",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_high"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "High branching can disrupt crystal packing, enhancing solubility in lipids."
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.7,
+      "semantic_mass_end": 0.5,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 3.0,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.05,
+      "confidence": 0.8,
+      "hypothesis": "Transfers the principle that aromaticity and low polarity enhance lipophilicity; may fail for molecules where halogenation or branching leads to unfavorable steric effects."
+    },
+    {
+      "skill_id": "aromatic_hydrophobic_enhancement_conservative",
+      "rules": [
+        {
+          "rule_id": "high_aromaticity_lipophilicity",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "High aromatic content increases hydrophobicity via pi-stacking and reduced polarity."
+        },
+        {
+          "rule_id": "low_heteroatom_lipophilicity",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_low"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Fewer heteroatoms reduce hydrogen bonding capacity, favoring lipid solubility."
+        },
+        {
+          "rule_id": "moderate_halogen_lipophilicity",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_mid"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Moderate halogenation increases lipophilicity through hydrophobic surface area without excessive molecular weight."
+        },
+        {
+          "rule_id": "high_branching_lipophilicity",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_high"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "High branching can disrupt crystal packing, enhancing solubility in lipids."
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 3.0,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.05,
+      "confidence": 0.8,
+      "hypothesis": "Transfers the principle that aromaticity and low polarity enhance lipophilicity; may fail for molecules where halogenation or branching leads to unfavorable steric effects."
+    },
+    {
+      "skill_id": "source_schema_alignment_conservative",
+      "rules": [
+        {
+          "rule_id": "source_aligned_hetero_risk",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Source schema maps heteroatoms to solubility; high heteroatoms may reduce lipophilicity as a counter-hypothesis."
+        },
+        {
+          "rule_id": "source_aligned_ring_complexity",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Source schema maps ring complexity; high rings may increase rigidity and lipophilicity."
+        },
+        {
+          "rule_id": "source_aligned_branching_moderation",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_mid"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Source schema maps rotatable bonds to flexibility; moderate branching may balance flexibility and lipophilicity."
+        },
+        {
+          "rule_id": "source_aligned_smiles_length",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": 0.1,
+          "rationale": "Source schema maps SMILES length; moderate length may indicate optimal molecular size for lipophilicity."
+        }
+      ],
+      "ridge": 5.0,
+      "prior_scale": 0.2,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.1,
+      "confidence": 0.6,
+      "hypothesis": "Grounds rules only in source-target field alignment without observed effects; may fail if source solubility relationships inversely correlate with target lipophilicity."
+    },
+    {
+      "skill_id": "source_schema_alignment_conservative_noprior",
+      "rules": [
+        {
+          "rule_id": "source_aligned_hetero_risk",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Source schema maps heteroatoms to solubility; high heteroatoms may reduce lipophilicity as a counter-hypothesis."
+        },
+        {
+          "rule_id": "source_aligned_ring_complexity",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Source schema maps ring complexity; high rings may increase rigidity and lipophilicity."
+        },
+        {
+          "rule_id": "source_aligned_branching_moderation",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_mid"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Source schema maps rotatable bonds to flexibility; moderate branching may balance flexibility and lipophilicity."
+        },
+        {
+          "rule_id": "source_aligned_smiles_length",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": 0.1,
+          "rationale": "Source schema maps SMILES length; moderate length may indicate optimal molecular size for lipophilicity."
+        }
+      ],
+      "ridge": 5.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.1,
+      "confidence": 0.6,
+      "hypothesis": "Grounds rules only in source-target field alignment without observed effects; may fail if source solubility relationships inversely correlate with target lipophilicity."
+    },
+    {
+      "skill_id": "source_schema_alignment_conservative_conservative",
+      "rules": [
+        {
+          "rule_id": "source_aligned_hetero_risk",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Source schema maps heteroatoms to solubility; high heteroatoms may reduce lipophilicity as a counter-hypothesis."
+        },
+        {
+          "rule_id": "source_aligned_ring_complexity",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Source schema maps ring complexity; high rings may increase rigidity and lipophilicity."
+        },
+        {
+          "rule_id": "source_aligned_branching_moderation",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_mid"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Source schema maps rotatable bonds to flexibility; moderate branching may balance flexibility and lipophilicity."
+        },
+        {
+          "rule_id": "source_aligned_smiles_length",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": 0.1,
+          "rationale": "Source schema maps SMILES length; moderate length may indicate optimal molecular size for lipophilicity."
+        }
+      ],
+      "ridge": 5.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.1,
+      "confidence": 0.6,
+      "hypothesis": "Grounds rules only in source-target field alignment without observed effects; may fail if source solubility relationships inversely correlate with target lipophilicity."
+    },
+    {
+      "skill_id": "halogen_aromatic_synergy",
+      "rules": [
+        {
+          "rule_id": "halogen_aromatic_interaction",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ],
+            [
+              "halogen_bin",
+              "halogen_mid"
+            ]
+          ],
+          "weight": 0.9,
+          "rationale": "Combination of moderate halogenation and high aromaticity synergistically enhances lipophilicity through hydrophobic and electron-withdrawing effects."
+        },
+        {
+          "rule_id": "low_double_bond_lipophilicity",
+          "conditions": [
+            [
+              "double_bond_bin",
+              "double_bond_low"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Few double bonds reduce polarity, favoring lipid environments."
+        },
+        {
+          "rule_id": "high_ring_token_rigidity",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "High ring count increases molecular rigidity and hydrophobic surface area."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.7,
+      "semantic_mass_start": 0.6,
+      "semantic_mass_end": 0.4,
+      "ucb_weight": 0.8,
+      "gp_beta_start": 3.5,
+      "gp_beta_end": 2.0,
+      "gp_xi": 0.02,
+      "confidence": 0.75,
+      "hypothesis": "Transfers the mechanistic synergy between halogenation and aromaticity for lipophilicity; may fail for molecules with steric clashes or excessive halogenation."
+    },
+    {
+      "skill_id": "halogen_aromatic_synergy_noprior",
+      "rules": [
+        {
+          "rule_id": "halogen_aromatic_interaction",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ],
+            [
+              "halogen_bin",
+              "halogen_mid"
+            ]
+          ],
+          "weight": 0.9,
+          "rationale": "Combination of moderate halogenation and high aromaticity synergistically enhances lipophilicity through hydrophobic and electron-withdrawing effects."
+        },
+        {
+          "rule_id": "low_double_bond_lipophilicity",
+          "conditions": [
+            [
+              "double_bond_bin",
+              "double_bond_low"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Few double bonds reduce polarity, favoring lipid environments."
+        },
+        {
+          "rule_id": "high_ring_token_rigidity",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "High ring count increases molecular rigidity and hydrophobic surface area."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.6,
+      "semantic_mass_end": 0.4,
+      "ucb_weight": 0.8,
+      "gp_beta_start": 3.5,
+      "gp_beta_end": 2.0,
+      "gp_xi": 0.02,
+      "confidence": 0.75,
+      "hypothesis": "Transfers the mechanistic synergy between halogenation and aromaticity for lipophilicity; may fail for molecules with steric clashes or excessive halogenation."
+    },
+    {
+      "skill_id": "halogen_aromatic_synergy_conservative",
+      "rules": [
+        {
+          "rule_id": "halogen_aromatic_interaction",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ],
+            [
+              "halogen_bin",
+              "halogen_mid"
+            ]
+          ],
+          "weight": 0.9,
+          "rationale": "Combination of moderate halogenation and high aromaticity synergistically enhances lipophilicity through hydrophobic and electron-withdrawing effects."
+        },
+        {
+          "rule_id": "low_double_bond_lipophilicity",
+          "conditions": [
+            [
+              "double_bond_bin",
+              "double_bond_low"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Few double bonds reduce polarity, favoring lipid environments."
+        },
+        {
+          "rule_id": "high_ring_token_rigidity",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "High ring count increases molecular rigidity and hydrophobic surface area."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.8,
+      "gp_beta_start": 3.5,
+      "gp_beta_end": 2.0,
+      "gp_xi": 0.02,
+      "confidence": 0.75,
+      "hypothesis": "Transfers the mechanistic synergy between halogenation and aromaticity for lipophilicity; may fail for molecules with steric clashes or excessive halogenation."
+    },
+    {
+      "skill_id": "polarity_avoidance_domain",
+      "rules": [
+        {
+          "rule_id": "no_heteroatom_max_lipophilicity",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_none"
+            ]
+          ],
+          "weight": 1.0,
+          "rationale": "Complete absence of heteroatoms maximizes hydrophobicity by eliminating polar interactions."
+        },
+        {
+          "rule_id": "no_halogen_pure_hydrocarbon",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_none"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "No halogens maintains a pure hydrocarbon character, enhancing lipid solubility."
+        },
+        {
+          "rule_id": "low_aromaticity_flexibility",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_low"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Low aromaticity allows flexible aliphatic chains that favor lipid integration."
+        },
+        {
+          "rule_id": "moderate_branching_fluid",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_mid"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Moderate branching prevents crystallization, maintaining fluidity in lipid phases."
+        }
+      ],
+      "ridge": 0.5,
+      "prior_scale": 0.9,
+      "semantic_mass_start": 0.8,
+      "semantic_mass_end": 0.6,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 0.8,
+      "gp_xi": 0.15,
+      "confidence": 0.85,
+      "hypothesis": "Domain knowledge emphasizes pure hydrocarbons for lipophilicity; may fail for molecules requiring some polarity for membrane penetration or specific interactions."
+    },
+    {
+      "skill_id": "polarity_avoidance_domain_noprior",
+      "rules": [
+        {
+          "rule_id": "no_heteroatom_max_lipophilicity",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_none"
+            ]
+          ],
+          "weight": 1.0,
+          "rationale": "Complete absence of heteroatoms maximizes hydrophobicity by eliminating polar interactions."
+        },
+        {
+          "rule_id": "no_halogen_pure_hydrocarbon",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_none"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "No halogens maintains a pure hydrocarbon character, enhancing lipid solubility."
+        },
+        {
+          "rule_id": "low_aromaticity_flexibility",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_low"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Low aromaticity allows flexible aliphatic chains that favor lipid integration."
+        },
+        {
+          "rule_id": "moderate_branching_fluid",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_mid"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Moderate branching prevents crystallization, maintaining fluidity in lipid phases."
+        }
+      ],
+      "ridge": 0.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.8,
+      "semantic_mass_end": 0.6,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 0.8,
+      "gp_xi": 0.15,
+      "confidence": 0.85,
+      "hypothesis": "Domain knowledge emphasizes pure hydrocarbons for lipophilicity; may fail for molecules requiring some polarity for membrane penetration or specific interactions."
+    },
+    {
+      "skill_id": "polarity_avoidance_domain_conservative",
+      "rules": [
+        {
+          "rule_id": "no_heteroatom_max_lipophilicity",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_none"
+            ]
+          ],
+          "weight": 1.0,
+          "rationale": "Complete absence of heteroatoms maximizes hydrophobicity by eliminating polar interactions."
+        },
+        {
+          "rule_id": "no_halogen_pure_hydrocarbon",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_none"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "No halogens maintains a pure hydrocarbon character, enhancing lipid solubility."
+        },
+        {
+          "rule_id": "low_aromaticity_flexibility",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_low"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Low aromaticity allows flexible aliphatic chains that favor lipid integration."
+        },
+        {
+          "rule_id": "moderate_branching_fluid",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_mid"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Moderate branching prevents crystallization, maintaining fluidity in lipid phases."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 0.8,
+      "gp_xi": 0.15,
+      "confidence": 0.85,
+      "hypothesis": "Domain knowledge emphasizes pure hydrocarbons for lipophilicity; may fail for molecules requiring some polarity for membrane penetration or specific interactions."
+    },
+    {
+      "skill_id": "counter_source_ring_complexity",
+      "rules": [
+        {
+          "rule_id": "low_ring_token_risk",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_low"
+            ]
+          ],
+          "weight": -0.6,
+          "rationale": "Counter-hypothesis: low ring complexity may increase flexibility but reduce hydrophobic surface, potentially lowering lipophilicity."
+        },
+        {
+          "rule_id": "high_heteroatom_uncertain",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "Source alignment uncertain; high heteroatoms may not consistently reduce lipophilicity, treated as a risk."
+        },
+        {
+          "rule_id": "moderate_smiles_length_stability",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Moderate SMILES length suggests stable molecular size without excessive polarity."
+        }
+      ],
+      "ridge": 10.0,
+      "prior_scale": 0.1,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 0.5,
+      "gp_xi": 0.18,
+      "confidence": 0.5,
+      "hypothesis": "Reverses or downweights uncertain source relations, particularly ring complexity; may fail if source correlations hold positively for lipophilicity."
+    },
+    {
+      "skill_id": "counter_source_ring_complexity_noprior",
+      "rules": [
+        {
+          "rule_id": "low_ring_token_risk",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_low"
+            ]
+          ],
+          "weight": -0.6,
+          "rationale": "Counter-hypothesis: low ring complexity may increase flexibility but reduce hydrophobic surface, potentially lowering lipophilicity."
+        },
+        {
+          "rule_id": "high_heteroatom_uncertain",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "Source alignment uncertain; high heteroatoms may not consistently reduce lipophilicity, treated as a risk."
+        },
+        {
+          "rule_id": "moderate_smiles_length_stability",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Moderate SMILES length suggests stable molecular size without excessive polarity."
+        }
+      ],
+      "ridge": 10.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 0.5,
+      "gp_xi": 0.18,
+      "confidence": 0.5,
+      "hypothesis": "Reverses or downweights uncertain source relations, particularly ring complexity; may fail if source correlations hold positively for lipophilicity."
+    },
+    {
+      "skill_id": "counter_source_ring_complexity_conservative",
+      "rules": [
+        {
+          "rule_id": "low_ring_token_risk",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_low"
+            ]
+          ],
+          "weight": -0.6,
+          "rationale": "Counter-hypothesis: low ring complexity may increase flexibility but reduce hydrophobic surface, potentially lowering lipophilicity."
+        },
+        {
+          "rule_id": "high_heteroatom_uncertain",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "Source alignment uncertain; high heteroatoms may not consistently reduce lipophilicity, treated as a risk."
+        },
+        {
+          "rule_id": "moderate_smiles_length_stability",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Moderate SMILES length suggests stable molecular size without excessive polarity."
+        }
+      ],
+      "ridge": 10.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 0.5,
+      "gp_xi": 0.18,
+      "confidence": 0.5,
+      "hypothesis": "Reverses or downweights uncertain source relations, particularly ring complexity; may fail if source correlations hold positively for lipophilicity."
+    },
+    {
+      "skill_id": "steric_hindrance_lipophilicity",
+      "rules": [
+        {
+          "rule_id": "high_branching_steric",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_high"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "High branching creates steric hindrance that disrupts aqueous solvation, favoring lipids."
+        },
+        {
+          "rule_id": "high_ring_token_steric",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "High ring count adds steric bulk, increasing hydrophobic volume."
+        },
+        {
+          "rule_id": "low_double_bond_steric",
+          "conditions": [
+            [
+              "double_bond_bin",
+              "double_bond_low"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Few double bonds reduce planar rigidity, allowing conformational flexibility that enhances lipid mixing."
+        }
+      ],
+      "ridge": 3.0,
+      "prior_scale": 0.6,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.3,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 2.8,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.08,
+      "confidence": 0.7,
+      "hypothesis": "Transfers steric hindrance as a driver of lipophilicity; may fail for overly bulky molecules that cannot integrate into lipid bilayers."
+    },
+    {
+      "skill_id": "steric_hindrance_lipophilicity_noprior",
+      "rules": [
+        {
+          "rule_id": "high_branching_steric",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_high"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "High branching creates steric hindrance that disrupts aqueous solvation, favoring lipids."
+        },
+        {
+          "rule_id": "high_ring_token_steric",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "High ring count adds steric bulk, increasing hydrophobic volume."
+        },
+        {
+          "rule_id": "low_double_bond_steric",
+          "conditions": [
+            [
+              "double_bond_bin",
+              "double_bond_low"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Few double bonds reduce planar rigidity, allowing conformational flexibility that enhances lipid mixing."
+        }
+      ],
+      "ridge": 3.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.3,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 2.8,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.08,
+      "confidence": 0.7,
+      "hypothesis": "Transfers steric hindrance as a driver of lipophilicity; may fail for overly bulky molecules that cannot integrate into lipid bilayers."
+    },
+    {
+      "skill_id": "steric_hindrance_lipophilicity_conservative",
+      "rules": [
+        {
+          "rule_id": "high_branching_steric",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_high"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "High branching creates steric hindrance that disrupts aqueous solvation, favoring lipids."
+        },
+        {
+          "rule_id": "high_ring_token_steric",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "High ring count adds steric bulk, increasing hydrophobic volume."
+        },
+        {
+          "rule_id": "low_double_bond_steric",
+          "conditions": [
+            [
+              "double_bond_bin",
+              "double_bond_low"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Few double bonds reduce planar rigidity, allowing conformational flexibility that enhances lipid mixing."
+        }
+      ],
+      "ridge": 3.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 2.8,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.08,
+      "confidence": 0.7,
+      "hypothesis": "Transfers steric hindrance as a driver of lipophilicity; may fail for overly bulky molecules that cannot integrate into lipid bilayers."
+    },
+    {
+      "skill_id": "low_semantic_mass_conservative",
+      "rules": [
+        {
+          "rule_id": "very_long_smiles_risk",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_very_long"
+            ]
+          ],
+          "weight": -0.7,
+          "rationale": "Very long SMILES may indicate high molecular weight or complexity, potentially reducing lipophilicity due to size limitations."
+        },
+        {
+          "rule_id": "no_aromaticity_flexible",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_none"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "No aromaticity allows fully aliphatic structures that can be highly hydrophobic."
+        }
+      ],
+      "ridge": 15.0,
+      "prior_scale": 0.05,
+      "semantic_mass_start": 0.1,
+      "semantic_mass_end": 0.05,
+      "ucb_weight": 0.9,
+      "gp_beta_start": 3.8,
+      "gp_beta_end": 2.5,
+      "gp_xi": 0.2,
+      "confidence": 0.6,
+      "hypothesis": "Conservative skill with minimal semantic influence, relying heavily on target-only anchors; may fail if simple rules miss complex lipophilicity interactions."
+    },
+    {
+      "skill_id": "low_semantic_mass_conservative_noprior",
+      "rules": [
+        {
+          "rule_id": "very_long_smiles_risk",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_very_long"
+            ]
+          ],
+          "weight": -0.7,
+          "rationale": "Very long SMILES may indicate high molecular weight or complexity, potentially reducing lipophilicity due to size limitations."
+        },
+        {
+          "rule_id": "no_aromaticity_flexible",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_none"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "No aromaticity allows fully aliphatic structures that can be highly hydrophobic."
+        }
+      ],
+      "ridge": 15.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.1,
+      "semantic_mass_end": 0.05,
+      "ucb_weight": 0.9,
+      "gp_beta_start": 3.8,
+      "gp_beta_end": 2.5,
+      "gp_xi": 0.2,
+      "confidence": 0.6,
+      "hypothesis": "Conservative skill with minimal semantic influence, relying heavily on target-only anchors; may fail if simple rules miss complex lipophilicity interactions."
+    },
+    {
+      "skill_id": "low_semantic_mass_conservative_conservative",
+      "rules": [
+        {
+          "rule_id": "very_long_smiles_risk",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_very_long"
+            ]
+          ],
+          "weight": -0.7,
+          "rationale": "Very long SMILES may indicate high molecular weight or complexity, potentially reducing lipophilicity due to size limitations."
+        },
+        {
+          "rule_id": "no_aromaticity_flexible",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_none"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "No aromaticity allows fully aliphatic structures that can be highly hydrophobic."
+        }
+      ],
+      "ridge": 15.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.1,
+      "semantic_mass_end": 0.05,
+      "ucb_weight": 0.9,
+      "gp_beta_start": 3.8,
+      "gp_beta_end": 2.5,
+      "gp_xi": 0.2,
+      "confidence": 0.6,
+      "hypothesis": "Conservative skill with minimal semantic influence, relying heavily on target-only anchors; may fail if simple rules miss complex lipophilicity interactions."
+    },
+    {
+      "skill_id": "electron_withdrawing_lipophilicity",
+      "rules": [
+        {
+          "rule_id": "high_halogen_electron_withdrawing",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_high"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "High halogen content provides strong electron-withdrawing effects, increasing hydrophobicity and membrane permeability."
+        },
+        {
+          "rule_id": "moderate_aromaticity_electron",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_mid"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Moderate aromaticity offers pi-systems for electron delocalization, synergizing with halogens."
+        },
+        {
+          "rule_id": "low_heteroatom_electron",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_low"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Low heteroatom count minimizes electron-donating groups, preserving hydrophobic character."
+        },
+        {
+          "rule_id": "high_double_bond_conjugation",
+          "conditions": [
+            [
+              "double_bond_bin",
+              "double_bond_high"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "High double bond count enables conjugation, enhancing electron withdrawal and rigidity for lipophilicity."
+        }
+      ],
+      "ridge": 2.5,
+      "prior_scale": 0.8,
+      "semantic_mass_start": 0.75,
+      "semantic_mass_end": 0.55,
+      "ucb_weight": 0.65,
+      "gp_beta_start": 3.2,
+      "gp_beta_end": 1.8,
+      "gp_xi": 0.03,
+      "confidence": 0.8,
+      "hypothesis": "Transfers electron-withdrawing effects as key to lipophilicity; may fail for molecules where excessive halogenation leads to toxicity or poor bioavailability."
+    },
+    {
+      "skill_id": "electron_withdrawing_lipophilicity_noprior",
+      "rules": [
+        {
+          "rule_id": "high_halogen_electron_withdrawing",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_high"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "High halogen content provides strong electron-withdrawing effects, increasing hydrophobicity and membrane permeability."
+        },
+        {
+          "rule_id": "moderate_aromaticity_electron",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_mid"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Moderate aromaticity offers pi-systems for electron delocalization, synergizing with halogens."
+        },
+        {
+          "rule_id": "low_heteroatom_electron",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_low"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Low heteroatom count minimizes electron-donating groups, preserving hydrophobic character."
+        },
+        {
+          "rule_id": "high_double_bond_conjugation",
+          "conditions": [
+            [
+              "double_bond_bin",
+              "double_bond_high"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "High double bond count enables conjugation, enhancing electron withdrawal and rigidity for lipophilicity."
+        }
+      ],
+      "ridge": 2.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.75,
+      "semantic_mass_end": 0.55,
+      "ucb_weight": 0.65,
+      "gp_beta_start": 3.2,
+      "gp_beta_end": 1.8,
+      "gp_xi": 0.03,
+      "confidence": 0.8,
+      "hypothesis": "Transfers electron-withdrawing effects as key to lipophilicity; may fail for molecules where excessive halogenation leads to toxicity or poor bioavailability."
+    },
+    {
+      "skill_id": "electron_withdrawing_lipophilicity_conservative",
+      "rules": [
+        {
+          "rule_id": "high_halogen_electron_withdrawing",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_high"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "High halogen content provides strong electron-withdrawing effects, increasing hydrophobicity and membrane permeability."
+        },
+        {
+          "rule_id": "moderate_aromaticity_electron",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_mid"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Moderate aromaticity offers pi-systems for electron delocalization, synergizing with halogens."
+        },
+        {
+          "rule_id": "low_heteroatom_electron",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_low"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Low heteroatom count minimizes electron-donating groups, preserving hydrophobic character."
+        },
+        {
+          "rule_id": "high_double_bond_conjugation",
+          "conditions": [
+            [
+              "double_bond_bin",
+              "double_bond_high"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "High double bond count enables conjugation, enhancing electron withdrawal and rigidity for lipophilicity."
+        }
+      ],
+      "ridge": 2.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.65,
+      "gp_beta_start": 3.2,
+      "gp_beta_end": 1.8,
+      "gp_xi": 0.03,
+      "confidence": 0.8,
+      "hypothesis": "Transfers electron-withdrawing effects as key to lipophilicity; may fail for molecules where excessive halogenation leads to toxicity or poor bioavailability."
+    },
+    {
+      "skill_id": "cross_skill_rule_bank",
+      "rules": [
+        {
+          "rule_id": "high_aromaticity_lipophilicity",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "High aromatic content increases hydrophobicity via pi-stacking and reduced polarity."
+        },
+        {
+          "rule_id": "low_heteroatom_lipophilicity",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_low"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Fewer heteroatoms reduce hydrogen bonding capacity, favoring lipid solubility."
+        },
+        {
+          "rule_id": "moderate_halogen_lipophilicity",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_mid"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Moderate halogenation increases lipophilicity through hydrophobic surface area without excessive molecular weight."
+        },
+        {
+          "rule_id": "high_branching_lipophilicity",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_high"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "High branching can disrupt crystal packing, enhancing solubility in lipids."
+        },
+        {
+          "rule_id": "source_aligned_hetero_risk",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Source schema maps heteroatoms to solubility; high heteroatoms may reduce lipophilicity as a counter-hypothesis."
+        },
+        {
+          "rule_id": "source_aligned_ring_complexity",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Source schema maps ring complexity; high rings may increase rigidity and lipophilicity."
+        },
+        {
+          "rule_id": "source_aligned_branching_moderation",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_mid"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Source schema maps rotatable bonds to flexibility; moderate branching may balance flexibility and lipophilicity."
+        },
+        {
+          "rule_id": "source_aligned_smiles_length",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": 0.1,
+          "rationale": "Source schema maps SMILES length; moderate length may indicate optimal molecular size for lipophilicity."
+        },
+        {
+          "rule_id": "halogen_aromatic_interaction",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ],
+            [
+              "halogen_bin",
+              "halogen_mid"
+            ]
+          ],
+          "weight": 0.9,
+          "rationale": "Combination of moderate halogenation and high aromaticity synergistically enhances lipophilicity through hydrophobic and electron-withdrawing effects."
+        },
+        {
+          "rule_id": "low_double_bond_lipophilicity",
+          "conditions": [
+            [
+              "double_bond_bin",
+              "double_bond_low"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Few double bonds reduce polarity, favoring lipid environments."
+        },
+        {
+          "rule_id": "no_heteroatom_max_lipophilicity",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_none"
+            ]
+          ],
+          "weight": 1.0,
+          "rationale": "Complete absence of heteroatoms maximizes hydrophobicity by eliminating polar interactions."
+        },
+        {
+          "rule_id": "no_halogen_pure_hydrocarbon",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_none"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "No halogens maintains a pure hydrocarbon character, enhancing lipid solubility."
+        },
+        {
+          "rule_id": "low_aromaticity_flexibility",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_low"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Low aromaticity allows flexible aliphatic chains that favor lipid integration."
+        },
+        {
+          "rule_id": "low_ring_token_risk",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_low"
+            ]
+          ],
+          "weight": -0.6,
+          "rationale": "Counter-hypothesis: low ring complexity may increase flexibility but reduce hydrophobic surface, potentially lowering lipophilicity."
+        },
+        {
+          "rule_id": "very_long_smiles_risk",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_very_long"
+            ]
+          ],
+          "weight": -0.7,
+          "rationale": "Very long SMILES may indicate high molecular weight or complexity, potentially reducing lipophilicity due to size limitations."
+        },
+        {
+          "rule_id": "no_aromaticity_flexible",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_none"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "No aromaticity allows fully aliphatic structures that can be highly hydrophobic."
+        },
+        {
+          "rule_id": "high_halogen_electron_withdrawing",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_high"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "High halogen content provides strong electron-withdrawing effects, increasing hydrophobicity and membrane permeability."
+        },
+        {
+          "rule_id": "moderate_aromaticity_electron",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_mid"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Moderate aromaticity offers pi-systems for electron delocalization, synergizing with halogens."
+        },
+        {
+          "rule_id": "high_double_bond_conjugation",
+          "conditions": [
+            [
+              "double_bond_bin",
+              "double_bond_high"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "High double bond count enables conjugation, enhancing electron withdrawal and rigidity for lipophilicity."
+        }
+      ],
+      "ridge": 4.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.25,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.85,
+      "hypothesis": "Union of independently proposed LLM rule features. Rule signs are ignored; revealed target observations fit a strongly regularized coefficient vector."
+    }
+  ],
+  "skill_variant_policy": "expanded",
+  "calibration_seed_start": 27000,
+  "calibration_seed_count": 30,
+  "heldout_seed_start": 27100,
+  "heldout_seed_count": 50,
+  "selection": {
+    "target_anchor_mode": "gp_ucb",
+    "target_anchor_summary": {
+      "gp_ucb": {
+        "final_best": 88.766667,
+        "best_so_far_auc": 86.352083,
+        "top10_hit": 0.166667,
+        "composite": 175.11875
+      },
+      "mixed_kernel_gp_ei": {
+        "final_best": 87.570833,
+        "best_so_far_auc": 85.285,
+        "top10_hit": 0.1,
+        "composite": 172.855833
+      },
+      "target_acquisition_portfolio": {
+        "final_best": 86.829167,
+        "best_so_far_auc": 84.484167,
+        "top10_hit": 0.033333,
+        "composite": 171.313334
+      }
+    },
+    "eligible_skill_modes": [
+      "llm_semantic_counter_source_ring_complexity",
+      "llm_semantic_counter_source_ring_complexity_conservative",
+      "llm_semantic_counter_source_ring_complexity_noprior",
+      "llm_semantic_electron_withdrawing_lipophilicity",
+      "llm_semantic_source_schema_alignment_conservative"
+    ],
+    "selected_mode": "llm_semantic_source_schema_alignment_conservative",
+    "selected_llm_skill": true,
+    "skill_diagnostics": {
+      "llm_semantic_aromatic_hydrophobic_enhancement": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -1.804167,
+          "std": 4.922914,
+          "se": 0.898797,
+          "normal_95ci_low": -3.565809,
+          "normal_95ci_high": -0.042524,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.366667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -0.55125,
+          "std": 4.190215,
+          "se": 0.765025,
+          "normal_95ci_low": -2.050699,
+          "normal_95ci_high": 0.948199,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.533333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -2.355417,
+          "std": 8.657916,
+          "se": 1.580712,
+          "normal_95ci_low": -5.453612,
+          "normal_95ci_high": 0.742779,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.533333
+        },
+        "positive_fold_rate": 0.2,
+        "fold_composite_means": [
+          -2.454167,
+          -2.5375,
+          0.616667,
+          -4.3375,
+          -3.064583
+        ],
+        "risk_adjusted_composite_gain": -3.145773,
+        "eligible": false
+      },
+      "llm_semantic_aromatic_hydrophobic_enhancement_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -0.533333,
+          "std": 4.843051,
+          "se": 0.884216,
+          "normal_95ci_low": -2.266397,
+          "normal_95ci_high": 1.19973,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.533333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.3125,
+          "std": 4.520212,
+          "se": 0.825274,
+          "normal_95ci_low": -1.305037,
+          "normal_95ci_high": 1.930037,
+          "win_rate": 0.6,
+          "non_loss_rate": 0.633333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -0.220833,
+          "std": 9.013535,
+          "se": 1.645639,
+          "normal_95ci_low": -3.446285,
+          "normal_95ci_high": 3.004619,
+          "win_rate": 0.6,
+          "non_loss_rate": 0.633333
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          2.197917,
+          0.883333,
+          -1.535417,
+          -2.08125,
+          -0.56875
+        ],
+        "risk_adjusted_composite_gain": -1.043653,
+        "eligible": false
+      },
+      "llm_semantic_aromatic_hydrophobic_enhancement_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -0.608333,
+          "std": 5.862196,
+          "se": 1.070286,
+          "normal_95ci_low": -2.706093,
+          "normal_95ci_high": 1.489427,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.6
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -1.035,
+          "std": 4.811721,
+          "se": 0.878496,
+          "normal_95ci_low": -2.756852,
+          "normal_95ci_high": 0.686852,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.5
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -1.643333,
+          "std": 10.203018,
+          "se": 1.862808,
+          "normal_95ci_low": -5.294436,
+          "normal_95ci_high": 2.00777,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.6
+        },
+        "positive_fold_rate": 0.2,
+        "fold_composite_means": [
+          -1.308333,
+          1.260417,
+          -0.285417,
+          -6.377083,
+          -1.50625
+        ],
+        "risk_adjusted_composite_gain": -2.574737,
+        "eligible": false
+      },
+      "llm_semantic_source_schema_alignment_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 1.691667,
+          "std": 4.558729,
+          "se": 0.832306,
+          "normal_95ci_low": 0.060346,
+          "normal_95ci_high": 3.322987,
+          "win_rate": 0.566667,
+          "non_loss_rate": 0.733333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.8125,
+          "std": 3.732752,
+          "se": 0.681504,
+          "normal_95ci_low": -0.523248,
+          "normal_95ci_high": 2.148248,
+          "win_rate": 0.666667,
+          "non_loss_rate": 0.733333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 2.504167,
+          "std": 7.742102,
+          "se": 1.413508,
+          "normal_95ci_low": -0.266309,
+          "normal_95ci_high": 5.274642,
+          "win_rate": 0.6,
+          "non_loss_rate": 0.633333
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          2.583333,
+          2.185417,
+          5.441667,
+          -1.1125,
+          3.422917
+        ],
+        "risk_adjusted_composite_gain": 1.797413,
+        "eligible": true
+      },
+      "llm_semantic_source_schema_alignment_conservative_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 0.575,
+          "std": 4.903931,
+          "se": 0.895331,
+          "normal_95ci_low": -1.179849,
+          "normal_95ci_high": 2.329849,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.633333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.58,
+          "std": 3.943972,
+          "se": 0.720067,
+          "normal_95ci_low": -0.831332,
+          "normal_95ci_high": 1.991332,
+          "win_rate": 0.6,
+          "non_loss_rate": 0.7
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 1.155,
+          "std": 8.51706,
+          "se": 1.554995,
+          "normal_95ci_low": -1.892791,
+          "normal_95ci_high": 4.202791,
+          "win_rate": 0.6,
+          "non_loss_rate": 0.7
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          -0.122917,
+          -0.20625,
+          5.79375,
+          -0.704167,
+          1.014583
+        ],
+        "risk_adjusted_composite_gain": 0.377503,
+        "eligible": false
+      },
+      "llm_semantic_source_schema_alignment_conservative_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 1.004167,
+          "std": 3.057348,
+          "se": 0.558193,
+          "normal_95ci_low": -0.089891,
+          "normal_95ci_high": 2.098225,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.7
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.130833,
+          "std": 3.336469,
+          "se": 0.609153,
+          "normal_95ci_low": -1.063107,
+          "normal_95ci_high": 1.324774,
+          "win_rate": 0.6,
+          "non_loss_rate": 0.666667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 1.135,
+          "std": 5.631143,
+          "se": 1.028101,
+          "normal_95ci_low": -0.880079,
+          "normal_95ci_high": 3.150079,
+          "win_rate": 0.6,
+          "non_loss_rate": 0.666667
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          1.495833,
+          3.272917,
+          3.13125,
+          -1.7625,
+          -0.4625
+        ],
+        "risk_adjusted_composite_gain": 0.62095,
+        "eligible": false
+      },
+      "llm_semantic_halogen_aromatic_synergy": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -0.025,
+          "std": 4.338346,
+          "se": 0.79207,
+          "normal_95ci_low": -1.577457,
+          "normal_95ci_high": 1.527457,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.566667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.027083,
+          "std": 3.672095,
+          "se": 0.67043,
+          "normal_95ci_low": -1.286959,
+          "normal_95ci_high": 1.341126,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.566667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 0.002083,
+          "std": 7.519683,
+          "se": 1.3729,
+          "normal_95ci_low": -2.688801,
+          "normal_95ci_high": 2.692967,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.533333
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          -2.197917,
+          4.104167,
+          -3.010417,
+          0.214583,
+          0.9
+        ],
+        "risk_adjusted_composite_gain": -0.684367,
+        "eligible": false
+      },
+      "llm_semantic_halogen_aromatic_synergy_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 0.279167,
+          "std": 4.124834,
+          "se": 0.753088,
+          "normal_95ci_low": -1.196886,
+          "normal_95ci_high": 1.755219,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.6
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.370417,
+          "std": 4.105911,
+          "se": 0.749633,
+          "normal_95ci_low": -1.098865,
+          "normal_95ci_high": 1.839698,
+          "win_rate": 0.533333,
+          "non_loss_rate": 0.6
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 0.649583,
+          "std": 7.73856,
+          "se": 1.412861,
+          "normal_95ci_low": -2.119625,
+          "normal_95ci_high": 3.418792,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.566667
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          -1.847917,
+          3.85,
+          -0.970833,
+          0.677083,
+          1.539583
+        ],
+        "risk_adjusted_composite_gain": -0.056847,
+        "eligible": false
+      },
+      "llm_semantic_halogen_aromatic_synergy_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -0.733333,
+          "std": 4.977944,
+          "se": 0.908844,
+          "normal_95ci_low": -2.514668,
+          "normal_95ci_high": 1.048001,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.566667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -0.82625,
+          "std": 5.094067,
+          "se": 0.930045,
+          "normal_95ci_low": -2.649138,
+          "normal_95ci_high": 0.996638,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.6
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -1.559583,
+          "std": 9.656297,
+          "se": 1.762991,
+          "normal_95ci_low": -5.015045,
+          "normal_95ci_high": 1.895878,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.533333
+        },
+        "positive_fold_rate": 0.2,
+        "fold_composite_means": [
+          -1.272917,
+          -0.270833,
+          1.31875,
+          -2.652083,
+          -4.920833
+        ],
+        "risk_adjusted_composite_gain": -2.441078,
+        "eligible": false
+      },
+      "llm_semantic_polarity_avoidance_domain": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 0.0375,
+          "std": 4.293303,
+          "se": 0.783846,
+          "normal_95ci_low": -1.498839,
+          "normal_95ci_high": 1.573839,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.566667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -0.804167,
+          "std": 3.381132,
+          "se": 0.617307,
+          "normal_95ci_low": -2.014089,
+          "normal_95ci_high": 0.405756,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.5
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -0.766667,
+          "std": 7.12196,
+          "se": 1.300286,
+          "normal_95ci_low": -3.315227,
+          "normal_95ci_high": 1.781894,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.4
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          1.466667,
+          0.802083,
+          -4.65,
+          -2.889583,
+          1.4375
+        ],
+        "risk_adjusted_composite_gain": -1.41681,
+        "eligible": false
+      },
+      "llm_semantic_polarity_avoidance_domain_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 1.375,
+          "std": 4.986022,
+          "se": 0.910319,
+          "normal_95ci_low": -0.409225,
+          "normal_95ci_high": 3.159225,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.6
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -0.192083,
+          "std": 3.980745,
+          "se": 0.726781,
+          "normal_95ci_low": -1.616575,
+          "normal_95ci_high": 1.232408,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.533333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 1.182917,
+          "std": 8.578806,
+          "se": 1.566269,
+          "normal_95ci_low": -1.88697,
+          "normal_95ci_high": 4.252803,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.533333
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          -0.79375,
+          -1.310417,
+          0.43125,
+          2.520833,
+          5.066667
+        ],
+        "risk_adjusted_composite_gain": 0.399783,
+        "eligible": false
+      },
+      "llm_semantic_polarity_avoidance_domain_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -0.175,
+          "std": 4.423258,
+          "se": 0.807573,
+          "normal_95ci_low": -1.757842,
+          "normal_95ci_high": 1.407842,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.633333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -0.614583,
+          "std": 3.324278,
+          "se": 0.606927,
+          "normal_95ci_low": -1.804161,
+          "normal_95ci_high": 0.574994,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.566667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -0.789583,
+          "std": 7.539879,
+          "se": 1.376587,
+          "normal_95ci_low": -3.487695,
+          "normal_95ci_high": 1.908528,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.6
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          1.28125,
+          0.247917,
+          1.458333,
+          -7.047917,
+          0.1125
+        ],
+        "risk_adjusted_composite_gain": -1.477877,
+        "eligible": false
+      },
+      "llm_semantic_counter_source_ring_complexity": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 1.329167,
+          "std": 4.615585,
+          "se": 0.842687,
+          "normal_95ci_low": -0.322499,
+          "normal_95ci_high": 2.980833,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.733333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.5675,
+          "std": 3.885331,
+          "se": 0.709361,
+          "normal_95ci_low": -0.822848,
+          "normal_95ci_high": 1.957848,
+          "win_rate": 0.566667,
+          "non_loss_rate": 0.666667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 1.896667,
+          "std": 7.769712,
+          "se": 1.418549,
+          "normal_95ci_low": -0.883689,
+          "normal_95ci_high": 4.677022,
+          "win_rate": 0.566667,
+          "non_loss_rate": 0.666667
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          0.027083,
+          3.952083,
+          6.522917,
+          -1.958333,
+          0.939583
+        ],
+        "risk_adjusted_composite_gain": 1.187393,
+        "eligible": true
+      },
+      "llm_semantic_counter_source_ring_complexity_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 1.1375,
+          "std": 4.618165,
+          "se": 0.843158,
+          "normal_95ci_low": -0.515089,
+          "normal_95ci_high": 2.790089,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.733333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.624167,
+          "std": 3.584954,
+          "se": 0.65452,
+          "normal_95ci_low": -0.658693,
+          "normal_95ci_high": 1.907026,
+          "win_rate": 0.6,
+          "non_loss_rate": 0.666667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 1.761667,
+          "std": 7.701095,
+          "se": 1.406021,
+          "normal_95ci_low": -0.994135,
+          "normal_95ci_high": 4.517468,
+          "win_rate": 0.566667,
+          "non_loss_rate": 0.666667
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          2.13125,
+          0.529167,
+          6.814583,
+          -2.53125,
+          1.864583
+        ],
+        "risk_adjusted_composite_gain": 1.058657,
+        "eligible": true
+      },
+      "llm_semantic_counter_source_ring_complexity_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 1.2625,
+          "std": 4.898591,
+          "se": 0.894356,
+          "normal_95ci_low": -0.490438,
+          "normal_95ci_high": 3.015438,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.733333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.585,
+          "std": 3.559252,
+          "se": 0.649828,
+          "normal_95ci_low": -0.688662,
+          "normal_95ci_high": 1.858662,
+          "win_rate": 0.6,
+          "non_loss_rate": 0.666667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 1.8475,
+          "std": 7.825416,
+          "se": 1.428719,
+          "normal_95ci_low": -0.952789,
+          "normal_95ci_high": 4.647789,
+          "win_rate": 0.6,
+          "non_loss_rate": 0.666667
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          2.16875,
+          0.529167,
+          6.814583,
+          -2.139583,
+          1.864583
+        ],
+        "risk_adjusted_composite_gain": 1.13314,
+        "eligible": true
+      },
+      "llm_semantic_steric_hindrance_lipophilicity": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -0.558333,
+          "std": 2.886523,
+          "se": 0.527005,
+          "normal_95ci_low": -1.591262,
+          "normal_95ci_high": 0.474596,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.433333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -0.90125,
+          "std": 4.526377,
+          "se": 0.8264,
+          "normal_95ci_low": -2.520993,
+          "normal_95ci_high": 0.718493,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.5
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -1.459583,
+          "std": 6.843645,
+          "se": 1.249473,
+          "normal_95ci_low": -3.90855,
+          "normal_95ci_high": 0.989384,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.466667
+        },
+        "positive_fold_rate": 0.2,
+        "fold_composite_means": [
+          -1.545833,
+          -0.689583,
+          -1.014583,
+          -4.102083,
+          0.054167
+        ],
+        "risk_adjusted_composite_gain": -2.08432,
+        "eligible": false
+      },
+      "llm_semantic_steric_hindrance_lipophilicity_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -0.166667,
+          "std": 4.633813,
+          "se": 0.846015,
+          "normal_95ci_low": -1.824855,
+          "normal_95ci_high": 1.491522,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.533333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.310417,
+          "std": 4.593838,
+          "se": 0.838716,
+          "normal_95ci_low": -1.333467,
+          "normal_95ci_high": 1.9543,
+          "win_rate": 0.533333,
+          "non_loss_rate": 0.566667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 0.14375,
+          "std": 8.616498,
+          "se": 1.57315,
+          "normal_95ci_low": -2.939624,
+          "normal_95ci_high": 3.227124,
+          "win_rate": 0.533333,
+          "non_loss_rate": 0.566667
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          -0.46875,
+          0.63125,
+          -0.216667,
+          -2.09375,
+          2.866667
+        ],
+        "risk_adjusted_composite_gain": -0.642825,
+        "eligible": false
+      },
+      "llm_semantic_steric_hindrance_lipophilicity_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -0.175,
+          "std": 4.700576,
+          "se": 0.858204,
+          "normal_95ci_low": -1.85708,
+          "normal_95ci_high": 1.50708,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.533333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -0.179167,
+          "std": 3.929915,
+          "se": 0.717501,
+          "normal_95ci_low": -1.585469,
+          "normal_95ci_high": 1.227135,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.533333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -0.354167,
+          "std": 7.823047,
+          "se": 1.428286,
+          "normal_95ci_low": -3.153608,
+          "normal_95ci_high": 2.445275,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.5
+        },
+        "positive_fold_rate": 0.2,
+        "fold_composite_means": [
+          -1.116667,
+          -0.84375,
+          1.445833,
+          -0.602083,
+          -0.654167
+        ],
+        "risk_adjusted_composite_gain": -1.06831,
+        "eligible": false
+      },
+      "llm_semantic_low_semantic_mass_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -0.191667,
+          "std": 5.467588,
+          "se": 0.99824,
+          "normal_95ci_low": -2.148218,
+          "normal_95ci_high": 1.764884,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.533333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -0.88375,
+          "std": 5.235057,
+          "se": 0.955786,
+          "normal_95ci_low": -2.757091,
+          "normal_95ci_high": 0.989591,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.566667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -1.075417,
+          "std": 10.207182,
+          "se": 1.863568,
+          "normal_95ci_low": -4.72801,
+          "normal_95ci_high": 2.577177,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.533333
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          -1.070833,
+          -3.620833,
+          0.872917,
+          -3.19375,
+          1.635417
+        ],
+        "risk_adjusted_composite_gain": -2.007201,
+        "eligible": false
+      },
+      "llm_semantic_low_semantic_mass_conservative_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 0.1125,
+          "std": 5.3761,
+          "se": 0.981537,
+          "normal_95ci_low": -1.811313,
+          "normal_95ci_high": 2.036313,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.6
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -0.651667,
+          "std": 5.24951,
+          "se": 0.958425,
+          "normal_95ci_low": -2.53018,
+          "normal_95ci_high": 1.226846,
+          "win_rate": 0.566667,
+          "non_loss_rate": 0.633333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -0.539167,
+          "std": 10.157549,
+          "se": 1.854506,
+          "normal_95ci_low": -4.173999,
+          "normal_95ci_high": 3.095666,
+          "win_rate": 0.533333,
+          "non_loss_rate": 0.6
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          -0.1375,
+          -1.58125,
+          1.185417,
+          -3.19375,
+          1.03125
+        ],
+        "risk_adjusted_composite_gain": -1.46642,
+        "eligible": false
+      },
+      "llm_semantic_low_semantic_mass_conservative_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 0.1125,
+          "std": 5.3761,
+          "se": 0.981537,
+          "normal_95ci_low": -1.811313,
+          "normal_95ci_high": 2.036313,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.6
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -0.651667,
+          "std": 5.24951,
+          "se": 0.958425,
+          "normal_95ci_low": -2.53018,
+          "normal_95ci_high": 1.226846,
+          "win_rate": 0.566667,
+          "non_loss_rate": 0.633333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -0.539167,
+          "std": 10.157549,
+          "se": 1.854506,
+          "normal_95ci_low": -4.173999,
+          "normal_95ci_high": 3.095666,
+          "win_rate": 0.533333,
+          "non_loss_rate": 0.6
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          -0.1375,
+          -1.58125,
+          1.185417,
+          -3.19375,
+          1.03125
+        ],
+        "risk_adjusted_composite_gain": -1.46642,
+        "eligible": false
+      },
+      "llm_semantic_electron_withdrawing_lipophilicity": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 0.7125,
+          "std": 3.163949,
+          "se": 0.577655,
+          "normal_95ci_low": -0.419705,
+          "normal_95ci_high": 1.844705,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.633333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.302083,
+          "std": 3.957726,
+          "se": 0.722579,
+          "normal_95ci_low": -1.114171,
+          "normal_95ci_high": 1.718337,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.533333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 1.014583,
+          "std": 6.736402,
+          "se": 1.229893,
+          "normal_95ci_low": -1.396007,
+          "normal_95ci_high": 3.425174,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.566667
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          0.110417,
+          -0.40625,
+          1.104167,
+          0.814583,
+          3.45
+        ],
+        "risk_adjusted_composite_gain": 0.399637,
+        "eligible": true
+      },
+      "llm_semantic_electron_withdrawing_lipophilicity_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 0.6,
+          "std": 4.147715,
+          "se": 0.757266,
+          "normal_95ci_low": -0.884241,
+          "normal_95ci_high": 2.084241,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.633333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -0.396667,
+          "std": 4.264893,
+          "se": 0.778659,
+          "normal_95ci_low": -1.922839,
+          "normal_95ci_high": 1.129506,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.533333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 0.203333,
+          "std": 7.588265,
+          "se": 1.385421,
+          "normal_95ci_low": -2.512093,
+          "normal_95ci_high": 2.918759,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.566667
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          -0.65,
+          -3.060417,
+          1.077083,
+          3.166667,
+          0.483333
+        ],
+        "risk_adjusted_composite_gain": -0.489378,
+        "eligible": false
+      },
+      "llm_semantic_electron_withdrawing_lipophilicity_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 1.054167,
+          "std": 4.854517,
+          "se": 0.88631,
+          "normal_95ci_low": -0.683,
+          "normal_95ci_high": 2.791333,
+          "win_rate": 0.533333,
+          "non_loss_rate": 0.733333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -0.40375,
+          "std": 4.482207,
+          "se": 0.818335,
+          "normal_95ci_low": -2.007687,
+          "normal_95ci_high": 1.200187,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.566667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 0.650417,
+          "std": 8.858996,
+          "se": 1.617424,
+          "normal_95ci_low": -2.519734,
+          "normal_95ci_high": 3.820568,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.566667
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          0.54375,
+          1.935417,
+          0.25,
+          -3.81875,
+          4.341667
+        ],
+        "risk_adjusted_composite_gain": -0.158295,
+        "eligible": false
+      },
+      "llm_semantic_cross_skill_rule_bank": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -0.616667,
+          "std": 4.267602,
+          "se": 0.779154,
+          "normal_95ci_low": -2.143809,
+          "normal_95ci_high": 0.910475,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.533333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -0.63125,
+          "std": 3.458162,
+          "se": 0.631371,
+          "normal_95ci_low": -1.868737,
+          "normal_95ci_high": 0.606237,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.533333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -1.247917,
+          "std": 6.9598,
+          "se": 1.27068,
+          "normal_95ci_low": -3.738449,
+          "normal_95ci_high": 1.242616,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.5
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          -2.0375,
+          0.027083,
+          -3.04375,
+          -2.18125,
+          0.995833
+        ],
+        "risk_adjusted_composite_gain": -1.883257,
+        "eligible": false
+      }
+    },
+    "thresholds": {
+      "min_risk_adjusted_composite_gain": 0.25,
+      "min_positive_fold_rate": 0.8,
+      "min_final_non_loss_rate": 0.55
+    },
+    "rule": "Choose the strongest target-only anchor on calibration composite. Select an LLM semantic skill only when final and AUC means are non-negative, fold stability and non-loss constraints pass, and risk-adjusted composite gain is positive."
+  },
+  "calibration": {
+    "gp_ucb": {
+      "final_best": 88.766667,
+      "best_so_far_auc": 86.352083,
+      "top10_hit": 0.166667,
+      "composite": 175.11875
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 87.570833,
+      "best_so_far_auc": 85.285,
+      "top10_hit": 0.1,
+      "composite": 172.855833
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 86.829167,
+      "best_so_far_auc": 84.484167,
+      "top10_hit": 0.033333,
+      "composite": 171.313334
+    },
+    "llm_semantic_aromatic_hydrophobic_enhancement": {
+      "final_best": 86.9625,
+      "best_so_far_auc": 85.800833,
+      "top10_hit": 0.0,
+      "composite": 172.763333
+    },
+    "llm_semantic_aromatic_hydrophobic_enhancement_noprior": {
+      "final_best": 88.233333,
+      "best_so_far_auc": 86.664583,
+      "top10_hit": 0.033333,
+      "composite": 174.897916
+    },
+    "llm_semantic_aromatic_hydrophobic_enhancement_conservative": {
+      "final_best": 88.158333,
+      "best_so_far_auc": 85.317083,
+      "top10_hit": 0.133333,
+      "composite": 173.475416
+    },
+    "llm_semantic_source_schema_alignment_conservative": {
+      "final_best": 90.458333,
+      "best_so_far_auc": 87.164583,
+      "top10_hit": 0.366667,
+      "composite": 177.622916
+    },
+    "llm_semantic_source_schema_alignment_conservative_noprior": {
+      "final_best": 89.341667,
+      "best_so_far_auc": 86.932083,
+      "top10_hit": 0.333333,
+      "composite": 176.27375
+    },
+    "llm_semantic_source_schema_alignment_conservative_conservative": {
+      "final_best": 89.770833,
+      "best_so_far_auc": 86.482917,
+      "top10_hit": 0.266667,
+      "composite": 176.25375
+    },
+    "llm_semantic_halogen_aromatic_synergy": {
+      "final_best": 88.741667,
+      "best_so_far_auc": 86.379167,
+      "top10_hit": 0.066667,
+      "composite": 175.120834
+    },
+    "llm_semantic_halogen_aromatic_synergy_noprior": {
+      "final_best": 89.045833,
+      "best_so_far_auc": 86.7225,
+      "top10_hit": 0.066667,
+      "composite": 175.768333
+    },
+    "llm_semantic_halogen_aromatic_synergy_conservative": {
+      "final_best": 88.033333,
+      "best_so_far_auc": 85.525833,
+      "top10_hit": 0.2,
+      "composite": 173.559166
+    },
+    "llm_semantic_polarity_avoidance_domain": {
+      "final_best": 88.804167,
+      "best_so_far_auc": 85.547917,
+      "top10_hit": 0.233333,
+      "composite": 174.352084
+    },
+    "llm_semantic_polarity_avoidance_domain_noprior": {
+      "final_best": 90.141667,
+      "best_so_far_auc": 86.16,
+      "top10_hit": 0.366667,
+      "composite": 176.301667
+    },
+    "llm_semantic_polarity_avoidance_domain_conservative": {
+      "final_best": 88.591667,
+      "best_so_far_auc": 85.7375,
+      "top10_hit": 0.233333,
+      "composite": 174.329167
+    },
+    "llm_semantic_counter_source_ring_complexity": {
+      "final_best": 90.095833,
+      "best_so_far_auc": 86.919583,
+      "top10_hit": 0.4,
+      "composite": 177.015416
+    },
+    "llm_semantic_counter_source_ring_complexity_noprior": {
+      "final_best": 89.904167,
+      "best_so_far_auc": 86.97625,
+      "top10_hit": 0.333333,
+      "composite": 176.880417
+    },
+    "llm_semantic_counter_source_ring_complexity_conservative": {
+      "final_best": 90.029167,
+      "best_so_far_auc": 86.937083,
+      "top10_hit": 0.366667,
+      "composite": 176.96625
+    },
+    "llm_semantic_steric_hindrance_lipophilicity": {
+      "final_best": 88.208333,
+      "best_so_far_auc": 85.450833,
+      "top10_hit": 0.066667,
+      "composite": 173.659166
+    },
+    "llm_semantic_steric_hindrance_lipophilicity_noprior": {
+      "final_best": 88.6,
+      "best_so_far_auc": 86.6625,
+      "top10_hit": 0.066667,
+      "composite": 175.2625
+    },
+    "llm_semantic_steric_hindrance_lipophilicity_conservative": {
+      "final_best": 88.591667,
+      "best_so_far_auc": 86.172917,
+      "top10_hit": 0.133333,
+      "composite": 174.764584
+    },
+    "llm_semantic_low_semantic_mass_conservative": {
+      "final_best": 88.575,
+      "best_so_far_auc": 85.468333,
+      "top10_hit": 0.233333,
+      "composite": 174.043333
+    },
+    "llm_semantic_low_semantic_mass_conservative_noprior": {
+      "final_best": 88.879167,
+      "best_so_far_auc": 85.700417,
+      "top10_hit": 0.233333,
+      "composite": 174.579584
+    },
+    "llm_semantic_low_semantic_mass_conservative_conservative": {
+      "final_best": 88.879167,
+      "best_so_far_auc": 85.700417,
+      "top10_hit": 0.233333,
+      "composite": 174.579584
+    },
+    "llm_semantic_electron_withdrawing_lipophilicity": {
+      "final_best": 89.479167,
+      "best_so_far_auc": 86.654167,
+      "top10_hit": 0.166667,
+      "composite": 176.133334
+    },
+    "llm_semantic_electron_withdrawing_lipophilicity_noprior": {
+      "final_best": 89.366667,
+      "best_so_far_auc": 85.955417,
+      "top10_hit": 0.166667,
+      "composite": 175.322084
+    },
+    "llm_semantic_electron_withdrawing_lipophilicity_conservative": {
+      "final_best": 89.820833,
+      "best_so_far_auc": 85.948333,
+      "top10_hit": 0.266667,
+      "composite": 175.769166
+    },
+    "llm_semantic_cross_skill_rule_bank": {
+      "final_best": 88.15,
+      "best_so_far_auc": 85.720833,
+      "top10_hit": 0.133333,
+      "composite": 173.870833
+    },
+    "llm_direct_prior_aromatic_hydrophobic_enhancement": {
+      "final_best": 88.3875,
+      "best_so_far_auc": 86.922917,
+      "top10_hit": 0.0,
+      "composite": 175.310417
+    },
+    "llm_direct_prior_aromatic_hydrophobic_enhancement_noprior": {
+      "final_best": 88.3875,
+      "best_so_far_auc": 86.922917,
+      "top10_hit": 0.0,
+      "composite": 175.310417
+    },
+    "llm_direct_prior_aromatic_hydrophobic_enhancement_conservative": {
+      "final_best": 89.725,
+      "best_so_far_auc": 87.514167,
+      "top10_hit": 0.033333,
+      "composite": 177.239167
+    },
+    "llm_direct_prior_source_schema_alignment_conservative": {
+      "final_best": 89.158333,
+      "best_so_far_auc": 87.032917,
+      "top10_hit": 0.1,
+      "composite": 176.19125
+    },
+    "llm_direct_prior_source_schema_alignment_conservative_noprior": {
+      "final_best": 89.158333,
+      "best_so_far_auc": 87.032917,
+      "top10_hit": 0.1,
+      "composite": 176.19125
+    },
+    "llm_direct_prior_source_schema_alignment_conservative_conservative": {
+      "final_best": 89.4125,
+      "best_so_far_auc": 86.729583,
+      "top10_hit": 0.166667,
+      "composite": 176.142083
+    },
+    "llm_direct_prior_halogen_aromatic_synergy": {
+      "final_best": 88.783333,
+      "best_so_far_auc": 86.957917,
+      "top10_hit": 0.0,
+      "composite": 175.74125
+    },
+    "llm_direct_prior_halogen_aromatic_synergy_noprior": {
+      "final_best": 88.783333,
+      "best_so_far_auc": 86.957917,
+      "top10_hit": 0.0,
+      "composite": 175.74125
+    },
+    "llm_direct_prior_halogen_aromatic_synergy_conservative": {
+      "final_best": 89.4,
+      "best_so_far_auc": 85.914167,
+      "top10_hit": 0.133333,
+      "composite": 175.314167
+    },
+    "llm_direct_prior_polarity_avoidance_domain": {
+      "final_best": 85.008333,
+      "best_so_far_auc": 83.281667,
+      "top10_hit": 0.0,
+      "composite": 168.29
+    },
+    "llm_direct_prior_polarity_avoidance_domain_noprior": {
+      "final_best": 85.008333,
+      "best_so_far_auc": 83.281667,
+      "top10_hit": 0.0,
+      "composite": 168.29
+    },
+    "llm_direct_prior_polarity_avoidance_domain_conservative": {
+      "final_best": 86.85,
+      "best_so_far_auc": 84.267083,
+      "top10_hit": 0.066667,
+      "composite": 171.117083
+    },
+    "llm_direct_prior_counter_source_ring_complexity": {
+      "final_best": 89.858333,
+      "best_so_far_auc": 87.495,
+      "top10_hit": 0.233333,
+      "composite": 177.353333
+    },
+    "llm_direct_prior_counter_source_ring_complexity_noprior": {
+      "final_best": 89.858333,
+      "best_so_far_auc": 87.495,
+      "top10_hit": 0.233333,
+      "composite": 177.353333
+    },
+    "llm_direct_prior_counter_source_ring_complexity_conservative": {
+      "final_best": 89.883333,
+      "best_so_far_auc": 87.4775,
+      "top10_hit": 0.233333,
+      "composite": 177.360833
+    },
+    "llm_direct_prior_steric_hindrance_lipophilicity": {
+      "final_best": 87.541667,
+      "best_so_far_auc": 85.312917,
+      "top10_hit": 0.0,
+      "composite": 172.854584
+    },
+    "llm_direct_prior_steric_hindrance_lipophilicity_noprior": {
+      "final_best": 87.541667,
+      "best_so_far_auc": 85.312917,
+      "top10_hit": 0.0,
+      "composite": 172.854584
+    },
+    "llm_direct_prior_steric_hindrance_lipophilicity_conservative": {
+      "final_best": 88.920833,
+      "best_so_far_auc": 86.249583,
+      "top10_hit": 0.266667,
+      "composite": 175.170416
+    },
+    "llm_direct_prior_low_semantic_mass_conservative": {
+      "final_best": 86.8125,
+      "best_so_far_auc": 84.95625,
+      "top10_hit": 0.3,
+      "composite": 171.76875
+    },
+    "llm_direct_prior_low_semantic_mass_conservative_noprior": {
+      "final_best": 86.8125,
+      "best_so_far_auc": 84.95625,
+      "top10_hit": 0.3,
+      "composite": 171.76875
+    },
+    "llm_direct_prior_low_semantic_mass_conservative_conservative": {
+      "final_best": 86.8125,
+      "best_so_far_auc": 84.95625,
+      "top10_hit": 0.3,
+      "composite": 171.76875
+    },
+    "llm_direct_prior_electron_withdrawing_lipophilicity": {
+      "final_best": 89.866667,
+      "best_so_far_auc": 86.922083,
+      "top10_hit": 0.2,
+      "composite": 176.78875
+    },
+    "llm_direct_prior_electron_withdrawing_lipophilicity_noprior": {
+      "final_best": 89.866667,
+      "best_so_far_auc": 86.922083,
+      "top10_hit": 0.2,
+      "composite": 176.78875
+    },
+    "llm_direct_prior_electron_withdrawing_lipophilicity_conservative": {
+      "final_best": 89.266667,
+      "best_so_far_auc": 86.66625,
+      "top10_hit": 0.133333,
+      "composite": 175.932917
+    },
+    "llm_direct_prior_cross_skill_rule_bank": {
+      "final_best": 88.783333,
+      "best_so_far_auc": 86.980833,
+      "top10_hit": 0.0,
+      "composite": 175.764166
+    },
+    "llambo_warmstart_aromatic_hydrophobic_enhancement": {
+      "final_best": 88.845833,
+      "best_so_far_auc": 86.292083,
+      "top10_hit": 0.1,
+      "composite": 175.137916
+    },
+    "llambo_warmstart_aromatic_hydrophobic_enhancement_noprior": {
+      "final_best": 88.845833,
+      "best_so_far_auc": 86.292083,
+      "top10_hit": 0.1,
+      "composite": 175.137916
+    },
+    "llambo_warmstart_aromatic_hydrophobic_enhancement_conservative": {
+      "final_best": 88.845833,
+      "best_so_far_auc": 86.292083,
+      "top10_hit": 0.1,
+      "composite": 175.137916
+    },
+    "llambo_warmstart_source_schema_alignment_conservative": {
+      "final_best": 89.65,
+      "best_so_far_auc": 86.894167,
+      "top10_hit": 0.066667,
+      "composite": 176.544167
+    },
+    "llambo_warmstart_source_schema_alignment_conservative_noprior": {
+      "final_best": 89.65,
+      "best_so_far_auc": 86.894167,
+      "top10_hit": 0.066667,
+      "composite": 176.544167
+    },
+    "llambo_warmstart_source_schema_alignment_conservative_conservative": {
+      "final_best": 89.65,
+      "best_so_far_auc": 86.894167,
+      "top10_hit": 0.066667,
+      "composite": 176.544167
+    },
+    "llambo_warmstart_halogen_aromatic_synergy": {
+      "final_best": 89.15,
+      "best_so_far_auc": 87.11375,
+      "top10_hit": 0.133333,
+      "composite": 176.26375
+    },
+    "llambo_warmstart_halogen_aromatic_synergy_noprior": {
+      "final_best": 89.15,
+      "best_so_far_auc": 87.11375,
+      "top10_hit": 0.133333,
+      "composite": 176.26375
+    },
+    "llambo_warmstart_halogen_aromatic_synergy_conservative": {
+      "final_best": 89.15,
+      "best_so_far_auc": 87.11375,
+      "top10_hit": 0.133333,
+      "composite": 176.26375
+    },
+    "llambo_warmstart_polarity_avoidance_domain": {
+      "final_best": 85.170833,
+      "best_so_far_auc": 82.337083,
+      "top10_hit": 0.0,
+      "composite": 167.507916
+    },
+    "llambo_warmstart_polarity_avoidance_domain_noprior": {
+      "final_best": 85.170833,
+      "best_so_far_auc": 82.337083,
+      "top10_hit": 0.0,
+      "composite": 167.507916
+    },
+    "llambo_warmstart_polarity_avoidance_domain_conservative": {
+      "final_best": 85.170833,
+      "best_so_far_auc": 82.337083,
+      "top10_hit": 0.0,
+      "composite": 167.507916
+    },
+    "llambo_warmstart_counter_source_ring_complexity": {
+      "final_best": 89.041667,
+      "best_so_far_auc": 86.434583,
+      "top10_hit": 0.233333,
+      "composite": 175.47625
+    },
+    "llambo_warmstart_counter_source_ring_complexity_noprior": {
+      "final_best": 89.041667,
+      "best_so_far_auc": 86.434583,
+      "top10_hit": 0.233333,
+      "composite": 175.47625
+    },
+    "llambo_warmstart_counter_source_ring_complexity_conservative": {
+      "final_best": 89.041667,
+      "best_so_far_auc": 86.434583,
+      "top10_hit": 0.233333,
+      "composite": 175.47625
+    },
+    "llambo_warmstart_steric_hindrance_lipophilicity": {
+      "final_best": 88.241667,
+      "best_so_far_auc": 85.987083,
+      "top10_hit": 0.1,
+      "composite": 174.22875
+    },
+    "llambo_warmstart_steric_hindrance_lipophilicity_noprior": {
+      "final_best": 88.241667,
+      "best_so_far_auc": 85.987083,
+      "top10_hit": 0.1,
+      "composite": 174.22875
+    },
+    "llambo_warmstart_steric_hindrance_lipophilicity_conservative": {
+      "final_best": 88.241667,
+      "best_so_far_auc": 85.987083,
+      "top10_hit": 0.1,
+      "composite": 174.22875
+    },
+    "llambo_warmstart_low_semantic_mass_conservative": {
+      "final_best": 88.891667,
+      "best_so_far_auc": 85.430417,
+      "top10_hit": 0.166667,
+      "composite": 174.322084
+    },
+    "llambo_warmstart_low_semantic_mass_conservative_noprior": {
+      "final_best": 88.891667,
+      "best_so_far_auc": 85.430417,
+      "top10_hit": 0.166667,
+      "composite": 174.322084
+    },
+    "llambo_warmstart_low_semantic_mass_conservative_conservative": {
+      "final_best": 88.891667,
+      "best_so_far_auc": 85.430417,
+      "top10_hit": 0.166667,
+      "composite": 174.322084
+    },
+    "llambo_warmstart_electron_withdrawing_lipophilicity": {
+      "final_best": 90.7625,
+      "best_so_far_auc": 88.95625,
+      "top10_hit": 0.266667,
+      "composite": 179.71875
+    },
+    "llambo_warmstart_electron_withdrawing_lipophilicity_noprior": {
+      "final_best": 90.7625,
+      "best_so_far_auc": 88.95625,
+      "top10_hit": 0.266667,
+      "composite": 179.71875
+    },
+    "llambo_warmstart_electron_withdrawing_lipophilicity_conservative": {
+      "final_best": 90.7625,
+      "best_so_far_auc": 88.95625,
+      "top10_hit": 0.266667,
+      "composite": 179.71875
+    },
+    "llambo_warmstart_cross_skill_rule_bank": {
+      "final_best": 85.745833,
+      "best_so_far_auc": 83.614167,
+      "top10_hit": 0.0,
+      "composite": 169.36
+    }
+  },
+  "heldout": {
+    "gp_ucb": {
+      "final_best": 88.9925,
+      "best_so_far_auc": 86.25175,
+      "top10_hit": 0.24,
+      "composite": 175.24425
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 88.9875,
+      "best_so_far_auc": 85.8355,
+      "top10_hit": 0.18,
+      "composite": 174.823
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 89.1925,
+      "best_so_far_auc": 85.96375,
+      "top10_hit": 0.24,
+      "composite": 175.15625
+    },
+    "llm_semantic_aromatic_hydrophobic_enhancement": {
+      "final_best": 88.8675,
+      "best_so_far_auc": 86.641,
+      "top10_hit": 0.08,
+      "composite": 175.5085
+    },
+    "llm_semantic_aromatic_hydrophobic_enhancement_noprior": {
+      "final_best": 88.5175,
+      "best_so_far_auc": 86.21,
+      "top10_hit": 0.08,
+      "composite": 174.7275
+    },
+    "llm_semantic_aromatic_hydrophobic_enhancement_conservative": {
+      "final_best": 89.6825,
+      "best_so_far_auc": 86.8205,
+      "top10_hit": 0.2,
+      "composite": 176.503
+    },
+    "llm_semantic_source_schema_alignment_conservative": {
+      "final_best": 89.0675,
+      "best_so_far_auc": 86.751,
+      "top10_hit": 0.18,
+      "composite": 175.8185
+    },
+    "llm_semantic_source_schema_alignment_conservative_noprior": {
+      "final_best": 89.4675,
+      "best_so_far_auc": 86.96475,
+      "top10_hit": 0.22,
+      "composite": 176.43225
+    },
+    "llm_semantic_source_schema_alignment_conservative_conservative": {
+      "final_best": 89.0275,
+      "best_so_far_auc": 86.4755,
+      "top10_hit": 0.16,
+      "composite": 175.503
+    },
+    "llm_semantic_halogen_aromatic_synergy": {
+      "final_best": 88.2725,
+      "best_so_far_auc": 86.03025,
+      "top10_hit": 0.02,
+      "composite": 174.30275
+    },
+    "llm_semantic_halogen_aromatic_synergy_noprior": {
+      "final_best": 89.375,
+      "best_so_far_auc": 87.24475,
+      "top10_hit": 0.04,
+      "composite": 176.61975
+    },
+    "llm_semantic_halogen_aromatic_synergy_conservative": {
+      "final_best": 88.6175,
+      "best_so_far_auc": 86.484,
+      "top10_hit": 0.18,
+      "composite": 175.1015
+    },
+    "llm_semantic_polarity_avoidance_domain": {
+      "final_best": 89.495,
+      "best_so_far_auc": 85.95175,
+      "top10_hit": 0.22,
+      "composite": 175.44675
+    },
+    "llm_semantic_polarity_avoidance_domain_noprior": {
+      "final_best": 89.13,
+      "best_so_far_auc": 86.04775,
+      "top10_hit": 0.24,
+      "composite": 175.17775
+    },
+    "llm_semantic_polarity_avoidance_domain_conservative": {
+      "final_best": 88.875,
+      "best_so_far_auc": 86.3425,
+      "top10_hit": 0.14,
+      "composite": 175.2175
+    },
+    "llm_semantic_counter_source_ring_complexity": {
+      "final_best": 89.055,
+      "best_so_far_auc": 86.7605,
+      "top10_hit": 0.26,
+      "composite": 175.8155
+    },
+    "llm_semantic_counter_source_ring_complexity_noprior": {
+      "final_best": 89.0275,
+      "best_so_far_auc": 86.38825,
+      "top10_hit": 0.26,
+      "composite": 175.41575
+    },
+    "llm_semantic_counter_source_ring_complexity_conservative": {
+      "final_best": 89.045,
+      "best_so_far_auc": 86.395,
+      "top10_hit": 0.26,
+      "composite": 175.44
+    },
+    "llm_semantic_steric_hindrance_lipophilicity": {
+      "final_best": 89.01,
+      "best_so_far_auc": 86.88325,
+      "top10_hit": 0.12,
+      "composite": 175.89325
+    },
+    "llm_semantic_steric_hindrance_lipophilicity_noprior": {
+      "final_best": 89.4275,
+      "best_so_far_auc": 86.738,
+      "top10_hit": 0.28,
+      "composite": 176.1655
+    },
+    "llm_semantic_steric_hindrance_lipophilicity_conservative": {
+      "final_best": 88.69,
+      "best_so_far_auc": 86.24275,
+      "top10_hit": 0.18,
+      "composite": 174.93275
+    },
+    "llm_semantic_low_semantic_mass_conservative": {
+      "final_best": 89.115,
+      "best_so_far_auc": 86.31825,
+      "top10_hit": 0.22,
+      "composite": 175.43325
+    },
+    "llm_semantic_low_semantic_mass_conservative_noprior": {
+      "final_best": 89.245,
+      "best_so_far_auc": 86.57825,
+      "top10_hit": 0.2,
+      "composite": 175.82325
+    },
+    "llm_semantic_low_semantic_mass_conservative_conservative": {
+      "final_best": 89.245,
+      "best_so_far_auc": 86.57825,
+      "top10_hit": 0.2,
+      "composite": 175.82325
+    },
+    "llm_semantic_electron_withdrawing_lipophilicity": {
+      "final_best": 87.7575,
+      "best_so_far_auc": 85.27375,
+      "top10_hit": 0.02,
+      "composite": 173.03125
+    },
+    "llm_semantic_electron_withdrawing_lipophilicity_noprior": {
+      "final_best": 88.835,
+      "best_so_far_auc": 85.7075,
+      "top10_hit": 0.16,
+      "composite": 174.5425
+    },
+    "llm_semantic_electron_withdrawing_lipophilicity_conservative": {
+      "final_best": 88.6775,
+      "best_so_far_auc": 85.76125,
+      "top10_hit": 0.12,
+      "composite": 174.43875
+    },
+    "llm_semantic_cross_skill_rule_bank": {
+      "final_best": 88.375,
+      "best_so_far_auc": 85.758,
+      "top10_hit": 0.1,
+      "composite": 174.133
+    },
+    "llm_direct_prior_aromatic_hydrophobic_enhancement": {
+      "final_best": 88.49,
+      "best_so_far_auc": 86.199,
+      "top10_hit": 0.0,
+      "composite": 174.689
+    },
+    "llm_direct_prior_aromatic_hydrophobic_enhancement_noprior": {
+      "final_best": 88.49,
+      "best_so_far_auc": 86.199,
+      "top10_hit": 0.0,
+      "composite": 174.689
+    },
+    "llm_direct_prior_aromatic_hydrophobic_enhancement_conservative": {
+      "final_best": 88.8975,
+      "best_so_far_auc": 87.104,
+      "top10_hit": 0.02,
+      "composite": 176.0015
+    },
+    "llm_direct_prior_source_schema_alignment_conservative": {
+      "final_best": 89.7575,
+      "best_so_far_auc": 87.52225,
+      "top10_hit": 0.1,
+      "composite": 177.27975
+    },
+    "llm_direct_prior_source_schema_alignment_conservative_noprior": {
+      "final_best": 89.7575,
+      "best_so_far_auc": 87.52225,
+      "top10_hit": 0.1,
+      "composite": 177.27975
+    },
+    "llm_direct_prior_source_schema_alignment_conservative_conservative": {
+      "final_best": 89.35,
+      "best_so_far_auc": 86.91075,
+      "top10_hit": 0.14,
+      "composite": 176.26075
+    },
+    "llm_direct_prior_halogen_aromatic_synergy": {
+      "final_best": 88.315,
+      "best_so_far_auc": 86.2635,
+      "top10_hit": 0.0,
+      "composite": 174.5785
+    },
+    "llm_direct_prior_halogen_aromatic_synergy_noprior": {
+      "final_best": 88.315,
+      "best_so_far_auc": 86.2635,
+      "top10_hit": 0.0,
+      "composite": 174.5785
+    },
+    "llm_direct_prior_halogen_aromatic_synergy_conservative": {
+      "final_best": 89.0775,
+      "best_so_far_auc": 86.903,
+      "top10_hit": 0.04,
+      "composite": 175.9805
+    },
+    "llm_direct_prior_polarity_avoidance_domain": {
+      "final_best": 85.89,
+      "best_so_far_auc": 83.78375,
+      "top10_hit": 0.0,
+      "composite": 169.67375
+    },
+    "llm_direct_prior_polarity_avoidance_domain_noprior": {
+      "final_best": 85.89,
+      "best_so_far_auc": 83.78375,
+      "top10_hit": 0.0,
+      "composite": 169.67375
+    },
+    "llm_direct_prior_polarity_avoidance_domain_conservative": {
+      "final_best": 86.9375,
+      "best_so_far_auc": 84.966,
+      "top10_hit": 0.04,
+      "composite": 171.9035
+    },
+    "llm_direct_prior_counter_source_ring_complexity": {
+      "final_best": 88.2475,
+      "best_so_far_auc": 86.24525,
+      "top10_hit": 0.12,
+      "composite": 174.49275
+    },
+    "llm_direct_prior_counter_source_ring_complexity_noprior": {
+      "final_best": 88.2475,
+      "best_so_far_auc": 86.24525,
+      "top10_hit": 0.12,
+      "composite": 174.49275
+    },
+    "llm_direct_prior_counter_source_ring_complexity_conservative": {
+      "final_best": 88.1775,
+      "best_so_far_auc": 86.3335,
+      "top10_hit": 0.14,
+      "composite": 174.511
+    },
+    "llm_direct_prior_steric_hindrance_lipophilicity": {
+      "final_best": 88.01,
+      "best_so_far_auc": 85.686,
+      "top10_hit": 0.0,
+      "composite": 173.696
+    },
+    "llm_direct_prior_steric_hindrance_lipophilicity_noprior": {
+      "final_best": 88.01,
+      "best_so_far_auc": 85.686,
+      "top10_hit": 0.0,
+      "composite": 173.696
+    },
+    "llm_direct_prior_steric_hindrance_lipophilicity_conservative": {
+      "final_best": 89.4,
+      "best_so_far_auc": 86.37725,
+      "top10_hit": 0.08,
+      "composite": 175.77725
+    },
+    "llm_direct_prior_low_semantic_mass_conservative": {
+      "final_best": 86.8675,
+      "best_so_far_auc": 84.6035,
+      "top10_hit": 0.16,
+      "composite": 171.471
+    },
+    "llm_direct_prior_low_semantic_mass_conservative_noprior": {
+      "final_best": 86.8675,
+      "best_so_far_auc": 84.6035,
+      "top10_hit": 0.16,
+      "composite": 171.471
+    },
+    "llm_direct_prior_low_semantic_mass_conservative_conservative": {
+      "final_best": 86.8675,
+      "best_so_far_auc": 84.6035,
+      "top10_hit": 0.16,
+      "composite": 171.471
+    },
+    "llm_direct_prior_electron_withdrawing_lipophilicity": {
+      "final_best": 89.89,
+      "best_so_far_auc": 86.9205,
+      "top10_hit": 0.22,
+      "composite": 176.8105
+    },
+    "llm_direct_prior_electron_withdrawing_lipophilicity_noprior": {
+      "final_best": 89.89,
+      "best_so_far_auc": 86.9205,
+      "top10_hit": 0.22,
+      "composite": 176.8105
+    },
+    "llm_direct_prior_electron_withdrawing_lipophilicity_conservative": {
+      "final_best": 87.815,
+      "best_so_far_auc": 85.5255,
+      "top10_hit": 0.16,
+      "composite": 173.3405
+    },
+    "llm_direct_prior_cross_skill_rule_bank": {
+      "final_best": 88.3775,
+      "best_so_far_auc": 86.5205,
+      "top10_hit": 0.02,
+      "composite": 174.898
+    },
+    "llambo_warmstart_aromatic_hydrophobic_enhancement": {
+      "final_best": 87.51,
+      "best_so_far_auc": 85.961,
+      "top10_hit": 0.02,
+      "composite": 173.471
+    },
+    "llambo_warmstart_aromatic_hydrophobic_enhancement_noprior": {
+      "final_best": 87.51,
+      "best_so_far_auc": 85.961,
+      "top10_hit": 0.02,
+      "composite": 173.471
+    },
+    "llambo_warmstart_aromatic_hydrophobic_enhancement_conservative": {
+      "final_best": 87.51,
+      "best_so_far_auc": 85.961,
+      "top10_hit": 0.02,
+      "composite": 173.471
+    },
+    "llambo_warmstart_source_schema_alignment_conservative": {
+      "final_best": 89.7175,
+      "best_so_far_auc": 87.93,
+      "top10_hit": 0.18,
+      "composite": 177.6475
+    },
+    "llambo_warmstart_source_schema_alignment_conservative_noprior": {
+      "final_best": 89.7175,
+      "best_so_far_auc": 87.93,
+      "top10_hit": 0.18,
+      "composite": 177.6475
+    },
+    "llambo_warmstart_source_schema_alignment_conservative_conservative": {
+      "final_best": 89.7175,
+      "best_so_far_auc": 87.93,
+      "top10_hit": 0.18,
+      "composite": 177.6475
+    },
+    "llambo_warmstart_halogen_aromatic_synergy": {
+      "final_best": 88.5475,
+      "best_so_far_auc": 86.54725,
+      "top10_hit": 0.1,
+      "composite": 175.09475
+    },
+    "llambo_warmstart_halogen_aromatic_synergy_noprior": {
+      "final_best": 88.5475,
+      "best_so_far_auc": 86.54725,
+      "top10_hit": 0.1,
+      "composite": 175.09475
+    },
+    "llambo_warmstart_halogen_aromatic_synergy_conservative": {
+      "final_best": 88.5475,
+      "best_so_far_auc": 86.54725,
+      "top10_hit": 0.1,
+      "composite": 175.09475
+    },
+    "llambo_warmstart_polarity_avoidance_domain": {
+      "final_best": 84.9975,
+      "best_so_far_auc": 82.29975,
+      "top10_hit": 0.0,
+      "composite": 167.29725
+    },
+    "llambo_warmstart_polarity_avoidance_domain_noprior": {
+      "final_best": 84.9975,
+      "best_so_far_auc": 82.29975,
+      "top10_hit": 0.0,
+      "composite": 167.29725
+    },
+    "llambo_warmstart_polarity_avoidance_domain_conservative": {
+      "final_best": 84.9975,
+      "best_so_far_auc": 82.29975,
+      "top10_hit": 0.0,
+      "composite": 167.29725
+    },
+    "llambo_warmstart_counter_source_ring_complexity": {
+      "final_best": 88.1925,
+      "best_so_far_auc": 85.088,
+      "top10_hit": 0.16,
+      "composite": 173.2805
+    },
+    "llambo_warmstart_counter_source_ring_complexity_noprior": {
+      "final_best": 88.1925,
+      "best_so_far_auc": 85.088,
+      "top10_hit": 0.16,
+      "composite": 173.2805
+    },
+    "llambo_warmstart_counter_source_ring_complexity_conservative": {
+      "final_best": 88.1925,
+      "best_so_far_auc": 85.088,
+      "top10_hit": 0.16,
+      "composite": 173.2805
+    },
+    "llambo_warmstart_steric_hindrance_lipophilicity": {
+      "final_best": 88.37,
+      "best_so_far_auc": 86.05225,
+      "top10_hit": 0.12,
+      "composite": 174.42225
+    },
+    "llambo_warmstart_steric_hindrance_lipophilicity_noprior": {
+      "final_best": 88.37,
+      "best_so_far_auc": 86.05225,
+      "top10_hit": 0.12,
+      "composite": 174.42225
+    },
+    "llambo_warmstart_steric_hindrance_lipophilicity_conservative": {
+      "final_best": 88.37,
+      "best_so_far_auc": 86.05225,
+      "top10_hit": 0.12,
+      "composite": 174.42225
+    },
+    "llambo_warmstart_low_semantic_mass_conservative": {
+      "final_best": 87.305,
+      "best_so_far_auc": 84.11775,
+      "top10_hit": 0.02,
+      "composite": 171.42275
+    },
+    "llambo_warmstart_low_semantic_mass_conservative_noprior": {
+      "final_best": 87.305,
+      "best_so_far_auc": 84.11775,
+      "top10_hit": 0.02,
+      "composite": 171.42275
+    },
+    "llambo_warmstart_low_semantic_mass_conservative_conservative": {
+      "final_best": 87.305,
+      "best_so_far_auc": 84.11775,
+      "top10_hit": 0.02,
+      "composite": 171.42275
+    },
+    "llambo_warmstart_electron_withdrawing_lipophilicity": {
+      "final_best": 90.1,
+      "best_so_far_auc": 88.89575,
+      "top10_hit": 0.2,
+      "composite": 178.99575
+    },
+    "llambo_warmstart_electron_withdrawing_lipophilicity_noprior": {
+      "final_best": 90.1,
+      "best_so_far_auc": 88.89575,
+      "top10_hit": 0.2,
+      "composite": 178.99575
+    },
+    "llambo_warmstart_electron_withdrawing_lipophilicity_conservative": {
+      "final_best": 90.1,
+      "best_so_far_auc": 88.89575,
+      "top10_hit": 0.2,
+      "composite": 178.99575
+    },
+    "llambo_warmstart_cross_skill_rule_bank": {
+      "final_best": 87.075,
+      "best_so_far_auc": 84.346,
+      "top10_hit": 0.0,
+      "composite": 171.421
+    },
+    "llm_direct_prior_selector": {
+      "final_best": 88.1775,
+      "best_so_far_auc": 86.3335,
+      "top10_hit": 0.14,
+      "composite": 174.511
+    },
+    "llambo_warmstart_selector": {
+      "final_best": 90.1,
+      "best_so_far_auc": 88.89575,
+      "top10_hit": 0.2,
+      "composite": 178.99575
+    },
+    "llm_calibrated_selector": {
+      "final_best": 89.0675,
+      "best_so_far_auc": 86.751,
+      "top10_hit": 0.18,
+      "composite": 175.8185
+    },
+    "care_strategy_router": {
+      "final_best": 90.1,
+      "best_so_far_auc": 88.89575,
+      "top10_hit": 0.2,
+      "composite": 178.99575
+    }
+  },
+  "heldout_strongest_target_mode_descriptive_only": "gp_ucb",
+  "heldout_pairwise": {
+    "gp_ucb": {
+      "final_best": {
+        "n": 50.0,
+        "mean": 0.075,
+        "std": 4.812873,
+        "se": 0.680643,
+        "normal_95ci_low": -1.25906,
+        "normal_95ci_high": 1.40906,
+        "win_rate": 0.54,
+        "non_loss_rate": 0.62
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": 0.49925,
+        "std": 4.205375,
+        "se": 0.59473,
+        "normal_95ci_low": -0.66642,
+        "normal_95ci_high": 1.66492,
+        "win_rate": 0.56,
+        "non_loss_rate": 0.62
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": -0.06,
+        "std": 0.544426,
+        "se": 0.076994,
+        "normal_95ci_low": -0.210907,
+        "normal_95ci_high": 0.090907,
+        "win_rate": 0.12,
+        "non_loss_rate": 0.82
+      }
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": {
+        "n": 50.0,
+        "mean": 0.08,
+        "std": 5.575659,
+        "se": 0.788517,
+        "normal_95ci_low": -1.465494,
+        "normal_95ci_high": 1.625494,
+        "win_rate": 0.5,
+        "non_loss_rate": 0.62
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": 0.9155,
+        "std": 4.241311,
+        "se": 0.599812,
+        "normal_95ci_low": -0.260131,
+        "normal_95ci_high": 2.091131,
+        "win_rate": 0.64,
+        "non_loss_rate": 0.7
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": 0.0,
+        "std": 0.565685,
+        "se": 0.08,
+        "normal_95ci_low": -0.1568,
+        "normal_95ci_high": 0.1568,
+        "win_rate": 0.16,
+        "non_loss_rate": 0.84
+      }
+    },
+    "target_acquisition_portfolio": {
+      "final_best": {
+        "n": 50.0,
+        "mean": -0.125,
+        "std": 5.464659,
+        "se": 0.77282,
+        "normal_95ci_low": -1.639726,
+        "normal_95ci_high": 1.389726,
+        "win_rate": 0.44,
+        "non_loss_rate": 0.56
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": 0.78725,
+        "std": 4.254034,
+        "se": 0.601611,
+        "normal_95ci_low": -0.391908,
+        "normal_95ci_high": 1.966408,
+        "win_rate": 0.56,
+        "non_loss_rate": 0.64
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": -0.06,
+        "std": 0.544426,
+        "se": 0.076994,
+        "normal_95ci_low": -0.210907,
+        "normal_95ci_high": 0.090907,
+        "win_rate": 0.12,
+        "non_loss_rate": 0.82
+      }
+    }
+  },
+  "external_llm_baselines": {
+    "llm_direct_prior": {
+      "selected_mode": "llm_direct_prior_counter_source_ring_complexity_conservative",
+      "selector_alias": "llm_direct_prior_selector",
+      "calibration": {
+        "llm_direct_prior_aromatic_hydrophobic_enhancement": {
+          "final_best": 88.3875,
+          "best_so_far_auc": 86.922917,
+          "top10_hit": 0.0,
+          "composite": 175.310417
+        },
+        "llm_direct_prior_aromatic_hydrophobic_enhancement_noprior": {
+          "final_best": 88.3875,
+          "best_so_far_auc": 86.922917,
+          "top10_hit": 0.0,
+          "composite": 175.310417
+        },
+        "llm_direct_prior_aromatic_hydrophobic_enhancement_conservative": {
+          "final_best": 89.725,
+          "best_so_far_auc": 87.514167,
+          "top10_hit": 0.033333,
+          "composite": 177.239167
+        },
+        "llm_direct_prior_source_schema_alignment_conservative": {
+          "final_best": 89.158333,
+          "best_so_far_auc": 87.032917,
+          "top10_hit": 0.1,
+          "composite": 176.19125
+        },
+        "llm_direct_prior_source_schema_alignment_conservative_noprior": {
+          "final_best": 89.158333,
+          "best_so_far_auc": 87.032917,
+          "top10_hit": 0.1,
+          "composite": 176.19125
+        },
+        "llm_direct_prior_source_schema_alignment_conservative_conservative": {
+          "final_best": 89.4125,
+          "best_so_far_auc": 86.729583,
+          "top10_hit": 0.166667,
+          "composite": 176.142083
+        },
+        "llm_direct_prior_halogen_aromatic_synergy": {
+          "final_best": 88.783333,
+          "best_so_far_auc": 86.957917,
+          "top10_hit": 0.0,
+          "composite": 175.74125
+        },
+        "llm_direct_prior_halogen_aromatic_synergy_noprior": {
+          "final_best": 88.783333,
+          "best_so_far_auc": 86.957917,
+          "top10_hit": 0.0,
+          "composite": 175.74125
+        },
+        "llm_direct_prior_halogen_aromatic_synergy_conservative": {
+          "final_best": 89.4,
+          "best_so_far_auc": 85.914167,
+          "top10_hit": 0.133333,
+          "composite": 175.314167
+        },
+        "llm_direct_prior_polarity_avoidance_domain": {
+          "final_best": 85.008333,
+          "best_so_far_auc": 83.281667,
+          "top10_hit": 0.0,
+          "composite": 168.29
+        },
+        "llm_direct_prior_polarity_avoidance_domain_noprior": {
+          "final_best": 85.008333,
+          "best_so_far_auc": 83.281667,
+          "top10_hit": 0.0,
+          "composite": 168.29
+        },
+        "llm_direct_prior_polarity_avoidance_domain_conservative": {
+          "final_best": 86.85,
+          "best_so_far_auc": 84.267083,
+          "top10_hit": 0.066667,
+          "composite": 171.117083
+        },
+        "llm_direct_prior_counter_source_ring_complexity": {
+          "final_best": 89.858333,
+          "best_so_far_auc": 87.495,
+          "top10_hit": 0.233333,
+          "composite": 177.353333
+        },
+        "llm_direct_prior_counter_source_ring_complexity_noprior": {
+          "final_best": 89.858333,
+          "best_so_far_auc": 87.495,
+          "top10_hit": 0.233333,
+          "composite": 177.353333
+        },
+        "llm_direct_prior_counter_source_ring_complexity_conservative": {
+          "final_best": 89.883333,
+          "best_so_far_auc": 87.4775,
+          "top10_hit": 0.233333,
+          "composite": 177.360833
+        },
+        "llm_direct_prior_steric_hindrance_lipophilicity": {
+          "final_best": 87.541667,
+          "best_so_far_auc": 85.312917,
+          "top10_hit": 0.0,
+          "composite": 172.854584
+        },
+        "llm_direct_prior_steric_hindrance_lipophilicity_noprior": {
+          "final_best": 87.541667,
+          "best_so_far_auc": 85.312917,
+          "top10_hit": 0.0,
+          "composite": 172.854584
+        },
+        "llm_direct_prior_steric_hindrance_lipophilicity_conservative": {
+          "final_best": 88.920833,
+          "best_so_far_auc": 86.249583,
+          "top10_hit": 0.266667,
+          "composite": 175.170416
+        },
+        "llm_direct_prior_low_semantic_mass_conservative": {
+          "final_best": 86.8125,
+          "best_so_far_auc": 84.95625,
+          "top10_hit": 0.3,
+          "composite": 171.76875
+        },
+        "llm_direct_prior_low_semantic_mass_conservative_noprior": {
+          "final_best": 86.8125,
+          "best_so_far_auc": 84.95625,
+          "top10_hit": 0.3,
+          "composite": 171.76875
+        },
+        "llm_direct_prior_low_semantic_mass_conservative_conservative": {
+          "final_best": 86.8125,
+          "best_so_far_auc": 84.95625,
+          "top10_hit": 0.3,
+          "composite": 171.76875
+        },
+        "llm_direct_prior_electron_withdrawing_lipophilicity": {
+          "final_best": 89.866667,
+          "best_so_far_auc": 86.922083,
+          "top10_hit": 0.2,
+          "composite": 176.78875
+        },
+        "llm_direct_prior_electron_withdrawing_lipophilicity_noprior": {
+          "final_best": 89.866667,
+          "best_so_far_auc": 86.922083,
+          "top10_hit": 0.2,
+          "composite": 176.78875
+        },
+        "llm_direct_prior_electron_withdrawing_lipophilicity_conservative": {
+          "final_best": 89.266667,
+          "best_so_far_auc": 86.66625,
+          "top10_hit": 0.133333,
+          "composite": 175.932917
+        },
+        "llm_direct_prior_cross_skill_rule_bank": {
+          "final_best": 88.783333,
+          "best_so_far_auc": 86.980833,
+          "top10_hit": 0.0,
+          "composite": 175.764166
+        }
+      },
+      "rule": "Select the strongest llm_direct_prior variant on calibration final_best + AUC; held-out outcomes do not affect this choice."
+    },
+    "llambo_warmstart": {
+      "selected_mode": "llambo_warmstart_electron_withdrawing_lipophilicity_noprior",
+      "selector_alias": "llambo_warmstart_selector",
+      "calibration": {
+        "llambo_warmstart_aromatic_hydrophobic_enhancement": {
+          "final_best": 88.845833,
+          "best_so_far_auc": 86.292083,
+          "top10_hit": 0.1,
+          "composite": 175.137916
+        },
+        "llambo_warmstart_aromatic_hydrophobic_enhancement_noprior": {
+          "final_best": 88.845833,
+          "best_so_far_auc": 86.292083,
+          "top10_hit": 0.1,
+          "composite": 175.137916
+        },
+        "llambo_warmstart_aromatic_hydrophobic_enhancement_conservative": {
+          "final_best": 88.845833,
+          "best_so_far_auc": 86.292083,
+          "top10_hit": 0.1,
+          "composite": 175.137916
+        },
+        "llambo_warmstart_source_schema_alignment_conservative": {
+          "final_best": 89.65,
+          "best_so_far_auc": 86.894167,
+          "top10_hit": 0.066667,
+          "composite": 176.544167
+        },
+        "llambo_warmstart_source_schema_alignment_conservative_noprior": {
+          "final_best": 89.65,
+          "best_so_far_auc": 86.894167,
+          "top10_hit": 0.066667,
+          "composite": 176.544167
+        },
+        "llambo_warmstart_source_schema_alignment_conservative_conservative": {
+          "final_best": 89.65,
+          "best_so_far_auc": 86.894167,
+          "top10_hit": 0.066667,
+          "composite": 176.544167
+        },
+        "llambo_warmstart_halogen_aromatic_synergy": {
+          "final_best": 89.15,
+          "best_so_far_auc": 87.11375,
+          "top10_hit": 0.133333,
+          "composite": 176.26375
+        },
+        "llambo_warmstart_halogen_aromatic_synergy_noprior": {
+          "final_best": 89.15,
+          "best_so_far_auc": 87.11375,
+          "top10_hit": 0.133333,
+          "composite": 176.26375
+        },
+        "llambo_warmstart_halogen_aromatic_synergy_conservative": {
+          "final_best": 89.15,
+          "best_so_far_auc": 87.11375,
+          "top10_hit": 0.133333,
+          "composite": 176.26375
+        },
+        "llambo_warmstart_polarity_avoidance_domain": {
+          "final_best": 85.170833,
+          "best_so_far_auc": 82.337083,
+          "top10_hit": 0.0,
+          "composite": 167.507916
+        },
+        "llambo_warmstart_polarity_avoidance_domain_noprior": {
+          "final_best": 85.170833,
+          "best_so_far_auc": 82.337083,
+          "top10_hit": 0.0,
+          "composite": 167.507916
+        },
+        "llambo_warmstart_polarity_avoidance_domain_conservative": {
+          "final_best": 85.170833,
+          "best_so_far_auc": 82.337083,
+          "top10_hit": 0.0,
+          "composite": 167.507916
+        },
+        "llambo_warmstart_counter_source_ring_complexity": {
+          "final_best": 89.041667,
+          "best_so_far_auc": 86.434583,
+          "top10_hit": 0.233333,
+          "composite": 175.47625
+        },
+        "llambo_warmstart_counter_source_ring_complexity_noprior": {
+          "final_best": 89.041667,
+          "best_so_far_auc": 86.434583,
+          "top10_hit": 0.233333,
+          "composite": 175.47625
+        },
+        "llambo_warmstart_counter_source_ring_complexity_conservative": {
+          "final_best": 89.041667,
+          "best_so_far_auc": 86.434583,
+          "top10_hit": 0.233333,
+          "composite": 175.47625
+        },
+        "llambo_warmstart_steric_hindrance_lipophilicity": {
+          "final_best": 88.241667,
+          "best_so_far_auc": 85.987083,
+          "top10_hit": 0.1,
+          "composite": 174.22875
+        },
+        "llambo_warmstart_steric_hindrance_lipophilicity_noprior": {
+          "final_best": 88.241667,
+          "best_so_far_auc": 85.987083,
+          "top10_hit": 0.1,
+          "composite": 174.22875
+        },
+        "llambo_warmstart_steric_hindrance_lipophilicity_conservative": {
+          "final_best": 88.241667,
+          "best_so_far_auc": 85.987083,
+          "top10_hit": 0.1,
+          "composite": 174.22875
+        },
+        "llambo_warmstart_low_semantic_mass_conservative": {
+          "final_best": 88.891667,
+          "best_so_far_auc": 85.430417,
+          "top10_hit": 0.166667,
+          "composite": 174.322084
+        },
+        "llambo_warmstart_low_semantic_mass_conservative_noprior": {
+          "final_best": 88.891667,
+          "best_so_far_auc": 85.430417,
+          "top10_hit": 0.166667,
+          "composite": 174.322084
+        },
+        "llambo_warmstart_low_semantic_mass_conservative_conservative": {
+          "final_best": 88.891667,
+          "best_so_far_auc": 85.430417,
+          "top10_hit": 0.166667,
+          "composite": 174.322084
+        },
+        "llambo_warmstart_electron_withdrawing_lipophilicity": {
+          "final_best": 90.7625,
+          "best_so_far_auc": 88.95625,
+          "top10_hit": 0.266667,
+          "composite": 179.71875
+        },
+        "llambo_warmstart_electron_withdrawing_lipophilicity_noprior": {
+          "final_best": 90.7625,
+          "best_so_far_auc": 88.95625,
+          "top10_hit": 0.266667,
+          "composite": 179.71875
+        },
+        "llambo_warmstart_electron_withdrawing_lipophilicity_conservative": {
+          "final_best": 90.7625,
+          "best_so_far_auc": 88.95625,
+          "top10_hit": 0.266667,
+          "composite": 179.71875
+        },
+        "llambo_warmstart_cross_skill_rule_bank": {
+          "final_best": 85.745833,
+          "best_so_far_auc": 83.614167,
+          "top10_hit": 0.0,
+          "composite": 169.36
+        }
+      },
+      "rule": "Select the strongest llambo_warmstart variant on calibration final_best + AUC; held-out outcomes do not affect this choice."
+    }
+  },
+  "care_vs_external_llm": {
+    "llm_direct_prior_selector": {
+      "final_best": {
+        "n": 50.0,
+        "mean": 0.89,
+        "std": 5.700693,
+        "se": 0.8062,
+        "normal_95ci_low": -0.690151,
+        "normal_95ci_high": 2.470151,
+        "win_rate": 0.54,
+        "non_loss_rate": 0.68
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": 0.4175,
+        "std": 5.746618,
+        "se": 0.812695,
+        "normal_95ci_low": -1.175381,
+        "normal_95ci_high": 2.010381,
+        "win_rate": 0.54,
+        "non_loss_rate": 0.66
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": 0.04,
+        "std": 0.488262,
+        "se": 0.069051,
+        "normal_95ci_low": -0.095339,
+        "normal_95ci_high": 0.175339,
+        "win_rate": 0.14,
+        "non_loss_rate": 0.9
+      }
+    },
+    "llambo_warmstart_selector": {
+      "final_best": {
+        "n": 50.0,
+        "mean": -1.0325,
+        "std": 5.226842,
+        "se": 0.739187,
+        "normal_95ci_low": -2.481307,
+        "normal_95ci_high": 0.416307,
+        "win_rate": 0.46,
+        "non_loss_rate": 0.46
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": -2.14475,
+        "std": 4.929465,
+        "se": 0.697132,
+        "normal_95ci_low": -3.511128,
+        "normal_95ci_high": -0.778372,
+        "win_rate": 0.32,
+        "non_loss_rate": 0.32
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": -0.02,
+        "std": 0.616117,
+        "se": 0.087132,
+        "normal_95ci_low": -0.190779,
+        "normal_95ci_high": 0.150779,
+        "win_rate": 0.18,
+        "non_loss_rate": 0.8
+      }
+    }
+  },
+  "strategy_router": {
+    "selected_mode": "llambo_warmstart_electron_withdrawing_lipophilicity_noprior",
+    "selected_llm_strategy": true,
+    "target_anchor_mode": "gp_ucb",
+    "candidate_modes": [
+      "gp_ucb",
+      "llm_semantic_source_schema_alignment_conservative",
+      "llm_direct_prior_counter_source_ring_complexity_conservative",
+      "llambo_warmstart_electron_withdrawing_lipophilicity_noprior"
+    ],
+    "eligible_modes": [
+      "gp_ucb",
+      "llm_semantic_source_schema_alignment_conservative",
+      "llm_direct_prior_counter_source_ring_complexity_conservative",
+      "llambo_warmstart_electron_withdrawing_lipophilicity_noprior"
+    ],
+    "diagnostics": {
+      "gp_ucb": {
+        "eligible": true,
+        "risk_adjusted_composite_gain": 0.0,
+        "reason": "target-only fallback"
+      },
+      "llm_semantic_source_schema_alignment_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 1.691667,
+          "std": 4.558729,
+          "se": 0.832306,
+          "normal_95ci_low": 0.060346,
+          "normal_95ci_high": 3.322987,
+          "win_rate": 0.566667,
+          "non_loss_rate": 0.733333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.8125,
+          "std": 3.732752,
+          "se": 0.681504,
+          "normal_95ci_low": -0.523248,
+          "normal_95ci_high": 2.148248,
+          "win_rate": 0.666667,
+          "non_loss_rate": 0.733333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 2.504167,
+          "std": 7.742102,
+          "se": 1.413508,
+          "normal_95ci_low": -0.266309,
+          "normal_95ci_high": 5.274642,
+          "win_rate": 0.6,
+          "non_loss_rate": 0.633333
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          2.583333,
+          2.185417,
+          5.441667,
+          -1.1125,
+          3.422917
+        ],
+        "risk_adjusted_composite_gain": 1.797413,
+        "eligible": true
+      },
+      "llm_direct_prior_counter_source_ring_complexity_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 1.116667,
+          "std": 4.91447,
+          "se": 0.897255,
+          "normal_95ci_low": -0.641954,
+          "normal_95ci_high": 2.875287,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.6
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 1.125417,
+          "std": 5.068066,
+          "se": 0.925298,
+          "normal_95ci_low": -0.688168,
+          "normal_95ci_high": 2.939001,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.566667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 2.242083,
+          "std": 9.621824,
+          "se": 1.756697,
+          "normal_95ci_low": -1.201042,
+          "normal_95ci_high": 5.685209,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.533333
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          0.066667,
+          4.435417,
+          -0.697917,
+          3.166667,
+          4.239583
+        ],
+        "risk_adjusted_composite_gain": 1.363735,
+        "eligible": true
+      },
+      "llambo_warmstart_electron_withdrawing_lipophilicity_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 1.995833,
+          "std": 4.329463,
+          "se": 0.790448,
+          "normal_95ci_low": 0.446555,
+          "normal_95ci_high": 3.545112,
+          "win_rate": 0.633333,
+          "non_loss_rate": 0.666667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 2.604167,
+          "std": 4.669414,
+          "se": 0.852515,
+          "normal_95ci_low": 0.933238,
+          "normal_95ci_high": 4.275095,
+          "win_rate": 0.766667,
+          "non_loss_rate": 0.766667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 4.6,
+          "std": 8.269076,
+          "se": 1.50972,
+          "normal_95ci_low": 1.640949,
+          "normal_95ci_high": 7.559051,
+          "win_rate": 0.7,
+          "non_loss_rate": 0.7
+        },
+        "positive_fold_rate": 1.0,
+        "fold_composite_means": [
+          1.8375,
+          4.41875,
+          6.347917,
+          5.3,
+          5.095833
+        ],
+        "risk_adjusted_composite_gain": 3.84514,
+        "eligible": true
+      }
+    },
+    "thresholds": {
+      "min_risk_adjusted_composite_gain": 0.25,
+      "min_positive_fold_rate": 0.8,
+      "min_final_non_loss_rate": 0.55
+    },
+    "rule": "Choose among the frozen semantic selector, LLM-direct prior, LLAMBO-style warm-start, and the target-only anchor using calibration seeds only. Require non-negative final-best and AUC deltas, stable folds, and a positive risk-adjusted composite gain; otherwise fall back to the target-only anchor.",
+    "evidence_boundary": "Only calibration outcomes choose the strategy. Held-out outcomes are used once for the frozen comparison."
+  },
+  "strategy_router_strongest_target_mode": "gp_ucb",
+  "strategy_router_pairwise": {
+    "gp_ucb": {
+      "final_best": {
+        "n": 50.0,
+        "mean": 1.1075,
+        "std": 4.077454,
+        "se": 0.576639,
+        "normal_95ci_low": -0.022713,
+        "normal_95ci_high": 2.237713,
+        "win_rate": 0.56,
+        "non_loss_rate": 0.6
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": 2.644,
+        "std": 3.275807,
+        "se": 0.463269,
+        "normal_95ci_low": 1.735993,
+        "normal_95ci_high": 3.552007,
+        "win_rate": 0.78,
+        "non_loss_rate": 0.78
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": -0.04,
+        "std": 0.598665,
+        "se": 0.084664,
+        "normal_95ci_low": -0.205942,
+        "normal_95ci_high": 0.125942,
+        "win_rate": 0.16,
+        "non_loss_rate": 0.8
+      }
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": {
+        "n": 50.0,
+        "mean": 1.1125,
+        "std": 3.357571,
+        "se": 0.474832,
+        "normal_95ci_low": 0.181829,
+        "normal_95ci_high": 2.043171,
+        "win_rate": 0.54,
+        "non_loss_rate": 0.62
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": 3.06025,
+        "std": 3.224731,
+        "se": 0.456046,
+        "normal_95ci_low": 2.1664,
+        "normal_95ci_high": 3.9541,
+        "win_rate": 0.84,
+        "non_loss_rate": 0.86
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": 0.02,
+        "std": 0.50951,
+        "se": 0.072056,
+        "normal_95ci_low": -0.121229,
+        "normal_95ci_high": 0.161229,
+        "win_rate": 0.14,
+        "non_loss_rate": 0.88
+      }
+    },
+    "target_acquisition_portfolio": {
+      "final_best": {
+        "n": 50.0,
+        "mean": 0.9075,
+        "std": 4.283384,
+        "se": 0.605762,
+        "normal_95ci_low": -0.279794,
+        "normal_95ci_high": 2.094794,
+        "win_rate": 0.52,
+        "non_loss_rate": 0.56
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": 2.932,
+        "std": 2.931753,
+        "se": 0.414612,
+        "normal_95ci_low": 2.11936,
+        "normal_95ci_high": 3.74464,
+        "win_rate": 0.82,
+        "non_loss_rate": 0.84
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": -0.04,
+        "std": 0.631189,
+        "se": 0.089264,
+        "normal_95ci_low": -0.214957,
+        "normal_95ci_high": 0.134957,
+        "win_rate": 0.18,
+        "non_loss_rate": 0.78
+      }
+    }
+  },
+  "strategy_router_vs_external_llm": {
+    "llm_direct_prior_selector": {
+      "final_best": {
+        "n": 50.0,
+        "mean": 1.9225,
+        "std": 4.37899,
+        "se": 0.619283,
+        "normal_95ci_low": 0.708706,
+        "normal_95ci_high": 3.136294,
+        "win_rate": 0.6,
+        "non_loss_rate": 0.62
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": 2.56225,
+        "std": 4.565688,
+        "se": 0.645686,
+        "normal_95ci_low": 1.296706,
+        "normal_95ci_high": 3.827794,
+        "win_rate": 0.68,
+        "non_loss_rate": 0.68
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": 0.06,
+        "std": 0.544426,
+        "se": 0.076994,
+        "normal_95ci_low": -0.090907,
+        "normal_95ci_high": 0.210907,
+        "win_rate": 0.18,
+        "non_loss_rate": 0.88
+      }
+    },
+    "llambo_warmstart_selector": {
+      "final_best": {
+        "n": 50.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      }
+    }
+  },
+  "strategy_router_validation": {
+    "selected_llm_strategy": true,
+    "strongest_target_mode": "gp_ucb",
+    "final_95ci_positive": false,
+    "auc_95ci_positive": true,
+    "top10_95ci_positive": false
+  },
+  "heldout_validation": {
+    "selected_llm_skill": true,
+    "strongest_target_mode": "gp_ucb",
+    "final_95ci_positive": false,
+    "auc_95ci_positive": false,
+    "top10_95ci_positive": false
+  },
+  "evidence_boundary": {
+    "generation": "Only source identity, objective, and public source-target field alignment are provided. Source outcomes, effects, support counts, and value priors are withheld.",
+    "evaluation": "Calibration selects a skill before held-out evaluation. Every per-round fit uses only previously revealed target outcomes."
+  }
+}

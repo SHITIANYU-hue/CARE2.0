@@ -1,0 +1,4340 @@
+{
+  "experiment": "care_calibrated_llm_semantic_skill_selector",
+  "source_dataset": "real_matbench_expt_gap",
+  "target_dataset": "real_matbench_dielectric",
+  "evidence_mode": "source_schema_only",
+  "llm_model": "deepspeek-v3.2",
+  "llm_generation_call_count": 1,
+  "new_llm_call_count": 0,
+  "rule_prior_enabled": true,
+  "semantic_model_enabled": true,
+  "semantic_field_catalog": {
+    "anion_family": {
+      "carbide_or_carbon": 22,
+      "chalcogenide": 831,
+      "halide": 788,
+      "other": 172,
+      "oxide": 2259,
+      "pnictide": 692
+    },
+    "element_count_bin": {
+      "binary": 974,
+      "quinary_senary": 225,
+      "ternary_quaternary": 3565
+    },
+    "dominant_family": {
+      "alkali": 269,
+      "alkaline_earth": 103,
+      "chalcogen": 2447,
+      "halogen": 813,
+      "lanthanide": 11,
+      "light_nonmetal": 219,
+      "metalloid": 283,
+      "other": 3,
+      "pnictogen": 376,
+      "post_transition": 72,
+      "transition_metal": 168
+    },
+    "transition_metal_flag": {
+      "has_transition_metal": 2550,
+      "no_transition_metal": 2214
+    },
+    "lanthanide_flag": {
+      "has_lanthanide": 285,
+      "no_lanthanide": 4479
+    },
+    "mean_atomic_number_bin": {
+      "mean_z_high": 426,
+      "mean_z_low": 2693,
+      "mean_z_mid": 1600,
+      "mean_z_very_high": 45
+    },
+    "max_element_fraction_bin": {
+      "balanced": 317,
+      "concentrated": 2673,
+      "dominant_element_heavy": 128,
+      "moderately_concentrated": 1646
+    }
+  },
+  "skills": [
+    {
+      "skill_id": "oxide_chalcogen_high_refractivity",
+      "rules": [
+        {
+          "rule_id": "oxide_anion_high_refractive",
+          "conditions": [
+            [
+              "anion_family",
+              "oxide"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Oxides often exhibit high refractive indices due to high electronic polarizability and dense packing."
+        },
+        {
+          "rule_id": "chalcogen_dominant_high_refractive",
+          "conditions": [
+            [
+              "dominant_family",
+              "chalcogen"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Chalcogen-dominated materials (e.g., S, Se, Te) can show high refractive indices from high atomic number and polarizability."
+        },
+        {
+          "rule_id": "no_lanthanide_risk_reduction",
+          "conditions": [
+            [
+              "lanthanide_flag",
+              "no_lanthanide"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Absence of lanthanides may reduce electronic complexity and promote more predictable, high refractive index behavior."
+        },
+        {
+          "rule_id": "concentrated_composition_stability",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "concentrated"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Concentrated compositions often form stable, high-density phases favorable for high refractive index."
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.5,
+      "semantic_mass_start": 0.6,
+      "semantic_mass_end": 0.4,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.05,
+      "confidence": 0.8,
+      "hypothesis": "Transfers the hypothesis that oxide and chalcogen-dominated materials without lanthanides yield high refractive indices. May fail if high polarizability leads to absorption losses or if concentrated compositions limit compositional diversity."
+    },
+    {
+      "skill_id": "oxide_chalcogen_high_refractivity_noprior",
+      "rules": [
+        {
+          "rule_id": "oxide_anion_high_refractive",
+          "conditions": [
+            [
+              "anion_family",
+              "oxide"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Oxides often exhibit high refractive indices due to high electronic polarizability and dense packing."
+        },
+        {
+          "rule_id": "chalcogen_dominant_high_refractive",
+          "conditions": [
+            [
+              "dominant_family",
+              "chalcogen"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Chalcogen-dominated materials (e.g., S, Se, Te) can show high refractive indices from high atomic number and polarizability."
+        },
+        {
+          "rule_id": "no_lanthanide_risk_reduction",
+          "conditions": [
+            [
+              "lanthanide_flag",
+              "no_lanthanide"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Absence of lanthanides may reduce electronic complexity and promote more predictable, high refractive index behavior."
+        },
+        {
+          "rule_id": "concentrated_composition_stability",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "concentrated"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Concentrated compositions often form stable, high-density phases favorable for high refractive index."
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.6,
+      "semantic_mass_end": 0.4,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.05,
+      "confidence": 0.8,
+      "hypothesis": "Transfers the hypothesis that oxide and chalcogen-dominated materials without lanthanides yield high refractive indices. May fail if high polarizability leads to absorption losses or if concentrated compositions limit compositional diversity."
+    },
+    {
+      "skill_id": "oxide_chalcogen_high_refractivity_conservative",
+      "rules": [
+        {
+          "rule_id": "oxide_anion_high_refractive",
+          "conditions": [
+            [
+              "anion_family",
+              "oxide"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Oxides often exhibit high refractive indices due to high electronic polarizability and dense packing."
+        },
+        {
+          "rule_id": "chalcogen_dominant_high_refractive",
+          "conditions": [
+            [
+              "dominant_family",
+              "chalcogen"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Chalcogen-dominated materials (e.g., S, Se, Te) can show high refractive indices from high atomic number and polarizability."
+        },
+        {
+          "rule_id": "no_lanthanide_risk_reduction",
+          "conditions": [
+            [
+              "lanthanide_flag",
+              "no_lanthanide"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Absence of lanthanides may reduce electronic complexity and promote more predictable, high refractive index behavior."
+        },
+        {
+          "rule_id": "concentrated_composition_stability",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "concentrated"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Concentrated compositions often form stable, high-density phases favorable for high refractive index."
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.05,
+      "confidence": 0.8,
+      "hypothesis": "Transfers the hypothesis that oxide and chalcogen-dominated materials without lanthanides yield high refractive indices. May fail if high polarizability leads to absorption losses or if concentrated compositions limit compositional diversity."
+    },
+    {
+      "skill_id": "source_schema_alignment_only",
+      "rules": [
+        {
+          "rule_id": "source_anion_family_alignment",
+          "conditions": [
+            [
+              "anion_family",
+              "oxide"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Source-target field alignment suggests anion_family is a relevant descriptor; oxide is a common high-performing family in many material properties."
+        },
+        {
+          "rule_id": "source_element_count_alignment",
+          "conditions": [
+            [
+              "element_count_bin",
+              "ternary_quaternary"
+            ]
+          ],
+          "weight": 0.1,
+          "rationale": "Source-target field alignment suggests element_count_bin is a relevant descriptor; moderate complexity may balance diversity and stability."
+        },
+        {
+          "rule_id": "source_transition_metal_alignment",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": 0.15,
+          "rationale": "Source-target field alignment suggests transition_metal_flag is a relevant descriptor; transition metals can influence electronic structure."
+        }
+      ],
+      "ridge": 5.0,
+      "prior_scale": 0.1,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 1.0,
+      "gp_beta_end": 0.5,
+      "gp_xi": 0.01,
+      "confidence": 0.5,
+      "hypothesis": "Transfers only the source-target field alignment without assuming observed effects. May fail if the aligned fields are not predictive for refractive index, relying heavily on the target-only anchor."
+    },
+    {
+      "skill_id": "source_schema_alignment_only_noprior",
+      "rules": [
+        {
+          "rule_id": "source_anion_family_alignment",
+          "conditions": [
+            [
+              "anion_family",
+              "oxide"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Source-target field alignment suggests anion_family is a relevant descriptor; oxide is a common high-performing family in many material properties."
+        },
+        {
+          "rule_id": "source_element_count_alignment",
+          "conditions": [
+            [
+              "element_count_bin",
+              "ternary_quaternary"
+            ]
+          ],
+          "weight": 0.1,
+          "rationale": "Source-target field alignment suggests element_count_bin is a relevant descriptor; moderate complexity may balance diversity and stability."
+        },
+        {
+          "rule_id": "source_transition_metal_alignment",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": 0.15,
+          "rationale": "Source-target field alignment suggests transition_metal_flag is a relevant descriptor; transition metals can influence electronic structure."
+        }
+      ],
+      "ridge": 5.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 1.0,
+      "gp_beta_end": 0.5,
+      "gp_xi": 0.01,
+      "confidence": 0.5,
+      "hypothesis": "Transfers only the source-target field alignment without assuming observed effects. May fail if the aligned fields are not predictive for refractive index, relying heavily on the target-only anchor."
+    },
+    {
+      "skill_id": "source_schema_alignment_only_conservative",
+      "rules": [
+        {
+          "rule_id": "source_anion_family_alignment",
+          "conditions": [
+            [
+              "anion_family",
+              "oxide"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Source-target field alignment suggests anion_family is a relevant descriptor; oxide is a common high-performing family in many material properties."
+        },
+        {
+          "rule_id": "source_element_count_alignment",
+          "conditions": [
+            [
+              "element_count_bin",
+              "ternary_quaternary"
+            ]
+          ],
+          "weight": 0.1,
+          "rationale": "Source-target field alignment suggests element_count_bin is a relevant descriptor; moderate complexity may balance diversity and stability."
+        },
+        {
+          "rule_id": "source_transition_metal_alignment",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": 0.15,
+          "rationale": "Source-target field alignment suggests transition_metal_flag is a relevant descriptor; transition metals can influence electronic structure."
+        }
+      ],
+      "ridge": 5.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 1.0,
+      "gp_beta_end": 0.5,
+      "gp_xi": 0.01,
+      "confidence": 0.5,
+      "hypothesis": "Transfers only the source-target field alignment without assuming observed effects. May fail if the aligned fields are not predictive for refractive index, relying heavily on the target-only anchor."
+    },
+    {
+      "skill_id": "low_polarizability_risk_avoidance",
+      "rules": [
+        {
+          "rule_id": "halide_anion_low_refractive",
+          "conditions": [
+            [
+              "anion_family",
+              "halide"
+            ]
+          ],
+          "weight": -0.6,
+          "rationale": "Halides typically have lower electronic polarizability and lower refractive indices compared to oxides or chalcogenides."
+        },
+        {
+          "rule_id": "light_nonmetal_dominant_low_refractive",
+          "conditions": [
+            [
+              "dominant_family",
+              "light_nonmetal"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Light nonmetals (e.g., B, C, N) often form covalent bonds with lower polarizability, reducing refractive index."
+        },
+        {
+          "rule_id": "mean_z_low_low_refractive",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_low"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "Lower mean atomic number generally correlates with lower electronic density and polarizability, decreasing refractive index."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.3,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.02,
+      "confidence": 0.75,
+      "hypothesis": "Transfers the hypothesis that halides, light nonmetal dominance, and low mean atomic number reduce refractive index. May fail if these materials exhibit unexpected high refractive indices due to structural effects or if the rules are overly conservative."
+    },
+    {
+      "skill_id": "low_polarizability_risk_avoidance_noprior",
+      "rules": [
+        {
+          "rule_id": "halide_anion_low_refractive",
+          "conditions": [
+            [
+              "anion_family",
+              "halide"
+            ]
+          ],
+          "weight": -0.6,
+          "rationale": "Halides typically have lower electronic polarizability and lower refractive indices compared to oxides or chalcogenides."
+        },
+        {
+          "rule_id": "light_nonmetal_dominant_low_refractive",
+          "conditions": [
+            [
+              "dominant_family",
+              "light_nonmetal"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Light nonmetals (e.g., B, C, N) often form covalent bonds with lower polarizability, reducing refractive index."
+        },
+        {
+          "rule_id": "mean_z_low_low_refractive",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_low"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "Lower mean atomic number generally correlates with lower electronic density and polarizability, decreasing refractive index."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.3,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.02,
+      "confidence": 0.75,
+      "hypothesis": "Transfers the hypothesis that halides, light nonmetal dominance, and low mean atomic number reduce refractive index. May fail if these materials exhibit unexpected high refractive indices due to structural effects or if the rules are overly conservative."
+    },
+    {
+      "skill_id": "low_polarizability_risk_avoidance_conservative",
+      "rules": [
+        {
+          "rule_id": "halide_anion_low_refractive",
+          "conditions": [
+            [
+              "anion_family",
+              "halide"
+            ]
+          ],
+          "weight": -0.6,
+          "rationale": "Halides typically have lower electronic polarizability and lower refractive indices compared to oxides or chalcogenides."
+        },
+        {
+          "rule_id": "light_nonmetal_dominant_low_refractive",
+          "conditions": [
+            [
+              "dominant_family",
+              "light_nonmetal"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Light nonmetals (e.g., B, C, N) often form covalent bonds with lower polarizability, reducing refractive index."
+        },
+        {
+          "rule_id": "mean_z_low_low_refractive",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_low"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "Lower mean atomic number generally correlates with lower electronic density and polarizability, decreasing refractive index."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.02,
+      "confidence": 0.75,
+      "hypothesis": "Transfers the hypothesis that halides, light nonmetal dominance, and low mean atomic number reduce refractive index. May fail if these materials exhibit unexpected high refractive indices due to structural effects or if the rules are overly conservative."
+    },
+    {
+      "skill_id": "transition_metal_high_z_refractivity",
+      "rules": [
+        {
+          "rule_id": "transition_metal_presence_high_refractive",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Transition metals contribute d-electrons that enhance electronic polarizability and refractive index."
+        },
+        {
+          "rule_id": "mean_z_high_high_refractive",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_high"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Higher mean atomic number increases electron density and polarizability, boosting refractive index."
+        },
+        {
+          "rule_id": "chalcogenide_anion_synergy",
+          "conditions": [
+            [
+              "anion_family",
+              "chalcogenide"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Chalcogenides paired with transition metals can form highly polarizable compounds with high refractive indices."
+        }
+      ],
+      "ridge": 3.0,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.7,
+      "semantic_mass_end": 0.5,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 3.0,
+      "gp_beta_end": 2.0,
+      "gp_xi": 0.03,
+      "confidence": 0.85,
+      "hypothesis": "Transfers the hypothesis that transition metals and high mean atomic number in chalcogenides yield high refractive indices. May fail if high atomic number leads to absorption or if transition metals cause metallic behavior reducing transparency."
+    },
+    {
+      "skill_id": "transition_metal_high_z_refractivity_noprior",
+      "rules": [
+        {
+          "rule_id": "transition_metal_presence_high_refractive",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Transition metals contribute d-electrons that enhance electronic polarizability and refractive index."
+        },
+        {
+          "rule_id": "mean_z_high_high_refractive",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_high"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Higher mean atomic number increases electron density and polarizability, boosting refractive index."
+        },
+        {
+          "rule_id": "chalcogenide_anion_synergy",
+          "conditions": [
+            [
+              "anion_family",
+              "chalcogenide"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Chalcogenides paired with transition metals can form highly polarizable compounds with high refractive indices."
+        }
+      ],
+      "ridge": 3.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.7,
+      "semantic_mass_end": 0.5,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 3.0,
+      "gp_beta_end": 2.0,
+      "gp_xi": 0.03,
+      "confidence": 0.85,
+      "hypothesis": "Transfers the hypothesis that transition metals and high mean atomic number in chalcogenides yield high refractive indices. May fail if high atomic number leads to absorption or if transition metals cause metallic behavior reducing transparency."
+    },
+    {
+      "skill_id": "transition_metal_high_z_refractivity_conservative",
+      "rules": [
+        {
+          "rule_id": "transition_metal_presence_high_refractive",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Transition metals contribute d-electrons that enhance electronic polarizability and refractive index."
+        },
+        {
+          "rule_id": "mean_z_high_high_refractive",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_high"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Higher mean atomic number increases electron density and polarizability, boosting refractive index."
+        },
+        {
+          "rule_id": "chalcogenide_anion_synergy",
+          "conditions": [
+            [
+              "anion_family",
+              "chalcogenide"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Chalcogenides paired with transition metals can form highly polarizable compounds with high refractive indices."
+        }
+      ],
+      "ridge": 3.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 3.0,
+      "gp_beta_end": 2.0,
+      "gp_xi": 0.03,
+      "confidence": 0.85,
+      "hypothesis": "Transfers the hypothesis that transition metals and high mean atomic number in chalcogenides yield high refractive indices. May fail if high atomic number leads to absorption or if transition metals cause metallic behavior reducing transparency."
+    },
+    {
+      "skill_id": "binary_oxide_simple_composition",
+      "rules": [
+        {
+          "rule_id": "binary_composition_simplicity",
+          "conditions": [
+            [
+              "element_count_bin",
+              "binary"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Binary compositions often form stable, well-defined phases with predictable high refractive indices."
+        },
+        {
+          "rule_id": "oxide_anion_binary_synergy",
+          "conditions": [
+            [
+              "anion_family",
+              "oxide"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Binary oxides are known for high refractive indices due to ionic character and high polarizability."
+        },
+        {
+          "rule_id": "no_lanthanide_binary_stability",
+          "conditions": [
+            [
+              "lanthanide_flag",
+              "no_lanthanide"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Absence of lanthanides in binary oxides may enhance phase stability and optical clarity."
+        }
+      ],
+      "ridge": 2.5,
+      "prior_scale": 0.35,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.7,
+      "hypothesis": "Transfers the hypothesis that binary oxides without lanthanides offer high refractive indices with simplicity. May fail if binary compositions lack the diversity needed for optimal refractive index or if other families outperform."
+    },
+    {
+      "skill_id": "binary_oxide_simple_composition_noprior",
+      "rules": [
+        {
+          "rule_id": "binary_composition_simplicity",
+          "conditions": [
+            [
+              "element_count_bin",
+              "binary"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Binary compositions often form stable, well-defined phases with predictable high refractive indices."
+        },
+        {
+          "rule_id": "oxide_anion_binary_synergy",
+          "conditions": [
+            [
+              "anion_family",
+              "oxide"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Binary oxides are known for high refractive indices due to ionic character and high polarizability."
+        },
+        {
+          "rule_id": "no_lanthanide_binary_stability",
+          "conditions": [
+            [
+              "lanthanide_flag",
+              "no_lanthanide"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Absence of lanthanides in binary oxides may enhance phase stability and optical clarity."
+        }
+      ],
+      "ridge": 2.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.7,
+      "hypothesis": "Transfers the hypothesis that binary oxides without lanthanides offer high refractive indices with simplicity. May fail if binary compositions lack the diversity needed for optimal refractive index or if other families outperform."
+    },
+    {
+      "skill_id": "binary_oxide_simple_composition_conservative",
+      "rules": [
+        {
+          "rule_id": "binary_composition_simplicity",
+          "conditions": [
+            [
+              "element_count_bin",
+              "binary"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Binary compositions often form stable, well-defined phases with predictable high refractive indices."
+        },
+        {
+          "rule_id": "oxide_anion_binary_synergy",
+          "conditions": [
+            [
+              "anion_family",
+              "oxide"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Binary oxides are known for high refractive indices due to ionic character and high polarizability."
+        },
+        {
+          "rule_id": "no_lanthanide_binary_stability",
+          "conditions": [
+            [
+              "lanthanide_flag",
+              "no_lanthanide"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Absence of lanthanides in binary oxides may enhance phase stability and optical clarity."
+        }
+      ],
+      "ridge": 2.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.7,
+      "hypothesis": "Transfers the hypothesis that binary oxides without lanthanides offer high refractive indices with simplicity. May fail if binary compositions lack the diversity needed for optimal refractive index or if other families outperform."
+    },
+    {
+      "skill_id": "counter_source_bandgap_refractive",
+      "rules": [
+        {
+          "rule_id": "pnictide_anion_high_refractive_counter",
+          "conditions": [
+            [
+              "anion_family",
+              "pnictide"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "While source targeted band gap, pnictides may have high refractive indices due to moderate polarizability, countering uncertain source relation."
+        },
+        {
+          "rule_id": "balanced_composition_diversity",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "balanced"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Balanced compositions may offer diverse electronic environments for high refractive index, downweighting source preference for concentrated."
+        },
+        {
+          "rule_id": "has_lanthanide_possible_benefit",
+          "conditions": [
+            [
+              "lanthanide_flag",
+              "has_lanthanide"
+            ]
+          ],
+          "weight": 0.1,
+          "rationale": "Lanthanides could enhance refractive index via f-electron effects, reversing source risk assumption."
+        }
+      ],
+      "ridge": 4.0,
+      "prior_scale": 0.2,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 0.8,
+      "gp_xi": 0.05,
+      "confidence": 0.6,
+      "hypothesis": "Transfers counter-hypotheses to source band gap relations, suggesting pnictides, balanced compositions, and lanthanides may benefit refractive index. May fail if these reversals are not supported by target data, leading to negative transfer."
+    },
+    {
+      "skill_id": "counter_source_bandgap_refractive_noprior",
+      "rules": [
+        {
+          "rule_id": "pnictide_anion_high_refractive_counter",
+          "conditions": [
+            [
+              "anion_family",
+              "pnictide"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "While source targeted band gap, pnictides may have high refractive indices due to moderate polarizability, countering uncertain source relation."
+        },
+        {
+          "rule_id": "balanced_composition_diversity",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "balanced"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Balanced compositions may offer diverse electronic environments for high refractive index, downweighting source preference for concentrated."
+        },
+        {
+          "rule_id": "has_lanthanide_possible_benefit",
+          "conditions": [
+            [
+              "lanthanide_flag",
+              "has_lanthanide"
+            ]
+          ],
+          "weight": 0.1,
+          "rationale": "Lanthanides could enhance refractive index via f-electron effects, reversing source risk assumption."
+        }
+      ],
+      "ridge": 4.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 0.8,
+      "gp_xi": 0.05,
+      "confidence": 0.6,
+      "hypothesis": "Transfers counter-hypotheses to source band gap relations, suggesting pnictides, balanced compositions, and lanthanides may benefit refractive index. May fail if these reversals are not supported by target data, leading to negative transfer."
+    },
+    {
+      "skill_id": "counter_source_bandgap_refractive_conservative",
+      "rules": [
+        {
+          "rule_id": "pnictide_anion_high_refractive_counter",
+          "conditions": [
+            [
+              "anion_family",
+              "pnictide"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "While source targeted band gap, pnictides may have high refractive indices due to moderate polarizability, countering uncertain source relation."
+        },
+        {
+          "rule_id": "balanced_composition_diversity",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "balanced"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Balanced compositions may offer diverse electronic environments for high refractive index, downweighting source preference for concentrated."
+        },
+        {
+          "rule_id": "has_lanthanide_possible_benefit",
+          "conditions": [
+            [
+              "lanthanide_flag",
+              "has_lanthanide"
+            ]
+          ],
+          "weight": 0.1,
+          "rationale": "Lanthanides could enhance refractive index via f-electron effects, reversing source risk assumption."
+        }
+      ],
+      "ridge": 4.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 0.8,
+      "gp_xi": 0.05,
+      "confidence": 0.6,
+      "hypothesis": "Transfers counter-hypotheses to source band gap relations, suggesting pnictides, balanced compositions, and lanthanides may benefit refractive index. May fail if these reversals are not supported by target data, leading to negative transfer."
+    },
+    {
+      "skill_id": "conservative_low_semantic_mass",
+      "rules": [
+        {
+          "rule_id": "oxide_anion_conservative",
+          "conditions": [
+            [
+              "anion_family",
+              "oxide"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Oxides are a conservative choice for high refractive index based on known material science."
+        },
+        {
+          "rule_id": "mean_z_mid_moderate_refractive",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_mid"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Moderate mean atomic number balances polarizability and transparency, a conservative heuristic."
+        }
+      ],
+      "ridge": 10.0,
+      "prior_scale": 0.05,
+      "semantic_mass_start": 0.1,
+      "semantic_mass_end": 0.05,
+      "ucb_weight": 0.8,
+      "gp_beta_start": 0.5,
+      "gp_beta_end": 0.3,
+      "gp_xi": 0.0,
+      "confidence": 0.9,
+      "hypothesis": "Transfers a minimal, conservative semantic signal focused on oxides and moderate atomic number, heavily relying on the target-only anchor. May fail if the semantic signal is too weak to improve over random search."
+    },
+    {
+      "skill_id": "conservative_low_semantic_mass_noprior",
+      "rules": [
+        {
+          "rule_id": "oxide_anion_conservative",
+          "conditions": [
+            [
+              "anion_family",
+              "oxide"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Oxides are a conservative choice for high refractive index based on known material science."
+        },
+        {
+          "rule_id": "mean_z_mid_moderate_refractive",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_mid"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Moderate mean atomic number balances polarizability and transparency, a conservative heuristic."
+        }
+      ],
+      "ridge": 10.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.1,
+      "semantic_mass_end": 0.05,
+      "ucb_weight": 0.8,
+      "gp_beta_start": 0.5,
+      "gp_beta_end": 0.3,
+      "gp_xi": 0.0,
+      "confidence": 0.9,
+      "hypothesis": "Transfers a minimal, conservative semantic signal focused on oxides and moderate atomic number, heavily relying on the target-only anchor. May fail if the semantic signal is too weak to improve over random search."
+    },
+    {
+      "skill_id": "conservative_low_semantic_mass_conservative",
+      "rules": [
+        {
+          "rule_id": "oxide_anion_conservative",
+          "conditions": [
+            [
+              "anion_family",
+              "oxide"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Oxides are a conservative choice for high refractive index based on known material science."
+        },
+        {
+          "rule_id": "mean_z_mid_moderate_refractive",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_mid"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Moderate mean atomic number balances polarizability and transparency, a conservative heuristic."
+        }
+      ],
+      "ridge": 10.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.1,
+      "semantic_mass_end": 0.05,
+      "ucb_weight": 0.8,
+      "gp_beta_start": 0.5,
+      "gp_beta_end": 0.3,
+      "gp_xi": 0.0,
+      "confidence": 0.9,
+      "hypothesis": "Transfers a minimal, conservative semantic signal focused on oxides and moderate atomic number, heavily relying on the target-only anchor. May fail if the semantic signal is too weak to improve over random search."
+    },
+    {
+      "skill_id": "domain_knowledge_high_density_refractivity",
+      "rules": [
+        {
+          "rule_id": "alkaline_earth_dominant_high_density",
+          "conditions": [
+            [
+              "dominant_family",
+              "alkaline_earth"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Alkaline earth metals (e.g., Mg, Ca) often form dense, high-refractive-index oxides and chalcogenides."
+        },
+        {
+          "rule_id": "mean_z_very_high_extreme_polarizability",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_very_high"
+            ]
+          ],
+          "weight": 0.9,
+          "rationale": "Very high mean atomic number indicates heavy elements that significantly increase electronic polarizability and refractive index."
+        },
+        {
+          "rule_id": "concentrated_high_density_phase",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "concentrated"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Concentrated compositions favor formation of dense, single-phase materials with high refractive index."
+        },
+        {
+          "rule_id": "chalcogenide_anion_high_polarizability",
+          "conditions": [
+            [
+              "anion_family",
+              "chalcogenide"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Chalcogenides (S, Se, Te) have high polarizability, contributing to high refractive index in dense compounds."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.6,
+      "semantic_mass_start": 0.8,
+      "semantic_mass_end": 0.6,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 3.5,
+      "gp_beta_end": 2.5,
+      "gp_xi": 0.1,
+      "confidence": 0.85,
+      "hypothesis": "Transfers domain knowledge that dense materials with heavy elements and alkaline earth dominance in chalcogenides yield high refractive indices. May fail if high density leads to brittleness or if very high atomic number causes absorption losses."
+    },
+    {
+      "skill_id": "domain_knowledge_high_density_refractivity_noprior",
+      "rules": [
+        {
+          "rule_id": "alkaline_earth_dominant_high_density",
+          "conditions": [
+            [
+              "dominant_family",
+              "alkaline_earth"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Alkaline earth metals (e.g., Mg, Ca) often form dense, high-refractive-index oxides and chalcogenides."
+        },
+        {
+          "rule_id": "mean_z_very_high_extreme_polarizability",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_very_high"
+            ]
+          ],
+          "weight": 0.9,
+          "rationale": "Very high mean atomic number indicates heavy elements that significantly increase electronic polarizability and refractive index."
+        },
+        {
+          "rule_id": "concentrated_high_density_phase",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "concentrated"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Concentrated compositions favor formation of dense, single-phase materials with high refractive index."
+        },
+        {
+          "rule_id": "chalcogenide_anion_high_polarizability",
+          "conditions": [
+            [
+              "anion_family",
+              "chalcogenide"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Chalcogenides (S, Se, Te) have high polarizability, contributing to high refractive index in dense compounds."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.8,
+      "semantic_mass_end": 0.6,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 3.5,
+      "gp_beta_end": 2.5,
+      "gp_xi": 0.1,
+      "confidence": 0.85,
+      "hypothesis": "Transfers domain knowledge that dense materials with heavy elements and alkaline earth dominance in chalcogenides yield high refractive indices. May fail if high density leads to brittleness or if very high atomic number causes absorption losses."
+    },
+    {
+      "skill_id": "domain_knowledge_high_density_refractivity_conservative",
+      "rules": [
+        {
+          "rule_id": "alkaline_earth_dominant_high_density",
+          "conditions": [
+            [
+              "dominant_family",
+              "alkaline_earth"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Alkaline earth metals (e.g., Mg, Ca) often form dense, high-refractive-index oxides and chalcogenides."
+        },
+        {
+          "rule_id": "mean_z_very_high_extreme_polarizability",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_very_high"
+            ]
+          ],
+          "weight": 0.9,
+          "rationale": "Very high mean atomic number indicates heavy elements that significantly increase electronic polarizability and refractive index."
+        },
+        {
+          "rule_id": "concentrated_high_density_phase",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "concentrated"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Concentrated compositions favor formation of dense, single-phase materials with high refractive index."
+        },
+        {
+          "rule_id": "chalcogenide_anion_high_polarizability",
+          "conditions": [
+            [
+              "anion_family",
+              "chalcogenide"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Chalcogenides (S, Se, Te) have high polarizability, contributing to high refractive index in dense compounds."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 3.5,
+      "gp_beta_end": 2.5,
+      "gp_xi": 0.1,
+      "confidence": 0.85,
+      "hypothesis": "Transfers domain knowledge that dense materials with heavy elements and alkaline earth dominance in chalcogenides yield high refractive indices. May fail if high density leads to brittleness or if very high atomic number causes absorption losses."
+    },
+    {
+      "skill_id": "cross_skill_rule_bank",
+      "rules": [
+        {
+          "rule_id": "oxide_anion_high_refractive",
+          "conditions": [
+            [
+              "anion_family",
+              "oxide"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Oxides often exhibit high refractive indices due to high electronic polarizability and dense packing."
+        },
+        {
+          "rule_id": "chalcogen_dominant_high_refractive",
+          "conditions": [
+            [
+              "dominant_family",
+              "chalcogen"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Chalcogen-dominated materials (e.g., S, Se, Te) can show high refractive indices from high atomic number and polarizability."
+        },
+        {
+          "rule_id": "no_lanthanide_risk_reduction",
+          "conditions": [
+            [
+              "lanthanide_flag",
+              "no_lanthanide"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Absence of lanthanides may reduce electronic complexity and promote more predictable, high refractive index behavior."
+        },
+        {
+          "rule_id": "concentrated_composition_stability",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "concentrated"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Concentrated compositions often form stable, high-density phases favorable for high refractive index."
+        },
+        {
+          "rule_id": "source_element_count_alignment",
+          "conditions": [
+            [
+              "element_count_bin",
+              "ternary_quaternary"
+            ]
+          ],
+          "weight": 0.1,
+          "rationale": "Source-target field alignment suggests element_count_bin is a relevant descriptor; moderate complexity may balance diversity and stability."
+        },
+        {
+          "rule_id": "source_transition_metal_alignment",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": 0.15,
+          "rationale": "Source-target field alignment suggests transition_metal_flag is a relevant descriptor; transition metals can influence electronic structure."
+        },
+        {
+          "rule_id": "halide_anion_low_refractive",
+          "conditions": [
+            [
+              "anion_family",
+              "halide"
+            ]
+          ],
+          "weight": -0.6,
+          "rationale": "Halides typically have lower electronic polarizability and lower refractive indices compared to oxides or chalcogenides."
+        },
+        {
+          "rule_id": "light_nonmetal_dominant_low_refractive",
+          "conditions": [
+            [
+              "dominant_family",
+              "light_nonmetal"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Light nonmetals (e.g., B, C, N) often form covalent bonds with lower polarizability, reducing refractive index."
+        },
+        {
+          "rule_id": "mean_z_low_low_refractive",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_low"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "Lower mean atomic number generally correlates with lower electronic density and polarizability, decreasing refractive index."
+        },
+        {
+          "rule_id": "mean_z_high_high_refractive",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_high"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Higher mean atomic number increases electron density and polarizability, boosting refractive index."
+        },
+        {
+          "rule_id": "chalcogenide_anion_synergy",
+          "conditions": [
+            [
+              "anion_family",
+              "chalcogenide"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Chalcogenides paired with transition metals can form highly polarizable compounds with high refractive indices."
+        },
+        {
+          "rule_id": "binary_composition_simplicity",
+          "conditions": [
+            [
+              "element_count_bin",
+              "binary"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Binary compositions often form stable, well-defined phases with predictable high refractive indices."
+        },
+        {
+          "rule_id": "pnictide_anion_high_refractive_counter",
+          "conditions": [
+            [
+              "anion_family",
+              "pnictide"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "While source targeted band gap, pnictides may have high refractive indices due to moderate polarizability, countering uncertain source relation."
+        },
+        {
+          "rule_id": "balanced_composition_diversity",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "balanced"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Balanced compositions may offer diverse electronic environments for high refractive index, downweighting source preference for concentrated."
+        },
+        {
+          "rule_id": "has_lanthanide_possible_benefit",
+          "conditions": [
+            [
+              "lanthanide_flag",
+              "has_lanthanide"
+            ]
+          ],
+          "weight": 0.1,
+          "rationale": "Lanthanides could enhance refractive index via f-electron effects, reversing source risk assumption."
+        },
+        {
+          "rule_id": "mean_z_mid_moderate_refractive",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_mid"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Moderate mean atomic number balances polarizability and transparency, a conservative heuristic."
+        },
+        {
+          "rule_id": "alkaline_earth_dominant_high_density",
+          "conditions": [
+            [
+              "dominant_family",
+              "alkaline_earth"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Alkaline earth metals (e.g., Mg, Ca) often form dense, high-refractive-index oxides and chalcogenides."
+        },
+        {
+          "rule_id": "mean_z_very_high_extreme_polarizability",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_very_high"
+            ]
+          ],
+          "weight": 0.9,
+          "rationale": "Very high mean atomic number indicates heavy elements that significantly increase electronic polarizability and refractive index."
+        }
+      ],
+      "ridge": 4.0,
+      "prior_scale": 0.0,
+      "semantic_mass_start": 0.25,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.9,
+      "hypothesis": "Union of independently proposed LLM rule features. Rule signs are ignored; revealed target observations fit a strongly regularized coefficient vector."
+    }
+  ],
+  "skill_variant_policy": "expanded",
+  "calibration_seed_start": 27000,
+  "calibration_seed_count": 30,
+  "heldout_seed_start": 27100,
+  "heldout_seed_count": 50,
+  "selection": {
+    "target_anchor_mode": "target_acquisition_portfolio",
+    "target_anchor_summary": {
+      "gp_ucb": {
+        "final_best": 51.17946,
+        "best_so_far_auc": 47.74437,
+        "top10_hit": 0.066667,
+        "composite": 98.92383
+      },
+      "mixed_kernel_gp_ei": {
+        "final_best": 50.210727,
+        "best_so_far_auc": 46.874587,
+        "top10_hit": 0.066667,
+        "composite": 97.085314
+      },
+      "target_acquisition_portfolio": {
+        "final_best": 53.7509,
+        "best_so_far_auc": 48.97404,
+        "top10_hit": 0.133333,
+        "composite": 102.72494
+      }
+    },
+    "eligible_skill_modes": [
+      "llm_semantic_counter_source_bandgap_refractive",
+      "llm_semantic_counter_source_bandgap_refractive_conservative",
+      "llm_semantic_counter_source_bandgap_refractive_noprior",
+      "llm_semantic_domain_knowledge_high_density_refractivity",
+      "llm_semantic_domain_knowledge_high_density_refractivity_conservative",
+      "llm_semantic_domain_knowledge_high_density_refractivity_noprior"
+    ],
+    "selected_mode": "llm_semantic_counter_source_bandgap_refractive",
+    "selected_llm_skill": true,
+    "skill_diagnostics": {
+      "llm_semantic_oxide_chalcogen_high_refractivity": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -4.51814,
+          "std": 11.719193,
+          "se": 2.139622,
+          "normal_95ci_low": -8.711799,
+          "normal_95ci_high": -0.324481,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.433333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -2.570517,
+          "std": 7.081934,
+          "se": 1.292978,
+          "normal_95ci_low": -5.104754,
+          "normal_95ci_high": -0.036279,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.4
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -7.088657,
+          "std": 17.647203,
+          "se": 3.221924,
+          "normal_95ci_low": -13.403627,
+          "normal_95ci_high": -0.773686,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.4
+        },
+        "positive_fold_rate": 0.2,
+        "fold_composite_means": [
+          -9.974317,
+          -8.548217,
+          3.400483,
+          -20.299033,
+          -0.0222
+        ],
+        "risk_adjusted_composite_gain": -8.699619,
+        "eligible": false
+      },
+      "llm_semantic_oxide_chalcogen_high_refractivity_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -2.314647,
+          "std": 13.105477,
+          "se": 2.392722,
+          "normal_95ci_low": -7.004381,
+          "normal_95ci_high": 2.375088,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.533333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.399003,
+          "std": 9.688085,
+          "se": 1.768794,
+          "normal_95ci_low": -3.067833,
+          "normal_95ci_high": 3.86584,
+          "win_rate": 0.566667,
+          "non_loss_rate": 0.633333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -1.915643,
+          "std": 22.440868,
+          "se": 4.097123,
+          "normal_95ci_low": -9.946005,
+          "normal_95ci_high": 6.114718,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.533333
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          3.82365,
+          -5.135833,
+          -4.540417,
+          -16.673167,
+          12.94755
+        ],
+        "risk_adjusted_composite_gain": -3.964205,
+        "eligible": false
+      },
+      "llm_semantic_oxide_chalcogen_high_refractivity_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -2.99949,
+          "std": 9.936258,
+          "se": 1.814104,
+          "normal_95ci_low": -6.555134,
+          "normal_95ci_high": 0.556154,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.533333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -0.80007,
+          "std": 6.9582,
+          "se": 1.270388,
+          "normal_95ci_low": -3.29003,
+          "normal_95ci_high": 1.68989,
+          "win_rate": 0.533333,
+          "non_loss_rate": 0.6
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -3.79956,
+          "std": 16.429265,
+          "se": 2.99956,
+          "normal_95ci_low": -9.678697,
+          "normal_95ci_high": 2.079577,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.533333
+        },
+        "positive_fold_rate": 0.2,
+        "fold_composite_means": [
+          -5.750533,
+          -4.009133,
+          -2.124933,
+          -14.148133,
+          7.034933
+        ],
+        "risk_adjusted_composite_gain": -5.29934,
+        "eligible": false
+      },
+      "llm_semantic_source_schema_alignment_only": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 0.29259,
+          "std": 9.102279,
+          "se": 1.661841,
+          "normal_95ci_low": -2.964619,
+          "normal_95ci_high": 3.549799,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.7
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.535227,
+          "std": 5.979349,
+          "se": 1.091675,
+          "normal_95ci_low": -1.604456,
+          "normal_95ci_high": 2.674909,
+          "win_rate": 0.566667,
+          "non_loss_rate": 0.7
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 0.827817,
+          "std": 14.505674,
+          "se": 2.648362,
+          "normal_95ci_low": -4.362972,
+          "normal_95ci_high": 6.018605,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.6
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          -0.126483,
+          2.478183,
+          0.707933,
+          -1.657283,
+          2.736733
+        ],
+        "risk_adjusted_composite_gain": -0.496364,
+        "eligible": false
+      },
+      "llm_semantic_source_schema_alignment_only_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -0.028073,
+          "std": 8.340305,
+          "se": 1.522724,
+          "normal_95ci_low": -3.012613,
+          "normal_95ci_high": 2.956467,
+          "win_rate": 0.233333,
+          "non_loss_rate": 0.633333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.723043,
+          "std": 6.161336,
+          "se": 1.124901,
+          "normal_95ci_low": -1.481762,
+          "normal_95ci_high": 2.927849,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.566667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 0.69497,
+          "std": 14.015349,
+          "se": 2.558841,
+          "normal_95ci_low": -4.320358,
+          "normal_95ci_high": 5.710298,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.533333
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          0.053133,
+          6.36435,
+          0.3848,
+          -4.706083,
+          1.37865
+        ],
+        "risk_adjusted_composite_gain": -0.584451,
+        "eligible": false
+      },
+      "llm_semantic_source_schema_alignment_only_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -0.035987,
+          "std": 8.395868,
+          "se": 1.532869,
+          "normal_95ci_low": -3.040409,
+          "normal_95ci_high": 2.968436,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.633333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.5914,
+          "std": 5.702661,
+          "se": 1.041159,
+          "normal_95ci_low": -1.449271,
+          "normal_95ci_high": 2.632071,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.6
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 0.555413,
+          "std": 13.627832,
+          "se": 2.48809,
+          "normal_95ci_low": -4.321244,
+          "normal_95ci_high": 5.43207,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.566667
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          -1.297017,
+          6.36435,
+          0.3848,
+          -4.22845,
+          1.553383
+        ],
+        "risk_adjusted_composite_gain": -0.688632,
+        "eligible": false
+      },
+      "llm_semantic_low_polarizability_risk_avoidance": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -1.45818,
+          "std": 13.187757,
+          "se": 2.407744,
+          "normal_95ci_low": -6.177358,
+          "normal_95ci_high": 3.260998,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.566667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.923923,
+          "std": 9.072267,
+          "se": 1.656362,
+          "normal_95ci_low": -2.322546,
+          "normal_95ci_high": 4.170393,
+          "win_rate": 0.533333,
+          "non_loss_rate": 0.633333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -0.534257,
+          "std": 21.90915,
+          "se": 4.000045,
+          "normal_95ci_low": -8.374345,
+          "normal_95ci_high": 7.305832,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.533333
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          -6.30395,
+          -1.353433,
+          2.9498,
+          -12.27685,
+          14.31315
+        ],
+        "risk_adjusted_composite_gain": -2.53428,
+        "eligible": false
+      },
+      "llm_semantic_low_polarizability_risk_avoidance_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -1.0486,
+          "std": 13.283529,
+          "se": 2.425229,
+          "normal_95ci_low": -5.80205,
+          "normal_95ci_high": 3.70485,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.5
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.588053,
+          "std": 8.086133,
+          "se": 1.476319,
+          "normal_95ci_low": -2.305532,
+          "normal_95ci_high": 3.481639,
+          "win_rate": 0.533333,
+          "non_loss_rate": 0.633333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -0.460547,
+          "std": 20.958268,
+          "se": 3.826439,
+          "normal_95ci_low": -7.960367,
+          "normal_95ci_high": 7.039273,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.466667
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          -10.5788,
+          1.818167,
+          3.105317,
+          -13.27445,
+          16.627033
+        ],
+        "risk_adjusted_composite_gain": -2.373766,
+        "eligible": false
+      },
+      "llm_semantic_low_polarizability_risk_avoidance_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -1.360337,
+          "std": 12.156133,
+          "se": 2.219396,
+          "normal_95ci_low": -5.710353,
+          "normal_95ci_high": 2.98968,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.666667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -0.294707,
+          "std": 7.937458,
+          "se": 1.449175,
+          "normal_95ci_low": -3.135089,
+          "normal_95ci_high": 2.545676,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.6
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -1.655043,
+          "std": 19.405318,
+          "se": 3.54291,
+          "normal_95ci_low": -8.599147,
+          "normal_95ci_high": 5.28906,
+          "win_rate": 0.533333,
+          "non_loss_rate": 0.633333
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          -9.4959,
+          2.855967,
+          2.2552,
+          -11.873967,
+          7.983483
+        ],
+        "risk_adjusted_composite_gain": -3.426498,
+        "eligible": false
+      },
+      "llm_semantic_transition_metal_high_z_refractivity": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -1.97514,
+          "std": 13.284541,
+          "se": 2.425414,
+          "normal_95ci_low": -6.728952,
+          "normal_95ci_high": 2.778672,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.533333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.671237,
+          "std": 9.813266,
+          "se": 1.791649,
+          "normal_95ci_low": -2.840395,
+          "normal_95ci_high": 4.182869,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.533333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -1.303903,
+          "std": 22.74935,
+          "se": 4.153444,
+          "normal_95ci_low": -9.444654,
+          "normal_95ci_high": 6.836847,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.533333
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          -6.753267,
+          6.31375,
+          -3.370167,
+          -13.93725,
+          11.227417
+        ],
+        "risk_adjusted_composite_gain": -3.380625,
+        "eligible": false
+      },
+      "llm_semantic_transition_metal_high_z_refractivity_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -1.180897,
+          "std": 11.313843,
+          "se": 2.065616,
+          "normal_95ci_low": -5.229503,
+          "normal_95ci_high": 2.86771,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.6
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 1.275537,
+          "std": 7.55037,
+          "se": 1.378503,
+          "normal_95ci_low": -1.426329,
+          "normal_95ci_high": 3.977402,
+          "win_rate": 0.533333,
+          "non_loss_rate": 0.6
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 0.09464,
+          "std": 18.218625,
+          "se": 3.326251,
+          "normal_95ci_low": -6.424811,
+          "normal_95ci_high": 6.614091,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.566667
+        },
+        "positive_fold_rate": 0.2,
+        "fold_composite_means": [
+          -3.843017,
+          -5.741783,
+          -1.221783,
+          -4.268233,
+          15.548017
+        ],
+        "risk_adjusted_composite_gain": -1.568485,
+        "eligible": false
+      },
+      "llm_semantic_transition_metal_high_z_refractivity_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 2.972387,
+          "std": 12.474272,
+          "se": 2.27748,
+          "normal_95ci_low": -1.491474,
+          "normal_95ci_high": 7.436247,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.633333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 3.197907,
+          "std": 9.659877,
+          "se": 1.763644,
+          "normal_95ci_low": -0.258836,
+          "normal_95ci_high": 6.654649,
+          "win_rate": 0.566667,
+          "non_loss_rate": 0.666667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 6.170293,
+          "std": 21.492627,
+          "se": 3.923999,
+          "normal_95ci_low": -1.520744,
+          "normal_95ci_high": 13.861331,
+          "win_rate": 0.533333,
+          "non_loss_rate": 0.633333
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          -0.949217,
+          8.638117,
+          4.6336,
+          -2.161767,
+          20.690733
+        ],
+        "risk_adjusted_composite_gain": 4.208293,
+        "eligible": false
+      },
+      "llm_semantic_binary_oxide_simple_composition": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -1.57589,
+          "std": 12.613005,
+          "se": 2.302809,
+          "normal_95ci_low": -6.089396,
+          "normal_95ci_high": 2.937616,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.666667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -0.121573,
+          "std": 8.609173,
+          "se": 1.571813,
+          "normal_95ci_low": -3.202326,
+          "normal_95ci_high": 2.95918,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.566667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -1.697463,
+          "std": 20.685925,
+          "se": 3.776716,
+          "normal_95ci_low": -9.099826,
+          "normal_95ci_high": 5.7049,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.6
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          -5.820867,
+          -1.998533,
+          6.06775,
+          -15.919583,
+          9.183917
+        ],
+        "risk_adjusted_composite_gain": -3.585821,
+        "eligible": false
+      },
+      "llm_semantic_binary_oxide_simple_composition_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -0.998633,
+          "std": 11.850446,
+          "se": 2.163586,
+          "normal_95ci_low": -5.239261,
+          "normal_95ci_high": 3.241994,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.666667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.66017,
+          "std": 8.061393,
+          "se": 1.471802,
+          "normal_95ci_low": -2.224562,
+          "normal_95ci_high": 3.544902,
+          "win_rate": 0.566667,
+          "non_loss_rate": 0.666667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -0.338463,
+          "std": 19.310306,
+          "se": 3.525563,
+          "normal_95ci_low": -7.248568,
+          "normal_95ci_high": 6.571641,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.6
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          -7.875733,
+          1.0952,
+          9.145767,
+          -13.585183,
+          9.527633
+        ],
+        "risk_adjusted_composite_gain": -2.101244,
+        "eligible": false
+      },
+      "llm_semantic_binary_oxide_simple_composition_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -0.195463,
+          "std": 12.988916,
+          "se": 2.371441,
+          "normal_95ci_low": -4.843487,
+          "normal_95ci_high": 4.452561,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.666667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 0.577577,
+          "std": 8.54452,
+          "se": 1.560009,
+          "normal_95ci_low": -2.480041,
+          "normal_95ci_high": 3.635194,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.566667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 0.382113,
+          "std": 20.491713,
+          "se": 3.741258,
+          "normal_95ci_low": -6.950752,
+          "normal_95ci_high": 7.714979,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.533333
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          -6.937083,
+          0.740217,
+          9.581817,
+          -12.4532,
+          10.978817
+        ],
+        "risk_adjusted_composite_gain": -1.488516,
+        "eligible": false
+      },
+      "llm_semantic_counter_source_bandgap_refractive": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 4.171527,
+          "std": 12.454686,
+          "se": 2.273904,
+          "normal_95ci_low": -0.285326,
+          "normal_95ci_high": 8.628379,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.7
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 5.386607,
+          "std": 10.448813,
+          "se": 1.907683,
+          "normal_95ci_low": 1.647547,
+          "normal_95ci_high": 9.125666,
+          "win_rate": 0.666667,
+          "non_loss_rate": 0.766667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 9.558133,
+          "std": 22.289393,
+          "se": 4.069468,
+          "normal_95ci_low": 1.581976,
+          "normal_95ci_high": 17.53429,
+          "win_rate": 0.6,
+          "non_loss_rate": 0.7
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          -0.679267,
+          14.720833,
+          12.205317,
+          5.095483,
+          16.4483
+        ],
+        "risk_adjusted_composite_gain": 7.523399,
+        "eligible": true
+      },
+      "llm_semantic_counter_source_bandgap_refractive_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 3.40707,
+          "std": 12.445027,
+          "se": 2.272141,
+          "normal_95ci_low": -1.046326,
+          "normal_95ci_high": 7.860466,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.7
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 4.457283,
+          "std": 10.078123,
+          "se": 1.840005,
+          "normal_95ci_low": 0.850873,
+          "normal_95ci_high": 8.063693,
+          "win_rate": 0.666667,
+          "non_loss_rate": 0.766667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 7.864353,
+          "std": 22.12096,
+          "se": 4.038716,
+          "normal_95ci_low": -0.051531,
+          "normal_95ci_high": 15.780237,
+          "win_rate": 0.566667,
+          "non_loss_rate": 0.666667
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          -2.86885,
+          4.978767,
+          13.807683,
+          6.631967,
+          16.7722
+        ],
+        "risk_adjusted_composite_gain": 5.844995,
+        "eligible": true
+      },
+      "llm_semantic_counter_source_bandgap_refractive_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 2.4725,
+          "std": 13.641194,
+          "se": 2.49053,
+          "normal_95ci_low": -2.408938,
+          "normal_95ci_high": 7.353938,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.7
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 4.28055,
+          "std": 10.249737,
+          "se": 1.871337,
+          "normal_95ci_low": 0.612729,
+          "normal_95ci_high": 7.948371,
+          "win_rate": 0.633333,
+          "non_loss_rate": 0.766667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 6.75305,
+          "std": 23.348283,
+          "se": 4.262794,
+          "normal_95ci_low": -1.602026,
+          "normal_95ci_high": 15.108126,
+          "win_rate": 0.566667,
+          "non_loss_rate": 0.7
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          -8.518617,
+          4.978767,
+          13.09105,
+          7.44185,
+          16.7722
+        ],
+        "risk_adjusted_composite_gain": 4.621653,
+        "eligible": true
+      },
+      "llm_semantic_conservative_low_semantic_mass": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -0.225957,
+          "std": 11.599211,
+          "se": 2.117717,
+          "normal_95ci_low": -4.376681,
+          "normal_95ci_high": 3.924768,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.633333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -1.734797,
+          "std": 6.489616,
+          "se": 1.184836,
+          "normal_95ci_low": -4.057076,
+          "normal_95ci_high": 0.587482,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.5
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -1.960753,
+          "std": 17.160987,
+          "se": 3.133153,
+          "normal_95ci_low": -8.101734,
+          "normal_95ci_high": 4.180227,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.533333
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          -8.632783,
+          8.1146,
+          -2.42575,
+          -11.7592,
+          4.899367
+        ],
+        "risk_adjusted_composite_gain": -3.52733,
+        "eligible": false
+      },
+      "llm_semantic_conservative_low_semantic_mass_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -0.14811,
+          "std": 13.120408,
+          "se": 2.395448,
+          "normal_95ci_low": -4.843188,
+          "normal_95ci_high": 4.546968,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.6
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -1.306663,
+          "std": 7.273568,
+          "se": 1.327966,
+          "normal_95ci_low": -3.909476,
+          "normal_95ci_high": 1.296149,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.4
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -1.454773,
+          "std": 19.696996,
+          "se": 3.596163,
+          "normal_95ci_low": -8.503253,
+          "normal_95ci_high": 5.593706,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.466667
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          -9.1456,
+          3.838567,
+          -0.610533,
+          -11.035117,
+          9.678817
+        ],
+        "risk_adjusted_composite_gain": -3.252855,
+        "eligible": false
+      },
+      "llm_semantic_conservative_low_semantic_mass_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -0.14811,
+          "std": 13.120408,
+          "se": 2.395448,
+          "normal_95ci_low": -4.843188,
+          "normal_95ci_high": 4.546968,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.6
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -1.306663,
+          "std": 7.273568,
+          "se": 1.327966,
+          "normal_95ci_low": -3.909476,
+          "normal_95ci_high": 1.296149,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.4
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -1.454773,
+          "std": 19.696996,
+          "se": 3.596163,
+          "normal_95ci_low": -8.503253,
+          "normal_95ci_high": 5.593706,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.466667
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          -9.1456,
+          3.838567,
+          -0.610533,
+          -11.035117,
+          9.678817
+        ],
+        "risk_adjusted_composite_gain": -3.252855,
+        "eligible": false
+      },
+      "llm_semantic_domain_knowledge_high_density_refractivity": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 2.80956,
+          "std": 11.4014,
+          "se": 2.081601,
+          "normal_95ci_low": -1.270378,
+          "normal_95ci_high": 6.889498,
+          "win_rate": 0.533333,
+          "non_loss_rate": 0.666667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 2.648363,
+          "std": 7.886841,
+          "se": 1.439934,
+          "normal_95ci_low": -0.173906,
+          "normal_95ci_high": 5.470633,
+          "win_rate": 0.633333,
+          "non_loss_rate": 0.733333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 5.457923,
+          "std": 18.379592,
+          "se": 3.355639,
+          "normal_95ci_low": -1.119129,
+          "normal_95ci_high": 12.034976,
+          "win_rate": 0.566667,
+          "non_loss_rate": 0.666667
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          4.148567,
+          2.895333,
+          7.385383,
+          -2.373467,
+          15.2338
+        ],
+        "risk_adjusted_composite_gain": 3.780104,
+        "eligible": true
+      },
+      "llm_semantic_domain_knowledge_high_density_refractivity_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 1.84185,
+          "std": 11.000695,
+          "se": 2.008443,
+          "normal_95ci_low": -2.094698,
+          "normal_95ci_high": 5.778398,
+          "win_rate": 0.533333,
+          "non_loss_rate": 0.7
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 2.295317,
+          "std": 7.34462,
+          "se": 1.340938,
+          "normal_95ci_low": -0.332922,
+          "normal_95ci_high": 4.923555,
+          "win_rate": 0.7,
+          "non_loss_rate": 0.766667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 4.137167,
+          "std": 17.553103,
+          "se": 3.204743,
+          "normal_95ci_low": -2.144131,
+          "normal_95ci_high": 10.418464,
+          "win_rate": 0.633333,
+          "non_loss_rate": 0.7
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          4.975933,
+          0.829333,
+          5.672983,
+          -1.830767,
+          11.03835
+        ],
+        "risk_adjusted_composite_gain": 2.534795,
+        "eligible": true
+      },
+      "llm_semantic_domain_knowledge_high_density_refractivity_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 2.79912,
+          "std": 10.733219,
+          "se": 1.959609,
+          "normal_95ci_low": -1.041713,
+          "normal_95ci_high": 6.639953,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.7
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 2.08926,
+          "std": 7.276512,
+          "se": 1.328503,
+          "normal_95ci_low": -0.514606,
+          "normal_95ci_high": 4.693126,
+          "win_rate": 0.666667,
+          "non_loss_rate": 0.766667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 4.88838,
+          "std": 16.730236,
+          "se": 3.054509,
+          "normal_95ci_low": -1.098458,
+          "normal_95ci_high": 10.875218,
+          "win_rate": 0.566667,
+          "non_loss_rate": 0.666667
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          6.585217,
+          -3.614567,
+          10.846567,
+          6.734417,
+          3.890267
+        ],
+        "risk_adjusted_composite_gain": 3.361125,
+        "eligible": true
+      },
+      "llm_semantic_cross_skill_rule_bank": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 2.90031,
+          "std": 10.957688,
+          "se": 2.000591,
+          "normal_95ci_low": -1.020848,
+          "normal_95ci_high": 6.821468,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.633333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 2.95763,
+          "std": 8.444192,
+          "se": 1.541692,
+          "normal_95ci_low": -0.064085,
+          "normal_95ci_high": 5.979345,
+          "win_rate": 0.533333,
+          "non_loss_rate": 0.666667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 5.85794,
+          "std": 18.888307,
+          "se": 3.448517,
+          "normal_95ci_low": -0.901154,
+          "normal_95ci_high": 12.617034,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.566667
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          7.2804,
+          8.185417,
+          -0.930567,
+          -3.021033,
+          17.775483
+        ],
+        "risk_adjusted_composite_gain": 4.133681,
+        "eligible": false
+      }
+    },
+    "thresholds": {
+      "min_risk_adjusted_composite_gain": 0.25,
+      "min_positive_fold_rate": 0.8,
+      "min_final_non_loss_rate": 0.55
+    },
+    "rule": "Choose the strongest target-only anchor on calibration composite. Select an LLM semantic skill only when final and AUC means are non-negative, fold stability and non-loss constraints pass, and risk-adjusted composite gain is positive."
+  },
+  "calibration": {
+    "gp_ucb": {
+      "final_best": 51.17946,
+      "best_so_far_auc": 47.74437,
+      "top10_hit": 0.066667,
+      "composite": 98.92383
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 50.210727,
+      "best_so_far_auc": 46.874587,
+      "top10_hit": 0.066667,
+      "composite": 97.085314
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 53.7509,
+      "best_so_far_auc": 48.97404,
+      "top10_hit": 0.133333,
+      "composite": 102.72494
+    },
+    "llm_semantic_oxide_chalcogen_high_refractivity": {
+      "final_best": 49.23276,
+      "best_so_far_auc": 46.403523,
+      "top10_hit": 0.1,
+      "composite": 95.636283
+    },
+    "llm_semantic_oxide_chalcogen_high_refractivity_noprior": {
+      "final_best": 51.436253,
+      "best_so_far_auc": 49.373043,
+      "top10_hit": 0.133333,
+      "composite": 100.809296
+    },
+    "llm_semantic_oxide_chalcogen_high_refractivity_conservative": {
+      "final_best": 50.75141,
+      "best_so_far_auc": 48.17397,
+      "top10_hit": 0.1,
+      "composite": 98.92538
+    },
+    "llm_semantic_source_schema_alignment_only": {
+      "final_best": 54.04349,
+      "best_so_far_auc": 49.509267,
+      "top10_hit": 0.133333,
+      "composite": 103.552757
+    },
+    "llm_semantic_source_schema_alignment_only_noprior": {
+      "final_best": 53.722827,
+      "best_so_far_auc": 49.697083,
+      "top10_hit": 0.133333,
+      "composite": 103.41991
+    },
+    "llm_semantic_source_schema_alignment_only_conservative": {
+      "final_best": 53.714913,
+      "best_so_far_auc": 49.56544,
+      "top10_hit": 0.133333,
+      "composite": 103.280353
+    },
+    "llm_semantic_low_polarizability_risk_avoidance": {
+      "final_best": 52.29272,
+      "best_so_far_auc": 49.897963,
+      "top10_hit": 0.1,
+      "composite": 102.190683
+    },
+    "llm_semantic_low_polarizability_risk_avoidance_noprior": {
+      "final_best": 52.7023,
+      "best_so_far_auc": 49.562093,
+      "top10_hit": 0.1,
+      "composite": 102.264393
+    },
+    "llm_semantic_low_polarizability_risk_avoidance_conservative": {
+      "final_best": 52.390563,
+      "best_so_far_auc": 48.679333,
+      "top10_hit": 0.1,
+      "composite": 101.069896
+    },
+    "llm_semantic_transition_metal_high_z_refractivity": {
+      "final_best": 51.77576,
+      "best_so_far_auc": 49.645277,
+      "top10_hit": 0.133333,
+      "composite": 101.421037
+    },
+    "llm_semantic_transition_metal_high_z_refractivity_noprior": {
+      "final_best": 52.570003,
+      "best_so_far_auc": 50.249577,
+      "top10_hit": 0.133333,
+      "composite": 102.81958
+    },
+    "llm_semantic_transition_metal_high_z_refractivity_conservative": {
+      "final_best": 56.723287,
+      "best_so_far_auc": 52.171947,
+      "top10_hit": 0.233333,
+      "composite": 108.895234
+    },
+    "llm_semantic_binary_oxide_simple_composition": {
+      "final_best": 52.17501,
+      "best_so_far_auc": 48.852467,
+      "top10_hit": 0.1,
+      "composite": 101.027477
+    },
+    "llm_semantic_binary_oxide_simple_composition_noprior": {
+      "final_best": 52.752267,
+      "best_so_far_auc": 49.63421,
+      "top10_hit": 0.1,
+      "composite": 102.386477
+    },
+    "llm_semantic_binary_oxide_simple_composition_conservative": {
+      "final_best": 53.555437,
+      "best_so_far_auc": 49.551617,
+      "top10_hit": 0.133333,
+      "composite": 103.107054
+    },
+    "llm_semantic_counter_source_bandgap_refractive": {
+      "final_best": 57.922427,
+      "best_so_far_auc": 54.360647,
+      "top10_hit": 0.266667,
+      "composite": 112.283074
+    },
+    "llm_semantic_counter_source_bandgap_refractive_noprior": {
+      "final_best": 57.15797,
+      "best_so_far_auc": 53.431323,
+      "top10_hit": 0.233333,
+      "composite": 110.589293
+    },
+    "llm_semantic_counter_source_bandgap_refractive_conservative": {
+      "final_best": 56.2234,
+      "best_so_far_auc": 53.25459,
+      "top10_hit": 0.2,
+      "composite": 109.47799
+    },
+    "llm_semantic_conservative_low_semantic_mass": {
+      "final_best": 53.524943,
+      "best_so_far_auc": 47.239243,
+      "top10_hit": 0.133333,
+      "composite": 100.764186
+    },
+    "llm_semantic_conservative_low_semantic_mass_noprior": {
+      "final_best": 53.60279,
+      "best_so_far_auc": 47.667377,
+      "top10_hit": 0.133333,
+      "composite": 101.270167
+    },
+    "llm_semantic_conservative_low_semantic_mass_conservative": {
+      "final_best": 53.60279,
+      "best_so_far_auc": 47.667377,
+      "top10_hit": 0.133333,
+      "composite": 101.270167
+    },
+    "llm_semantic_domain_knowledge_high_density_refractivity": {
+      "final_best": 56.56046,
+      "best_so_far_auc": 51.622403,
+      "top10_hit": 0.066667,
+      "composite": 108.182863
+    },
+    "llm_semantic_domain_knowledge_high_density_refractivity_noprior": {
+      "final_best": 55.59275,
+      "best_so_far_auc": 51.269357,
+      "top10_hit": 0.1,
+      "composite": 106.862107
+    },
+    "llm_semantic_domain_knowledge_high_density_refractivity_conservative": {
+      "final_best": 56.55002,
+      "best_so_far_auc": 51.0633,
+      "top10_hit": 0.1,
+      "composite": 107.61332
+    },
+    "llm_semantic_cross_skill_rule_bank": {
+      "final_best": 56.65121,
+      "best_so_far_auc": 51.93167,
+      "top10_hit": 0.233333,
+      "composite": 108.58288
+    },
+    "llm_direct_prior_oxide_chalcogen_high_refractivity": {
+      "final_best": 44.194303,
+      "best_so_far_auc": 42.940847,
+      "top10_hit": 0.066667,
+      "composite": 87.13515
+    },
+    "llm_direct_prior_oxide_chalcogen_high_refractivity_noprior": {
+      "final_best": 44.194303,
+      "best_so_far_auc": 42.940847,
+      "top10_hit": 0.066667,
+      "composite": 87.13515
+    },
+    "llm_direct_prior_oxide_chalcogen_high_refractivity_conservative": {
+      "final_best": 47.608343,
+      "best_so_far_auc": 44.16704,
+      "top10_hit": 0.066667,
+      "composite": 91.775383
+    },
+    "llm_direct_prior_source_schema_alignment_only": {
+      "final_best": 48.157073,
+      "best_so_far_auc": 45.516107,
+      "top10_hit": 0.066667,
+      "composite": 93.67318
+    },
+    "llm_direct_prior_source_schema_alignment_only_noprior": {
+      "final_best": 48.157073,
+      "best_so_far_auc": 45.516107,
+      "top10_hit": 0.066667,
+      "composite": 93.67318
+    },
+    "llm_direct_prior_source_schema_alignment_only_conservative": {
+      "final_best": 50.162743,
+      "best_so_far_auc": 46.437753,
+      "top10_hit": 0.1,
+      "composite": 96.600496
+    },
+    "llm_direct_prior_low_polarizability_risk_avoidance": {
+      "final_best": 50.004423,
+      "best_so_far_auc": 47.404363,
+      "top10_hit": 0.066667,
+      "composite": 97.408786
+    },
+    "llm_direct_prior_low_polarizability_risk_avoidance_noprior": {
+      "final_best": 50.004423,
+      "best_so_far_auc": 47.404363,
+      "top10_hit": 0.066667,
+      "composite": 97.408786
+    },
+    "llm_direct_prior_low_polarizability_risk_avoidance_conservative": {
+      "final_best": 50.05436,
+      "best_so_far_auc": 47.48711,
+      "top10_hit": 0.066667,
+      "composite": 97.54147
+    },
+    "llm_direct_prior_transition_metal_high_z_refractivity": {
+      "final_best": 47.735483,
+      "best_so_far_auc": 45.018223,
+      "top10_hit": 0.066667,
+      "composite": 92.753706
+    },
+    "llm_direct_prior_transition_metal_high_z_refractivity_noprior": {
+      "final_best": 47.735483,
+      "best_so_far_auc": 45.018223,
+      "top10_hit": 0.066667,
+      "composite": 92.753706
+    },
+    "llm_direct_prior_transition_metal_high_z_refractivity_conservative": {
+      "final_best": 50.386213,
+      "best_so_far_auc": 46.97999,
+      "top10_hit": 0.066667,
+      "composite": 97.366203
+    },
+    "llm_direct_prior_binary_oxide_simple_composition": {
+      "final_best": 49.368277,
+      "best_so_far_auc": 45.515903,
+      "top10_hit": 0.133333,
+      "composite": 94.88418
+    },
+    "llm_direct_prior_binary_oxide_simple_composition_noprior": {
+      "final_best": 49.368277,
+      "best_so_far_auc": 45.515903,
+      "top10_hit": 0.133333,
+      "composite": 94.88418
+    },
+    "llm_direct_prior_binary_oxide_simple_composition_conservative": {
+      "final_best": 51.216177,
+      "best_so_far_auc": 46.087937,
+      "top10_hit": 0.133333,
+      "composite": 97.304114
+    },
+    "llm_direct_prior_counter_source_bandgap_refractive": {
+      "final_best": 51.236423,
+      "best_so_far_auc": 47.844643,
+      "top10_hit": 0.1,
+      "composite": 99.081066
+    },
+    "llm_direct_prior_counter_source_bandgap_refractive_noprior": {
+      "final_best": 51.236423,
+      "best_so_far_auc": 47.844643,
+      "top10_hit": 0.1,
+      "composite": 99.081066
+    },
+    "llm_direct_prior_counter_source_bandgap_refractive_conservative": {
+      "final_best": 50.813343,
+      "best_so_far_auc": 47.626763,
+      "top10_hit": 0.1,
+      "composite": 98.440106
+    },
+    "llm_direct_prior_conservative_low_semantic_mass": {
+      "final_best": 48.448867,
+      "best_so_far_auc": 45.462453,
+      "top10_hit": 0.066667,
+      "composite": 93.91132
+    },
+    "llm_direct_prior_conservative_low_semantic_mass_noprior": {
+      "final_best": 48.448867,
+      "best_so_far_auc": 45.462453,
+      "top10_hit": 0.066667,
+      "composite": 93.91132
+    },
+    "llm_direct_prior_conservative_low_semantic_mass_conservative": {
+      "final_best": 48.448867,
+      "best_so_far_auc": 45.462453,
+      "top10_hit": 0.066667,
+      "composite": 93.91132
+    },
+    "llm_direct_prior_domain_knowledge_high_density_refractivity": {
+      "final_best": 54.607893,
+      "best_so_far_auc": 50.562787,
+      "top10_hit": 0.066667,
+      "composite": 105.17068
+    },
+    "llm_direct_prior_domain_knowledge_high_density_refractivity_noprior": {
+      "final_best": 54.607893,
+      "best_so_far_auc": 50.562787,
+      "top10_hit": 0.066667,
+      "composite": 105.17068
+    },
+    "llm_direct_prior_domain_knowledge_high_density_refractivity_conservative": {
+      "final_best": 58.091397,
+      "best_so_far_auc": 51.255997,
+      "top10_hit": 0.066667,
+      "composite": 109.347394
+    },
+    "llm_direct_prior_cross_skill_rule_bank": {
+      "final_best": 50.627743,
+      "best_so_far_auc": 47.37256,
+      "top10_hit": 0.066667,
+      "composite": 98.000303
+    },
+    "llambo_warmstart_oxide_chalcogen_high_refractivity": {
+      "final_best": 52.2457,
+      "best_so_far_auc": 48.174737,
+      "top10_hit": 0.033333,
+      "composite": 100.420437
+    },
+    "llambo_warmstart_oxide_chalcogen_high_refractivity_noprior": {
+      "final_best": 52.2457,
+      "best_so_far_auc": 48.174737,
+      "top10_hit": 0.033333,
+      "composite": 100.420437
+    },
+    "llambo_warmstart_oxide_chalcogen_high_refractivity_conservative": {
+      "final_best": 52.2457,
+      "best_so_far_auc": 48.174737,
+      "top10_hit": 0.033333,
+      "composite": 100.420437
+    },
+    "llambo_warmstart_source_schema_alignment_only": {
+      "final_best": 56.20696,
+      "best_so_far_auc": 52.89467,
+      "top10_hit": 0.166667,
+      "composite": 109.10163
+    },
+    "llambo_warmstart_source_schema_alignment_only_noprior": {
+      "final_best": 56.20696,
+      "best_so_far_auc": 52.89467,
+      "top10_hit": 0.166667,
+      "composite": 109.10163
+    },
+    "llambo_warmstart_source_schema_alignment_only_conservative": {
+      "final_best": 56.20696,
+      "best_so_far_auc": 52.89467,
+      "top10_hit": 0.166667,
+      "composite": 109.10163
+    },
+    "llambo_warmstart_low_polarizability_risk_avoidance": {
+      "final_best": 63.308583,
+      "best_so_far_auc": 57.1625,
+      "top10_hit": 0.366667,
+      "composite": 120.471083
+    },
+    "llambo_warmstart_low_polarizability_risk_avoidance_noprior": {
+      "final_best": 63.308583,
+      "best_so_far_auc": 57.1625,
+      "top10_hit": 0.366667,
+      "composite": 120.471083
+    },
+    "llambo_warmstart_low_polarizability_risk_avoidance_conservative": {
+      "final_best": 63.308583,
+      "best_so_far_auc": 57.1625,
+      "top10_hit": 0.366667,
+      "composite": 120.471083
+    },
+    "llambo_warmstart_transition_metal_high_z_refractivity": {
+      "final_best": 58.613553,
+      "best_so_far_auc": 55.01639,
+      "top10_hit": 0.166667,
+      "composite": 113.629943
+    },
+    "llambo_warmstart_transition_metal_high_z_refractivity_noprior": {
+      "final_best": 58.613553,
+      "best_so_far_auc": 55.01639,
+      "top10_hit": 0.166667,
+      "composite": 113.629943
+    },
+    "llambo_warmstart_transition_metal_high_z_refractivity_conservative": {
+      "final_best": 58.613553,
+      "best_so_far_auc": 55.01639,
+      "top10_hit": 0.166667,
+      "composite": 113.629943
+    },
+    "llambo_warmstart_binary_oxide_simple_composition": {
+      "final_best": 54.94926,
+      "best_so_far_auc": 49.805707,
+      "top10_hit": 0.1,
+      "composite": 104.754967
+    },
+    "llambo_warmstart_binary_oxide_simple_composition_noprior": {
+      "final_best": 54.94926,
+      "best_so_far_auc": 49.805707,
+      "top10_hit": 0.1,
+      "composite": 104.754967
+    },
+    "llambo_warmstart_binary_oxide_simple_composition_conservative": {
+      "final_best": 54.94926,
+      "best_so_far_auc": 49.805707,
+      "top10_hit": 0.1,
+      "composite": 104.754967
+    },
+    "llambo_warmstart_counter_source_bandgap_refractive": {
+      "final_best": 50.345187,
+      "best_so_far_auc": 48.679773,
+      "top10_hit": 0.0,
+      "composite": 99.02496
+    },
+    "llambo_warmstart_counter_source_bandgap_refractive_noprior": {
+      "final_best": 50.345187,
+      "best_so_far_auc": 48.679773,
+      "top10_hit": 0.0,
+      "composite": 99.02496
+    },
+    "llambo_warmstart_counter_source_bandgap_refractive_conservative": {
+      "final_best": 50.345187,
+      "best_so_far_auc": 48.679773,
+      "top10_hit": 0.0,
+      "composite": 99.02496
+    },
+    "llambo_warmstart_conservative_low_semantic_mass": {
+      "final_best": 58.27164,
+      "best_so_far_auc": 52.981293,
+      "top10_hit": 0.2,
+      "composite": 111.252933
+    },
+    "llambo_warmstart_conservative_low_semantic_mass_noprior": {
+      "final_best": 58.27164,
+      "best_so_far_auc": 52.981293,
+      "top10_hit": 0.2,
+      "composite": 111.252933
+    },
+    "llambo_warmstart_conservative_low_semantic_mass_conservative": {
+      "final_best": 58.27164,
+      "best_so_far_auc": 52.981293,
+      "top10_hit": 0.2,
+      "composite": 111.252933
+    },
+    "llambo_warmstart_domain_knowledge_high_density_refractivity": {
+      "final_best": 73.885067,
+      "best_so_far_auc": 60.765917,
+      "top10_hit": 0.6,
+      "composite": 134.650984
+    },
+    "llambo_warmstart_domain_knowledge_high_density_refractivity_noprior": {
+      "final_best": 73.885067,
+      "best_so_far_auc": 60.765917,
+      "top10_hit": 0.6,
+      "composite": 134.650984
+    },
+    "llambo_warmstart_domain_knowledge_high_density_refractivity_conservative": {
+      "final_best": 73.885067,
+      "best_so_far_auc": 60.765917,
+      "top10_hit": 0.6,
+      "composite": 134.650984
+    },
+    "llambo_warmstart_cross_skill_rule_bank": {
+      "final_best": 50.80228,
+      "best_so_far_auc": 47.508167,
+      "top10_hit": 0.033333,
+      "composite": 98.310447
+    }
+  },
+  "heldout": {
+    "gp_ucb": {
+      "final_best": 48.502418,
+      "best_so_far_auc": 44.626632,
+      "top10_hit": 0.02,
+      "composite": 93.12905
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 50.724458,
+      "best_so_far_auc": 45.60653,
+      "top10_hit": 0.02,
+      "composite": 96.330988
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 51.768672,
+      "best_so_far_auc": 46.424122,
+      "top10_hit": 0.12,
+      "composite": 98.192794
+    },
+    "llm_semantic_oxide_chalcogen_high_refractivity": {
+      "final_best": 48.984672,
+      "best_so_far_auc": 46.139636,
+      "top10_hit": 0.06,
+      "composite": 95.124308
+    },
+    "llm_semantic_oxide_chalcogen_high_refractivity_noprior": {
+      "final_best": 48.290558,
+      "best_so_far_auc": 45.48866,
+      "top10_hit": 0.04,
+      "composite": 93.779218
+    },
+    "llm_semantic_oxide_chalcogen_high_refractivity_conservative": {
+      "final_best": 49.789112,
+      "best_so_far_auc": 45.706032,
+      "top10_hit": 0.06,
+      "composite": 95.495144
+    },
+    "llm_semantic_source_schema_alignment_only": {
+      "final_best": 53.824266,
+      "best_so_far_auc": 48.530436,
+      "top10_hit": 0.14,
+      "composite": 102.354702
+    },
+    "llm_semantic_source_schema_alignment_only_noprior": {
+      "final_best": 52.004598,
+      "best_so_far_auc": 47.598334,
+      "top10_hit": 0.1,
+      "composite": 99.602932
+    },
+    "llm_semantic_source_schema_alignment_only_conservative": {
+      "final_best": 52.52597,
+      "best_so_far_auc": 47.696084,
+      "top10_hit": 0.1,
+      "composite": 100.222054
+    },
+    "llm_semantic_low_polarizability_risk_avoidance": {
+      "final_best": 49.446068,
+      "best_so_far_auc": 46.187696,
+      "top10_hit": 0.02,
+      "composite": 95.633764
+    },
+    "llm_semantic_low_polarizability_risk_avoidance_noprior": {
+      "final_best": 48.374898,
+      "best_so_far_auc": 45.646236,
+      "top10_hit": 0.02,
+      "composite": 94.021134
+    },
+    "llm_semantic_low_polarizability_risk_avoidance_conservative": {
+      "final_best": 50.284018,
+      "best_so_far_auc": 46.091876,
+      "top10_hit": 0.06,
+      "composite": 96.375894
+    },
+    "llm_semantic_transition_metal_high_z_refractivity": {
+      "final_best": 52.475164,
+      "best_so_far_auc": 47.87591,
+      "top10_hit": 0.12,
+      "composite": 100.351074
+    },
+    "llm_semantic_transition_metal_high_z_refractivity_noprior": {
+      "final_best": 50.208318,
+      "best_so_far_auc": 46.731554,
+      "top10_hit": 0.06,
+      "composite": 96.939872
+    },
+    "llm_semantic_transition_metal_high_z_refractivity_conservative": {
+      "final_best": 53.239966,
+      "best_so_far_auc": 47.838596,
+      "top10_hit": 0.18,
+      "composite": 101.078562
+    },
+    "llm_semantic_binary_oxide_simple_composition": {
+      "final_best": 50.739118,
+      "best_so_far_auc": 46.59469,
+      "top10_hit": 0.02,
+      "composite": 97.333808
+    },
+    "llm_semantic_binary_oxide_simple_composition_noprior": {
+      "final_best": 50.864406,
+      "best_so_far_auc": 46.395508,
+      "top10_hit": 0.04,
+      "composite": 97.259914
+    },
+    "llm_semantic_binary_oxide_simple_composition_conservative": {
+      "final_best": 48.943808,
+      "best_so_far_auc": 45.522276,
+      "top10_hit": 0.02,
+      "composite": 94.466084
+    },
+    "llm_semantic_counter_source_bandgap_refractive": {
+      "final_best": 57.935634,
+      "best_so_far_auc": 53.566466,
+      "top10_hit": 0.3,
+      "composite": 111.5021
+    },
+    "llm_semantic_counter_source_bandgap_refractive_noprior": {
+      "final_best": 54.311748,
+      "best_so_far_auc": 50.73486,
+      "top10_hit": 0.22,
+      "composite": 105.046608
+    },
+    "llm_semantic_counter_source_bandgap_refractive_conservative": {
+      "final_best": 54.451972,
+      "best_so_far_auc": 50.733228,
+      "top10_hit": 0.22,
+      "composite": 105.1852
+    },
+    "llm_semantic_conservative_low_semantic_mass": {
+      "final_best": 53.29392,
+      "best_so_far_auc": 46.258722,
+      "top10_hit": 0.12,
+      "composite": 99.552642
+    },
+    "llm_semantic_conservative_low_semantic_mass_noprior": {
+      "final_best": 52.43226,
+      "best_so_far_auc": 46.389832,
+      "top10_hit": 0.12,
+      "composite": 98.822092
+    },
+    "llm_semantic_conservative_low_semantic_mass_conservative": {
+      "final_best": 52.43226,
+      "best_so_far_auc": 46.389832,
+      "top10_hit": 0.12,
+      "composite": 98.822092
+    },
+    "llm_semantic_domain_knowledge_high_density_refractivity": {
+      "final_best": 55.6954,
+      "best_so_far_auc": 50.82891,
+      "top10_hit": 0.02,
+      "composite": 106.52431
+    },
+    "llm_semantic_domain_knowledge_high_density_refractivity_noprior": {
+      "final_best": 54.658886,
+      "best_so_far_auc": 50.087732,
+      "top10_hit": 0.02,
+      "composite": 104.746618
+    },
+    "llm_semantic_domain_knowledge_high_density_refractivity_conservative": {
+      "final_best": 55.854782,
+      "best_so_far_auc": 49.7911,
+      "top10_hit": 0.06,
+      "composite": 105.645882
+    },
+    "llm_semantic_cross_skill_rule_bank": {
+      "final_best": 52.346266,
+      "best_so_far_auc": 47.47461,
+      "top10_hit": 0.06,
+      "composite": 99.820876
+    },
+    "llm_direct_prior_oxide_chalcogen_high_refractivity": {
+      "final_best": 41.796742,
+      "best_so_far_auc": 39.902678,
+      "top10_hit": 0.02,
+      "composite": 81.69942
+    },
+    "llm_direct_prior_oxide_chalcogen_high_refractivity_noprior": {
+      "final_best": 41.796742,
+      "best_so_far_auc": 39.902678,
+      "top10_hit": 0.02,
+      "composite": 81.69942
+    },
+    "llm_direct_prior_oxide_chalcogen_high_refractivity_conservative": {
+      "final_best": 43.695776,
+      "best_so_far_auc": 41.545698,
+      "top10_hit": 0.02,
+      "composite": 85.241474
+    },
+    "llm_direct_prior_source_schema_alignment_only": {
+      "final_best": 47.239604,
+      "best_so_far_auc": 43.27438,
+      "top10_hit": 0.02,
+      "composite": 90.513984
+    },
+    "llm_direct_prior_source_schema_alignment_only_noprior": {
+      "final_best": 47.239604,
+      "best_so_far_auc": 43.27438,
+      "top10_hit": 0.02,
+      "composite": 90.513984
+    },
+    "llm_direct_prior_source_schema_alignment_only_conservative": {
+      "final_best": 46.826416,
+      "best_so_far_auc": 43.078238,
+      "top10_hit": 0.02,
+      "composite": 89.904654
+    },
+    "llm_direct_prior_low_polarizability_risk_avoidance": {
+      "final_best": 51.011758,
+      "best_so_far_auc": 47.343912,
+      "top10_hit": 0.02,
+      "composite": 98.35567
+    },
+    "llm_direct_prior_low_polarizability_risk_avoidance_noprior": {
+      "final_best": 51.011758,
+      "best_so_far_auc": 47.343912,
+      "top10_hit": 0.02,
+      "composite": 98.35567
+    },
+    "llm_direct_prior_low_polarizability_risk_avoidance_conservative": {
+      "final_best": 49.764542,
+      "best_so_far_auc": 46.269742,
+      "top10_hit": 0.02,
+      "composite": 96.034284
+    },
+    "llm_direct_prior_transition_metal_high_z_refractivity": {
+      "final_best": 49.865374,
+      "best_so_far_auc": 44.34704,
+      "top10_hit": 0.02,
+      "composite": 94.212414
+    },
+    "llm_direct_prior_transition_metal_high_z_refractivity_noprior": {
+      "final_best": 49.865374,
+      "best_so_far_auc": 44.34704,
+      "top10_hit": 0.02,
+      "composite": 94.212414
+    },
+    "llm_direct_prior_transition_metal_high_z_refractivity_conservative": {
+      "final_best": 49.850216,
+      "best_so_far_auc": 44.60406,
+      "top10_hit": 0.06,
+      "composite": 94.454276
+    },
+    "llm_direct_prior_binary_oxide_simple_composition": {
+      "final_best": 46.158908,
+      "best_so_far_auc": 43.281602,
+      "top10_hit": 0.1,
+      "composite": 89.44051
+    },
+    "llm_direct_prior_binary_oxide_simple_composition_noprior": {
+      "final_best": 46.158908,
+      "best_so_far_auc": 43.281602,
+      "top10_hit": 0.1,
+      "composite": 89.44051
+    },
+    "llm_direct_prior_binary_oxide_simple_composition_conservative": {
+      "final_best": 48.568326,
+      "best_so_far_auc": 43.805468,
+      "top10_hit": 0.08,
+      "composite": 92.373794
+    },
+    "llm_direct_prior_counter_source_bandgap_refractive": {
+      "final_best": 55.540596,
+      "best_so_far_auc": 51.421816,
+      "top10_hit": 0.26,
+      "composite": 106.962412
+    },
+    "llm_direct_prior_counter_source_bandgap_refractive_noprior": {
+      "final_best": 55.540596,
+      "best_so_far_auc": 51.421816,
+      "top10_hit": 0.26,
+      "composite": 106.962412
+    },
+    "llm_direct_prior_counter_source_bandgap_refractive_conservative": {
+      "final_best": 56.00769,
+      "best_so_far_auc": 51.53305,
+      "top10_hit": 0.28,
+      "composite": 107.54074
+    },
+    "llm_direct_prior_conservative_low_semantic_mass": {
+      "final_best": 47.818656,
+      "best_so_far_auc": 43.89106,
+      "top10_hit": 0.06,
+      "composite": 91.709716
+    },
+    "llm_direct_prior_conservative_low_semantic_mass_noprior": {
+      "final_best": 47.818656,
+      "best_so_far_auc": 43.89106,
+      "top10_hit": 0.06,
+      "composite": 91.709716
+    },
+    "llm_direct_prior_conservative_low_semantic_mass_conservative": {
+      "final_best": 47.818656,
+      "best_so_far_auc": 43.89106,
+      "top10_hit": 0.06,
+      "composite": 91.709716
+    },
+    "llm_direct_prior_domain_knowledge_high_density_refractivity": {
+      "final_best": 52.68815,
+      "best_so_far_auc": 49.954144,
+      "top10_hit": 0.02,
+      "composite": 102.642294
+    },
+    "llm_direct_prior_domain_knowledge_high_density_refractivity_noprior": {
+      "final_best": 52.68815,
+      "best_so_far_auc": 49.954144,
+      "top10_hit": 0.02,
+      "composite": 102.642294
+    },
+    "llm_direct_prior_domain_knowledge_high_density_refractivity_conservative": {
+      "final_best": 56.109198,
+      "best_so_far_auc": 50.924188,
+      "top10_hit": 0.02,
+      "composite": 107.033386
+    },
+    "llm_direct_prior_cross_skill_rule_bank": {
+      "final_best": 50.252374,
+      "best_so_far_auc": 45.765234,
+      "top10_hit": 0.04,
+      "composite": 96.017608
+    },
+    "llambo_warmstart_oxide_chalcogen_high_refractivity": {
+      "final_best": 53.175684,
+      "best_so_far_auc": 49.358714,
+      "top10_hit": 0.1,
+      "composite": 102.534398
+    },
+    "llambo_warmstart_oxide_chalcogen_high_refractivity_noprior": {
+      "final_best": 53.175684,
+      "best_so_far_auc": 49.358714,
+      "top10_hit": 0.1,
+      "composite": 102.534398
+    },
+    "llambo_warmstart_oxide_chalcogen_high_refractivity_conservative": {
+      "final_best": 53.175684,
+      "best_so_far_auc": 49.358714,
+      "top10_hit": 0.1,
+      "composite": 102.534398
+    },
+    "llambo_warmstart_source_schema_alignment_only": {
+      "final_best": 58.48106,
+      "best_so_far_auc": 53.90356,
+      "top10_hit": 0.18,
+      "composite": 112.38462
+    },
+    "llambo_warmstart_source_schema_alignment_only_noprior": {
+      "final_best": 58.48106,
+      "best_so_far_auc": 53.90356,
+      "top10_hit": 0.18,
+      "composite": 112.38462
+    },
+    "llambo_warmstart_source_schema_alignment_only_conservative": {
+      "final_best": 58.48106,
+      "best_so_far_auc": 53.90356,
+      "top10_hit": 0.18,
+      "composite": 112.38462
+    },
+    "llambo_warmstart_low_polarizability_risk_avoidance": {
+      "final_best": 57.270908,
+      "best_so_far_auc": 53.291718,
+      "top10_hit": 0.2,
+      "composite": 110.562626
+    },
+    "llambo_warmstart_low_polarizability_risk_avoidance_noprior": {
+      "final_best": 57.270908,
+      "best_so_far_auc": 53.291718,
+      "top10_hit": 0.2,
+      "composite": 110.562626
+    },
+    "llambo_warmstart_low_polarizability_risk_avoidance_conservative": {
+      "final_best": 57.270908,
+      "best_so_far_auc": 53.291718,
+      "top10_hit": 0.2,
+      "composite": 110.562626
+    },
+    "llambo_warmstart_transition_metal_high_z_refractivity": {
+      "final_best": 58.12312,
+      "best_so_far_auc": 54.946882,
+      "top10_hit": 0.2,
+      "composite": 113.070002
+    },
+    "llambo_warmstart_transition_metal_high_z_refractivity_noprior": {
+      "final_best": 58.12312,
+      "best_so_far_auc": 54.946882,
+      "top10_hit": 0.2,
+      "composite": 113.070002
+    },
+    "llambo_warmstart_transition_metal_high_z_refractivity_conservative": {
+      "final_best": 58.12312,
+      "best_so_far_auc": 54.946882,
+      "top10_hit": 0.2,
+      "composite": 113.070002
+    },
+    "llambo_warmstart_binary_oxide_simple_composition": {
+      "final_best": 54.735692,
+      "best_so_far_auc": 51.457244,
+      "top10_hit": 0.14,
+      "composite": 106.192936
+    },
+    "llambo_warmstart_binary_oxide_simple_composition_noprior": {
+      "final_best": 54.735692,
+      "best_so_far_auc": 51.457244,
+      "top10_hit": 0.14,
+      "composite": 106.192936
+    },
+    "llambo_warmstart_binary_oxide_simple_composition_conservative": {
+      "final_best": 54.735692,
+      "best_so_far_auc": 51.457244,
+      "top10_hit": 0.14,
+      "composite": 106.192936
+    },
+    "llambo_warmstart_counter_source_bandgap_refractive": {
+      "final_best": 50.347028,
+      "best_so_far_auc": 48.389934,
+      "top10_hit": 0.02,
+      "composite": 98.736962
+    },
+    "llambo_warmstart_counter_source_bandgap_refractive_noprior": {
+      "final_best": 50.347028,
+      "best_so_far_auc": 48.389934,
+      "top10_hit": 0.02,
+      "composite": 98.736962
+    },
+    "llambo_warmstart_counter_source_bandgap_refractive_conservative": {
+      "final_best": 50.347028,
+      "best_so_far_auc": 48.389934,
+      "top10_hit": 0.02,
+      "composite": 98.736962
+    },
+    "llambo_warmstart_conservative_low_semantic_mass": {
+      "final_best": 54.635984,
+      "best_so_far_auc": 51.528432,
+      "top10_hit": 0.14,
+      "composite": 106.164416
+    },
+    "llambo_warmstart_conservative_low_semantic_mass_noprior": {
+      "final_best": 54.635984,
+      "best_so_far_auc": 51.528432,
+      "top10_hit": 0.14,
+      "composite": 106.164416
+    },
+    "llambo_warmstart_conservative_low_semantic_mass_conservative": {
+      "final_best": 54.635984,
+      "best_so_far_auc": 51.528432,
+      "top10_hit": 0.14,
+      "composite": 106.164416
+    },
+    "llambo_warmstart_domain_knowledge_high_density_refractivity": {
+      "final_best": 73.925316,
+      "best_so_far_auc": 61.18222,
+      "top10_hit": 0.56,
+      "composite": 135.107536
+    },
+    "llambo_warmstart_domain_knowledge_high_density_refractivity_noprior": {
+      "final_best": 73.925316,
+      "best_so_far_auc": 61.18222,
+      "top10_hit": 0.56,
+      "composite": 135.107536
+    },
+    "llambo_warmstart_domain_knowledge_high_density_refractivity_conservative": {
+      "final_best": 73.925316,
+      "best_so_far_auc": 61.18222,
+      "top10_hit": 0.56,
+      "composite": 135.107536
+    },
+    "llambo_warmstart_cross_skill_rule_bank": {
+      "final_best": 53.573978,
+      "best_so_far_auc": 48.505518,
+      "top10_hit": 0.14,
+      "composite": 102.079496
+    },
+    "llm_direct_prior_selector": {
+      "final_best": 56.109198,
+      "best_so_far_auc": 50.924188,
+      "top10_hit": 0.02,
+      "composite": 107.033386
+    },
+    "llambo_warmstart_selector": {
+      "final_best": 73.925316,
+      "best_so_far_auc": 61.18222,
+      "top10_hit": 0.56,
+      "composite": 135.107536
+    },
+    "llm_calibrated_selector": {
+      "final_best": 57.935634,
+      "best_so_far_auc": 53.566466,
+      "top10_hit": 0.3,
+      "composite": 111.5021
+    },
+    "care_strategy_router": {
+      "final_best": 73.925316,
+      "best_so_far_auc": 61.18222,
+      "top10_hit": 0.56,
+      "composite": 135.107536
+    }
+  },
+  "heldout_strongest_target_mode_descriptive_only": "target_acquisition_portfolio",
+  "heldout_pairwise": {
+    "gp_ucb": {
+      "final_best": {
+        "n": 50.0,
+        "mean": 9.433216,
+        "std": 14.564357,
+        "se": 2.059711,
+        "normal_95ci_low": 5.396182,
+        "normal_95ci_high": 13.47025,
+        "win_rate": 0.68,
+        "non_loss_rate": 0.8
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": 8.939834,
+        "std": 11.97409,
+        "se": 1.693392,
+        "normal_95ci_low": 5.620786,
+        "normal_95ci_high": 12.258882,
+        "win_rate": 0.74,
+        "non_loss_rate": 0.82
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": 0.28,
+        "std": 0.448999,
+        "se": 0.063498,
+        "normal_95ci_low": 0.155544,
+        "normal_95ci_high": 0.404456,
+        "win_rate": 0.28,
+        "non_loss_rate": 1.0
+      }
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": {
+        "n": 50.0,
+        "mean": 7.211176,
+        "std": 14.285106,
+        "se": 2.020219,
+        "normal_95ci_low": 3.251547,
+        "normal_95ci_high": 11.170805,
+        "win_rate": 0.64,
+        "non_loss_rate": 0.78
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": 7.959936,
+        "std": 12.235542,
+        "se": 1.730367,
+        "normal_95ci_low": 4.568417,
+        "normal_95ci_high": 11.351455,
+        "win_rate": 0.72,
+        "non_loss_rate": 0.82
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": 0.28,
+        "std": 0.448999,
+        "se": 0.063498,
+        "normal_95ci_low": 0.155544,
+        "normal_95ci_high": 0.404456,
+        "win_rate": 0.28,
+        "non_loss_rate": 1.0
+      }
+    },
+    "target_acquisition_portfolio": {
+      "final_best": {
+        "n": 50.0,
+        "mean": 6.166962,
+        "std": 15.913575,
+        "se": 2.250519,
+        "normal_95ci_low": 1.755944,
+        "normal_95ci_high": 10.57798,
+        "win_rate": 0.62,
+        "non_loss_rate": 0.84
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": 7.142344,
+        "std": 11.928342,
+        "se": 1.686922,
+        "normal_95ci_low": 3.835976,
+        "normal_95ci_high": 10.448712,
+        "win_rate": 0.74,
+        "non_loss_rate": 0.84
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": 0.18,
+        "std": 0.477074,
+        "se": 0.067469,
+        "normal_95ci_low": 0.047762,
+        "normal_95ci_high": 0.312238,
+        "win_rate": 0.22,
+        "non_loss_rate": 0.96
+      }
+    }
+  },
+  "external_llm_baselines": {
+    "llm_direct_prior": {
+      "selected_mode": "llm_direct_prior_domain_knowledge_high_density_refractivity_conservative",
+      "selector_alias": "llm_direct_prior_selector",
+      "calibration": {
+        "llm_direct_prior_oxide_chalcogen_high_refractivity": {
+          "final_best": 44.194303,
+          "best_so_far_auc": 42.940847,
+          "top10_hit": 0.066667,
+          "composite": 87.13515
+        },
+        "llm_direct_prior_oxide_chalcogen_high_refractivity_noprior": {
+          "final_best": 44.194303,
+          "best_so_far_auc": 42.940847,
+          "top10_hit": 0.066667,
+          "composite": 87.13515
+        },
+        "llm_direct_prior_oxide_chalcogen_high_refractivity_conservative": {
+          "final_best": 47.608343,
+          "best_so_far_auc": 44.16704,
+          "top10_hit": 0.066667,
+          "composite": 91.775383
+        },
+        "llm_direct_prior_source_schema_alignment_only": {
+          "final_best": 48.157073,
+          "best_so_far_auc": 45.516107,
+          "top10_hit": 0.066667,
+          "composite": 93.67318
+        },
+        "llm_direct_prior_source_schema_alignment_only_noprior": {
+          "final_best": 48.157073,
+          "best_so_far_auc": 45.516107,
+          "top10_hit": 0.066667,
+          "composite": 93.67318
+        },
+        "llm_direct_prior_source_schema_alignment_only_conservative": {
+          "final_best": 50.162743,
+          "best_so_far_auc": 46.437753,
+          "top10_hit": 0.1,
+          "composite": 96.600496
+        },
+        "llm_direct_prior_low_polarizability_risk_avoidance": {
+          "final_best": 50.004423,
+          "best_so_far_auc": 47.404363,
+          "top10_hit": 0.066667,
+          "composite": 97.408786
+        },
+        "llm_direct_prior_low_polarizability_risk_avoidance_noprior": {
+          "final_best": 50.004423,
+          "best_so_far_auc": 47.404363,
+          "top10_hit": 0.066667,
+          "composite": 97.408786
+        },
+        "llm_direct_prior_low_polarizability_risk_avoidance_conservative": {
+          "final_best": 50.05436,
+          "best_so_far_auc": 47.48711,
+          "top10_hit": 0.066667,
+          "composite": 97.54147
+        },
+        "llm_direct_prior_transition_metal_high_z_refractivity": {
+          "final_best": 47.735483,
+          "best_so_far_auc": 45.018223,
+          "top10_hit": 0.066667,
+          "composite": 92.753706
+        },
+        "llm_direct_prior_transition_metal_high_z_refractivity_noprior": {
+          "final_best": 47.735483,
+          "best_so_far_auc": 45.018223,
+          "top10_hit": 0.066667,
+          "composite": 92.753706
+        },
+        "llm_direct_prior_transition_metal_high_z_refractivity_conservative": {
+          "final_best": 50.386213,
+          "best_so_far_auc": 46.97999,
+          "top10_hit": 0.066667,
+          "composite": 97.366203
+        },
+        "llm_direct_prior_binary_oxide_simple_composition": {
+          "final_best": 49.368277,
+          "best_so_far_auc": 45.515903,
+          "top10_hit": 0.133333,
+          "composite": 94.88418
+        },
+        "llm_direct_prior_binary_oxide_simple_composition_noprior": {
+          "final_best": 49.368277,
+          "best_so_far_auc": 45.515903,
+          "top10_hit": 0.133333,
+          "composite": 94.88418
+        },
+        "llm_direct_prior_binary_oxide_simple_composition_conservative": {
+          "final_best": 51.216177,
+          "best_so_far_auc": 46.087937,
+          "top10_hit": 0.133333,
+          "composite": 97.304114
+        },
+        "llm_direct_prior_counter_source_bandgap_refractive": {
+          "final_best": 51.236423,
+          "best_so_far_auc": 47.844643,
+          "top10_hit": 0.1,
+          "composite": 99.081066
+        },
+        "llm_direct_prior_counter_source_bandgap_refractive_noprior": {
+          "final_best": 51.236423,
+          "best_so_far_auc": 47.844643,
+          "top10_hit": 0.1,
+          "composite": 99.081066
+        },
+        "llm_direct_prior_counter_source_bandgap_refractive_conservative": {
+          "final_best": 50.813343,
+          "best_so_far_auc": 47.626763,
+          "top10_hit": 0.1,
+          "composite": 98.440106
+        },
+        "llm_direct_prior_conservative_low_semantic_mass": {
+          "final_best": 48.448867,
+          "best_so_far_auc": 45.462453,
+          "top10_hit": 0.066667,
+          "composite": 93.91132
+        },
+        "llm_direct_prior_conservative_low_semantic_mass_noprior": {
+          "final_best": 48.448867,
+          "best_so_far_auc": 45.462453,
+          "top10_hit": 0.066667,
+          "composite": 93.91132
+        },
+        "llm_direct_prior_conservative_low_semantic_mass_conservative": {
+          "final_best": 48.448867,
+          "best_so_far_auc": 45.462453,
+          "top10_hit": 0.066667,
+          "composite": 93.91132
+        },
+        "llm_direct_prior_domain_knowledge_high_density_refractivity": {
+          "final_best": 54.607893,
+          "best_so_far_auc": 50.562787,
+          "top10_hit": 0.066667,
+          "composite": 105.17068
+        },
+        "llm_direct_prior_domain_knowledge_high_density_refractivity_noprior": {
+          "final_best": 54.607893,
+          "best_so_far_auc": 50.562787,
+          "top10_hit": 0.066667,
+          "composite": 105.17068
+        },
+        "llm_direct_prior_domain_knowledge_high_density_refractivity_conservative": {
+          "final_best": 58.091397,
+          "best_so_far_auc": 51.255997,
+          "top10_hit": 0.066667,
+          "composite": 109.347394
+        },
+        "llm_direct_prior_cross_skill_rule_bank": {
+          "final_best": 50.627743,
+          "best_so_far_auc": 47.37256,
+          "top10_hit": 0.066667,
+          "composite": 98.000303
+        }
+      },
+      "rule": "Select the strongest llm_direct_prior variant on calibration final_best + AUC; held-out outcomes do not affect this choice."
+    },
+    "llambo_warmstart": {
+      "selected_mode": "llambo_warmstart_domain_knowledge_high_density_refractivity_noprior",
+      "selector_alias": "llambo_warmstart_selector",
+      "calibration": {
+        "llambo_warmstart_oxide_chalcogen_high_refractivity": {
+          "final_best": 52.2457,
+          "best_so_far_auc": 48.174737,
+          "top10_hit": 0.033333,
+          "composite": 100.420437
+        },
+        "llambo_warmstart_oxide_chalcogen_high_refractivity_noprior": {
+          "final_best": 52.2457,
+          "best_so_far_auc": 48.174737,
+          "top10_hit": 0.033333,
+          "composite": 100.420437
+        },
+        "llambo_warmstart_oxide_chalcogen_high_refractivity_conservative": {
+          "final_best": 52.2457,
+          "best_so_far_auc": 48.174737,
+          "top10_hit": 0.033333,
+          "composite": 100.420437
+        },
+        "llambo_warmstart_source_schema_alignment_only": {
+          "final_best": 56.20696,
+          "best_so_far_auc": 52.89467,
+          "top10_hit": 0.166667,
+          "composite": 109.10163
+        },
+        "llambo_warmstart_source_schema_alignment_only_noprior": {
+          "final_best": 56.20696,
+          "best_so_far_auc": 52.89467,
+          "top10_hit": 0.166667,
+          "composite": 109.10163
+        },
+        "llambo_warmstart_source_schema_alignment_only_conservative": {
+          "final_best": 56.20696,
+          "best_so_far_auc": 52.89467,
+          "top10_hit": 0.166667,
+          "composite": 109.10163
+        },
+        "llambo_warmstart_low_polarizability_risk_avoidance": {
+          "final_best": 63.308583,
+          "best_so_far_auc": 57.1625,
+          "top10_hit": 0.366667,
+          "composite": 120.471083
+        },
+        "llambo_warmstart_low_polarizability_risk_avoidance_noprior": {
+          "final_best": 63.308583,
+          "best_so_far_auc": 57.1625,
+          "top10_hit": 0.366667,
+          "composite": 120.471083
+        },
+        "llambo_warmstart_low_polarizability_risk_avoidance_conservative": {
+          "final_best": 63.308583,
+          "best_so_far_auc": 57.1625,
+          "top10_hit": 0.366667,
+          "composite": 120.471083
+        },
+        "llambo_warmstart_transition_metal_high_z_refractivity": {
+          "final_best": 58.613553,
+          "best_so_far_auc": 55.01639,
+          "top10_hit": 0.166667,
+          "composite": 113.629943
+        },
+        "llambo_warmstart_transition_metal_high_z_refractivity_noprior": {
+          "final_best": 58.613553,
+          "best_so_far_auc": 55.01639,
+          "top10_hit": 0.166667,
+          "composite": 113.629943
+        },
+        "llambo_warmstart_transition_metal_high_z_refractivity_conservative": {
+          "final_best": 58.613553,
+          "best_so_far_auc": 55.01639,
+          "top10_hit": 0.166667,
+          "composite": 113.629943
+        },
+        "llambo_warmstart_binary_oxide_simple_composition": {
+          "final_best": 54.94926,
+          "best_so_far_auc": 49.805707,
+          "top10_hit": 0.1,
+          "composite": 104.754967
+        },
+        "llambo_warmstart_binary_oxide_simple_composition_noprior": {
+          "final_best": 54.94926,
+          "best_so_far_auc": 49.805707,
+          "top10_hit": 0.1,
+          "composite": 104.754967
+        },
+        "llambo_warmstart_binary_oxide_simple_composition_conservative": {
+          "final_best": 54.94926,
+          "best_so_far_auc": 49.805707,
+          "top10_hit": 0.1,
+          "composite": 104.754967
+        },
+        "llambo_warmstart_counter_source_bandgap_refractive": {
+          "final_best": 50.345187,
+          "best_so_far_auc": 48.679773,
+          "top10_hit": 0.0,
+          "composite": 99.02496
+        },
+        "llambo_warmstart_counter_source_bandgap_refractive_noprior": {
+          "final_best": 50.345187,
+          "best_so_far_auc": 48.679773,
+          "top10_hit": 0.0,
+          "composite": 99.02496
+        },
+        "llambo_warmstart_counter_source_bandgap_refractive_conservative": {
+          "final_best": 50.345187,
+          "best_so_far_auc": 48.679773,
+          "top10_hit": 0.0,
+          "composite": 99.02496
+        },
+        "llambo_warmstart_conservative_low_semantic_mass": {
+          "final_best": 58.27164,
+          "best_so_far_auc": 52.981293,
+          "top10_hit": 0.2,
+          "composite": 111.252933
+        },
+        "llambo_warmstart_conservative_low_semantic_mass_noprior": {
+          "final_best": 58.27164,
+          "best_so_far_auc": 52.981293,
+          "top10_hit": 0.2,
+          "composite": 111.252933
+        },
+        "llambo_warmstart_conservative_low_semantic_mass_conservative": {
+          "final_best": 58.27164,
+          "best_so_far_auc": 52.981293,
+          "top10_hit": 0.2,
+          "composite": 111.252933
+        },
+        "llambo_warmstart_domain_knowledge_high_density_refractivity": {
+          "final_best": 73.885067,
+          "best_so_far_auc": 60.765917,
+          "top10_hit": 0.6,
+          "composite": 134.650984
+        },
+        "llambo_warmstart_domain_knowledge_high_density_refractivity_noprior": {
+          "final_best": 73.885067,
+          "best_so_far_auc": 60.765917,
+          "top10_hit": 0.6,
+          "composite": 134.650984
+        },
+        "llambo_warmstart_domain_knowledge_high_density_refractivity_conservative": {
+          "final_best": 73.885067,
+          "best_so_far_auc": 60.765917,
+          "top10_hit": 0.6,
+          "composite": 134.650984
+        },
+        "llambo_warmstart_cross_skill_rule_bank": {
+          "final_best": 50.80228,
+          "best_so_far_auc": 47.508167,
+          "top10_hit": 0.033333,
+          "composite": 98.310447
+        }
+      },
+      "rule": "Select the strongest llambo_warmstart variant on calibration final_best + AUC; held-out outcomes do not affect this choice."
+    }
+  },
+  "care_vs_external_llm": {
+    "llm_direct_prior_selector": {
+      "final_best": {
+        "n": 50.0,
+        "mean": 1.826436,
+        "std": 16.058288,
+        "se": 2.270985,
+        "normal_95ci_low": -2.624694,
+        "normal_95ci_high": 6.277566,
+        "win_rate": 0.46,
+        "non_loss_rate": 0.58
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": 2.642278,
+        "std": 12.848015,
+        "se": 1.816984,
+        "normal_95ci_low": -0.91901,
+        "normal_95ci_high": 6.203566,
+        "win_rate": 0.44,
+        "non_loss_rate": 0.52
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": 0.28,
+        "std": 0.448999,
+        "se": 0.063498,
+        "normal_95ci_low": 0.155544,
+        "normal_95ci_high": 0.404456,
+        "win_rate": 0.28,
+        "non_loss_rate": 1.0
+      }
+    },
+    "llambo_warmstart_selector": {
+      "final_best": {
+        "n": 50.0,
+        "mean": -15.989682,
+        "std": 19.415842,
+        "se": 2.745815,
+        "normal_95ci_low": -21.371479,
+        "normal_95ci_high": -10.607885,
+        "win_rate": 0.16,
+        "non_loss_rate": 0.16
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": -7.615754,
+        "std": 14.58222,
+        "se": 2.062237,
+        "normal_95ci_low": -11.657739,
+        "normal_95ci_high": -3.573769,
+        "win_rate": 0.32,
+        "non_loss_rate": 0.32
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": -0.26,
+        "std": 0.687314,
+        "se": 0.097201,
+        "normal_95ci_low": -0.450514,
+        "normal_95ci_high": -0.069486,
+        "win_rate": 0.14,
+        "non_loss_rate": 0.6
+      }
+    }
+  },
+  "strategy_router": {
+    "selected_mode": "llambo_warmstart_domain_knowledge_high_density_refractivity_noprior",
+    "selected_llm_strategy": true,
+    "target_anchor_mode": "target_acquisition_portfolio",
+    "candidate_modes": [
+      "target_acquisition_portfolio",
+      "llm_semantic_counter_source_bandgap_refractive",
+      "llm_direct_prior_domain_knowledge_high_density_refractivity_conservative",
+      "llambo_warmstart_domain_knowledge_high_density_refractivity_noprior"
+    ],
+    "eligible_modes": [
+      "target_acquisition_portfolio",
+      "llm_semantic_counter_source_bandgap_refractive",
+      "llm_direct_prior_domain_knowledge_high_density_refractivity_conservative",
+      "llambo_warmstart_domain_knowledge_high_density_refractivity_noprior"
+    ],
+    "diagnostics": {
+      "target_acquisition_portfolio": {
+        "eligible": true,
+        "risk_adjusted_composite_gain": 0.0,
+        "reason": "target-only fallback"
+      },
+      "llm_semantic_counter_source_bandgap_refractive": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 4.171527,
+          "std": 12.454686,
+          "se": 2.273904,
+          "normal_95ci_low": -0.285326,
+          "normal_95ci_high": 8.628379,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.7
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 5.386607,
+          "std": 10.448813,
+          "se": 1.907683,
+          "normal_95ci_low": 1.647547,
+          "normal_95ci_high": 9.125666,
+          "win_rate": 0.666667,
+          "non_loss_rate": 0.766667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 9.558133,
+          "std": 22.289393,
+          "se": 4.069468,
+          "normal_95ci_low": 1.581976,
+          "normal_95ci_high": 17.53429,
+          "win_rate": 0.6,
+          "non_loss_rate": 0.7
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          -0.679267,
+          14.720833,
+          12.205317,
+          5.095483,
+          16.4483
+        ],
+        "risk_adjusted_composite_gain": 7.523399,
+        "eligible": true
+      },
+      "llm_direct_prior_domain_knowledge_high_density_refractivity_conservative": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 4.340497,
+          "std": 14.17131,
+          "se": 2.587315,
+          "normal_95ci_low": -0.730642,
+          "normal_95ci_high": 9.411635,
+          "win_rate": 0.566667,
+          "non_loss_rate": 0.7
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 2.281957,
+          "std": 7.953599,
+          "se": 1.452122,
+          "normal_95ci_low": -0.564202,
+          "normal_95ci_high": 5.128116,
+          "win_rate": 0.633333,
+          "non_loss_rate": 0.766667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 6.622453,
+          "std": 21.647558,
+          "se": 3.952285,
+          "normal_95ci_low": -1.124026,
+          "normal_95ci_high": 14.368932,
+          "win_rate": 0.6,
+          "non_loss_rate": 0.733333
+        },
+        "positive_fold_rate": 0.8,
+        "fold_composite_means": [
+          2.46195,
+          3.748967,
+          12.274817,
+          -4.27605,
+          18.902583
+        ],
+        "risk_adjusted_composite_gain": 4.646311,
+        "eligible": true
+      },
+      "llambo_warmstart_domain_knowledge_high_density_refractivity_noprior": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 20.134167,
+          "std": 18.174711,
+          "se": 3.318233,
+          "normal_95ci_low": 13.63043,
+          "normal_95ci_high": 26.637903,
+          "win_rate": 0.833333,
+          "non_loss_rate": 0.866667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 11.791877,
+          "std": 13.353438,
+          "se": 2.437993,
+          "normal_95ci_low": 7.01341,
+          "normal_95ci_high": 16.570343,
+          "win_rate": 0.833333,
+          "non_loss_rate": 0.833333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 31.926043,
+          "std": 29.432291,
+          "se": 5.373577,
+          "normal_95ci_low": 21.393833,
+          "normal_95ci_high": 42.458253,
+          "win_rate": 0.8,
+          "non_loss_rate": 0.8
+        },
+        "positive_fold_rate": 1.0,
+        "fold_composite_means": [
+          28.9047,
+          33.933317,
+          36.962233,
+          25.941983,
+          33.887983
+        ],
+        "risk_adjusted_composite_gain": 29.239255,
+        "eligible": true
+      }
+    },
+    "thresholds": {
+      "min_risk_adjusted_composite_gain": 0.25,
+      "min_positive_fold_rate": 0.8,
+      "min_final_non_loss_rate": 0.55
+    },
+    "rule": "Choose among the frozen semantic selector, LLM-direct prior, LLAMBO-style warm-start, and the target-only anchor using calibration seeds only. Require non-negative final-best and AUC deltas, stable folds, and a positive risk-adjusted composite gain; otherwise fall back to the target-only anchor.",
+    "evidence_boundary": "Only calibration outcomes choose the strategy. Held-out outcomes are used once for the frozen comparison."
+  },
+  "strategy_router_strongest_target_mode": "target_acquisition_portfolio",
+  "strategy_router_pairwise": {
+    "gp_ucb": {
+      "final_best": {
+        "n": 50.0,
+        "mean": 25.422898,
+        "std": 15.795491,
+        "se": 2.23382,
+        "normal_95ci_low": 21.044611,
+        "normal_95ci_high": 29.801185,
+        "win_rate": 0.88,
+        "non_loss_rate": 0.92
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": 16.555588,
+        "std": 9.921588,
+        "se": 1.403124,
+        "normal_95ci_low": 13.805464,
+        "normal_95ci_high": 19.305712,
+        "win_rate": 0.94,
+        "non_loss_rate": 0.94
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": 0.54,
+        "std": 0.537029,
+        "se": 0.075947,
+        "normal_95ci_low": 0.391143,
+        "normal_95ci_high": 0.688857,
+        "win_rate": 0.56,
+        "non_loss_rate": 0.98
+      }
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": {
+        "n": 50.0,
+        "mean": 23.200858,
+        "std": 15.860609,
+        "se": 2.243029,
+        "normal_95ci_low": 18.804521,
+        "normal_95ci_high": 27.597195,
+        "win_rate": 0.88,
+        "non_loss_rate": 0.92
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": 15.57569,
+        "std": 9.717901,
+        "se": 1.374319,
+        "normal_95ci_low": 12.882025,
+        "normal_95ci_high": 18.269355,
+        "win_rate": 0.94,
+        "non_loss_rate": 0.94
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": 0.54,
+        "std": 0.537029,
+        "se": 0.075947,
+        "normal_95ci_low": 0.391143,
+        "normal_95ci_high": 0.688857,
+        "win_rate": 0.56,
+        "non_loss_rate": 0.98
+      }
+    },
+    "target_acquisition_portfolio": {
+      "final_best": {
+        "n": 50.0,
+        "mean": 22.156644,
+        "std": 18.870813,
+        "se": 2.668736,
+        "normal_95ci_low": 16.925922,
+        "normal_95ci_high": 27.387366,
+        "win_rate": 0.86,
+        "non_loss_rate": 0.86
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": 14.758098,
+        "std": 11.665593,
+        "se": 1.649764,
+        "normal_95ci_low": 11.52456,
+        "normal_95ci_high": 17.991636,
+        "win_rate": 0.86,
+        "non_loss_rate": 0.86
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": 0.44,
+        "std": 0.668132,
+        "se": 0.094488,
+        "normal_95ci_low": 0.254803,
+        "normal_95ci_high": 0.625197,
+        "win_rate": 0.54,
+        "non_loss_rate": 0.9
+      }
+    }
+  },
+  "strategy_router_vs_external_llm": {
+    "llm_direct_prior_selector": {
+      "final_best": {
+        "n": 50.0,
+        "mean": 17.816118,
+        "std": 17.441317,
+        "se": 2.466575,
+        "normal_95ci_low": 12.981631,
+        "normal_95ci_high": 22.650605,
+        "win_rate": 0.76,
+        "non_loss_rate": 0.84
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": 10.258032,
+        "std": 8.698426,
+        "se": 1.230143,
+        "normal_95ci_low": 7.846951,
+        "normal_95ci_high": 12.669113,
+        "win_rate": 0.92,
+        "non_loss_rate": 0.92
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": 0.54,
+        "std": 0.537029,
+        "se": 0.075947,
+        "normal_95ci_low": 0.391143,
+        "normal_95ci_high": 0.688857,
+        "win_rate": 0.56,
+        "non_loss_rate": 0.98
+      }
+    },
+    "llambo_warmstart_selector": {
+      "final_best": {
+        "n": 50.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      }
+    }
+  },
+  "strategy_router_validation": {
+    "selected_llm_strategy": true,
+    "strongest_target_mode": "target_acquisition_portfolio",
+    "final_95ci_positive": true,
+    "auc_95ci_positive": true,
+    "top10_95ci_positive": true
+  },
+  "heldout_validation": {
+    "selected_llm_skill": true,
+    "strongest_target_mode": "target_acquisition_portfolio",
+    "final_95ci_positive": true,
+    "auc_95ci_positive": true,
+    "top10_95ci_positive": true
+  },
+  "evidence_boundary": {
+    "generation": "Only source identity, objective, and public source-target field alignment are provided. Source outcomes, effects, support counts, and value priors are withheld.",
+    "evaluation": "Calibration selects a skill before held-out evaluation. Every per-round fit uses only previously revealed target outcomes."
+  }
+}

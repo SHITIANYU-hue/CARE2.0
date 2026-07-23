@@ -1,0 +1,972 @@
+{
+  "model": "deepspeek-v3.2",
+  "usage": {
+    "prompt_tokens": 2327,
+    "total_tokens": 5700,
+    "completion_tokens": 3373,
+    "prompt_tokens_details": null,
+    "reasoning_tokens": 0
+  },
+  "llm_generation_call_count": 1,
+  "api_configuration": {
+    "base_url": "http://127.0.0.1:31300/v1",
+    "api_mode": "chat",
+    "structured_mode": "json",
+    "temperature": 0.35,
+    "max_tokens": 5000
+  },
+  "source_dataset": "real_chemlex_acidamine",
+  "target_dataset": "real_buchwald_hartwig",
+  "evidence_mode": "target_only",
+  "prompt_payload": {
+    "task": "Design a diverse library of executable semantic optimization skills for finite-pool scientific search. Each skill defines interpretable rule features plus a conservative Bayesian linear surrogate blended with strong target-only GP-UCB and GP-EI anchors.",
+    "target": {
+      "dataset": "real_buchwald_hartwig",
+      "title": "Dreher-Doyle Buchwald-Hartwig HTE replay",
+      "objective": "maximize_yield",
+      "candidate_count": 3955,
+      "public_semantic_fields": {
+        "ligand_mw_bin": {
+          "mw_high": 986,
+          "mw_very_high": 2969
+        },
+        "base_reagent_base_family": {
+          "amidine_base": 1318,
+          "guanidine_base": 1317,
+          "phosphazene_base": 1320
+        },
+        "base_functional_class": {
+          "amidine_base": 1318,
+          "guanidine_base": 1317,
+          "phosphazene_base": 1320
+        },
+        "base_mw_bin": {
+          "mw_high": 1320,
+          "mw_mid": 2635
+        },
+        "base_tpsa_bin": {
+          "tpsa_low": 2635,
+          "tpsa_mid": 1320
+        },
+        "aryl_halide_halide_type": {
+          "bromide": 1319,
+          "chloride": 1318,
+          "iodide": 1318
+        },
+        "aryl_halide_has_heteroaromatic": {
+          "no": 2372,
+          "yes": 1583
+        },
+        "aryl_halide_mw_bin": {
+          "mw_high": 263,
+          "mw_mid": 3164,
+          "mw_none_or_low": 528
+        },
+        "additive_tpsa_bin": {
+          "tpsa_high": 360,
+          "tpsa_mid": 3595
+        }
+      },
+      "hidden_target": "yield_value",
+      "boundary": "Field values and counts are public; target outcomes are not included."
+    },
+    "source_transfer_evidence": {
+      "evidence_mode": "target_only",
+      "source_dataset": null,
+      "source_objective": null,
+      "mapped_roles": [],
+      "source_outcome_statistics": null,
+      "shared_value_priors": [],
+      "boundary": "No source identity, source schema, source outcomes, source effects, or source value priors are provided. The LLM must use the public target schema and its pretrained domain knowledge only."
+    },
+    "executor": {
+      "semantic_model": "Rules become binary features. Revealed target outcomes fit a ridge Bayesian linear surrogate whose coefficient prior follows rule weights.",
+      "anchor": "A rank blend of target-only GP-UCB and GP-EI.",
+      "fusion": "semantic_mass_start/end controls the rank mass assigned to the semantic surrogate; the remaining mass stays on the target-only anchor.",
+      "selection": "Independent calibration seeds select one frozen skill. Independent held-out seeds are evaluated only after selection."
+    },
+    "design_requirements": [
+      "Return exactly 8 diverse skills.",
+      "Use only exact field/value pairs in public_semantic_fields.",
+      "Each conditions object must map a real catalog field name directly to one exact catalog value, for example {\"dominant_family\": \"oxide\"}. Never use literal placeholder keys such as exact_field, field_name, field, or value.",
+      "Give every skill a distinct, descriptive scientific skill_id. Never copy schema placeholders such as short_unique_name or add numeric suffixes to a placeholder.",
+      "Give every skill 3-10 rules; use two-condition interactions only when scientifically meaningful.",
+      "Include at least one conservative low-semantic-mass skill.",
+      "Use only target-schema-compatible domain knowledge; do not imply that a source task or source outcomes were observed.",
+      "Include at least one domain-knowledge skill.",
+      "Include a counter-hypothesis skill that reverses or downweights an uncertain source relation.",
+      "Prefer mechanistic, chemically or physically interpretable rules over arbitrary coverage rules.",
+      "Use positive weights for conditions expected to improve the target objective and negative weights for risks.",
+      "Do not claim access to target outcomes and do not output candidate identifiers."
+    ],
+    "allowed_ranges": {
+      "rule_weight": "[-1, 1]",
+      "ridge": "[0.05, 20]",
+      "prior_scale": "[0, 1.5]",
+      "semantic_mass_start_end": "[0, 0.85]",
+      "ucb_weight": "[0, 1]; EI weight is 1 - ucb_weight",
+      "gp_beta_start_end": "[0.2, 4]",
+      "gp_xi": "[0, 0.2]",
+      "confidence": "[0.05, 1]"
+    },
+    "output_contract": {
+      "skills": [
+        {
+          "skill_id": "descriptive_scientific_skill_id",
+          "rules": [
+            {
+              "rule_id": "mechanistic_rule",
+              "conditions": {
+                "field_name_from_public_semantic_fields": "exact_catalog_value"
+              },
+              "weight": 0.5,
+              "rationale": "short scientific rationale"
+            }
+          ],
+          "ridge": 1.0,
+          "prior_scale": 0.25,
+          "semantic_mass_start": 0.3,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.7,
+          "hypothesis": "what this skill transfers and when it may fail"
+        }
+      ]
+    },
+    "care_knowledge_context": {
+      "cards": [
+        {
+          "id": "transfer.source-schema-only-to-real-chemlex-acidamine-negative-heldout-2026-07-22",
+          "type": "transfer",
+          "title": "Gate-rejected transfer: source_schema_only to real_chemlex_acidamine",
+          "summary": "The router selected GP-UCB; the descriptive held-out strongest target portfolio remained higher on the 20-seed development range.",
+          "content": "Reusable lesson: do not force a source-derived semantic policy when every evidence mode fails calibration. Preserve the target-only fallback and improve the reaction representation before retrying.",
+          "tags": [
+            "source_schema_only",
+            "real_chemlex_acidamine",
+            "negative-transfer",
+            "gate-reject"
+          ],
+          "updated_at": "2026-07-22",
+          "score": -15.865981772886357
+        },
+        {
+          "id": "transfer.real-suzuki-miyaura-to-real-buchwald-hartwig-gate-reject-2026-07-21",
+          "type": "transfer",
+          "title": "Gate-rejected transfer: real_suzuki_miyaura to real_buchwald_hartwig",
+          "summary": "All evidence modes failed calibration and fell back to the target acquisition portfolio.",
+          "content": "Reusable lesson: do not force a source-derived semantic policy when every evidence mode fails calibration. Preserve the target-only fallback and improve the reaction representation before retrying.",
+          "tags": [
+            "real_suzuki_miyaura",
+            "real_buchwald_hartwig",
+            "negative-transfer",
+            "gate-reject"
+          ],
+          "updated_at": "2026-07-21",
+          "score": -15.087521107532288
+        },
+        {
+          "id": "transfer.real-suzuki-miyaura-to-real-buchwald-hartwig-calibration-fallback-2026-07-22",
+          "type": "transfer",
+          "title": "Gate-rejected transfer: real_suzuki_miyaura to real_buchwald_hartwig",
+          "summary": "Source-schema and target-only LLM strategies failed calibration; the router selected GP-UCB.",
+          "content": "Reusable lesson: do not force a source-derived semantic policy when every evidence mode fails calibration. Preserve the target-only fallback and improve the reaction representation before retrying.",
+          "tags": [
+            "real_suzuki_miyaura",
+            "real_buchwald_hartwig",
+            "negative-transfer",
+            "gate-reject"
+          ],
+          "updated_at": "2026-07-22",
+          "score": -15.087521107532288
+        },
+        {
+          "id": "transfer.target-only-schema-to-real-matbench-log-kvrh-calibration-fallback-2026-07-22",
+          "type": "transfer",
+          "title": "Gate-rejected transfer: target_only_schema to real_matbench_log_kvrh",
+          "summary": "No LLM strategy passed calibration; the selected GP-EI anchor did not beat the held-out target portfolio.",
+          "content": "Reusable lesson: do not force a source-derived semantic policy when every evidence mode fails calibration. Preserve the target-only fallback and improve the reaction representation before retrying.",
+          "tags": [
+            "target_only_schema",
+            "real_matbench_log_kvrh",
+            "negative-transfer",
+            "gate-reject"
+          ],
+          "updated_at": "2026-07-22",
+          "score": -11.534897167486928
+        },
+        {
+          "id": "skill.semantic-real-chemlex-acidamine-minimize-nitrogen-content-in-acid-2026-07-22",
+          "type": "skill",
+          "title": "Reusable semantic feature pattern: minimize_nitrogen_content_in_acid",
+          "summary": "For real_chemlex_acidamine, keep the LLM-defined minimize_nitrogen_content_in_acid rule as a bounded fixed prior blended with the target-only optimizer.",
+          "content": "Evidence mode: target_only. Execution: direct_prior. Reusable lesson: target calibration can decide that a fixed semantic prior is more reliable than re-fitting its direction.",
+          "tags": [
+            "real_chemlex_acidamine",
+            "minimize_nitrogen_content_in_acid",
+            "target_only",
+            "schema-to-skill",
+            "target-calibration"
+          ],
+          "updated_at": "2026-07-22",
+          "score": -9.363250313110443
+        },
+        {
+          "id": "transfer.bh-to-suzuki-confidence-discount",
+          "type": "transfer",
+          "title": "BH-to-Suzuki confidence-discount transfer",
+          "summary": "Near-domain transfer plan from Buchwald-Hartwig factor evidence to Suzuki-Miyaura replay.",
+          "content": "Proposed transfer path: learn public factor evidence from Buchwald-Hartwig, abstract it into a support/confidence card, discount by reaction-domain distance, apply only bounded adjustments in Suzuki, and let the evidence gate authorize or reject each challenger. Compare no-transfer baseline versus transferred-skill-plus-gate on matched seeds.",
+          "tags": [
+            "transfer",
+            "Buchwald-Hartwig",
+            "Suzuki-Miyaura",
+            "confidence discount",
+            "ablation"
+          ],
+          "updated_at": "2026-06-28",
+          "score": -7.549973356574029
+        }
+      ],
+      "instruction": "Use these public, previously archived cards only as reusable design lessons. Do not copy reported target values into a rule and do not imply that the current target outcomes were observed. Prefer lessons that survived held-out calibration."
+    }
+  },
+  "raw_response": "{\n  \"skills\": [\n    {\n      \"skill_id\": \"high_mw_ligand_low_tpsa_base\",\n      \"rules\": [\n        {\n          \"rule_id\": \"ligand_mw_very_high\",\n          \"conditions\": {\n            \"ligand_mw_bin\": \"mw_very_high\"\n          },\n          \"weight\": 0.3,\n          \"rationale\": \"Very high molecular weight ligands may enhance steric bulk and electron density, promoting oxidative addition and reductive elimination.\"\n        },\n        {\n          \"rule_id\": \"base_tpsa_low\",\n          \"conditions\": {\n            \"base_tpsa_bin\": \"tpsa_low\"\n          },\n          \"weight\": 0.4,\n          \"rationale\": \"Low topological polar surface area bases are less polar, potentially improving solubility in organic solvents and favoring deprotonation.\"\n        },\n        {\n          \"rule_id\": \"aryl_halide_iodide\",\n          \"conditions\": {\n            \"aryl_halide_halide_type\": \"iodide\"\n          },\n          \"weight\": 0.6,\n          \"rationale\": \"Iodide aryl halides are more reactive in oxidative addition due to weaker C-I bonds, increasing yield potential.\"\n        }\n      ],\n      \"ridge\": 2.5,\n      \"prior_scale\": 0.8,\n      \"semantic_mass_start\": 0.6,\n      \"semantic_mass_end\": 0.4,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 2.5,\n      \"gp_beta_end\": 1.5,\n      \"gp_xi\": 0.05,\n      \"confidence\": 0.75,\n      \"hypothesis\": \"This skill transfers the hypothesis that bulky ligands and non-polar bases synergize with reactive aryl iodides for high yield. It may fail if steric hindrance inhibits catalyst turnover or if low base polarity reduces effective concentration.\"\n    },\n    {\n      \"skill_id\": \"phosphazene_base_heteroaromatic_halide\",\n      \"rules\": [\n        {\n          \"rule_id\": \"phosphazene_base_family\",\n          \"conditions\": {\n            \"base_reagent_base_family\": \"phosphazene_base\"\n          },\n          \"weight\": 0.7,\n          \"rationale\": \"Phosphazene bases are strong, non-nucleophilic bases that efficiently deprotonate aniline intermediates without side reactions.\"\n        },\n        {\n          \"rule_id\": \"aryl_halide_has_heteroaromatic_yes\",\n          \"conditions\": {\n            \"aryl_halide_has_heteroaromatic\": \"yes\"\n          },\n          \"weight\": 0.2,\n          \"rationale\": \"Heteroaromatic aryl halides may coordinate differently to palladium, potentially modulating reactivity, but effect direction is uncertain.\"\n        },\n        {\n          \"rule_id\": \"additive_tpsa_mid\",\n          \"conditions\": {\n            \"additive_tpsa_bin\": \"tpsa_mid\"\n          },\n          \"weight\": 0.3,\n          \"rationale\": \"Moderate TPSA additives can balance solubility and interaction with the catalytic system without excessive polarity.\"\n        }\n      ],\n      \"ridge\": 1.2,\n      \"prior_scale\": 0.5,\n      \"semantic_mass_start\": 0.5,\n      \"semantic_mass_end\": 0.3,\n      \"ucb_weight\": 0.7,\n      \"gp_beta_start\": 3.0,\n      \"gp_beta_end\": 2.0,\n      \"gp_xi\": 0.02,\n      \"confidence\": 0.65,\n      \"hypothesis\": \"This skill transfers the hypothesis that strong phosphazene bases are particularly effective for heteroaromatic substrates. It may fail if heteroaromatic coordination poisons the catalyst or if additive polarity mismatches occur.\"\n    },\n    {\n      \"skill_id\": \"conservative_low_semantic_mass\",\n      \"rules\": [\n        {\n          \"rule_id\": \"base_mw_mid\",\n          \"conditions\": {\n            \"base_mw_bin\": \"mw_mid\"\n          },\n          \"weight\": 0.1,\n          \"rationale\": \"Mid molecular weight bases may offer a balance of solubility and basicity without excessive steric hindrance.\"\n        },\n        {\n          \"rule_id\": \"aryl_halide_bromide\",\n          \"conditions\": {\n            \"aryl_halide_halide_type\": \"bromide\"\n          },\n          \"weight\": 0.2,\n          \"rationale\": \"Bromide aryl halides provide moderate reactivity, often a practical compromise between cost and efficiency.\"\n        }\n      ],\n      \"ridge\": 10.0,\n      \"prior_scale\": 0.1,\n      \"semantic_mass_start\": 0.1,\n      \"semantic_mass_end\": 0.05,\n      \"ucb_weight\": 0.8,\n      \"gp_beta_start\": 0.5,\n      \"gp_beta_end\": 0.3,\n      \"gp_xi\": 0.15,\n      \"confidence\": 0.5,\n      \"hypothesis\": \"This skill minimally relies on semantic features, heavily favoring the target-only anchor. It transfers a weak prior for common bromide substrates and mid-weight bases. It may fail if strong specific effects dominate, but it is robust to semantic mis-specification.\"\n    },\n    {\n      \"skill_id\": \"guanidine_base_high_mw_aryl_halide\",\n      \"rules\": [\n        {\n          \"rule_id\": \"guanidine_base_family\",\n          \"conditions\": {\n            \"base_reagent_base_family\": \"guanidine_base\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Guanidine bases are strong organic bases that can facilitate deprotonation while being compatible with a range of ligands.\"\n        },\n        {\n          \"rule_id\": \"aryl_halide_mw_mid\",\n          \"conditions\": {\n            \"aryl_halide_mw_bin\": \"mw_mid\"\n          },\n          \"weight\": 0.3,\n          \"rationale\": \"Mid molecular weight aryl halides are common in drug-like molecules and may have optimal steric and electronic properties.\"\n        },\n        {\n          \"rule_id\": \"ligand_mw_high\",\n          \"conditions\": {\n            \"ligand_mw_bin\": \"mw_high\"\n          },\n          \"weight\": 0.4,\n          \"rationale\": \"High molecular weight ligands provide substantial steric bulk, which can stabilize catalytic intermediates.\"\n        }\n      ],\n      \"ridge\": 3.0,\n      \"prior_scale\": 0.6,\n      \"semantic_mass_start\": 0.55,\n      \"semantic_mass_end\": 0.35,\n      \"ucb_weight\": 0.6,\n      \"gp_beta_start\": 2.2,\n      \"gp_beta_end\": 1.8,\n      \"gp_xi\": 0.03,\n      \"confidence\": 0.7,\n      \"hypothesis\": \"This skill transfers the hypothesis that guanidine bases pair well with moderately bulky aryl halides and high MW ligands. It may fail if guanidine bases lead to side reactions with specific substrates or if ligand bulk becomes inhibitory.\"\n    },\n    {\n      \"skill_id\": \"domain_knowledge_electron_poor_halide\",\n      \"rules\": [\n        {\n          \"rule_id\": \"aryl_halide_chloride\",\n          \"conditions\": {\n            \"aryl_halide_halide_type\": \"chloride\"\n          },\n          \"weight\": -0.4,\n          \"rationale\": \"Chloride aryl halides have strong C-Cl bonds, making oxidative addition slower and often requiring more forcing conditions, risking lower yields.\"\n        },\n        {\n          \"rule_id\": \"base_functional_class_amidine_base\",\n          \"conditions\": {\n            \"base_functional_class\": \"amidine_base\"\n          },\n          \"weight\": 0.3,\n          \"rationale\": \"Amidine bases are moderately strong and may be effective for challenging substrates like chlorides by facilitating deprotonation without decomposition.\"\n        },\n        {\n          \"rule_id\": \"additive_tpsa_high\",\n          \"conditions\": {\n            \"additive_tpsa_bin\": \"tpsa_high\"\n          },\n          \"weight\": -0.2,\n          \"rationale\": \"High TPSA additives may be too polar, potentially interfering with catalyst solubility or stability in non-polar media.\"\n        }\n      ],\n      \"ridge\": 5.0,\n      \"prior_scale\": 0.7,\n      \"semantic_mass_start\": 0.65,\n      \"semantic_mass_end\": 0.45,\n      \"ucb_weight\": 0.4,\n      \"gp_beta_start\": 3.5,\n      \"gp_beta_end\": 2.5,\n      \"gp_xi\": 0.01,\n      \"confidence\": 0.8,\n      \"hypothesis\": \"This skill transfers domain knowledge that electron-poor chloride substrates are risk factors, mitigated by amidine bases, while high-polarity additives are detrimental. It may fail if specific ligand systems activate chlorides efficiently or if polar additives are necessary for solubility.\"\n    },\n    {\n      \"skill_id\": \"counter_hypothesis_heteroaromatic_benign\",\n      \"rules\": [\n        {\n          \"rule_id\": \"aryl_halide_has_heteroaromatic_no\",\n          \"conditions\": {\n            \"aryl_halide_has_heteroaromatic\": \"no\"\n          },\n          \"weight\": 0.1,\n          \"rationale\": \"Non-heteroaromatic aryl halides are standard substrates; heteroaromatics may not confer a consistent advantage and could complicate prediction.\"\n        },\n        {\n          \"rule_id\": \"base_mw_high\",\n          \"conditions\": {\n            \"base_mw_bin\": \"mw_high\"\n          },\n          \"weight\": -0.3,\n          \"rationale\": \"High molecular weight bases may have reduced solubility or diffusion rates, potentially slowing deprotonation kinetics.\"\n        },\n        {\n          \"rule_id\": \"ligand_mw_high\",\n          \"conditions\": {\n            \"ligand_mw_bin\": \"mw_high\"\n          },\n          \"weight\": 0.2,\n          \"rationale\": \"High MW ligands are beneficial, but the effect may be less pronounced than often assumed, hence a moderate weight.\"\n        }\n      ],\n      \"ridge\": 8.0,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.4,\n      \"semantic_mass_end\": 0.2,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 1.5,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.1,\n      \"confidence\": 0.6,\n      \"hypothesis\": \"This skill counters uncertain source relations by downweighting the importance of heteroaromatics and high MW bases, reflecting skepticism. It may fail if heteroaromatic coordination or base bulk are indeed critical in this dataset.\"\n    },\n    {\n      \"skill_id\": \"additive_tpsa_mid_base_tpsa_mid_synergy\",\n      \"rules\": [\n        {\n          \"rule_id\": \"additive_tpsa_mid\",\n          \"conditions\": {\n            \"additive_tpsa_bin\": \"tpsa_mid\"\n          },\n          \"weight\": 0.4,\n          \"rationale\": \"Moderate TPSA additives can improve phase compatibility without disrupting the catalytic pocket.\"\n        },\n        {\n          \"rule_id\": \"base_tpsa_mid\",\n          \"conditions\": {\n            \"base_tpsa_bin\": \"tpsa_mid\"\n          },\n          \"weight\": 0.3,\n          \"rationale\": \"Mid TPSA bases balance polarity for solubility and effective basicity.\"\n        },\n        {\n          \"rule_id\": \"aryl_halide_mw_none_or_low\",\n          \"conditions\": {\n            \"aryl_halide_mw_bin\": \"mw_none_or_low\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Low molecular weight aryl halides are less sterically hindered, facilitating oxidative addition.\"\n        },\n        {\n          \"rule_id\": \"base_functional_class_phosphazene_base\",\n          \"conditions\": {\n            \"base_functional_class\": \"phosphazene_base\"\n          },\n          \"weight\": 0.6,\n          \"rationale\": \"Phosphazene bases are particularly effective when paired with compatible additive polarity.\"\n        }\n      ],\n      \"ridge\": 2.0,\n      \"prior_scale\": 0.9,\n      \"semantic_mass_start\": 0.7,\n      \"semantic_mass_end\": 0.5,\n      \"ucb_weight\": 0.3,\n      \"gp_beta_start\": 2.8,\n      \"gp_beta_end\": 2.0,\n      \"gp_xi\": 0.04,\n      \"confidence\": 0.85,\n      \"hypothesis\": \"This skill transfers the hypothesis that synergistic polarity matching between additives and bases, combined with low steric hindrance substrates, maximizes yield. It may fail if specific chemical functionalities override polarity effects or if phosphazene bases are incompatible with certain additives.\"\n    },\n    {\n      \"skill_id\": \"amidine_base_simple_aryl_halide\",\n      \"rules\": [\n        {\n          \"rule_id\": \"amidine_base_family\",\n          \"conditions\": {\n            \"base_reagent_base_family\": \"amidine_base\"\n          },\n          \"weight\": 0.4,\n          \"rationale\": \"Amidine bases are effective for many Buchwald-Hartwig couplings, offering a good balance of strength and compatibility.\"\n        },\n        {\n          \"rule_id\": \"aryl_halide_has_heteroaromatic_no\",\n          \"conditions\": {\n            \"aryl_halide_has_heteroaromatic\": \"no\"\n          },\n          \"weight\": 0.3,\n          \"rationale\": \"Simple aryl halides without heteroaromatics are reliable substrates with predictable reactivity.\"\n        },\n        {\n          \"rule_id\": \"additive_tpsa_mid\",\n          \"conditions\": {\n            \"additive_tpsa_bin\": \"tpsa_mid\"\n          },\n          \"weight\": 0.2,\n          \"rationale\": \"Moderate polarity additives support the reaction medium without introducing extreme solubility issues.\"\n        },\n        {\n          \"rule_id\": \"ligand_mw_bin_mw_high\",\n          \"conditions\": {\n            \"ligand_mw_bin\": \"mw_high\"\n          },\n          \"weight\": 0.3,\n          \"rationale\": \"High MW ligands provide necessary steric protection for the catalytic cycle.\"\n        }\n      ],\n      \"ridge\": 4.0,\n      \"prior_scale\": 0.4,\n      \"semantic_mass_start\": 0.45,\n      \"semantic_mass_end\": 0.25,\n      \"ucb_weight\": 0.6,\n      \"gp_beta_start\": 2.0,\n      \"gp_beta_end\": 1.2,\n      \"gp_xi\": 0.06,\n      \"confidence\": 0.7,\n      \"hypothesis\": \"This skill transfers a conservative, well-established strategy using amidine bases with simple substrates and moderate additives. It may fail if the dataset contains many challenging substrates that require stronger bases or specialized ligands.\"\n    }\n  ]\n}",
+  "parsed_response": {
+    "skills": [
+      {
+        "skill_id": "high_mw_ligand_low_tpsa_base",
+        "rules": [
+          {
+            "rule_id": "ligand_mw_very_high",
+            "conditions": {
+              "ligand_mw_bin": "mw_very_high"
+            },
+            "weight": 0.3,
+            "rationale": "Very high molecular weight ligands may enhance steric bulk and electron density, promoting oxidative addition and reductive elimination."
+          },
+          {
+            "rule_id": "base_tpsa_low",
+            "conditions": {
+              "base_tpsa_bin": "tpsa_low"
+            },
+            "weight": 0.4,
+            "rationale": "Low topological polar surface area bases are less polar, potentially improving solubility in organic solvents and favoring deprotonation."
+          },
+          {
+            "rule_id": "aryl_halide_iodide",
+            "conditions": {
+              "aryl_halide_halide_type": "iodide"
+            },
+            "weight": 0.6,
+            "rationale": "Iodide aryl halides are more reactive in oxidative addition due to weaker C-I bonds, increasing yield potential."
+          }
+        ],
+        "ridge": 2.5,
+        "prior_scale": 0.8,
+        "semantic_mass_start": 0.6,
+        "semantic_mass_end": 0.4,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 2.5,
+        "gp_beta_end": 1.5,
+        "gp_xi": 0.05,
+        "confidence": 0.75,
+        "hypothesis": "This skill transfers the hypothesis that bulky ligands and non-polar bases synergize with reactive aryl iodides for high yield. It may fail if steric hindrance inhibits catalyst turnover or if low base polarity reduces effective concentration."
+      },
+      {
+        "skill_id": "phosphazene_base_heteroaromatic_halide",
+        "rules": [
+          {
+            "rule_id": "phosphazene_base_family",
+            "conditions": {
+              "base_reagent_base_family": "phosphazene_base"
+            },
+            "weight": 0.7,
+            "rationale": "Phosphazene bases are strong, non-nucleophilic bases that efficiently deprotonate aniline intermediates without side reactions."
+          },
+          {
+            "rule_id": "aryl_halide_has_heteroaromatic_yes",
+            "conditions": {
+              "aryl_halide_has_heteroaromatic": "yes"
+            },
+            "weight": 0.2,
+            "rationale": "Heteroaromatic aryl halides may coordinate differently to palladium, potentially modulating reactivity, but effect direction is uncertain."
+          },
+          {
+            "rule_id": "additive_tpsa_mid",
+            "conditions": {
+              "additive_tpsa_bin": "tpsa_mid"
+            },
+            "weight": 0.3,
+            "rationale": "Moderate TPSA additives can balance solubility and interaction with the catalytic system without excessive polarity."
+          }
+        ],
+        "ridge": 1.2,
+        "prior_scale": 0.5,
+        "semantic_mass_start": 0.5,
+        "semantic_mass_end": 0.3,
+        "ucb_weight": 0.7,
+        "gp_beta_start": 3.0,
+        "gp_beta_end": 2.0,
+        "gp_xi": 0.02,
+        "confidence": 0.65,
+        "hypothesis": "This skill transfers the hypothesis that strong phosphazene bases are particularly effective for heteroaromatic substrates. It may fail if heteroaromatic coordination poisons the catalyst or if additive polarity mismatches occur."
+      },
+      {
+        "skill_id": "conservative_low_semantic_mass",
+        "rules": [
+          {
+            "rule_id": "base_mw_mid",
+            "conditions": {
+              "base_mw_bin": "mw_mid"
+            },
+            "weight": 0.1,
+            "rationale": "Mid molecular weight bases may offer a balance of solubility and basicity without excessive steric hindrance."
+          },
+          {
+            "rule_id": "aryl_halide_bromide",
+            "conditions": {
+              "aryl_halide_halide_type": "bromide"
+            },
+            "weight": 0.2,
+            "rationale": "Bromide aryl halides provide moderate reactivity, often a practical compromise between cost and efficiency."
+          }
+        ],
+        "ridge": 10.0,
+        "prior_scale": 0.1,
+        "semantic_mass_start": 0.1,
+        "semantic_mass_end": 0.05,
+        "ucb_weight": 0.8,
+        "gp_beta_start": 0.5,
+        "gp_beta_end": 0.3,
+        "gp_xi": 0.15,
+        "confidence": 0.5,
+        "hypothesis": "This skill minimally relies on semantic features, heavily favoring the target-only anchor. It transfers a weak prior for common bromide substrates and mid-weight bases. It may fail if strong specific effects dominate, but it is robust to semantic mis-specification."
+      },
+      {
+        "skill_id": "guanidine_base_high_mw_aryl_halide",
+        "rules": [
+          {
+            "rule_id": "guanidine_base_family",
+            "conditions": {
+              "base_reagent_base_family": "guanidine_base"
+            },
+            "weight": 0.5,
+            "rationale": "Guanidine bases are strong organic bases that can facilitate deprotonation while being compatible with a range of ligands."
+          },
+          {
+            "rule_id": "aryl_halide_mw_mid",
+            "conditions": {
+              "aryl_halide_mw_bin": "mw_mid"
+            },
+            "weight": 0.3,
+            "rationale": "Mid molecular weight aryl halides are common in drug-like molecules and may have optimal steric and electronic properties."
+          },
+          {
+            "rule_id": "ligand_mw_high",
+            "conditions": {
+              "ligand_mw_bin": "mw_high"
+            },
+            "weight": 0.4,
+            "rationale": "High molecular weight ligands provide substantial steric bulk, which can stabilize catalytic intermediates."
+          }
+        ],
+        "ridge": 3.0,
+        "prior_scale": 0.6,
+        "semantic_mass_start": 0.55,
+        "semantic_mass_end": 0.35,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 1.8,
+        "gp_xi": 0.03,
+        "confidence": 0.7,
+        "hypothesis": "This skill transfers the hypothesis that guanidine bases pair well with moderately bulky aryl halides and high MW ligands. It may fail if guanidine bases lead to side reactions with specific substrates or if ligand bulk becomes inhibitory."
+      },
+      {
+        "skill_id": "domain_knowledge_electron_poor_halide",
+        "rules": [
+          {
+            "rule_id": "aryl_halide_chloride",
+            "conditions": {
+              "aryl_halide_halide_type": "chloride"
+            },
+            "weight": -0.4,
+            "rationale": "Chloride aryl halides have strong C-Cl bonds, making oxidative addition slower and often requiring more forcing conditions, risking lower yields."
+          },
+          {
+            "rule_id": "base_functional_class_amidine_base",
+            "conditions": {
+              "base_functional_class": "amidine_base"
+            },
+            "weight": 0.3,
+            "rationale": "Amidine bases are moderately strong and may be effective for challenging substrates like chlorides by facilitating deprotonation without decomposition."
+          },
+          {
+            "rule_id": "additive_tpsa_high",
+            "conditions": {
+              "additive_tpsa_bin": "tpsa_high"
+            },
+            "weight": -0.2,
+            "rationale": "High TPSA additives may be too polar, potentially interfering with catalyst solubility or stability in non-polar media."
+          }
+        ],
+        "ridge": 5.0,
+        "prior_scale": 0.7,
+        "semantic_mass_start": 0.65,
+        "semantic_mass_end": 0.45,
+        "ucb_weight": 0.4,
+        "gp_beta_start": 3.5,
+        "gp_beta_end": 2.5,
+        "gp_xi": 0.01,
+        "confidence": 0.8,
+        "hypothesis": "This skill transfers domain knowledge that electron-poor chloride substrates are risk factors, mitigated by amidine bases, while high-polarity additives are detrimental. It may fail if specific ligand systems activate chlorides efficiently or if polar additives are necessary for solubility."
+      },
+      {
+        "skill_id": "counter_hypothesis_heteroaromatic_benign",
+        "rules": [
+          {
+            "rule_id": "aryl_halide_has_heteroaromatic_no",
+            "conditions": {
+              "aryl_halide_has_heteroaromatic": "no"
+            },
+            "weight": 0.1,
+            "rationale": "Non-heteroaromatic aryl halides are standard substrates; heteroaromatics may not confer a consistent advantage and could complicate prediction."
+          },
+          {
+            "rule_id": "base_mw_high",
+            "conditions": {
+              "base_mw_bin": "mw_high"
+            },
+            "weight": -0.3,
+            "rationale": "High molecular weight bases may have reduced solubility or diffusion rates, potentially slowing deprotonation kinetics."
+          },
+          {
+            "rule_id": "ligand_mw_high",
+            "conditions": {
+              "ligand_mw_bin": "mw_high"
+            },
+            "weight": 0.2,
+            "rationale": "High MW ligands are beneficial, but the effect may be less pronounced than often assumed, hence a moderate weight."
+          }
+        ],
+        "ridge": 8.0,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.4,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 1.5,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.1,
+        "confidence": 0.6,
+        "hypothesis": "This skill counters uncertain source relations by downweighting the importance of heteroaromatics and high MW bases, reflecting skepticism. It may fail if heteroaromatic coordination or base bulk are indeed critical in this dataset."
+      },
+      {
+        "skill_id": "additive_tpsa_mid_base_tpsa_mid_synergy",
+        "rules": [
+          {
+            "rule_id": "additive_tpsa_mid",
+            "conditions": {
+              "additive_tpsa_bin": "tpsa_mid"
+            },
+            "weight": 0.4,
+            "rationale": "Moderate TPSA additives can improve phase compatibility without disrupting the catalytic pocket."
+          },
+          {
+            "rule_id": "base_tpsa_mid",
+            "conditions": {
+              "base_tpsa_bin": "tpsa_mid"
+            },
+            "weight": 0.3,
+            "rationale": "Mid TPSA bases balance polarity for solubility and effective basicity."
+          },
+          {
+            "rule_id": "aryl_halide_mw_none_or_low",
+            "conditions": {
+              "aryl_halide_mw_bin": "mw_none_or_low"
+            },
+            "weight": 0.5,
+            "rationale": "Low molecular weight aryl halides are less sterically hindered, facilitating oxidative addition."
+          },
+          {
+            "rule_id": "base_functional_class_phosphazene_base",
+            "conditions": {
+              "base_functional_class": "phosphazene_base"
+            },
+            "weight": 0.6,
+            "rationale": "Phosphazene bases are particularly effective when paired with compatible additive polarity."
+          }
+        ],
+        "ridge": 2.0,
+        "prior_scale": 0.9,
+        "semantic_mass_start": 0.7,
+        "semantic_mass_end": 0.5,
+        "ucb_weight": 0.3,
+        "gp_beta_start": 2.8,
+        "gp_beta_end": 2.0,
+        "gp_xi": 0.04,
+        "confidence": 0.85,
+        "hypothesis": "This skill transfers the hypothesis that synergistic polarity matching between additives and bases, combined with low steric hindrance substrates, maximizes yield. It may fail if specific chemical functionalities override polarity effects or if phosphazene bases are incompatible with certain additives."
+      },
+      {
+        "skill_id": "amidine_base_simple_aryl_halide",
+        "rules": [
+          {
+            "rule_id": "amidine_base_family",
+            "conditions": {
+              "base_reagent_base_family": "amidine_base"
+            },
+            "weight": 0.4,
+            "rationale": "Amidine bases are effective for many Buchwald-Hartwig couplings, offering a good balance of strength and compatibility."
+          },
+          {
+            "rule_id": "aryl_halide_has_heteroaromatic_no",
+            "conditions": {
+              "aryl_halide_has_heteroaromatic": "no"
+            },
+            "weight": 0.3,
+            "rationale": "Simple aryl halides without heteroaromatics are reliable substrates with predictable reactivity."
+          },
+          {
+            "rule_id": "additive_tpsa_mid",
+            "conditions": {
+              "additive_tpsa_bin": "tpsa_mid"
+            },
+            "weight": 0.2,
+            "rationale": "Moderate polarity additives support the reaction medium without introducing extreme solubility issues."
+          },
+          {
+            "rule_id": "ligand_mw_bin_mw_high",
+            "conditions": {
+              "ligand_mw_bin": "mw_high"
+            },
+            "weight": 0.3,
+            "rationale": "High MW ligands provide necessary steric protection for the catalytic cycle."
+          }
+        ],
+        "ridge": 4.0,
+        "prior_scale": 0.4,
+        "semantic_mass_start": 0.45,
+        "semantic_mass_end": 0.25,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.2,
+        "gp_xi": 0.06,
+        "confidence": 0.7,
+        "hypothesis": "This skill transfers a conservative, well-established strategy using amidine bases with simple substrates and moderate additives. It may fail if the dataset contains many challenging substrates that require stronger bases or specialized ligands."
+      }
+    ]
+  },
+  "normalized_skills": [
+    {
+      "skill_id": "high_mw_ligand_low_tpsa_base",
+      "rules": [
+        {
+          "rule_id": "ligand_mw_very_high",
+          "conditions": [
+            [
+              "ligand_mw_bin",
+              "mw_very_high"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Very high molecular weight ligands may enhance steric bulk and electron density, promoting oxidative addition and reductive elimination."
+        },
+        {
+          "rule_id": "base_tpsa_low",
+          "conditions": [
+            [
+              "base_tpsa_bin",
+              "tpsa_low"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Low topological polar surface area bases are less polar, potentially improving solubility in organic solvents and favoring deprotonation."
+        },
+        {
+          "rule_id": "aryl_halide_iodide",
+          "conditions": [
+            [
+              "aryl_halide_halide_type",
+              "iodide"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Iodide aryl halides are more reactive in oxidative addition due to weaker C-I bonds, increasing yield potential."
+        }
+      ],
+      "ridge": 2.5,
+      "prior_scale": 0.8,
+      "semantic_mass_start": 0.6,
+      "semantic_mass_end": 0.4,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.05,
+      "confidence": 0.75,
+      "hypothesis": "This skill transfers the hypothesis that bulky ligands and non-polar bases synergize with reactive aryl iodides for high yield. It may fail if steric hindrance inhibits catalyst turnover or if low base polarity reduces effective concentration."
+    },
+    {
+      "skill_id": "phosphazene_base_heteroaromatic_halide",
+      "rules": [
+        {
+          "rule_id": "phosphazene_base_family",
+          "conditions": [
+            [
+              "base_reagent_base_family",
+              "phosphazene_base"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Phosphazene bases are strong, non-nucleophilic bases that efficiently deprotonate aniline intermediates without side reactions."
+        },
+        {
+          "rule_id": "aryl_halide_has_heteroaromatic_yes",
+          "conditions": [
+            [
+              "aryl_halide_has_heteroaromatic",
+              "yes"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Heteroaromatic aryl halides may coordinate differently to palladium, potentially modulating reactivity, but effect direction is uncertain."
+        },
+        {
+          "rule_id": "additive_tpsa_mid",
+          "conditions": [
+            [
+              "additive_tpsa_bin",
+              "tpsa_mid"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Moderate TPSA additives can balance solubility and interaction with the catalytic system without excessive polarity."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.5,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.3,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 3.0,
+      "gp_beta_end": 2.0,
+      "gp_xi": 0.02,
+      "confidence": 0.65,
+      "hypothesis": "This skill transfers the hypothesis that strong phosphazene bases are particularly effective for heteroaromatic substrates. It may fail if heteroaromatic coordination poisons the catalyst or if additive polarity mismatches occur."
+    },
+    {
+      "skill_id": "conservative_low_semantic_mass",
+      "rules": [
+        {
+          "rule_id": "base_mw_mid",
+          "conditions": [
+            [
+              "base_mw_bin",
+              "mw_mid"
+            ]
+          ],
+          "weight": 0.1,
+          "rationale": "Mid molecular weight bases may offer a balance of solubility and basicity without excessive steric hindrance."
+        },
+        {
+          "rule_id": "aryl_halide_bromide",
+          "conditions": [
+            [
+              "aryl_halide_halide_type",
+              "bromide"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Bromide aryl halides provide moderate reactivity, often a practical compromise between cost and efficiency."
+        }
+      ],
+      "ridge": 10.0,
+      "prior_scale": 0.1,
+      "semantic_mass_start": 0.1,
+      "semantic_mass_end": 0.05,
+      "ucb_weight": 0.8,
+      "gp_beta_start": 0.5,
+      "gp_beta_end": 0.3,
+      "gp_xi": 0.15,
+      "confidence": 0.5,
+      "hypothesis": "This skill minimally relies on semantic features, heavily favoring the target-only anchor. It transfers a weak prior for common bromide substrates and mid-weight bases. It may fail if strong specific effects dominate, but it is robust to semantic mis-specification."
+    },
+    {
+      "skill_id": "guanidine_base_high_mw_aryl_halide",
+      "rules": [
+        {
+          "rule_id": "guanidine_base_family",
+          "conditions": [
+            [
+              "base_reagent_base_family",
+              "guanidine_base"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Guanidine bases are strong organic bases that can facilitate deprotonation while being compatible with a range of ligands."
+        },
+        {
+          "rule_id": "aryl_halide_mw_mid",
+          "conditions": [
+            [
+              "aryl_halide_mw_bin",
+              "mw_mid"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Mid molecular weight aryl halides are common in drug-like molecules and may have optimal steric and electronic properties."
+        },
+        {
+          "rule_id": "ligand_mw_high",
+          "conditions": [
+            [
+              "ligand_mw_bin",
+              "mw_high"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "High molecular weight ligands provide substantial steric bulk, which can stabilize catalytic intermediates."
+        }
+      ],
+      "ridge": 3.0,
+      "prior_scale": 0.6,
+      "semantic_mass_start": 0.55,
+      "semantic_mass_end": 0.35,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.8,
+      "gp_xi": 0.03,
+      "confidence": 0.7,
+      "hypothesis": "This skill transfers the hypothesis that guanidine bases pair well with moderately bulky aryl halides and high MW ligands. It may fail if guanidine bases lead to side reactions with specific substrates or if ligand bulk becomes inhibitory."
+    },
+    {
+      "skill_id": "domain_knowledge_electron_poor_halide",
+      "rules": [
+        {
+          "rule_id": "aryl_halide_chloride",
+          "conditions": [
+            [
+              "aryl_halide_halide_type",
+              "chloride"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "Chloride aryl halides have strong C-Cl bonds, making oxidative addition slower and often requiring more forcing conditions, risking lower yields."
+        },
+        {
+          "rule_id": "base_functional_class_amidine_base",
+          "conditions": [
+            [
+              "base_functional_class",
+              "amidine_base"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Amidine bases are moderately strong and may be effective for challenging substrates like chlorides by facilitating deprotonation without decomposition."
+        },
+        {
+          "rule_id": "additive_tpsa_high",
+          "conditions": [
+            [
+              "additive_tpsa_bin",
+              "tpsa_high"
+            ]
+          ],
+          "weight": -0.2,
+          "rationale": "High TPSA additives may be too polar, potentially interfering with catalyst solubility or stability in non-polar media."
+        }
+      ],
+      "ridge": 5.0,
+      "prior_scale": 0.7,
+      "semantic_mass_start": 0.65,
+      "semantic_mass_end": 0.45,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 3.5,
+      "gp_beta_end": 2.5,
+      "gp_xi": 0.01,
+      "confidence": 0.8,
+      "hypothesis": "This skill transfers domain knowledge that electron-poor chloride substrates are risk factors, mitigated by amidine bases, while high-polarity additives are detrimental. It may fail if specific ligand systems activate chlorides efficiently or if polar additives are necessary for solubility."
+    },
+    {
+      "skill_id": "counter_hypothesis_heteroaromatic_benign",
+      "rules": [
+        {
+          "rule_id": "aryl_halide_has_heteroaromatic_no",
+          "conditions": [
+            [
+              "aryl_halide_has_heteroaromatic",
+              "no"
+            ]
+          ],
+          "weight": 0.1,
+          "rationale": "Non-heteroaromatic aryl halides are standard substrates; heteroaromatics may not confer a consistent advantage and could complicate prediction."
+        },
+        {
+          "rule_id": "base_mw_high",
+          "conditions": [
+            [
+              "base_mw_bin",
+              "mw_high"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "High molecular weight bases may have reduced solubility or diffusion rates, potentially slowing deprotonation kinetics."
+        },
+        {
+          "rule_id": "ligand_mw_high",
+          "conditions": [
+            [
+              "ligand_mw_bin",
+              "mw_high"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "High MW ligands are beneficial, but the effect may be less pronounced than often assumed, hence a moderate weight."
+        }
+      ],
+      "ridge": 8.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.1,
+      "confidence": 0.6,
+      "hypothesis": "This skill counters uncertain source relations by downweighting the importance of heteroaromatics and high MW bases, reflecting skepticism. It may fail if heteroaromatic coordination or base bulk are indeed critical in this dataset."
+    },
+    {
+      "skill_id": "additive_tpsa_mid_base_tpsa_mid_synergy",
+      "rules": [
+        {
+          "rule_id": "additive_tpsa_mid",
+          "conditions": [
+            [
+              "additive_tpsa_bin",
+              "tpsa_mid"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Moderate TPSA additives can improve phase compatibility without disrupting the catalytic pocket."
+        },
+        {
+          "rule_id": "base_tpsa_mid",
+          "conditions": [
+            [
+              "base_tpsa_bin",
+              "tpsa_mid"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Mid TPSA bases balance polarity for solubility and effective basicity."
+        },
+        {
+          "rule_id": "aryl_halide_mw_none_or_low",
+          "conditions": [
+            [
+              "aryl_halide_mw_bin",
+              "mw_none_or_low"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Low molecular weight aryl halides are less sterically hindered, facilitating oxidative addition."
+        },
+        {
+          "rule_id": "base_functional_class_phosphazene_base",
+          "conditions": [
+            [
+              "base_functional_class",
+              "phosphazene_base"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Phosphazene bases are particularly effective when paired with compatible additive polarity."
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.9,
+      "semantic_mass_start": 0.7,
+      "semantic_mass_end": 0.5,
+      "ucb_weight": 0.3,
+      "gp_beta_start": 2.8,
+      "gp_beta_end": 2.0,
+      "gp_xi": 0.04,
+      "confidence": 0.85,
+      "hypothesis": "This skill transfers the hypothesis that synergistic polarity matching between additives and bases, combined with low steric hindrance substrates, maximizes yield. It may fail if specific chemical functionalities override polarity effects or if phosphazene bases are incompatible with certain additives."
+    },
+    {
+      "skill_id": "amidine_base_simple_aryl_halide",
+      "rules": [
+        {
+          "rule_id": "amidine_base_family",
+          "conditions": [
+            [
+              "base_reagent_base_family",
+              "amidine_base"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Amidine bases are effective for many Buchwald-Hartwig couplings, offering a good balance of strength and compatibility."
+        },
+        {
+          "rule_id": "aryl_halide_has_heteroaromatic_no",
+          "conditions": [
+            [
+              "aryl_halide_has_heteroaromatic",
+              "no"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Simple aryl halides without heteroaromatics are reliable substrates with predictable reactivity."
+        },
+        {
+          "rule_id": "additive_tpsa_mid",
+          "conditions": [
+            [
+              "additive_tpsa_bin",
+              "tpsa_mid"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Moderate polarity additives support the reaction medium without introducing extreme solubility issues."
+        },
+        {
+          "rule_id": "ligand_mw_bin_mw_high",
+          "conditions": [
+            [
+              "ligand_mw_bin",
+              "mw_high"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "High MW ligands provide necessary steric protection for the catalytic cycle."
+        }
+      ],
+      "ridge": 4.0,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.45,
+      "semantic_mass_end": 0.25,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.06,
+      "confidence": 0.7,
+      "hypothesis": "This skill transfers a conservative, well-established strategy using amidine bases with simple substrates and moderate additives. It may fail if the dataset contains many challenging substrates that require stronger bases or specialized ligands."
+    }
+  ],
+  "knowledge_retrieval": {
+    "enabled": true,
+    "db": "knowledge_base/runtime/care_kb.sqlite",
+    "cutoff": "2026-07-22",
+    "card_ids": [
+      "transfer.source-schema-only-to-real-chemlex-acidamine-negative-heldout-2026-07-22",
+      "transfer.real-suzuki-miyaura-to-real-buchwald-hartwig-gate-reject-2026-07-21",
+      "transfer.real-suzuki-miyaura-to-real-buchwald-hartwig-calibration-fallback-2026-07-22",
+      "transfer.target-only-schema-to-real-matbench-log-kvrh-calibration-fallback-2026-07-22",
+      "skill.semantic-real-chemlex-acidamine-minimize-nitrogen-content-in-acid-2026-07-22",
+      "transfer.bh-to-suzuki-confidence-discount"
+    ]
+  }
+}

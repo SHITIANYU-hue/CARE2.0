@@ -1,0 +1,1009 @@
+{
+  "model": "deepspeek-v3.2",
+  "usage": {
+    "prompt_tokens": 2383,
+    "total_tokens": 5725,
+    "completion_tokens": 3342,
+    "prompt_tokens_details": null,
+    "reasoning_tokens": 0
+  },
+  "llm_generation_call_count": 1,
+  "api_configuration": {
+    "base_url": "http://127.0.0.1:31300/v1",
+    "api_mode": "chat",
+    "structured_mode": "json",
+    "temperature": 0.35,
+    "max_tokens": 5000
+  },
+  "source_dataset": "real_chemlex_acidamine",
+  "target_dataset": "real_buchwald_hartwig",
+  "evidence_mode": "source_schema_only",
+  "prompt_payload": {
+    "task": "Design a diverse library of executable semantic optimization skills for finite-pool scientific search. Each skill defines interpretable rule features plus a conservative Bayesian linear surrogate blended with strong target-only GP-UCB and GP-EI anchors.",
+    "target": {
+      "dataset": "real_buchwald_hartwig",
+      "title": "Dreher-Doyle Buchwald-Hartwig HTE replay",
+      "objective": "maximize_yield",
+      "candidate_count": 3955,
+      "public_semantic_fields": {
+        "ligand_mw_bin": {
+          "mw_high": 986,
+          "mw_very_high": 2969
+        },
+        "base_reagent_base_family": {
+          "amidine_base": 1318,
+          "guanidine_base": 1317,
+          "phosphazene_base": 1320
+        },
+        "base_functional_class": {
+          "amidine_base": 1318,
+          "guanidine_base": 1317,
+          "phosphazene_base": 1320
+        },
+        "base_mw_bin": {
+          "mw_high": 1320,
+          "mw_mid": 2635
+        },
+        "base_tpsa_bin": {
+          "tpsa_low": 2635,
+          "tpsa_mid": 1320
+        },
+        "aryl_halide_halide_type": {
+          "bromide": 1319,
+          "chloride": 1318,
+          "iodide": 1318
+        },
+        "aryl_halide_has_heteroaromatic": {
+          "no": 2372,
+          "yes": 1583
+        },
+        "aryl_halide_mw_bin": {
+          "mw_high": 263,
+          "mw_mid": 3164,
+          "mw_none_or_low": 528
+        },
+        "additive_tpsa_bin": {
+          "tpsa_high": 360,
+          "tpsa_mid": 3595
+        }
+      },
+      "hidden_target": "yield_value",
+      "boundary": "Field values and counts are public; target outcomes are not included."
+    },
+    "source_transfer_evidence": {
+      "evidence_mode": "source_schema_only",
+      "source_dataset": "real_chemlex_acidamine",
+      "source_objective": "maximize_conversion",
+      "mapped_roles": [
+        {
+          "source_field": "acid",
+          "target_field": "aryl_halide"
+        },
+        {
+          "source_field": "reagent",
+          "target_field": "base"
+        },
+        {
+          "source_field": "solvent",
+          "target_field": "additive"
+        }
+      ],
+      "source_outcome_statistics": null,
+      "shared_value_priors": [],
+      "boundary": "Only source identity, objective, and public source-target field alignment are provided. Source outcomes, effects, support counts, and value priors are withheld."
+    },
+    "executor": {
+      "semantic_model": "Rules become binary features. Revealed target outcomes fit a ridge Bayesian linear surrogate whose coefficient prior follows rule weights.",
+      "anchor": "A rank blend of target-only GP-UCB and GP-EI.",
+      "fusion": "semantic_mass_start/end controls the rank mass assigned to the semantic surrogate; the remaining mass stays on the target-only anchor.",
+      "selection": "Independent calibration seeds select one frozen skill. Independent held-out seeds are evaluated only after selection."
+    },
+    "design_requirements": [
+      "Return exactly 8 diverse skills.",
+      "Use only exact field/value pairs in public_semantic_fields.",
+      "Each conditions object must map a real catalog field name directly to one exact catalog value, for example {\"dominant_family\": \"oxide\"}. Never use literal placeholder keys such as exact_field, field_name, field, or value.",
+      "Give every skill a distinct, descriptive scientific skill_id. Never copy schema placeholders such as short_unique_name or add numeric suffixes to a placeholder.",
+      "Give every skill 3-10 rules; use two-condition interactions only when scientifically meaningful.",
+      "Include at least one conservative low-semantic-mass skill.",
+      "Include at least one skill grounded only in the supplied source-target field alignment; do not imply that source outcome effects were observed.",
+      "Include at least one domain-knowledge skill.",
+      "Include a counter-hypothesis skill that reverses or downweights an uncertain source relation.",
+      "Prefer mechanistic, chemically or physically interpretable rules over arbitrary coverage rules.",
+      "Use positive weights for conditions expected to improve the target objective and negative weights for risks.",
+      "Do not claim access to target outcomes and do not output candidate identifiers."
+    ],
+    "allowed_ranges": {
+      "rule_weight": "[-1, 1]",
+      "ridge": "[0.05, 20]",
+      "prior_scale": "[0, 1.5]",
+      "semantic_mass_start_end": "[0, 0.85]",
+      "ucb_weight": "[0, 1]; EI weight is 1 - ucb_weight",
+      "gp_beta_start_end": "[0.2, 4]",
+      "gp_xi": "[0, 0.2]",
+      "confidence": "[0.05, 1]"
+    },
+    "output_contract": {
+      "skills": [
+        {
+          "skill_id": "descriptive_scientific_skill_id",
+          "rules": [
+            {
+              "rule_id": "mechanistic_rule",
+              "conditions": {
+                "field_name_from_public_semantic_fields": "exact_catalog_value"
+              },
+              "weight": 0.5,
+              "rationale": "short scientific rationale"
+            }
+          ],
+          "ridge": 1.0,
+          "prior_scale": 0.25,
+          "semantic_mass_start": 0.3,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.7,
+          "hypothesis": "what this skill transfers and when it may fail"
+        }
+      ]
+    },
+    "care_knowledge_context": {
+      "cards": [
+        {
+          "id": "transfer.source-schema-only-to-real-chemlex-acidamine-negative-heldout-2026-07-22",
+          "type": "transfer",
+          "title": "Gate-rejected transfer: source_schema_only to real_chemlex_acidamine",
+          "summary": "The router selected GP-UCB; the descriptive held-out strongest target portfolio remained higher on the 20-seed development range.",
+          "content": "Reusable lesson: do not force a source-derived semantic policy when every evidence mode fails calibration. Preserve the target-only fallback and improve the reaction representation before retrying.",
+          "tags": [
+            "source_schema_only",
+            "real_chemlex_acidamine",
+            "negative-transfer",
+            "gate-reject"
+          ],
+          "updated_at": "2026-07-22",
+          "score": -15.865981772886357
+        },
+        {
+          "id": "transfer.real-suzuki-miyaura-to-real-buchwald-hartwig-gate-reject-2026-07-21",
+          "type": "transfer",
+          "title": "Gate-rejected transfer: real_suzuki_miyaura to real_buchwald_hartwig",
+          "summary": "All evidence modes failed calibration and fell back to the target acquisition portfolio.",
+          "content": "Reusable lesson: do not force a source-derived semantic policy when every evidence mode fails calibration. Preserve the target-only fallback and improve the reaction representation before retrying.",
+          "tags": [
+            "real_suzuki_miyaura",
+            "real_buchwald_hartwig",
+            "negative-transfer",
+            "gate-reject"
+          ],
+          "updated_at": "2026-07-21",
+          "score": -15.087521107532288
+        },
+        {
+          "id": "transfer.real-suzuki-miyaura-to-real-buchwald-hartwig-calibration-fallback-2026-07-22",
+          "type": "transfer",
+          "title": "Gate-rejected transfer: real_suzuki_miyaura to real_buchwald_hartwig",
+          "summary": "Source-schema and target-only LLM strategies failed calibration; the router selected GP-UCB.",
+          "content": "Reusable lesson: do not force a source-derived semantic policy when every evidence mode fails calibration. Preserve the target-only fallback and improve the reaction representation before retrying.",
+          "tags": [
+            "real_suzuki_miyaura",
+            "real_buchwald_hartwig",
+            "negative-transfer",
+            "gate-reject"
+          ],
+          "updated_at": "2026-07-22",
+          "score": -15.087521107532288
+        },
+        {
+          "id": "transfer.target-only-schema-to-real-matbench-log-kvrh-calibration-fallback-2026-07-22",
+          "type": "transfer",
+          "title": "Gate-rejected transfer: target_only_schema to real_matbench_log_kvrh",
+          "summary": "No LLM strategy passed calibration; the selected GP-EI anchor did not beat the held-out target portfolio.",
+          "content": "Reusable lesson: do not force a source-derived semantic policy when every evidence mode fails calibration. Preserve the target-only fallback and improve the reaction representation before retrying.",
+          "tags": [
+            "target_only_schema",
+            "real_matbench_log_kvrh",
+            "negative-transfer",
+            "gate-reject"
+          ],
+          "updated_at": "2026-07-22",
+          "score": -11.534897167486928
+        },
+        {
+          "id": "skill.semantic-real-chemlex-acidamine-minimize-nitrogen-content-in-acid-2026-07-22",
+          "type": "skill",
+          "title": "Reusable semantic feature pattern: minimize_nitrogen_content_in_acid",
+          "summary": "For real_chemlex_acidamine, keep the LLM-defined minimize_nitrogen_content_in_acid rule as a bounded fixed prior blended with the target-only optimizer.",
+          "content": "Evidence mode: target_only. Execution: direct_prior. Reusable lesson: target calibration can decide that a fixed semantic prior is more reliable than re-fitting its direction.",
+          "tags": [
+            "real_chemlex_acidamine",
+            "minimize_nitrogen_content_in_acid",
+            "target_only",
+            "schema-to-skill",
+            "target-calibration"
+          ],
+          "updated_at": "2026-07-22",
+          "score": -9.363250313110443
+        },
+        {
+          "id": "transfer.bh-to-suzuki-confidence-discount",
+          "type": "transfer",
+          "title": "BH-to-Suzuki confidence-discount transfer",
+          "summary": "Near-domain transfer plan from Buchwald-Hartwig factor evidence to Suzuki-Miyaura replay.",
+          "content": "Proposed transfer path: learn public factor evidence from Buchwald-Hartwig, abstract it into a support/confidence card, discount by reaction-domain distance, apply only bounded adjustments in Suzuki, and let the evidence gate authorize or reject each challenger. Compare no-transfer baseline versus transferred-skill-plus-gate on matched seeds.",
+          "tags": [
+            "transfer",
+            "Buchwald-Hartwig",
+            "Suzuki-Miyaura",
+            "confidence discount",
+            "ablation"
+          ],
+          "updated_at": "2026-06-28",
+          "score": -7.549973356574029
+        }
+      ],
+      "instruction": "Use these public, previously archived cards only as reusable design lessons. Do not copy reported target values into a rule and do not imply that the current target outcomes were observed. Prefer lessons that survived held-out calibration."
+    }
+  },
+  "raw_response": "{\n  \"skills\": [\n    {\n      \"skill_id\": \"source_alignment_conservative_ligand_mass\",\n      \"rules\": [\n        {\n          \"rule_id\": \"ligand_mw_very_high_risk\",\n          \"conditions\": {\n            \"ligand_mw_bin\": \"mw_very_high\"\n          },\n          \"weight\": -0.3,\n          \"rationale\": \"High ligand molecular weight may reduce solubility and slow oxidative addition.\"\n        },\n        {\n          \"rule_id\": \"base_phosphazene_favored\",\n          \"conditions\": {\n            \"base_functional_class\": \"phosphazene_base\"\n          },\n          \"weight\": 0.4,\n          \"rationale\": \"Phosphazene bases are strong, non-nucleophilic bases that may enhance deprotonation.\"\n        },\n        {\n          \"rule_id\": \"aryl_halide_iodide_preference\",\n          \"conditions\": {\n            \"aryl_halide_halide_type\": \"iodide\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Iodide is a better leaving group, typically leading to faster oxidative addition.\"\n        }\n      ],\n      \"ridge\": 2.0,\n      \"prior_scale\": 0.1,\n      \"semantic_mass_start\": 0.15,\n      \"semantic_mass_end\": 0.05,\n      \"ucb_weight\": 0.7,\n      \"gp_beta_start\": 3.0,\n      \"gp_beta_end\": 1.5,\n      \"gp_xi\": 0.05,\n      \"confidence\": 0.6,\n      \"hypothesis\": \"Transfers source field alignment (acid->aryl_halide, reagent->base, solvent->additive) as a weak prior, assuming similar functional roles. May fail if electronic or steric effects differ substantially between reaction classes.\"\n    },\n    {\n      \"skill_id\": \"mechanistic_heteroaromatic_halide_synergy\",\n      \"rules\": [\n        {\n          \"rule_id\": \"heteroaromatic_present\",\n          \"conditions\": {\n            \"aryl_halide_has_heteroaromatic\": \"yes\"\n          },\n          \"weight\": 0.6,\n          \"rationale\": \"Heteroaromatic rings can coordinate to the palladium catalyst, potentially facilitating oxidative addition.\"\n        },\n        {\n          \"rule_id\": \"bromide_halide_with_heteroaromatic\",\n          \"conditions\": {\n            \"aryl_halide_halide_type\": \"bromide\",\n            \"aryl_halide_has_heteroaromatic\": \"yes\"\n          },\n          \"weight\": 0.8,\n          \"rationale\": \"Bromide balance of reactivity and stability may synergize with heteroaromatic coordination.\"\n        },\n        {\n          \"rule_id\": \"additive_tpsa_mid\",\n          \"conditions\": {\n            \"additive_tpsa_bin\": \"tpsa_mid\"\n          },\n          \"weight\": 0.3,\n          \"rationale\": \"Moderate additive polar surface area may improve solubility without excessive catalyst poisoning.\"\n        }\n      ],\n      \"ridge\": 1.5,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.5,\n      \"semantic_mass_end\": 0.3,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 2.5,\n      \"gp_beta_end\": 1.2,\n      \"gp_xi\": 0.1,\n      \"confidence\": 0.75,\n      \"hypothesis\": \"Prioritizes candidates with heteroaromatic halides and bromide leaving groups, grounded in mechanistic coordination chemistry. May fail if heteroatom poisons the catalyst or if steric hindrance dominates.\"\n    },\n    {\n      \"skill_id\": \"base_strength_solvent_polarity_domain\",\n      \"rules\": [\n        {\n          \"rule_id\": \"guanidine_base_strong\",\n          \"conditions\": {\n            \"base_functional_class\": \"guanidine_base\"\n          },\n          \"weight\": 0.7,\n          \"rationale\": \"Guanidine bases are strong organic bases effective for deprotonation in C-N coupling.\"\n        },\n        {\n          \"rule_id\": \"base_mw_mid_favorable\",\n          \"conditions\": {\n            \"base_mw_bin\": \"mw_mid\"\n          },\n          \"weight\": 0.4,\n          \"rationale\": \"Moderate base molecular weight may balance solubility and basicity.\"\n        },\n        {\n          \"rule_id\": \"additive_tpsa_high_risk\",\n          \"conditions\": {\n            \"additive_tpsa_bin\": \"tpsa_high\"\n          },\n          \"weight\": -0.5,\n          \"rationale\": \"High polar surface area additives may coordinate strongly to Pd, inhibiting catalysis.\"\n        },\n        {\n          \"rule_id\": \"aryl_halide_mw_mid\",\n          \"conditions\": {\n            \"aryl_halide_mw_bin\": \"mw_mid\"\n          },\n          \"weight\": 0.3,\n          \"rationale\": \"Moderate aryl halide size may avoid steric hindrance during oxidative addition.\"\n        }\n      ],\n      \"ridge\": 1.0,\n      \"prior_scale\": 0.5,\n      \"semantic_mass_start\": 0.6,\n      \"semantic_mass_end\": 0.4,\n      \"ucb_weight\": 0.4,\n      \"gp_beta_start\": 2.0,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.08,\n      \"confidence\": 0.8,\n      \"hypothesis\": \"Emphasizes strong guanidine bases and avoids high-polarity additives, based on domain knowledge of Buchwald-Hartwig mechanisms. May fail if specific ligand-additive interactions override general trends.\"\n    },\n    {\n      \"skill_id\": \"low_semantic_mass_anchor_heavy\",\n      \"rules\": [\n        {\n          \"rule_id\": \"ligand_mw_high_caution\",\n          \"conditions\": {\n            \"ligand_mw_bin\": \"mw_high\"\n          },\n          \"weight\": -0.2,\n          \"rationale\": \"High ligand mass may indicate bulky ligands that could slow reductive elimination.\"\n        },\n        {\n          \"rule_id\": \"base_tpsa_low\",\n          \"conditions\": {\n            \"base_tpsa_bin\": \"tpsa_low\"\n          },\n          \"weight\": 0.2,\n          \"rationale\": \"Low base polar surface area may improve organic phase solubility.\"\n        }\n      ],\n      \"ridge\": 10.0,\n      \"prior_scale\": 0.05,\n      \"semantic_mass_start\": 0.05,\n      \"semantic_mass_end\": 0.01,\n      \"ucb_weight\": 0.9,\n      \"gp_beta_start\": 3.5,\n      \"gp_beta_end\": 2.0,\n      \"gp_xi\": 0.02,\n      \"confidence\": 0.5,\n      \"hypothesis\": \"Minimal semantic prior with strong ridge regularization, heavily relying on the target-only GP-UCB anchor for exploration. May fail if weak rules are misleading, but anchor protects against negative transfer.\"\n    },\n    {\n      \"skill_id\": \"counter_source_acid_halide_reversal\",\n      \"rules\": [\n        {\n          \"rule_id\": \"source_alignment_reversal_ligand_low_mw\",\n          \"conditions\": {\n            \"ligand_mw_bin\": \"mw_high\"\n          },\n          \"weight\": 0.3,\n          \"rationale\": \"Counter to possible source transfer, higher ligand MW may enhance stability in BH vs. acid-amine.\"\n        },\n        {\n          \"rule_id\": \"avoid_phosphazene_base\",\n          \"conditions\": {\n            \"base_functional_class\": \"phosphazene_base\"\n          },\n          \"weight\": -0.6,\n          \"rationale\": \"Phosphazene bases may be too sterically hindered for effective deprotonation in BH, reversing source alignment.\"\n        },\n        {\n          \"rule_id\": \"chloride_halide_risk\",\n          \"conditions\": {\n            \"aryl_halide_halide_type\": \"chloride\"\n          },\n          \"weight\": -0.4,\n          \"rationale\": \"Chloride is a poor leaving group in Pd-catalyzed couplings, likely detrimental despite source mapping.\"\n        }\n      ],\n      \"ridge\": 3.0,\n      \"prior_scale\": 0.2,\n      \"semantic_mass_start\": 0.4,\n      \"semantic_mass_end\": 0.2,\n      \"ucb_weight\": 0.6,\n      \"gp_beta_start\": 2.2,\n      \"gp_beta_end\": 1.3,\n      \"gp_xi\": 0.15,\n      \"confidence\": 0.65,\n      \"hypothesis\": \"Reverses or downweights uncertain source-derived relations (e.g., phosphazene base favorability), hypothesizing different mechanistic demands in BH vs. acid-amine. May fail if source alignment was actually predictive.\"\n    },\n    {\n      \"skill_id\": \"steric_tpsa_balanced_optimization\",\n      \"rules\": [\n        {\n          \"rule_id\": \"base_tpsa_mid_favorable\",\n          \"conditions\": {\n            \"base_tpsa_bin\": \"tpsa_mid\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Moderate base polar surface area balances solubility and minimal catalyst interaction.\"\n        },\n        {\n          \"rule_id\": \"additive_tpsa_mid_synergy\",\n          \"conditions\": {\n            \"additive_tpsa_bin\": \"tpsa_mid\"\n          },\n          \"weight\": 0.4,\n          \"rationale\": \"Mid-range additive polar surface area may optimize reaction medium polarity.\"\n        },\n        {\n          \"rule_id\": \"aryl_halide_no_heteroaromatic\",\n          \"conditions\": {\n            \"aryl_halide_has_heteroaromatic\": \"no\"\n          },\n          \"weight\": 0.3,\n          \"rationale\": \"Absence of heteroaromatic rings may reduce side reactions or catalyst poisoning.\"\n        },\n        {\n          \"rule_id\": \"ligand_mw_very_high_steric_penalty\",\n          \"conditions\": {\n            \"ligand_mw_bin\": \"mw_very_high\"\n          },\n          \"weight\": -0.7,\n          \"rationale\": \"Very high ligand molecular weight likely indicates excessive steric bulk, impeding reductive elimination.\"\n        }\n      ],\n      \"ridge\": 2.5,\n      \"prior_scale\": 0.4,\n      \"semantic_mass_start\": 0.55,\n      \"semantic_mass_end\": 0.35,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 2.8,\n      \"gp_beta_end\": 1.4,\n      \"gp_xi\": 0.06,\n      \"confidence\": 0.72,\n      \"hypothesis\": \"Focuses on steric and polarity balance across components, penalizing very bulky ligands and favoring moderate polarities. May fail if specific electronic effects dominate over steric considerations.\"\n    },\n    {\n      \"skill_id\": \"halide_reactivity_additive_suppression\",\n      \"rules\": [\n        {\n          \"rule_id\": \"iodide_strongly_favored\",\n          \"conditions\": {\n            \"aryl_halide_halide_type\": \"iodide\"\n          },\n          \"weight\": 0.9,\n          \"rationale\": \"Iodide is the most reactive halide for oxidative addition, maximizing yield potential.\"\n        },\n        {\n          \"rule_id\": \"bromide_moderate\",\n          \"conditions\": {\n            \"aryl_halide_halide_type\": \"bromide\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Bromide offers a good balance of reactivity and stability.\"\n        },\n        {\n          \"rule_id\": \"additive_tpsa_high_suppression\",\n          \"conditions\": {\n            \"additive_tpsa_bin\": \"tpsa_high\"\n          },\n          \"weight\": -0.8,\n          \"rationale\": \"High polar surface area additives may strongly bind Pd, severely suppressing catalysis.\"\n        },\n        {\n          \"rule_id\": \"base_amidine_weak\",\n          \"conditions\": {\n            \"base_functional_class\": \"amidine_base\"\n          },\n          \"weight\": -0.3,\n          \"rationale\": \"Amidine bases may be weaker and less effective for deprotonation compared to guanidine or phosphazene.\"\n        }\n      ],\n      \"ridge\": 1.2,\n      \"prior_scale\": 0.35,\n      \"semantic_mass_start\": 0.7,\n      \"semantic_mass_end\": 0.5,\n      \"ucb_weight\": 0.3,\n      \"gp_beta_start\": 1.8,\n      \"gp_beta_end\": 0.8,\n      \"gp_xi\": 0.12,\n      \"confidence\": 0.85,\n      \"hypothesis\": \"Strongly prioritizes iodide halide reactivity and suppresses high-polarity additives, based on fundamental catalytic cycle knowledge. May fail if iodide leads to side reactions or if specific additives are beneficial despite high polar surface area.\"\n    },\n    {\n      \"skill_id\": \"source_schema_only_field_mapping\",\n      \"rules\": [\n        {\n          \"rule_id\": \"source_map_aryl_halide_mw_low\",\n          \"conditions\": {\n            \"aryl_halide_mw_bin\": \"mw_none_or_low\"\n          },\n          \"weight\": 0.4,\n          \"rationale\": \"Mapping from source acid role: lower molecular weight may improve reactivity.\"\n        },\n        {\n          \"rule_id\": \"source_map_base_mw_high\",\n          \"conditions\": {\n            \"base_mw_bin\": \"mw_high\"\n          },\n          \"weight\": 0.3,\n          \"rationale\": \"Mapping from source reagent role: higher base molecular weight may correlate with stronger bases.\"\n        },\n        {\n          \"rule_id\": \"source_map_additive_tpsa_mid\",\n          \"conditions\": {\n            \"additive_tpsa_bin\": \"tpsa_mid\"\n          },\n          \"weight\": 0.2,\n          \"rationale\": \"Mapping from source solvent role: moderate polar surface area may be generally favorable.\"\n        }\n      ],\n      \"ridge\": 5.0,\n      \"prior_scale\": 0.15,\n      \"semantic_mass_start\": 0.25,\n      \"semantic_mass_end\": 0.1,\n      \"ucb_weight\": 0.8,\n      \"gp_beta_start\": 3.2,\n      \"gp_beta_end\": 1.8,\n      \"gp_xi\": 0.04,\n      \"confidence\": 0.55,\n      \"hypothesis\": \"Uses only the supplied source-target field alignment (acid->aryl_halide, reagent->base, solvent->additive) to define weak priors, without assuming observed source effects. May fail if the functional role mapping does not translate to similar property-yield relationships.\"\n    }\n  ]\n}",
+  "parsed_response": {
+    "skills": [
+      {
+        "skill_id": "source_alignment_conservative_ligand_mass",
+        "rules": [
+          {
+            "rule_id": "ligand_mw_very_high_risk",
+            "conditions": {
+              "ligand_mw_bin": "mw_very_high"
+            },
+            "weight": -0.3,
+            "rationale": "High ligand molecular weight may reduce solubility and slow oxidative addition."
+          },
+          {
+            "rule_id": "base_phosphazene_favored",
+            "conditions": {
+              "base_functional_class": "phosphazene_base"
+            },
+            "weight": 0.4,
+            "rationale": "Phosphazene bases are strong, non-nucleophilic bases that may enhance deprotonation."
+          },
+          {
+            "rule_id": "aryl_halide_iodide_preference",
+            "conditions": {
+              "aryl_halide_halide_type": "iodide"
+            },
+            "weight": 0.5,
+            "rationale": "Iodide is a better leaving group, typically leading to faster oxidative addition."
+          }
+        ],
+        "ridge": 2.0,
+        "prior_scale": 0.1,
+        "semantic_mass_start": 0.15,
+        "semantic_mass_end": 0.05,
+        "ucb_weight": 0.7,
+        "gp_beta_start": 3.0,
+        "gp_beta_end": 1.5,
+        "gp_xi": 0.05,
+        "confidence": 0.6,
+        "hypothesis": "Transfers source field alignment (acid->aryl_halide, reagent->base, solvent->additive) as a weak prior, assuming similar functional roles. May fail if electronic or steric effects differ substantially between reaction classes."
+      },
+      {
+        "skill_id": "mechanistic_heteroaromatic_halide_synergy",
+        "rules": [
+          {
+            "rule_id": "heteroaromatic_present",
+            "conditions": {
+              "aryl_halide_has_heteroaromatic": "yes"
+            },
+            "weight": 0.6,
+            "rationale": "Heteroaromatic rings can coordinate to the palladium catalyst, potentially facilitating oxidative addition."
+          },
+          {
+            "rule_id": "bromide_halide_with_heteroaromatic",
+            "conditions": {
+              "aryl_halide_halide_type": "bromide",
+              "aryl_halide_has_heteroaromatic": "yes"
+            },
+            "weight": 0.8,
+            "rationale": "Bromide balance of reactivity and stability may synergize with heteroaromatic coordination."
+          },
+          {
+            "rule_id": "additive_tpsa_mid",
+            "conditions": {
+              "additive_tpsa_bin": "tpsa_mid"
+            },
+            "weight": 0.3,
+            "rationale": "Moderate additive polar surface area may improve solubility without excessive catalyst poisoning."
+          }
+        ],
+        "ridge": 1.5,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.5,
+        "semantic_mass_end": 0.3,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 2.5,
+        "gp_beta_end": 1.2,
+        "gp_xi": 0.1,
+        "confidence": 0.75,
+        "hypothesis": "Prioritizes candidates with heteroaromatic halides and bromide leaving groups, grounded in mechanistic coordination chemistry. May fail if heteroatom poisons the catalyst or if steric hindrance dominates."
+      },
+      {
+        "skill_id": "base_strength_solvent_polarity_domain",
+        "rules": [
+          {
+            "rule_id": "guanidine_base_strong",
+            "conditions": {
+              "base_functional_class": "guanidine_base"
+            },
+            "weight": 0.7,
+            "rationale": "Guanidine bases are strong organic bases effective for deprotonation in C-N coupling."
+          },
+          {
+            "rule_id": "base_mw_mid_favorable",
+            "conditions": {
+              "base_mw_bin": "mw_mid"
+            },
+            "weight": 0.4,
+            "rationale": "Moderate base molecular weight may balance solubility and basicity."
+          },
+          {
+            "rule_id": "additive_tpsa_high_risk",
+            "conditions": {
+              "additive_tpsa_bin": "tpsa_high"
+            },
+            "weight": -0.5,
+            "rationale": "High polar surface area additives may coordinate strongly to Pd, inhibiting catalysis."
+          },
+          {
+            "rule_id": "aryl_halide_mw_mid",
+            "conditions": {
+              "aryl_halide_mw_bin": "mw_mid"
+            },
+            "weight": 0.3,
+            "rationale": "Moderate aryl halide size may avoid steric hindrance during oxidative addition."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.5,
+        "semantic_mass_start": 0.6,
+        "semantic_mass_end": 0.4,
+        "ucb_weight": 0.4,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.08,
+        "confidence": 0.8,
+        "hypothesis": "Emphasizes strong guanidine bases and avoids high-polarity additives, based on domain knowledge of Buchwald-Hartwig mechanisms. May fail if specific ligand-additive interactions override general trends."
+      },
+      {
+        "skill_id": "low_semantic_mass_anchor_heavy",
+        "rules": [
+          {
+            "rule_id": "ligand_mw_high_caution",
+            "conditions": {
+              "ligand_mw_bin": "mw_high"
+            },
+            "weight": -0.2,
+            "rationale": "High ligand mass may indicate bulky ligands that could slow reductive elimination."
+          },
+          {
+            "rule_id": "base_tpsa_low",
+            "conditions": {
+              "base_tpsa_bin": "tpsa_low"
+            },
+            "weight": 0.2,
+            "rationale": "Low base polar surface area may improve organic phase solubility."
+          }
+        ],
+        "ridge": 10.0,
+        "prior_scale": 0.05,
+        "semantic_mass_start": 0.05,
+        "semantic_mass_end": 0.01,
+        "ucb_weight": 0.9,
+        "gp_beta_start": 3.5,
+        "gp_beta_end": 2.0,
+        "gp_xi": 0.02,
+        "confidence": 0.5,
+        "hypothesis": "Minimal semantic prior with strong ridge regularization, heavily relying on the target-only GP-UCB anchor for exploration. May fail if weak rules are misleading, but anchor protects against negative transfer."
+      },
+      {
+        "skill_id": "counter_source_acid_halide_reversal",
+        "rules": [
+          {
+            "rule_id": "source_alignment_reversal_ligand_low_mw",
+            "conditions": {
+              "ligand_mw_bin": "mw_high"
+            },
+            "weight": 0.3,
+            "rationale": "Counter to possible source transfer, higher ligand MW may enhance stability in BH vs. acid-amine."
+          },
+          {
+            "rule_id": "avoid_phosphazene_base",
+            "conditions": {
+              "base_functional_class": "phosphazene_base"
+            },
+            "weight": -0.6,
+            "rationale": "Phosphazene bases may be too sterically hindered for effective deprotonation in BH, reversing source alignment."
+          },
+          {
+            "rule_id": "chloride_halide_risk",
+            "conditions": {
+              "aryl_halide_halide_type": "chloride"
+            },
+            "weight": -0.4,
+            "rationale": "Chloride is a poor leaving group in Pd-catalyzed couplings, likely detrimental despite source mapping."
+          }
+        ],
+        "ridge": 3.0,
+        "prior_scale": 0.2,
+        "semantic_mass_start": 0.4,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 1.3,
+        "gp_xi": 0.15,
+        "confidence": 0.65,
+        "hypothesis": "Reverses or downweights uncertain source-derived relations (e.g., phosphazene base favorability), hypothesizing different mechanistic demands in BH vs. acid-amine. May fail if source alignment was actually predictive."
+      },
+      {
+        "skill_id": "steric_tpsa_balanced_optimization",
+        "rules": [
+          {
+            "rule_id": "base_tpsa_mid_favorable",
+            "conditions": {
+              "base_tpsa_bin": "tpsa_mid"
+            },
+            "weight": 0.5,
+            "rationale": "Moderate base polar surface area balances solubility and minimal catalyst interaction."
+          },
+          {
+            "rule_id": "additive_tpsa_mid_synergy",
+            "conditions": {
+              "additive_tpsa_bin": "tpsa_mid"
+            },
+            "weight": 0.4,
+            "rationale": "Mid-range additive polar surface area may optimize reaction medium polarity."
+          },
+          {
+            "rule_id": "aryl_halide_no_heteroaromatic",
+            "conditions": {
+              "aryl_halide_has_heteroaromatic": "no"
+            },
+            "weight": 0.3,
+            "rationale": "Absence of heteroaromatic rings may reduce side reactions or catalyst poisoning."
+          },
+          {
+            "rule_id": "ligand_mw_very_high_steric_penalty",
+            "conditions": {
+              "ligand_mw_bin": "mw_very_high"
+            },
+            "weight": -0.7,
+            "rationale": "Very high ligand molecular weight likely indicates excessive steric bulk, impeding reductive elimination."
+          }
+        ],
+        "ridge": 2.5,
+        "prior_scale": 0.4,
+        "semantic_mass_start": 0.55,
+        "semantic_mass_end": 0.35,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 2.8,
+        "gp_beta_end": 1.4,
+        "gp_xi": 0.06,
+        "confidence": 0.72,
+        "hypothesis": "Focuses on steric and polarity balance across components, penalizing very bulky ligands and favoring moderate polarities. May fail if specific electronic effects dominate over steric considerations."
+      },
+      {
+        "skill_id": "halide_reactivity_additive_suppression",
+        "rules": [
+          {
+            "rule_id": "iodide_strongly_favored",
+            "conditions": {
+              "aryl_halide_halide_type": "iodide"
+            },
+            "weight": 0.9,
+            "rationale": "Iodide is the most reactive halide for oxidative addition, maximizing yield potential."
+          },
+          {
+            "rule_id": "bromide_moderate",
+            "conditions": {
+              "aryl_halide_halide_type": "bromide"
+            },
+            "weight": 0.5,
+            "rationale": "Bromide offers a good balance of reactivity and stability."
+          },
+          {
+            "rule_id": "additive_tpsa_high_suppression",
+            "conditions": {
+              "additive_tpsa_bin": "tpsa_high"
+            },
+            "weight": -0.8,
+            "rationale": "High polar surface area additives may strongly bind Pd, severely suppressing catalysis."
+          },
+          {
+            "rule_id": "base_amidine_weak",
+            "conditions": {
+              "base_functional_class": "amidine_base"
+            },
+            "weight": -0.3,
+            "rationale": "Amidine bases may be weaker and less effective for deprotonation compared to guanidine or phosphazene."
+          }
+        ],
+        "ridge": 1.2,
+        "prior_scale": 0.35,
+        "semantic_mass_start": 0.7,
+        "semantic_mass_end": 0.5,
+        "ucb_weight": 0.3,
+        "gp_beta_start": 1.8,
+        "gp_beta_end": 0.8,
+        "gp_xi": 0.12,
+        "confidence": 0.85,
+        "hypothesis": "Strongly prioritizes iodide halide reactivity and suppresses high-polarity additives, based on fundamental catalytic cycle knowledge. May fail if iodide leads to side reactions or if specific additives are beneficial despite high polar surface area."
+      },
+      {
+        "skill_id": "source_schema_only_field_mapping",
+        "rules": [
+          {
+            "rule_id": "source_map_aryl_halide_mw_low",
+            "conditions": {
+              "aryl_halide_mw_bin": "mw_none_or_low"
+            },
+            "weight": 0.4,
+            "rationale": "Mapping from source acid role: lower molecular weight may improve reactivity."
+          },
+          {
+            "rule_id": "source_map_base_mw_high",
+            "conditions": {
+              "base_mw_bin": "mw_high"
+            },
+            "weight": 0.3,
+            "rationale": "Mapping from source reagent role: higher base molecular weight may correlate with stronger bases."
+          },
+          {
+            "rule_id": "source_map_additive_tpsa_mid",
+            "conditions": {
+              "additive_tpsa_bin": "tpsa_mid"
+            },
+            "weight": 0.2,
+            "rationale": "Mapping from source solvent role: moderate polar surface area may be generally favorable."
+          }
+        ],
+        "ridge": 5.0,
+        "prior_scale": 0.15,
+        "semantic_mass_start": 0.25,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.8,
+        "gp_beta_start": 3.2,
+        "gp_beta_end": 1.8,
+        "gp_xi": 0.04,
+        "confidence": 0.55,
+        "hypothesis": "Uses only the supplied source-target field alignment (acid->aryl_halide, reagent->base, solvent->additive) to define weak priors, without assuming observed source effects. May fail if the functional role mapping does not translate to similar property-yield relationships."
+      }
+    ]
+  },
+  "normalized_skills": [
+    {
+      "skill_id": "source_alignment_conservative_ligand_mass",
+      "rules": [
+        {
+          "rule_id": "ligand_mw_very_high_risk",
+          "conditions": [
+            [
+              "ligand_mw_bin",
+              "mw_very_high"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "High ligand molecular weight may reduce solubility and slow oxidative addition."
+        },
+        {
+          "rule_id": "base_phosphazene_favored",
+          "conditions": [
+            [
+              "base_functional_class",
+              "phosphazene_base"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Phosphazene bases are strong, non-nucleophilic bases that may enhance deprotonation."
+        },
+        {
+          "rule_id": "aryl_halide_iodide_preference",
+          "conditions": [
+            [
+              "aryl_halide_halide_type",
+              "iodide"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Iodide is a better leaving group, typically leading to faster oxidative addition."
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.1,
+      "semantic_mass_start": 0.15,
+      "semantic_mass_end": 0.05,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 3.0,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.05,
+      "confidence": 0.6,
+      "hypothesis": "Transfers source field alignment (acid->aryl_halide, reagent->base, solvent->additive) as a weak prior, assuming similar functional roles. May fail if electronic or steric effects differ substantially between reaction classes."
+    },
+    {
+      "skill_id": "mechanistic_heteroaromatic_halide_synergy",
+      "rules": [
+        {
+          "rule_id": "heteroaromatic_present",
+          "conditions": [
+            [
+              "aryl_halide_has_heteroaromatic",
+              "yes"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Heteroaromatic rings can coordinate to the palladium catalyst, potentially facilitating oxidative addition."
+        },
+        {
+          "rule_id": "bromide_halide_with_heteroaromatic",
+          "conditions": [
+            [
+              "aryl_halide_halide_type",
+              "bromide"
+            ],
+            [
+              "aryl_halide_has_heteroaromatic",
+              "yes"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Bromide balance of reactivity and stability may synergize with heteroaromatic coordination."
+        },
+        {
+          "rule_id": "additive_tpsa_mid",
+          "conditions": [
+            [
+              "additive_tpsa_bin",
+              "tpsa_mid"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Moderate additive polar surface area may improve solubility without excessive catalyst poisoning."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.3,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.1,
+      "confidence": 0.75,
+      "hypothesis": "Prioritizes candidates with heteroaromatic halides and bromide leaving groups, grounded in mechanistic coordination chemistry. May fail if heteroatom poisons the catalyst or if steric hindrance dominates."
+    },
+    {
+      "skill_id": "base_strength_solvent_polarity_domain",
+      "rules": [
+        {
+          "rule_id": "guanidine_base_strong",
+          "conditions": [
+            [
+              "base_functional_class",
+              "guanidine_base"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Guanidine bases are strong organic bases effective for deprotonation in C-N coupling."
+        },
+        {
+          "rule_id": "base_mw_mid_favorable",
+          "conditions": [
+            [
+              "base_mw_bin",
+              "mw_mid"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Moderate base molecular weight may balance solubility and basicity."
+        },
+        {
+          "rule_id": "additive_tpsa_high_risk",
+          "conditions": [
+            [
+              "additive_tpsa_bin",
+              "tpsa_high"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "High polar surface area additives may coordinate strongly to Pd, inhibiting catalysis."
+        },
+        {
+          "rule_id": "aryl_halide_mw_mid",
+          "conditions": [
+            [
+              "aryl_halide_mw_bin",
+              "mw_mid"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Moderate aryl halide size may avoid steric hindrance during oxidative addition."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.5,
+      "semantic_mass_start": 0.6,
+      "semantic_mass_end": 0.4,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.08,
+      "confidence": 0.8,
+      "hypothesis": "Emphasizes strong guanidine bases and avoids high-polarity additives, based on domain knowledge of Buchwald-Hartwig mechanisms. May fail if specific ligand-additive interactions override general trends."
+    },
+    {
+      "skill_id": "low_semantic_mass_anchor_heavy",
+      "rules": [
+        {
+          "rule_id": "ligand_mw_high_caution",
+          "conditions": [
+            [
+              "ligand_mw_bin",
+              "mw_high"
+            ]
+          ],
+          "weight": -0.2,
+          "rationale": "High ligand mass may indicate bulky ligands that could slow reductive elimination."
+        },
+        {
+          "rule_id": "base_tpsa_low",
+          "conditions": [
+            [
+              "base_tpsa_bin",
+              "tpsa_low"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Low base polar surface area may improve organic phase solubility."
+        }
+      ],
+      "ridge": 10.0,
+      "prior_scale": 0.05,
+      "semantic_mass_start": 0.05,
+      "semantic_mass_end": 0.01,
+      "ucb_weight": 0.9,
+      "gp_beta_start": 3.5,
+      "gp_beta_end": 2.0,
+      "gp_xi": 0.02,
+      "confidence": 0.5,
+      "hypothesis": "Minimal semantic prior with strong ridge regularization, heavily relying on the target-only GP-UCB anchor for exploration. May fail if weak rules are misleading, but anchor protects against negative transfer."
+    },
+    {
+      "skill_id": "counter_source_acid_halide_reversal",
+      "rules": [
+        {
+          "rule_id": "source_alignment_reversal_ligand_low_mw",
+          "conditions": [
+            [
+              "ligand_mw_bin",
+              "mw_high"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Counter to possible source transfer, higher ligand MW may enhance stability in BH vs. acid-amine."
+        },
+        {
+          "rule_id": "avoid_phosphazene_base",
+          "conditions": [
+            [
+              "base_functional_class",
+              "phosphazene_base"
+            ]
+          ],
+          "weight": -0.6,
+          "rationale": "Phosphazene bases may be too sterically hindered for effective deprotonation in BH, reversing source alignment."
+        },
+        {
+          "rule_id": "chloride_halide_risk",
+          "conditions": [
+            [
+              "aryl_halide_halide_type",
+              "chloride"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "Chloride is a poor leaving group in Pd-catalyzed couplings, likely detrimental despite source mapping."
+        }
+      ],
+      "ridge": 3.0,
+      "prior_scale": 0.2,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.3,
+      "gp_xi": 0.15,
+      "confidence": 0.65,
+      "hypothesis": "Reverses or downweights uncertain source-derived relations (e.g., phosphazene base favorability), hypothesizing different mechanistic demands in BH vs. acid-amine. May fail if source alignment was actually predictive."
+    },
+    {
+      "skill_id": "steric_tpsa_balanced_optimization",
+      "rules": [
+        {
+          "rule_id": "base_tpsa_mid_favorable",
+          "conditions": [
+            [
+              "base_tpsa_bin",
+              "tpsa_mid"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Moderate base polar surface area balances solubility and minimal catalyst interaction."
+        },
+        {
+          "rule_id": "additive_tpsa_mid_synergy",
+          "conditions": [
+            [
+              "additive_tpsa_bin",
+              "tpsa_mid"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Mid-range additive polar surface area may optimize reaction medium polarity."
+        },
+        {
+          "rule_id": "aryl_halide_no_heteroaromatic",
+          "conditions": [
+            [
+              "aryl_halide_has_heteroaromatic",
+              "no"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Absence of heteroaromatic rings may reduce side reactions or catalyst poisoning."
+        },
+        {
+          "rule_id": "ligand_mw_very_high_steric_penalty",
+          "conditions": [
+            [
+              "ligand_mw_bin",
+              "mw_very_high"
+            ]
+          ],
+          "weight": -0.7,
+          "rationale": "Very high ligand molecular weight likely indicates excessive steric bulk, impeding reductive elimination."
+        }
+      ],
+      "ridge": 2.5,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.55,
+      "semantic_mass_end": 0.35,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.8,
+      "gp_beta_end": 1.4,
+      "gp_xi": 0.06,
+      "confidence": 0.72,
+      "hypothesis": "Focuses on steric and polarity balance across components, penalizing very bulky ligands and favoring moderate polarities. May fail if specific electronic effects dominate over steric considerations."
+    },
+    {
+      "skill_id": "halide_reactivity_additive_suppression",
+      "rules": [
+        {
+          "rule_id": "iodide_strongly_favored",
+          "conditions": [
+            [
+              "aryl_halide_halide_type",
+              "iodide"
+            ]
+          ],
+          "weight": 0.9,
+          "rationale": "Iodide is the most reactive halide for oxidative addition, maximizing yield potential."
+        },
+        {
+          "rule_id": "bromide_moderate",
+          "conditions": [
+            [
+              "aryl_halide_halide_type",
+              "bromide"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Bromide offers a good balance of reactivity and stability."
+        },
+        {
+          "rule_id": "additive_tpsa_high_suppression",
+          "conditions": [
+            [
+              "additive_tpsa_bin",
+              "tpsa_high"
+            ]
+          ],
+          "weight": -0.8,
+          "rationale": "High polar surface area additives may strongly bind Pd, severely suppressing catalysis."
+        },
+        {
+          "rule_id": "base_amidine_weak",
+          "conditions": [
+            [
+              "base_functional_class",
+              "amidine_base"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "Amidine bases may be weaker and less effective for deprotonation compared to guanidine or phosphazene."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.35,
+      "semantic_mass_start": 0.7,
+      "semantic_mass_end": 0.5,
+      "ucb_weight": 0.3,
+      "gp_beta_start": 1.8,
+      "gp_beta_end": 0.8,
+      "gp_xi": 0.12,
+      "confidence": 0.85,
+      "hypothesis": "Strongly prioritizes iodide halide reactivity and suppresses high-polarity additives, based on fundamental catalytic cycle knowledge. May fail if iodide leads to side reactions or if specific additives are beneficial despite high polar surface area."
+    },
+    {
+      "skill_id": "source_schema_only_field_mapping",
+      "rules": [
+        {
+          "rule_id": "source_map_aryl_halide_mw_low",
+          "conditions": [
+            [
+              "aryl_halide_mw_bin",
+              "mw_none_or_low"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Mapping from source acid role: lower molecular weight may improve reactivity."
+        },
+        {
+          "rule_id": "source_map_base_mw_high",
+          "conditions": [
+            [
+              "base_mw_bin",
+              "mw_high"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Mapping from source reagent role: higher base molecular weight may correlate with stronger bases."
+        },
+        {
+          "rule_id": "source_map_additive_tpsa_mid",
+          "conditions": [
+            [
+              "additive_tpsa_bin",
+              "tpsa_mid"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Mapping from source solvent role: moderate polar surface area may be generally favorable."
+        }
+      ],
+      "ridge": 5.0,
+      "prior_scale": 0.15,
+      "semantic_mass_start": 0.25,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.8,
+      "gp_beta_start": 3.2,
+      "gp_beta_end": 1.8,
+      "gp_xi": 0.04,
+      "confidence": 0.55,
+      "hypothesis": "Uses only the supplied source-target field alignment (acid->aryl_halide, reagent->base, solvent->additive) to define weak priors, without assuming observed source effects. May fail if the functional role mapping does not translate to similar property-yield relationships."
+    }
+  ],
+  "knowledge_retrieval": {
+    "enabled": true,
+    "db": "knowledge_base/runtime/care_kb.sqlite",
+    "cutoff": "2026-07-22",
+    "card_ids": [
+      "transfer.source-schema-only-to-real-chemlex-acidamine-negative-heldout-2026-07-22",
+      "transfer.real-suzuki-miyaura-to-real-buchwald-hartwig-gate-reject-2026-07-21",
+      "transfer.real-suzuki-miyaura-to-real-buchwald-hartwig-calibration-fallback-2026-07-22",
+      "transfer.target-only-schema-to-real-matbench-log-kvrh-calibration-fallback-2026-07-22",
+      "skill.semantic-real-chemlex-acidamine-minimize-nitrogen-content-in-acid-2026-07-22",
+      "transfer.bh-to-suzuki-confidence-discount"
+    ]
+  }
+}
