@@ -484,6 +484,34 @@ REACTION_DESCRIPTOR_ROLE_MAPS: dict[tuple[str, str], dict[str, str]] = {
         "solvent_mw_bin": "additive_mw_bin",
         "solvent_tpsa_bin": "additive_tpsa_bin",
     },
+    (
+        "real_chemlex_acidamine",
+        "real_buchwald_hartwig",
+    ): {
+        "acid_rdkit_mw_bin": "aryl_halide_mw_bin",
+        "acid_rdkit_logp_bin": "aryl_halide_logp_bin",
+        "acid_rdkit_aromatic_ring_bin": "aryl_halide_aromatic_ring_bin",
+        "acid_rdkit_ring_system_class": "aryl_halide_ring_system_class",
+        "reagent_rdkit_mw_bin": "base_mw_bin",
+        "reagent_rdkit_logp_bin": "base_logp_bin",
+        "reagent_rdkit_tpsa_bin": "base_tpsa_bin",
+        "reagent_rdkit_aromatic_ring_bin": "base_aromatic_ring_bin",
+        "reagent_rdkit_ring_system_class": "base_ring_system_class",
+    },
+    (
+        "real_buchwald_hartwig",
+        "real_chemlex_acidamine",
+    ): {
+        "aryl_halide_mw_bin": "acid_rdkit_mw_bin",
+        "aryl_halide_logp_bin": "acid_rdkit_logp_bin",
+        "aryl_halide_aromatic_ring_bin": "acid_rdkit_aromatic_ring_bin",
+        "aryl_halide_ring_system_class": "acid_rdkit_ring_system_class",
+        "base_mw_bin": "reagent_rdkit_mw_bin",
+        "base_logp_bin": "reagent_rdkit_logp_bin",
+        "base_tpsa_bin": "reagent_rdkit_tpsa_bin",
+        "base_aromatic_ring_bin": "reagent_rdkit_aromatic_ring_bin",
+        "base_ring_system_class": "reagent_rdkit_ring_system_class",
+    },
 }
 
 

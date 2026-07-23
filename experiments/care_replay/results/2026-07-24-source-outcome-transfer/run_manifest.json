@@ -1,0 +1,162 @@
+{
+  "study": "care2_complete_source_outcome_transfer_2026_07_24",
+  "date": "2026-07-24",
+  "phase": "frozen_independent_confirmation",
+  "branch": "exploration-aware-llm",
+  "base_commit": "89dfdee",
+  "code_snapshot": "The implementation and this archive are committed together.",
+  "comparison": "matched_target_only_llm",
+  "additional_selection_baseline": "strongest target-only BO route",
+  "models_in_frozen_records": [
+    "openai/gpt-4o-mini",
+    "deepspeek-v3.2"
+  ],
+  "llm_execution": {
+    "policy": "LLM outputs are generated once, normalized into auditable role maps and patches, then frozen before replay.",
+    "per_seed_api_calls": 0,
+    "unique_source_skill_records": 5,
+    "unique_matched_target_skill_records": 5
+  },
+  "protocol": {
+    "source_seed": 0,
+    "source_history_fixed_across_target_seeds": true,
+    "calibration_seed_start": 40000,
+    "calibration_seed_count": 50,
+    "heldout_seed_start": 41000,
+    "heldout_seed_count": 100,
+    "total_target_budget": 15,
+    "selection_metric": "paired final_best + best_so_far_auc",
+    "selection_rule": "Select source-outcome transfer on calibration seeds only when final and AUC are non-negative, the composite 95% CI is positive, fold stability and non-loss thresholds pass, and the route clears both the matched target-only LLM and strongest target-only BO comparisons. Otherwise reproduce the matched target-only LLM exactly.",
+    "heldout_use": "Held-out seeds are used only once for the frozen report.",
+    "evidence_boundary": "Source features, measured source outcomes, mappings, and LLM patches are fixed before target replay. Target outcomes enter only after reveal. Hidden target outcomes are never used for initial design, transfer compilation, routing, or scoring."
+  },
+  "source_outcome_components": [
+    "source-outcome-informed initial target probes",
+    "mapped source-neighbor outcome prior",
+    "mapped additive source outcome-effect prior",
+    "source pairwise interaction residual prior",
+    "source-outcome-informed GP categorical geometry",
+    "prequential target calibration",
+    "exact matched-target-only fallback"
+  ],
+  "goal": {
+    "definition": "No deployed pair may lose final-best or AUC against its matched target-only LLM, and a majority of predeclared pairs must have a positive paired composite 95% confidence interval.",
+    "pair_count": 7,
+    "all_deployed_pairs_non_negative": true,
+    "statistically_positive_pair_count": 4,
+    "majority_statistically_positive": true,
+    "achieved": true
+  },
+  "pairs": [
+    {
+      "pair_id": "reaction_chemlex_to_buchwald_hartwig",
+      "domain": "reaction_hte",
+      "source": "real_chemlex_acidamine",
+      "target": "real_buchwald_hartwig",
+      "source_observations": 4096,
+      "initial_target_observations": 2,
+      "replay_rounds": 13,
+      "source_initial_strategy": "source_positive",
+      "selected_source_outcome_transfer": true
+    },
+    {
+      "pair_id": "materials_dielectric_to_expt_gap",
+      "domain": "materials_property",
+      "source": "real_matbench_dielectric",
+      "target": "real_matbench_expt_gap",
+      "source_observations": 2048,
+      "initial_target_observations": 2,
+      "replay_rounds": 13,
+      "source_initial_strategy": "source_negative",
+      "selected_source_outcome_transfer": true
+    },
+    {
+      "pair_id": "materials_expt_gap_to_dielectric",
+      "domain": "materials_property",
+      "source": "real_matbench_expt_gap",
+      "target": "real_matbench_dielectric",
+      "source_observations": 2048,
+      "initial_target_observations": 2,
+      "replay_rounds": 13,
+      "source_initial_strategy": "source_extremes",
+      "selected_source_outcome_transfer": true
+    },
+    {
+      "pair_id": "materials_phonons_to_dielectric",
+      "domain": "materials_property",
+      "source": "real_matbench_phonons",
+      "target": "real_matbench_dielectric",
+      "source_observations": 1024,
+      "initial_target_observations": 5,
+      "replay_rounds": 10,
+      "source_initial_strategy": "source_extremes",
+      "selected_source_outcome_transfer": false
+    },
+    {
+      "pair_id": "molecular_esol_to_lipophilicity",
+      "domain": "molecular_property",
+      "source": "real_moleculenet_esol",
+      "target": "real_moleculenet_lipophilicity",
+      "source_observations": 1024,
+      "initial_target_observations": 5,
+      "replay_rounds": 10,
+      "source_initial_strategy": "source_extremes",
+      "selected_source_outcome_transfer": false
+    },
+    {
+      "pair_id": "molecular_freesolv_to_lipophilicity",
+      "domain": "molecular_property",
+      "source": "real_moleculenet_freesolv",
+      "target": "real_moleculenet_lipophilicity",
+      "source_observations": 600,
+      "initial_target_observations": 2,
+      "replay_rounds": 13,
+      "source_initial_strategy": "source_positive",
+      "selected_source_outcome_transfer": true
+    },
+    {
+      "pair_id": "molecular_lipophilicity_to_freesolv",
+      "domain": "molecular_property",
+      "source": "real_moleculenet_lipophilicity",
+      "target": "real_moleculenet_freesolv",
+      "source_observations": 2048,
+      "initial_target_observations": 5,
+      "replay_rounds": 10,
+      "source_initial_strategy": "source_extremes",
+      "selected_source_outcome_transfer": false
+    }
+  ],
+  "negative_results": [
+    {
+      "source": "real_matbench_phonons",
+      "target": "real_matbench_dielectric",
+      "case": "calibration-fallback-unstable-source-outcome",
+      "result": "The raw route had composite delta +1.0506 on held-out seeds, but its 95% CI [-4.2766, +6.3779] crossed zero. Calibration rejected it and deployed the exact matched target-only LLM."
+    },
+    {
+      "source": "real_moleculenet_esol",
+      "target": "real_moleculenet_lipophilicity",
+      "case": "calibration-fallback-negative-source-outcome",
+      "result": "The raw route had composite delta -4.0491 with 95% CI [-5.7959, -2.3024]. Calibration rejected it and deployed the exact matched target-only LLM."
+    },
+    {
+      "source": "real_moleculenet_lipophilicity",
+      "target": "real_moleculenet_freesolv",
+      "case": "calibration-fallback-negative-source-outcome",
+      "result": "The raw route had composite delta -0.8020 with 95% CI [-0.9930, -0.6110]. Calibration rejected it and deployed the exact matched target-only LLM."
+    }
+  ],
+  "artifacts": {
+    "goal_report": "goal/goal_verification.json",
+    "headline_table": "headline_results.csv",
+    "raw_summaries": "raw_summaries/",
+    "raw_metrics": "raw_metrics/",
+    "round_efficiency": "round_efficiency/",
+    "representative_reasoning_traces": "reasoning_traces/",
+    "complete_per_seed_audits": "audit_archives/",
+    "llm_records": "model_calls/",
+    "development_screen": "development/",
+    "figure": "figures/source_outcome_transfer_overview.png",
+    "checksums": "SHA256SUMS"
+  }
+}

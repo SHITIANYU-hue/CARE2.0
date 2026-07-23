@@ -112,6 +112,26 @@ def cards_from_result_dir(result_dir: Path) -> list[dict[str, Any]]:
                 "Reusable lesson: target calibration can decide that a fixed "
                 "semantic prior is more reliable than re-fitting its direction."
             )
+        elif execution == "source_outcome":
+            skill_summary = (
+                f"For {target}, use the LLM-defined source-target role map to "
+                "compile measured source outcomes into bounded neighbor, additive, "
+                "interaction, initial-design, and kernel priors."
+            )
+            reusable_lesson = (
+                "Reusable lesson: freeze the role map and source history before "
+                "target replay, calibrate source priors only on revealed target "
+                "observations, and retain an exact target-only fallback."
+            )
+        elif execution == "exact_fallback":
+            skill_summary = (
+                f"For {target}, reject the unsupported source-outcome route and "
+                "reproduce the matched target-only LLM policy exactly."
+            )
+            reusable_lesson = (
+                "Reusable lesson: a safe transfer platform must preserve negative "
+                "source evidence and decline transfer when calibration is unstable."
+            )
         else:
             skill_summary = (
                 f"For {target}, use the LLM to define the {skill} feature "

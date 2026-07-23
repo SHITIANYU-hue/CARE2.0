@@ -37,6 +37,9 @@ class KernelSkillPatch:
     min_cv_gain: float
     confidence: float
     reason: str
+    source_interaction_strength: float = 0.0
+    source_interaction_min_support: int = 4
+    canonicalize_source_values: bool = True
 
 
 def bounded_float(raw: Any, default: float, lower: float, upper: float) -> float:
@@ -123,6 +126,15 @@ def normalize_patches(
                 min_cv_gain=bounded_float(raw.get("min_cv_gain", 0.02), 0.02, 0.0, 0.35),
                 confidence=bounded_float(raw.get("confidence", 0.5), 0.5, 0.0, 1.0),
                 reason=str(raw.get("reason", ""))[:600],
+                source_interaction_strength=bounded_float(
+                    raw.get("source_interaction_strength", 0.0), 0.0, 0.0, 2.5
+                ),
+                source_interaction_min_support=bounded_int(
+                    raw.get("source_interaction_min_support", 4), 4, 3, 32
+                ),
+                canonicalize_source_values=bool(
+                    raw.get("canonicalize_source_values", True)
+                ),
             )
         )
     return tuple(patches)
@@ -192,6 +204,7 @@ def propose_kernel_skill_patches(
             "At least two patches must downweight a weak, uncertain, or failure-associated role below 0.8; do not make every role multiplier at least 1.",
             "Separate exploitation patches from exploration patches instead of giving every patch the same beta schedule.",
             "Include at least two source-prior patches when mapped roles have shared vocabularies.",
+            "Include source interaction transfer when two mapped roles have enough joint source support.",
             "Use signed calibration when source and target objectives can be inversely related.",
             "Use positive_only calibration only when the objective semantics support the same direction.",
             "Set source_prior_strength to 0 when role vocabularies are not meaningfully comparable.",
@@ -209,6 +222,9 @@ def propose_kernel_skill_patches(
             "source_prior_strength": "number in [0, 2.5]",
             "source_similarity_temperature": "number in [0.08, 2.0]",
             "source_neighbor_count": "integer in [3, 48]",
+            "source_interaction_strength": "number in [0, 2.5]",
+            "source_interaction_min_support": "integer in [3, 32]",
+            "canonicalize_source_values": "boolean",
             "calibration_mode": "one of off, positive_only, signed",
             "min_cv_gain": "leave-one-out gain threshold in [0, 0.35]",
         },
@@ -223,6 +239,9 @@ def propose_kernel_skill_patches(
                     "source_prior_strength": 0.8,
                     "source_similarity_temperature": 0.35,
                     "source_neighbor_count": 12,
+                    "source_interaction_strength": 0.6,
+                    "source_interaction_min_support": 4,
+                    "canonicalize_source_values": True,
                     "calibration_mode": "signed",
                     "min_cv_gain": 0.03,
                     "confidence": "evidence-calibrated number in [0, 1]; do not reuse one default",
@@ -479,12 +498,20 @@ def run_seed_evaluation(
     numeric_length_scale: float,
     categorical_length_scale: float,
     gp_noise: float,
+    source_seed: int | None = None,
 ) -> tuple[list[dict[str, Any]], dict[tuple[str, int], list[dict[str, Any]]]]:
     source_adapter = replay.DATASET_BUILDERS[source_dataset]()
     target_adapter = replay.DATASET_BUILDERS[target_dataset]()
     task = replay.make_task(target_adapter, initial, rounds)
-    role_map = transfer.role_map_for(source_dataset, target_dataset)
-    source_observed = transfer.source_observations(source_adapter, seed, source_observation_count)
+    role_map = transfer.descriptor_transfer_role_map_for(
+        source_dataset,
+        target_dataset,
+    )
+    source_observed = transfer.source_observations(
+        source_adapter,
+        seed if source_seed is None else source_seed,
+        source_observation_count,
+    )
     card = transfer.compile_transfer_card(
         source_adapter,
         target_adapter,

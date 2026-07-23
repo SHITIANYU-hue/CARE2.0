@@ -1,0 +1,1113 @@
+{
+  "model": "deepspeek-v3.2",
+  "usage": {
+    "prompt_tokens": 2393,
+    "total_tokens": 5826,
+    "completion_tokens": 3433,
+    "prompt_tokens_details": null,
+    "reasoning_tokens": 0
+  },
+  "llm_generation_call_count": 1,
+  "api_configuration": {
+    "base_url": "http://127.0.0.1:31300/v1",
+    "api_mode": "chat",
+    "structured_mode": "json",
+    "temperature": 0.35,
+    "max_tokens": 5000
+  },
+  "source_dataset": "real_moleculenet_esol",
+  "target_dataset": "real_moleculenet_lipophilicity",
+  "evidence_mode": "target_only",
+  "prompt_payload": {
+    "task": "Design a diverse library of executable semantic optimization skills for finite-pool scientific search. Each skill defines interpretable rule features plus a conservative Bayesian linear surrogate blended with strong target-only GP-UCB and GP-EI anchors.",
+    "target": {
+      "dataset": "real_moleculenet_lipophilicity",
+      "title": "MoleculeNet Lipophilicity replay",
+      "objective": "maximize_normalized_lipophilicity",
+      "candidate_count": 4200,
+      "public_semantic_fields": {
+        "smiles_length_bin": {
+          "smiles_long": 2265,
+          "smiles_mid": 1764,
+          "smiles_short": 93,
+          "smiles_very_long": 78
+        },
+        "hetero_atom_bin": {
+          "hetero_high": 2661,
+          "hetero_low": 194,
+          "hetero_mid": 1344,
+          "hetero_none": 1
+        },
+        "halogen_bin": {
+          "halogen_high": 98,
+          "halogen_low": 961,
+          "halogen_mid": 743,
+          "halogen_none": 2398
+        },
+        "aromatic_bin": {
+          "aromatic_high": 1982,
+          "aromatic_low": 545,
+          "aromatic_mid": 1619,
+          "aromatic_none": 54
+        },
+        "ring_token_bin": {
+          "ring_token_high": 1976,
+          "ring_token_low": 113,
+          "ring_token_mid": 2106,
+          "ring_token_none": 5
+        },
+        "branch_bin": {
+          "branch_high": 1183,
+          "branch_low": 817,
+          "branch_mid": 2147,
+          "branch_none": 53
+        },
+        "double_bond_bin": {
+          "double_bond_high": 147,
+          "double_bond_low": 1333,
+          "double_bond_mid": 1843,
+          "double_bond_none": 877
+        }
+      },
+      "hidden_target": "normalized_lipophilicity_score",
+      "boundary": "Field values and counts are public; target outcomes are not included."
+    },
+    "source_transfer_evidence": {
+      "evidence_mode": "target_only",
+      "source_dataset": null,
+      "source_objective": null,
+      "mapped_roles": [],
+      "source_outcome_statistics": null,
+      "shared_value_priors": [],
+      "boundary": "No source identity, source schema, source outcomes, source effects, or source value priors are provided. The LLM must use the public target schema and its pretrained domain knowledge only."
+    },
+    "executor": {
+      "semantic_model": "Rules become binary features. Revealed target outcomes fit a ridge Bayesian linear surrogate whose coefficient prior follows rule weights.",
+      "anchor": "A rank blend of target-only GP-UCB and GP-EI.",
+      "fusion": "semantic_mass_start/end controls the rank mass assigned to the semantic surrogate; the remaining mass stays on the target-only anchor.",
+      "selection": "Independent calibration seeds select one frozen skill. Independent held-out seeds are evaluated only after selection."
+    },
+    "design_requirements": [
+      "Return exactly 8 diverse skills.",
+      "Use only exact field/value pairs in public_semantic_fields.",
+      "Each conditions object must map a real catalog field name directly to one exact catalog value, for example {\"dominant_family\": \"oxide\"}. Never use literal placeholder keys such as exact_field, field_name, field, or value.",
+      "Give every skill a distinct, descriptive scientific skill_id. Never copy schema placeholders such as short_unique_name or add numeric suffixes to a placeholder.",
+      "Give every skill 3-10 rules; use two-condition interactions only when scientifically meaningful.",
+      "Include at least one conservative low-semantic-mass skill.",
+      "Use only target-schema-compatible domain knowledge; do not imply that a source task or source outcomes were observed.",
+      "Include at least one domain-knowledge skill.",
+      "Include a counter-hypothesis skill that reverses or downweights an uncertain source relation.",
+      "Prefer mechanistic, chemically or physically interpretable rules over arbitrary coverage rules.",
+      "Use positive weights for conditions expected to improve the target objective and negative weights for risks.",
+      "Do not claim access to target outcomes and do not output candidate identifiers."
+    ],
+    "allowed_ranges": {
+      "rule_weight": "[-1, 1]",
+      "ridge": "[0.05, 20]",
+      "prior_scale": "[0, 1.5]",
+      "semantic_mass_start_end": "[0, 0.85]",
+      "ucb_weight": "[0, 1]; EI weight is 1 - ucb_weight",
+      "gp_beta_start_end": "[0.2, 4]",
+      "gp_xi": "[0, 0.2]",
+      "confidence": "[0.05, 1]"
+    },
+    "output_contract": {
+      "skills": [
+        {
+          "skill_id": "descriptive_scientific_skill_id",
+          "rules": [
+            {
+              "rule_id": "mechanistic_rule",
+              "conditions": {
+                "field_name_from_public_semantic_fields": "exact_catalog_value"
+              },
+              "weight": 0.5,
+              "rationale": "short scientific rationale"
+            }
+          ],
+          "ridge": 1.0,
+          "prior_scale": 0.25,
+          "semantic_mass_start": 0.3,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.7,
+          "hypothesis": "what this skill transfers and when it may fail"
+        }
+      ]
+    },
+    "care_knowledge_context": {
+      "cards": [
+        {
+          "id": "transfer.real-suzuki-miyaura-to-real-buchwald-hartwig-gate-reject-2026-07-21",
+          "type": "transfer",
+          "title": "Gate-rejected transfer: real_suzuki_miyaura to real_buchwald_hartwig",
+          "summary": "All evidence modes failed calibration and fell back to the target acquisition portfolio.",
+          "content": "Reusable lesson: do not force a source-derived semantic policy when every evidence mode fails calibration. Preserve the target-only fallback and improve the reaction representation before retrying.",
+          "tags": [
+            "real_suzuki_miyaura",
+            "real_buchwald_hartwig",
+            "negative-transfer",
+            "gate-reject"
+          ],
+          "updated_at": "2026-07-21",
+          "score": -11.66422346572538
+        },
+        {
+          "id": "transfer.real-suzuki-miyaura-to-real-buchwald-hartwig-calibration-fallback-2026-07-22",
+          "type": "transfer",
+          "title": "Gate-rejected transfer: real_suzuki_miyaura to real_buchwald_hartwig",
+          "summary": "Source-schema and target-only LLM strategies failed calibration; the router selected GP-UCB.",
+          "content": "Reusable lesson: do not force a source-derived semantic policy when every evidence mode fails calibration. Preserve the target-only fallback and improve the reaction representation before retrying.",
+          "tags": [
+            "real_suzuki_miyaura",
+            "real_buchwald_hartwig",
+            "negative-transfer",
+            "gate-reject"
+          ],
+          "updated_at": "2026-07-22",
+          "score": -11.66422346572538
+        },
+        {
+          "id": "transfer.target-only-schema-to-real-matbench-log-kvrh-calibration-fallback-2026-07-22",
+          "type": "transfer",
+          "title": "Gate-rejected transfer: target_only_schema to real_matbench_log_kvrh",
+          "summary": "No LLM strategy passed calibration; the selected GP-EI anchor did not beat the held-out target portfolio.",
+          "content": "Reusable lesson: do not force a source-derived semantic policy when every evidence mode fails calibration. Preserve the target-only fallback and improve the reaction representation before retrying.",
+          "tags": [
+            "target_only_schema",
+            "real_matbench_log_kvrh",
+            "negative-transfer",
+            "gate-reject"
+          ],
+          "updated_at": "2026-07-22",
+          "score": -11.534897167486928
+        },
+        {
+          "id": "transfer.source-schema-only-to-real-chemlex-acidamine-negative-heldout-2026-07-22",
+          "type": "transfer",
+          "title": "Gate-rejected transfer: source_schema_only to real_chemlex_acidamine",
+          "summary": "The router selected GP-UCB; the descriptive held-out strongest target portfolio remained higher on the 20-seed development range.",
+          "content": "Reusable lesson: do not force a source-derived semantic policy when every evidence mode fails calibration. Preserve the target-only fallback and improve the reaction representation before retrying.",
+          "tags": [
+            "source_schema_only",
+            "real_chemlex_acidamine",
+            "negative-transfer",
+            "gate-reject"
+          ],
+          "updated_at": "2026-07-22",
+          "score": -11.06103204264512
+        },
+        {
+          "id": "skill.semantic-real-moleculenet-esol-counter-hypothesis-low-hbond-donors-2026-07-22",
+          "type": "skill",
+          "title": "Reusable semantic feature pattern: counter_hypothesis_low_hbond_donors",
+          "summary": "For real_moleculenet_esol, use the LLM to define the counter_hypothesis_low_hbond_donors feature partition, then fit its direction and magnitude from revealed target observations.",
+          "content": "Evidence mode: target_only. Execution: target_calibrated. Reusable lesson: preserve the LLM-proposed feature partition, but calibrate or remove unsupported coefficient signs before held-out evaluation.",
+          "tags": [
+            "real_moleculenet_esol",
+            "counter_hypothesis_low_hbond_donors",
+            "target_only",
+            "schema-to-skill",
+            "target-calibration"
+          ],
+          "updated_at": "2026-07-22",
+          "score": -9.698542738337686
+        },
+        {
+          "id": "skill.semantic-real-moleculenet-lipophilicity-high-aromatic-content-2026-07-22",
+          "type": "skill",
+          "title": "Reusable semantic feature pattern: high_aromatic_content",
+          "summary": "For real_moleculenet_lipophilicity, use the LLM to define the high_aromatic_content feature partition, then fit its direction and magnitude from revealed target observations.",
+          "content": "Evidence mode: target_only. Execution: disabled. Reusable lesson: preserve the LLM-proposed feature partition, but calibrate or remove unsupported coefficient signs before held-out evaluation.",
+          "tags": [
+            "real_moleculenet_lipophilicity",
+            "high_aromatic_content",
+            "target_only",
+            "schema-to-skill",
+            "target-calibration"
+          ],
+          "updated_at": "2026-07-22",
+          "score": -7.748353695481185
+        }
+      ],
+      "instruction": "Use these public, previously archived cards only as reusable design lessons. Do not copy reported target values into a rule and do not imply that the current target outcomes were observed. Prefer lessons that survived held-out calibration."
+    }
+  },
+  "raw_response": "{\n  \"skills\": [\n    {\n      \"skill_id\": \"high_aromatic_lipophilicity_enhancer\",\n      \"rules\": [\n        {\n          \"rule_id\": \"aromatic_rich\",\n          \"conditions\": {\n            \"aromatic_bin\": \"aromatic_high\"\n          },\n          \"weight\": 0.8,\n          \"rationale\": \"High aromatic content increases hydrophobicity and enhances lipophilicity.\"\n        },\n        {\n          \"rule_id\": \"heteroatom_moderate\",\n          \"conditions\": {\n            \"hetero_atom_bin\": \"hetero_mid\"\n          },\n          \"weight\": 0.3,\n          \"rationale\": \"Moderate heteroatom presence can balance polarity without overly reducing lipophilicity.\"\n        },\n        {\n          \"rule_id\": \"halogen_low_risk\",\n          \"conditions\": {\n            \"halogen_bin\": \"halogen_none\"\n          },\n          \"weight\": -0.2,\n          \"rationale\": \"Absence of halogens may reduce hydrophobic contributions, slightly lowering lipophilicity.\"\n        },\n        {\n          \"rule_id\": \"ring_token_high\",\n          \"conditions\": {\n            \"ring_token_bin\": \"ring_token_high\"\n          },\n          \"weight\": 0.6,\n          \"rationale\": \"High ring token count correlates with rigid, hydrophobic molecular frameworks.\"\n        }\n      ],\n      \"ridge\": 2.5,\n      \"prior_scale\": 0.5,\n      \"semantic_mass_start\": 0.6,\n      \"semantic_mass_end\": 0.4,\n      \"ucb_weight\": 0.7,\n      \"gp_beta_start\": 3.0,\n      \"gp_beta_end\": 1.5,\n      \"gp_xi\": 0.05,\n      \"confidence\": 0.8,\n      \"hypothesis\": \"Transfers the principle that aromaticity and ring structures enhance lipophilicity; may fail for highly polar or charged aromatic systems.\"\n    },\n    {\n      \"skill_id\": \"halogenated_hydrophobic_booster\",\n      \"rules\": [\n        {\n          \"rule_id\": \"halogen_high_positive\",\n          \"conditions\": {\n            \"halogen_bin\": \"halogen_high\"\n          },\n          \"weight\": 0.9,\n          \"rationale\": \"High halogen content significantly increases hydrophobicity and lipophilicity.\"\n        },\n        {\n          \"rule_id\": \"branch_moderate\",\n          \"conditions\": {\n            \"branch_bin\": \"branch_mid\"\n          },\n          \"weight\": 0.4,\n          \"rationale\": \"Moderate branching can enhance molecular volume and hydrophobic surface area.\"\n        },\n        {\n          \"rule_id\": \"double_bond_low\",\n          \"conditions\": {\n            \"double_bond_bin\": \"double_bond_low\"\n          },\n          \"weight\": 0.2,\n          \"rationale\": \"Low double bond count reduces polarity, favoring lipophilicity.\"\n        },\n        {\n          \"rule_id\": \"heteroatom_low_risk\",\n          \"conditions\": {\n            \"hetero_atom_bin\": \"hetero_low\"\n          },\n          \"weight\": -0.3,\n          \"rationale\": \"Low heteroatom presence may limit hydrophobic interactions if overly simple.\"\n        }\n      ],\n      \"ridge\": 1.8,\n      \"prior_scale\": 0.6,\n      \"semantic_mass_start\": 0.7,\n      \"semantic_mass_end\": 0.5,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 2.5,\n      \"gp_beta_end\": 1.2,\n      \"gp_xi\": 0.08,\n      \"confidence\": 0.75,\n      \"hypothesis\": \"Transfers the known hydrophobic effect of halogens; may fail for molecules with countervailing polar groups or conformational issues.\"\n    },\n    {\n      \"skill_id\": \"low_semantic_mass_conservative\",\n      \"rules\": [\n        {\n          \"rule_id\": \"aromatic_moderate\",\n          \"conditions\": {\n            \"aromatic_bin\": \"aromatic_mid\"\n          },\n          \"weight\": 0.4,\n          \"rationale\": \"Moderate aromaticity provides a baseline hydrophobic contribution.\"\n        },\n        {\n          \"rule_id\": \"heteroatom_high_risk\",\n          \"conditions\": {\n            \"hetero_atom_bin\": \"hetero_high\"\n          },\n          \"weight\": -0.5,\n          \"rationale\": \"High heteroatom content increases polarity, likely reducing lipophilicity.\"\n        }\n      ],\n      \"ridge\": 5.0,\n      \"prior_scale\": 0.2,\n      \"semantic_mass_start\": 0.1,\n      \"semantic_mass_end\": 0.05,\n      \"ucb_weight\": 0.8,\n      \"gp_beta_start\": 1.0,\n      \"gp_beta_end\": 0.5,\n      \"gp_xi\": 0.02,\n      \"confidence\": 0.6,\n      \"hypothesis\": \"Transfers minimal semantic assumptions, heavily relying on the GP anchor; may fail if simple rules miss complex lipophilicity drivers.\"\n    },\n    {\n      \"skill_id\": \"heteroatom_polarity_mitigator\",\n      \"rules\": [\n        {\n          \"rule_id\": \"heteroatom_low_benefit\",\n          \"conditions\": {\n            \"hetero_atom_bin\": \"hetero_low\"\n          },\n          \"weight\": 0.7,\n          \"rationale\": \"Low heteroatom count minimizes polarity, favoring higher lipophilicity.\"\n        },\n        {\n          \"rule_id\": \"halogen_moderate\",\n          \"conditions\": {\n            \"halogen_bin\": \"halogen_mid\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Moderate halogenation adds hydrophobicity without excessive molecular weight.\"\n        },\n        {\n          \"rule_id\": \"aromatic_low_risk\",\n          \"conditions\": {\n            \"aromatic_bin\": \"aromatic_low\"\n          },\n          \"weight\": -0.4,\n          \"rationale\": \"Low aromaticity may reduce hydrophobic character, lowering lipophilicity.\"\n        },\n        {\n          \"rule_id\": \"branch_high_volume\",\n          \"conditions\": {\n            \"branch_bin\": \"branch_high\"\n          },\n          \"weight\": 0.3,\n          \"rationale\": \"High branching increases molecular volume, potentially enhancing lipophilicity.\"\n        }\n      ],\n      \"ridge\": 3.0,\n      \"prior_scale\": 0.4,\n      \"semantic_mass_start\": 0.5,\n      \"semantic_mass_end\": 0.3,\n      \"ucb_weight\": 0.6,\n      \"gp_beta_start\": 2.2,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.06,\n      \"confidence\": 0.7,\n      \"hypothesis\": \"Transfers the principle that low polarity enhances lipophilicity; may fail for molecules where specific polar groups participate in hydrophobic interactions.\"\n    },\n    {\n      \"skill_id\": \"ring_and_branch_synergy\",\n      \"rules\": [\n        {\n          \"rule_id\": \"ring_token_high_branch_mid_interaction\",\n          \"conditions\": {\n            \"ring_token_bin\": \"ring_token_high\",\n            \"branch_bin\": \"branch_mid\"\n          },\n          \"weight\": 0.8,\n          \"rationale\": \"Combination of high ring count and moderate branching optimizes rigidity and hydrophobic surface area.\"\n        },\n        {\n          \"rule_id\": \"halogen_low\",\n          \"conditions\": {\n            \"halogen_bin\": \"halogen_low\"\n          },\n          \"weight\": 0.2,\n          \"rationale\": \"Low halogen presence avoids potential toxicity while maintaining some hydrophobicity.\"\n        },\n        {\n          \"rule_id\": \"double_bond_moderate\",\n          \"conditions\": {\n            \"double_bond_bin\": \"double_bond_mid\"\n          },\n          \"weight\": 0.3,\n          \"rationale\": \"Moderate double bonds contribute to planarity without excessive polarity.\"\n        },\n        {\n          \"rule_id\": \"aromatic_moderate_positive\",\n          \"conditions\": {\n            \"aromatic_bin\": \"aromatic_mid\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Moderate aromaticity supports hydrophobic pi-stacking interactions.\"\n        }\n      ],\n      \"ridge\": 2.0,\n      \"prior_scale\": 0.55,\n      \"semantic_mass_start\": 0.65,\n      \"semantic_mass_end\": 0.45,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 2.8,\n      \"gp_beta_end\": 1.3,\n      \"gp_xi\": 0.07,\n      \"confidence\": 0.75,\n      \"hypothesis\": \"Transfers the synergistic effect of ring structures and branching on lipophilicity; may fail for overly flexible or polar ring systems.\"\n    },\n    {\n      \"skill_id\": \"counter_hypothesis_halogen_limited\",\n      \"rules\": [\n        {\n          \"rule_id\": \"halogen_none_benefit\",\n          \"conditions\": {\n            \"halogen_bin\": \"halogen_none\"\n          },\n          \"weight\": 0.4,\n          \"rationale\": \"Absence of halogens may indicate other hydrophobic groups, avoiding halogen-specific liabilities.\"\n        },\n        {\n          \"rule_id\": \"heteroatom_high_positive\",\n          \"conditions\": {\n            \"hetero_atom_bin\": \"hetero_high\"\n          },\n          \"weight\": 0.3,\n          \"rationale\": \"High heteroatom content could involve hydrophobic heterocycles, potentially increasing lipophilicity.\"\n        },\n        {\n          \"rule_id\": \"aromatic_low_benefit\",\n          \"conditions\": {\n            \"aromatic_bin\": \"aromatic_low\"\n          },\n          \"weight\": 0.2,\n          \"rationale\": \"Low aromaticity may favor aliphatic hydrophobicity, which can be significant.\"\n        },\n        {\n          \"rule_id\": \"double_bond_high_risk\",\n          \"conditions\": {\n            \"double_bond_bin\": \"double_bond_high\"\n          },\n          \"weight\": -0.6,\n          \"rationale\": \"High double bond count increases polarity and planarity, potentially reducing lipophilicity.\"\n        }\n      ],\n      \"ridge\": 4.0,\n      \"prior_scale\": 0.35,\n      \"semantic_mass_start\": 0.4,\n      \"semantic_mass_end\": 0.2,\n      \"ucb_weight\": 0.4,\n      \"gp_beta_start\": 1.5,\n      \"gp_beta_end\": 0.8,\n      \"gp_xi\": 0.1,\n      \"confidence\": 0.65,\n      \"hypothesis\": \"Counters the typical halogen-dependence hypothesis; may fail if halogens are indeed critical for lipophilicity in this dataset.\"\n    },\n    {\n      \"skill_id\": \"domain_knowledge_polar_surface_control\",\n      \"rules\": [\n        {\n          \"rule_id\": \"heteroatom_none_high_risk\",\n          \"conditions\": {\n            \"hetero_atom_bin\": \"hetero_none\"\n          },\n          \"weight\": -0.9,\n          \"rationale\": \"No heteroatoms likely indicate simple hydrocarbons, which may have lower than expected lipophilicity due to lack of functional group interactions.\"\n        },\n        {\n          \"rule_id\": \"aromatic_high_halogen_low_interaction\",\n          \"conditions\": {\n            \"aromatic_bin\": \"aromatic_high\",\n            \"halogen_bin\": \"halogen_low\"\n          },\n          \"weight\": 0.7,\n          \"rationale\": \"High aromaticity with low halogenation balances hydrophobicity and avoids excessive molecular weight.\"\n        },\n        {\n          \"rule_id\": \"ring_token_mid\",\n          \"conditions\": {\n            \"ring_token_bin\": \"ring_token_mid\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Moderate ring token count indicates optimal molecular rigidity for membrane partitioning.\"\n        },\n        {\n          \"rule_id\": \"branch_low_risk\",\n          \"conditions\": {\n            \"branch_bin\": \"branch_low\"\n          },\n          \"weight\": -0.3,\n          \"rationale\": \"Low branching may reduce hydrophobic surface area, lowering lipophilicity.\"\n        },\n        {\n          \"rule_id\": \"double_bond_none_benefit\",\n          \"conditions\": {\n            \"double_bond_bin\": \"double_bond_none\"\n          },\n          \"weight\": 0.4,\n          \"rationale\": \"No double bonds minimizes polarity, favoring lipophilicity in saturated systems.\"\n        }\n      ],\n      \"ridge\": 2.2,\n      \"prior_scale\": 0.45,\n      \"semantic_mass_start\": 0.55,\n      \"semantic_mass_end\": 0.35,\n      \"ucb_weight\": 0.6,\n      \"gp_beta_start\": 2.0,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.04,\n      \"confidence\": 0.8,\n      \"hypothesis\": \"Transfers domain knowledge about polar surface area and molecular rigidity; may fail for molecules where specific polar groups enhance lipophilicity through unconventional mechanisms.\"\n    },\n    {\n      \"skill_id\": \"balanced_molecular_complexity\",\n      \"rules\": [\n        {\n          \"rule_id\": \"smiles_mid_length\",\n          \"conditions\": {\n            \"smiles_length_bin\": \"smiles_mid\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Mid-length SMILES indicate moderate molecular size, often optimal for lipophilicity.\"\n        },\n        {\n          \"rule_id\": \"heteroatom_mid_halogen_mid_interaction\",\n          \"conditions\": {\n            \"hetero_atom_bin\": \"hetero_mid\",\n            \"halogen_bin\": \"halogen_mid\"\n          },\n          \"weight\": 0.6,\n          \"rationale\": \"Balanced heteroatom and halogen content provides hydrophobicity without excessive polarity.\"\n        },\n        {\n          \"rule_id\": \"aromatic_mid_ring_mid_interaction\",\n          \"conditions\": {\n            \"aromatic_bin\": \"aromatic_mid\",\n            \"ring_token_bin\": \"ring_token_mid\"\n          },\n          \"weight\": 0.7,\n          \"rationale\": \"Moderate aromaticity and ring count synergize for stable hydrophobic character.\"\n        },\n        {\n          \"rule_id\": \"branch_high_double_low_interaction\",\n          \"conditions\": {\n            \"branch_bin\": \"branch_high\",\n            \"double_bond_bin\": \"double_bond_low\"\n          },\n          \"weight\": 0.4,\n          \"rationale\": \"High branching with low double bonds maximizes aliphatic hydrophobicity.\"\n        }\n      ],\n      \"ridge\": 2.8,\n      \"prior_scale\": 0.5,\n      \"semantic_mass_start\": 0.6,\n      \"semantic_mass_end\": 0.4,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 2.5,\n      \"gp_beta_end\": 1.2,\n      \"gp_xi\": 0.06,\n      \"confidence\": 0.75,\n      \"hypothesis\": \"Transfers the principle of balanced molecular complexity for lipophilicity; may fail for molecules where extreme values in one feature dominate.\"\n    }\n  ]\n}",
+  "parsed_response": {
+    "skills": [
+      {
+        "skill_id": "high_aromatic_lipophilicity_enhancer",
+        "rules": [
+          {
+            "rule_id": "aromatic_rich",
+            "conditions": {
+              "aromatic_bin": "aromatic_high"
+            },
+            "weight": 0.8,
+            "rationale": "High aromatic content increases hydrophobicity and enhances lipophilicity."
+          },
+          {
+            "rule_id": "heteroatom_moderate",
+            "conditions": {
+              "hetero_atom_bin": "hetero_mid"
+            },
+            "weight": 0.3,
+            "rationale": "Moderate heteroatom presence can balance polarity without overly reducing lipophilicity."
+          },
+          {
+            "rule_id": "halogen_low_risk",
+            "conditions": {
+              "halogen_bin": "halogen_none"
+            },
+            "weight": -0.2,
+            "rationale": "Absence of halogens may reduce hydrophobic contributions, slightly lowering lipophilicity."
+          },
+          {
+            "rule_id": "ring_token_high",
+            "conditions": {
+              "ring_token_bin": "ring_token_high"
+            },
+            "weight": 0.6,
+            "rationale": "High ring token count correlates with rigid, hydrophobic molecular frameworks."
+          }
+        ],
+        "ridge": 2.5,
+        "prior_scale": 0.5,
+        "semantic_mass_start": 0.6,
+        "semantic_mass_end": 0.4,
+        "ucb_weight": 0.7,
+        "gp_beta_start": 3.0,
+        "gp_beta_end": 1.5,
+        "gp_xi": 0.05,
+        "confidence": 0.8,
+        "hypothesis": "Transfers the principle that aromaticity and ring structures enhance lipophilicity; may fail for highly polar or charged aromatic systems."
+      },
+      {
+        "skill_id": "halogenated_hydrophobic_booster",
+        "rules": [
+          {
+            "rule_id": "halogen_high_positive",
+            "conditions": {
+              "halogen_bin": "halogen_high"
+            },
+            "weight": 0.9,
+            "rationale": "High halogen content significantly increases hydrophobicity and lipophilicity."
+          },
+          {
+            "rule_id": "branch_moderate",
+            "conditions": {
+              "branch_bin": "branch_mid"
+            },
+            "weight": 0.4,
+            "rationale": "Moderate branching can enhance molecular volume and hydrophobic surface area."
+          },
+          {
+            "rule_id": "double_bond_low",
+            "conditions": {
+              "double_bond_bin": "double_bond_low"
+            },
+            "weight": 0.2,
+            "rationale": "Low double bond count reduces polarity, favoring lipophilicity."
+          },
+          {
+            "rule_id": "heteroatom_low_risk",
+            "conditions": {
+              "hetero_atom_bin": "hetero_low"
+            },
+            "weight": -0.3,
+            "rationale": "Low heteroatom presence may limit hydrophobic interactions if overly simple."
+          }
+        ],
+        "ridge": 1.8,
+        "prior_scale": 0.6,
+        "semantic_mass_start": 0.7,
+        "semantic_mass_end": 0.5,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 2.5,
+        "gp_beta_end": 1.2,
+        "gp_xi": 0.08,
+        "confidence": 0.75,
+        "hypothesis": "Transfers the known hydrophobic effect of halogens; may fail for molecules with countervailing polar groups or conformational issues."
+      },
+      {
+        "skill_id": "low_semantic_mass_conservative",
+        "rules": [
+          {
+            "rule_id": "aromatic_moderate",
+            "conditions": {
+              "aromatic_bin": "aromatic_mid"
+            },
+            "weight": 0.4,
+            "rationale": "Moderate aromaticity provides a baseline hydrophobic contribution."
+          },
+          {
+            "rule_id": "heteroatom_high_risk",
+            "conditions": {
+              "hetero_atom_bin": "hetero_high"
+            },
+            "weight": -0.5,
+            "rationale": "High heteroatom content increases polarity, likely reducing lipophilicity."
+          }
+        ],
+        "ridge": 5.0,
+        "prior_scale": 0.2,
+        "semantic_mass_start": 0.1,
+        "semantic_mass_end": 0.05,
+        "ucb_weight": 0.8,
+        "gp_beta_start": 1.0,
+        "gp_beta_end": 0.5,
+        "gp_xi": 0.02,
+        "confidence": 0.6,
+        "hypothesis": "Transfers minimal semantic assumptions, heavily relying on the GP anchor; may fail if simple rules miss complex lipophilicity drivers."
+      },
+      {
+        "skill_id": "heteroatom_polarity_mitigator",
+        "rules": [
+          {
+            "rule_id": "heteroatom_low_benefit",
+            "conditions": {
+              "hetero_atom_bin": "hetero_low"
+            },
+            "weight": 0.7,
+            "rationale": "Low heteroatom count minimizes polarity, favoring higher lipophilicity."
+          },
+          {
+            "rule_id": "halogen_moderate",
+            "conditions": {
+              "halogen_bin": "halogen_mid"
+            },
+            "weight": 0.5,
+            "rationale": "Moderate halogenation adds hydrophobicity without excessive molecular weight."
+          },
+          {
+            "rule_id": "aromatic_low_risk",
+            "conditions": {
+              "aromatic_bin": "aromatic_low"
+            },
+            "weight": -0.4,
+            "rationale": "Low aromaticity may reduce hydrophobic character, lowering lipophilicity."
+          },
+          {
+            "rule_id": "branch_high_volume",
+            "conditions": {
+              "branch_bin": "branch_high"
+            },
+            "weight": 0.3,
+            "rationale": "High branching increases molecular volume, potentially enhancing lipophilicity."
+          }
+        ],
+        "ridge": 3.0,
+        "prior_scale": 0.4,
+        "semantic_mass_start": 0.5,
+        "semantic_mass_end": 0.3,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.06,
+        "confidence": 0.7,
+        "hypothesis": "Transfers the principle that low polarity enhances lipophilicity; may fail for molecules where specific polar groups participate in hydrophobic interactions."
+      },
+      {
+        "skill_id": "ring_and_branch_synergy",
+        "rules": [
+          {
+            "rule_id": "ring_token_high_branch_mid_interaction",
+            "conditions": {
+              "ring_token_bin": "ring_token_high",
+              "branch_bin": "branch_mid"
+            },
+            "weight": 0.8,
+            "rationale": "Combination of high ring count and moderate branching optimizes rigidity and hydrophobic surface area."
+          },
+          {
+            "rule_id": "halogen_low",
+            "conditions": {
+              "halogen_bin": "halogen_low"
+            },
+            "weight": 0.2,
+            "rationale": "Low halogen presence avoids potential toxicity while maintaining some hydrophobicity."
+          },
+          {
+            "rule_id": "double_bond_moderate",
+            "conditions": {
+              "double_bond_bin": "double_bond_mid"
+            },
+            "weight": 0.3,
+            "rationale": "Moderate double bonds contribute to planarity without excessive polarity."
+          },
+          {
+            "rule_id": "aromatic_moderate_positive",
+            "conditions": {
+              "aromatic_bin": "aromatic_mid"
+            },
+            "weight": 0.5,
+            "rationale": "Moderate aromaticity supports hydrophobic pi-stacking interactions."
+          }
+        ],
+        "ridge": 2.0,
+        "prior_scale": 0.55,
+        "semantic_mass_start": 0.65,
+        "semantic_mass_end": 0.45,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 2.8,
+        "gp_beta_end": 1.3,
+        "gp_xi": 0.07,
+        "confidence": 0.75,
+        "hypothesis": "Transfers the synergistic effect of ring structures and branching on lipophilicity; may fail for overly flexible or polar ring systems."
+      },
+      {
+        "skill_id": "counter_hypothesis_halogen_limited",
+        "rules": [
+          {
+            "rule_id": "halogen_none_benefit",
+            "conditions": {
+              "halogen_bin": "halogen_none"
+            },
+            "weight": 0.4,
+            "rationale": "Absence of halogens may indicate other hydrophobic groups, avoiding halogen-specific liabilities."
+          },
+          {
+            "rule_id": "heteroatom_high_positive",
+            "conditions": {
+              "hetero_atom_bin": "hetero_high"
+            },
+            "weight": 0.3,
+            "rationale": "High heteroatom content could involve hydrophobic heterocycles, potentially increasing lipophilicity."
+          },
+          {
+            "rule_id": "aromatic_low_benefit",
+            "conditions": {
+              "aromatic_bin": "aromatic_low"
+            },
+            "weight": 0.2,
+            "rationale": "Low aromaticity may favor aliphatic hydrophobicity, which can be significant."
+          },
+          {
+            "rule_id": "double_bond_high_risk",
+            "conditions": {
+              "double_bond_bin": "double_bond_high"
+            },
+            "weight": -0.6,
+            "rationale": "High double bond count increases polarity and planarity, potentially reducing lipophilicity."
+          }
+        ],
+        "ridge": 4.0,
+        "prior_scale": 0.35,
+        "semantic_mass_start": 0.4,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.4,
+        "gp_beta_start": 1.5,
+        "gp_beta_end": 0.8,
+        "gp_xi": 0.1,
+        "confidence": 0.65,
+        "hypothesis": "Counters the typical halogen-dependence hypothesis; may fail if halogens are indeed critical for lipophilicity in this dataset."
+      },
+      {
+        "skill_id": "domain_knowledge_polar_surface_control",
+        "rules": [
+          {
+            "rule_id": "heteroatom_none_high_risk",
+            "conditions": {
+              "hetero_atom_bin": "hetero_none"
+            },
+            "weight": -0.9,
+            "rationale": "No heteroatoms likely indicate simple hydrocarbons, which may have lower than expected lipophilicity due to lack of functional group interactions."
+          },
+          {
+            "rule_id": "aromatic_high_halogen_low_interaction",
+            "conditions": {
+              "aromatic_bin": "aromatic_high",
+              "halogen_bin": "halogen_low"
+            },
+            "weight": 0.7,
+            "rationale": "High aromaticity with low halogenation balances hydrophobicity and avoids excessive molecular weight."
+          },
+          {
+            "rule_id": "ring_token_mid",
+            "conditions": {
+              "ring_token_bin": "ring_token_mid"
+            },
+            "weight": 0.5,
+            "rationale": "Moderate ring token count indicates optimal molecular rigidity for membrane partitioning."
+          },
+          {
+            "rule_id": "branch_low_risk",
+            "conditions": {
+              "branch_bin": "branch_low"
+            },
+            "weight": -0.3,
+            "rationale": "Low branching may reduce hydrophobic surface area, lowering lipophilicity."
+          },
+          {
+            "rule_id": "double_bond_none_benefit",
+            "conditions": {
+              "double_bond_bin": "double_bond_none"
+            },
+            "weight": 0.4,
+            "rationale": "No double bonds minimizes polarity, favoring lipophilicity in saturated systems."
+          }
+        ],
+        "ridge": 2.2,
+        "prior_scale": 0.45,
+        "semantic_mass_start": 0.55,
+        "semantic_mass_end": 0.35,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.04,
+        "confidence": 0.8,
+        "hypothesis": "Transfers domain knowledge about polar surface area and molecular rigidity; may fail for molecules where specific polar groups enhance lipophilicity through unconventional mechanisms."
+      },
+      {
+        "skill_id": "balanced_molecular_complexity",
+        "rules": [
+          {
+            "rule_id": "smiles_mid_length",
+            "conditions": {
+              "smiles_length_bin": "smiles_mid"
+            },
+            "weight": 0.5,
+            "rationale": "Mid-length SMILES indicate moderate molecular size, often optimal for lipophilicity."
+          },
+          {
+            "rule_id": "heteroatom_mid_halogen_mid_interaction",
+            "conditions": {
+              "hetero_atom_bin": "hetero_mid",
+              "halogen_bin": "halogen_mid"
+            },
+            "weight": 0.6,
+            "rationale": "Balanced heteroatom and halogen content provides hydrophobicity without excessive polarity."
+          },
+          {
+            "rule_id": "aromatic_mid_ring_mid_interaction",
+            "conditions": {
+              "aromatic_bin": "aromatic_mid",
+              "ring_token_bin": "ring_token_mid"
+            },
+            "weight": 0.7,
+            "rationale": "Moderate aromaticity and ring count synergize for stable hydrophobic character."
+          },
+          {
+            "rule_id": "branch_high_double_low_interaction",
+            "conditions": {
+              "branch_bin": "branch_high",
+              "double_bond_bin": "double_bond_low"
+            },
+            "weight": 0.4,
+            "rationale": "High branching with low double bonds maximizes aliphatic hydrophobicity."
+          }
+        ],
+        "ridge": 2.8,
+        "prior_scale": 0.5,
+        "semantic_mass_start": 0.6,
+        "semantic_mass_end": 0.4,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 2.5,
+        "gp_beta_end": 1.2,
+        "gp_xi": 0.06,
+        "confidence": 0.75,
+        "hypothesis": "Transfers the principle of balanced molecular complexity for lipophilicity; may fail for molecules where extreme values in one feature dominate."
+      }
+    ]
+  },
+  "normalized_skills": [
+    {
+      "skill_id": "high_aromatic_lipophilicity_enhancer",
+      "rules": [
+        {
+          "rule_id": "aromatic_rich",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "High aromatic content increases hydrophobicity and enhances lipophilicity."
+        },
+        {
+          "rule_id": "heteroatom_moderate",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_mid"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Moderate heteroatom presence can balance polarity without overly reducing lipophilicity."
+        },
+        {
+          "rule_id": "halogen_low_risk",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_none"
+            ]
+          ],
+          "weight": -0.2,
+          "rationale": "Absence of halogens may reduce hydrophobic contributions, slightly lowering lipophilicity."
+        },
+        {
+          "rule_id": "ring_token_high",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "High ring token count correlates with rigid, hydrophobic molecular frameworks."
+        }
+      ],
+      "ridge": 2.5,
+      "prior_scale": 0.5,
+      "semantic_mass_start": 0.6,
+      "semantic_mass_end": 0.4,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 3.0,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.05,
+      "confidence": 0.8,
+      "hypothesis": "Transfers the principle that aromaticity and ring structures enhance lipophilicity; may fail for highly polar or charged aromatic systems."
+    },
+    {
+      "skill_id": "halogenated_hydrophobic_booster",
+      "rules": [
+        {
+          "rule_id": "halogen_high_positive",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_high"
+            ]
+          ],
+          "weight": 0.9,
+          "rationale": "High halogen content significantly increases hydrophobicity and lipophilicity."
+        },
+        {
+          "rule_id": "branch_moderate",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_mid"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Moderate branching can enhance molecular volume and hydrophobic surface area."
+        },
+        {
+          "rule_id": "double_bond_low",
+          "conditions": [
+            [
+              "double_bond_bin",
+              "double_bond_low"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Low double bond count reduces polarity, favoring lipophilicity."
+        },
+        {
+          "rule_id": "heteroatom_low_risk",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_low"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "Low heteroatom presence may limit hydrophobic interactions if overly simple."
+        }
+      ],
+      "ridge": 1.8,
+      "prior_scale": 0.6,
+      "semantic_mass_start": 0.7,
+      "semantic_mass_end": 0.5,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.08,
+      "confidence": 0.75,
+      "hypothesis": "Transfers the known hydrophobic effect of halogens; may fail for molecules with countervailing polar groups or conformational issues."
+    },
+    {
+      "skill_id": "low_semantic_mass_conservative",
+      "rules": [
+        {
+          "rule_id": "aromatic_moderate",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_mid"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Moderate aromaticity provides a baseline hydrophobic contribution."
+        },
+        {
+          "rule_id": "heteroatom_high_risk",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "High heteroatom content increases polarity, likely reducing lipophilicity."
+        }
+      ],
+      "ridge": 5.0,
+      "prior_scale": 0.2,
+      "semantic_mass_start": 0.1,
+      "semantic_mass_end": 0.05,
+      "ucb_weight": 0.8,
+      "gp_beta_start": 1.0,
+      "gp_beta_end": 0.5,
+      "gp_xi": 0.02,
+      "confidence": 0.6,
+      "hypothesis": "Transfers minimal semantic assumptions, heavily relying on the GP anchor; may fail if simple rules miss complex lipophilicity drivers."
+    },
+    {
+      "skill_id": "heteroatom_polarity_mitigator",
+      "rules": [
+        {
+          "rule_id": "heteroatom_low_benefit",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_low"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Low heteroatom count minimizes polarity, favoring higher lipophilicity."
+        },
+        {
+          "rule_id": "halogen_moderate",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_mid"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Moderate halogenation adds hydrophobicity without excessive molecular weight."
+        },
+        {
+          "rule_id": "aromatic_low_risk",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_low"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "Low aromaticity may reduce hydrophobic character, lowering lipophilicity."
+        },
+        {
+          "rule_id": "branch_high_volume",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_high"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "High branching increases molecular volume, potentially enhancing lipophilicity."
+        }
+      ],
+      "ridge": 3.0,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.3,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.06,
+      "confidence": 0.7,
+      "hypothesis": "Transfers the principle that low polarity enhances lipophilicity; may fail for molecules where specific polar groups participate in hydrophobic interactions."
+    },
+    {
+      "skill_id": "ring_and_branch_synergy",
+      "rules": [
+        {
+          "rule_id": "ring_token_high_branch_mid_interaction",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_mid"
+            ],
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Combination of high ring count and moderate branching optimizes rigidity and hydrophobic surface area."
+        },
+        {
+          "rule_id": "halogen_low",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_low"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Low halogen presence avoids potential toxicity while maintaining some hydrophobicity."
+        },
+        {
+          "rule_id": "double_bond_moderate",
+          "conditions": [
+            [
+              "double_bond_bin",
+              "double_bond_mid"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Moderate double bonds contribute to planarity without excessive polarity."
+        },
+        {
+          "rule_id": "aromatic_moderate_positive",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_mid"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Moderate aromaticity supports hydrophobic pi-stacking interactions."
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.55,
+      "semantic_mass_start": 0.65,
+      "semantic_mass_end": 0.45,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.8,
+      "gp_beta_end": 1.3,
+      "gp_xi": 0.07,
+      "confidence": 0.75,
+      "hypothesis": "Transfers the synergistic effect of ring structures and branching on lipophilicity; may fail for overly flexible or polar ring systems."
+    },
+    {
+      "skill_id": "counter_hypothesis_halogen_limited",
+      "rules": [
+        {
+          "rule_id": "halogen_none_benefit",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_none"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Absence of halogens may indicate other hydrophobic groups, avoiding halogen-specific liabilities."
+        },
+        {
+          "rule_id": "heteroatom_high_positive",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "High heteroatom content could involve hydrophobic heterocycles, potentially increasing lipophilicity."
+        },
+        {
+          "rule_id": "aromatic_low_benefit",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_low"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Low aromaticity may favor aliphatic hydrophobicity, which can be significant."
+        },
+        {
+          "rule_id": "double_bond_high_risk",
+          "conditions": [
+            [
+              "double_bond_bin",
+              "double_bond_high"
+            ]
+          ],
+          "weight": -0.6,
+          "rationale": "High double bond count increases polarity and planarity, potentially reducing lipophilicity."
+        }
+      ],
+      "ridge": 4.0,
+      "prior_scale": 0.35,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 0.8,
+      "gp_xi": 0.1,
+      "confidence": 0.65,
+      "hypothesis": "Counters the typical halogen-dependence hypothesis; may fail if halogens are indeed critical for lipophilicity in this dataset."
+    },
+    {
+      "skill_id": "domain_knowledge_polar_surface_control",
+      "rules": [
+        {
+          "rule_id": "heteroatom_none_high_risk",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_none"
+            ]
+          ],
+          "weight": -0.9,
+          "rationale": "No heteroatoms likely indicate simple hydrocarbons, which may have lower than expected lipophilicity due to lack of functional group interactions."
+        },
+        {
+          "rule_id": "aromatic_high_halogen_low_interaction",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ],
+            [
+              "halogen_bin",
+              "halogen_low"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "High aromaticity with low halogenation balances hydrophobicity and avoids excessive molecular weight."
+        },
+        {
+          "rule_id": "ring_token_mid",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_mid"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Moderate ring token count indicates optimal molecular rigidity for membrane partitioning."
+        },
+        {
+          "rule_id": "branch_low_risk",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_low"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "Low branching may reduce hydrophobic surface area, lowering lipophilicity."
+        },
+        {
+          "rule_id": "double_bond_none_benefit",
+          "conditions": [
+            [
+              "double_bond_bin",
+              "double_bond_none"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "No double bonds minimizes polarity, favoring lipophilicity in saturated systems."
+        }
+      ],
+      "ridge": 2.2,
+      "prior_scale": 0.45,
+      "semantic_mass_start": 0.55,
+      "semantic_mass_end": 0.35,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.04,
+      "confidence": 0.8,
+      "hypothesis": "Transfers domain knowledge about polar surface area and molecular rigidity; may fail for molecules where specific polar groups enhance lipophilicity through unconventional mechanisms."
+    },
+    {
+      "skill_id": "balanced_molecular_complexity",
+      "rules": [
+        {
+          "rule_id": "smiles_mid_length",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Mid-length SMILES indicate moderate molecular size, often optimal for lipophilicity."
+        },
+        {
+          "rule_id": "heteroatom_mid_halogen_mid_interaction",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_mid"
+            ],
+            [
+              "hetero_atom_bin",
+              "hetero_mid"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Balanced heteroatom and halogen content provides hydrophobicity without excessive polarity."
+        },
+        {
+          "rule_id": "aromatic_mid_ring_mid_interaction",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_mid"
+            ],
+            [
+              "ring_token_bin",
+              "ring_token_mid"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Moderate aromaticity and ring count synergize for stable hydrophobic character."
+        },
+        {
+          "rule_id": "branch_high_double_low_interaction",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_high"
+            ],
+            [
+              "double_bond_bin",
+              "double_bond_low"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "High branching with low double bonds maximizes aliphatic hydrophobicity."
+        }
+      ],
+      "ridge": 2.8,
+      "prior_scale": 0.5,
+      "semantic_mass_start": 0.6,
+      "semantic_mass_end": 0.4,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.06,
+      "confidence": 0.75,
+      "hypothesis": "Transfers the principle of balanced molecular complexity for lipophilicity; may fail for molecules where extreme values in one feature dominate."
+    }
+  ],
+  "knowledge_retrieval": {
+    "enabled": true,
+    "db": "knowledge_base/runtime/care_kb.sqlite",
+    "cutoff": "2026-07-22",
+    "card_ids": [
+      "transfer.real-suzuki-miyaura-to-real-buchwald-hartwig-gate-reject-2026-07-21",
+      "transfer.real-suzuki-miyaura-to-real-buchwald-hartwig-calibration-fallback-2026-07-22",
+      "transfer.target-only-schema-to-real-matbench-log-kvrh-calibration-fallback-2026-07-22",
+      "transfer.source-schema-only-to-real-chemlex-acidamine-negative-heldout-2026-07-22",
+      "skill.semantic-real-moleculenet-esol-counter-hypothesis-low-hbond-donors-2026-07-22",
+      "skill.semantic-real-moleculenet-lipophilicity-high-aromatic-content-2026-07-22"
+    ]
+  }
+}

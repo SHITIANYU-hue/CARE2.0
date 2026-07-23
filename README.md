@@ -56,6 +56,7 @@ The latest project sync focuses on three workstreams:
 
 The latest tracked replay output is in:
 
+- `experiments/care_replay/results/2026-07-24-source-outcome-transfer/`
 - `experiments/care_replay/results/2026-07-23-source-evidence-extension/`
 - `experiments/care_replay/results/2026-07-22-multidomain-llm-completion/`
 - `experiments/care_replay/results/2026-06-28-doc-guided-sweep/`
@@ -94,7 +95,17 @@ GP-UCB on Suzuki-to-Buchwald-Hartwig and FreeSolv-to-Lipophilicity replay.
 Raw public data files, per-mode metrics, audit logs, and knowledge snapshots
 are kept under `experiments/care_replay/`.
 
-The 2026-07-23 extension is the current confirmation result. It freezes LLM
+The 2026-07-24 snapshot is the first complete source-outcome transfer
+confirmation. LLM-compiled role maps are combined with fixed measured source
+histories to build neighbor, additive, interaction, initial-design, and kernel
+priors. A calibration-only selector freezes transfer or an exact matched
+target-only LLM fallback before 100 independent held-out seeds. Four of seven
+real source-target paths are significantly positive on paired final-best plus
+AUC; the other three reproduce the target-only policy exactly. The archive
+retains the rejected raw routes, per-seed metrics, round-level traces, full
+audits, and development screening results.
+
+The 2026-07-23 extension is the preceding source-schema confirmation. It freezes LLM
 skill identity before 300 paired held-out seeds and compares source-schema
 transfer directly against matched target-only LLM routing. Four of five
 source-target paths show a significant gain on final best or best-so-far AUC,

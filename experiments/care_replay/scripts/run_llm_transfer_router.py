@@ -9,9 +9,10 @@ import math
 import os
 import random
 from dataclasses import asdict
+from itertools import combinations
 from pathlib import Path
 from statistics import mean, pstdev
-from typing import Any
+from typing import Any, Callable
 
 import run_frozen_llm_kernel_patch as frozen
 import run_llm_kernel_online_bma as bma
@@ -25,6 +26,14 @@ import run_transfer_weighted_kernel as weighted
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_RUNS = ROOT / "outputs" / "runs"
 OUTPUT_TABLES = ROOT / "outputs" / "tables"
+_SOURCE_PRIOR_CACHE: dict[
+    tuple[Any, ...],
+    tuple[dict[str, float], dict[str, Any]],
+] = {}
+_SOURCE_INTERACTION_CACHE: dict[
+    tuple[Any, ...],
+    tuple[dict[str, float], dict[str, Any]],
+] = {}
 
 MOLECULAR_DATASETS = (
     "real_moleculenet_esol",
@@ -81,6 +90,75 @@ def leave_one_out_gain(xs: list[float], ys: list[float]) -> float:
     if baseline_mse <= 1e-12:
         return 0.0
     return max(-2.0, min(1.0, 1.0 - mean(model_errors) / baseline_mse))
+
+
+def canonical_transfer_value(field: str, value: str) -> str:
+    """Normalize equivalent public descriptor bins across dataset adapters."""
+    normalized = value.strip().lower()
+    if not normalized or not field.endswith("_bin"):
+        return normalized
+    prefixes = (
+        "smiles_",
+        "ring_token_",
+        "rings_",
+        "mw_",
+        "logp_",
+        "tpsa_",
+        "aromatic_",
+        "mean_z_",
+        "fraction_",
+    )
+    for prefix in prefixes:
+        if normalized.startswith(prefix):
+            normalized = normalized[len(prefix):]
+            break
+    return {
+        "none_or_low": "low",
+        "zero_or_low": "low",
+        "none": "low",
+    }.get(normalized, normalized)
+
+
+def mapped_value(field: str, value: str, canonicalize: bool) -> str:
+    return canonical_transfer_value(field, value) if canonicalize else value.strip().lower()
+
+
+def source_outcome_cache_key(
+    kind: str,
+    source_observed: list[replay.Candidate],
+    target_adapter: replay.DatasetAdapter,
+    card: transfer.TransferCard,
+    patch: evolution.KernelSkillPatch,
+) -> tuple[Any, ...]:
+    source_signature = tuple(
+        (candidate.candidate_id, round(candidate.objective_value, 10))
+        for candidate in source_observed
+    )
+    role_signature = tuple(
+        (
+            role.source_field,
+            role.target_field,
+            round(role.transfer_weight, 10),
+            round(role.source_max_abs_effect, 10),
+            round(role.confidence, 10),
+        )
+        for role in card.roles
+    )
+    return (
+        kind,
+        card.source_dataset,
+        card.target_dataset,
+        source_signature,
+        tuple(candidate.candidate_id for candidate in target_adapter.candidates),
+        role_signature,
+        tuple(sorted(patch.role_multipliers.items())),
+        round(patch.source_prior_strength, 10),
+        round(patch.source_similarity_temperature, 10),
+        patch.source_neighbor_count,
+        round(patch.source_interaction_strength, 10),
+        patch.source_interaction_min_support,
+        patch.canonicalize_source_values,
+    )
 
 
 def weighted_kernel_loo_mae(
@@ -165,6 +243,15 @@ def aligned_source_prior(
     ]
     if patch.source_prior_strength <= 0.0 or (not active_roles and not identity_fields):
         return {}, {"active": False, "reason": "source_prior_disabled_or_no_roles"}
+    cache_key = source_outcome_cache_key(
+        "neighbor",
+        source_observed,
+        target_adapter,
+        card,
+        patch,
+    )
+    if cache_key in _SOURCE_PRIOR_CACHE:
+        return _SOURCE_PRIOR_CACHE[cache_key]
 
     source_values = [candidate.objective_value / 100.0 for candidate in source_observed]
     source_mean = mean(source_values)
@@ -216,8 +303,16 @@ def aligned_source_prior(
         for source_candidate in neighbor_source_observed:
             mismatch = 0.0
             for role in active_roles:
-                source_value = str(source_candidate.metadata.get(role.source_field, ""))
-                target_value = str(target_candidate.metadata.get(role.target_field, ""))
+                source_value = mapped_value(
+                    role.source_field,
+                    str(source_candidate.metadata.get(role.source_field, "")),
+                    patch.canonicalize_source_values,
+                )
+                target_value = mapped_value(
+                    role.target_field,
+                    str(target_candidate.metadata.get(role.target_field, "")),
+                    patch.canonicalize_source_values,
+                )
                 if not source_value or not target_value:
                     mismatch += 0.5 * role_weights[role.target_field]
                 elif source_value != target_value:
@@ -237,7 +332,7 @@ def aligned_source_prior(
         ) / max(weight_sum, 1e-12)
         nearest_distance_values.append(nearest[0][0])
 
-    return prior_by_id, {
+    result = prior_by_id, {
         "active": True,
         "role_count": len(active_roles),
         "roles": [
@@ -264,6 +359,423 @@ def aligned_source_prior(
             6,
         ),
         "_exact_match_candidate_ids": exact_match_candidate_ids,
+    }
+    _SOURCE_PRIOR_CACHE[cache_key] = result
+    return result
+
+
+def source_interaction_prior(
+    source_observed: list[replay.Candidate],
+    target_adapter: replay.DatasetAdapter,
+    card: transfer.TransferCard,
+    patch: evolution.KernelSkillPatch,
+) -> tuple[dict[str, float], dict[str, Any]]:
+    """Transfer source outcome residuals for jointly observed mapped roles."""
+    active_roles = sorted(
+        (
+            role
+            for role in card.roles
+            if role.transfer_weight > 0.0
+            and patch.role_multipliers.get(role.target_field, 1.0) > 0.0
+        ),
+        key=lambda role: (
+            role.source_max_abs_effect * role.confidence,
+            role.target_field,
+        ),
+        reverse=True,
+    )[:8]
+    if patch.source_interaction_strength <= 0.0 or len(active_roles) < 2:
+        return {}, {"active": False, "reason": "interaction_transfer_disabled_or_insufficient_roles"}
+    cache_key = source_outcome_cache_key(
+        "interaction",
+        source_observed,
+        target_adapter,
+        card,
+        patch,
+    )
+    if cache_key in _SOURCE_INTERACTION_CACHE:
+        return _SOURCE_INTERACTION_CACHE[cache_key]
+
+    source_values = [candidate.objective_value / 100.0 for candidate in source_observed]
+    source_mean = mean(source_values)
+    source_scale = max(pstdev(source_values), 0.05)
+    source_z = [
+        (candidate.objective_value / 100.0 - source_mean) / source_scale
+        for candidate in source_observed
+    ]
+    marginal: dict[tuple[str, str], list[float]] = {}
+    for candidate, outcome in zip(source_observed, source_z):
+        for role in active_roles:
+            value = mapped_value(
+                role.source_field,
+                str(candidate.metadata.get(role.source_field, "")),
+                patch.canonicalize_source_values,
+            )
+            if value:
+                marginal.setdefault((role.source_field, value), []).append(outcome)
+
+    residuals: dict[tuple[str, str, str, str], tuple[int, float, float]] = {}
+    min_support = patch.source_interaction_min_support
+    for left, right in combinations(active_roles, 2):
+        buckets: dict[tuple[str, str], list[float]] = {}
+        for candidate, outcome in zip(source_observed, source_z):
+            left_value = mapped_value(
+                left.source_field,
+                str(candidate.metadata.get(left.source_field, "")),
+                patch.canonicalize_source_values,
+            )
+            right_value = mapped_value(
+                right.source_field,
+                str(candidate.metadata.get(right.source_field, "")),
+                patch.canonicalize_source_values,
+            )
+            if left_value and right_value:
+                buckets.setdefault((left_value, right_value), []).append(outcome)
+        role_weight = math.sqrt(
+            max(0.0, left.transfer_weight * right.transfer_weight)
+        )
+        for (left_value, right_value), outcomes in buckets.items():
+            if len(outcomes) < min_support:
+                continue
+            left_outcomes = marginal.get((left.source_field, left_value), ())
+            right_outcomes = marginal.get((right.source_field, right_value), ())
+            if not left_outcomes or not right_outcomes:
+                continue
+            residual = mean(outcomes) - 0.5 * (
+                mean(left_outcomes) + mean(right_outcomes)
+            )
+            shrinkage = len(outcomes) / (len(outcomes) + 4.0)
+            residual *= shrinkage
+            if abs(residual) < 0.08:
+                continue
+            residuals[(
+                left.target_field,
+                left_value,
+                right.target_field,
+                right_value,
+            )] = (len(outcomes), residual, role_weight)
+
+    prior_by_id: dict[str, float] = {}
+    matched_candidates = 0
+    for candidate in target_adapter.candidates:
+        signals: list[float] = []
+        for (
+            left_field,
+            left_value,
+            right_field,
+            right_value,
+        ), (_support, residual, role_weight) in residuals.items():
+            target_left = mapped_value(
+                left_field,
+                str(candidate.metadata.get(left_field, "")),
+                patch.canonicalize_source_values,
+            )
+            target_right = mapped_value(
+                right_field,
+                str(candidate.metadata.get(right_field, "")),
+                patch.canonicalize_source_values,
+            )
+            if target_left == left_value and target_right == right_value:
+                signals.append(role_weight * residual)
+        prior_by_id[candidate.candidate_id] = mean(signals) if signals else 0.0
+        matched_candidates += int(bool(signals))
+
+    strongest = sorted(
+        (
+            {
+                "target_fields": [left_field, right_field],
+                "values": [left_value, right_value],
+                "support": support,
+                "residual_z": round(residual, 6),
+                "role_weight": round(role_weight, 6),
+            }
+            for (
+                left_field,
+                left_value,
+                right_field,
+                right_value,
+            ), (support, residual, role_weight) in residuals.items()
+        ),
+        key=lambda item: abs(float(item["residual_z"])),
+        reverse=True,
+    )[:24]
+    result = prior_by_id, {
+        "active": bool(residuals) and matched_candidates > 0,
+        "source_observation_count": len(source_observed),
+        "role_count": len(active_roles),
+        "interaction_count": len(residuals),
+        "matched_target_candidate_count": matched_candidates,
+        "matched_target_candidate_fraction": round(
+            matched_candidates / max(1, len(target_adapter.candidates)),
+            6,
+        ),
+        "min_source_support": min_support,
+        "canonicalized_values": patch.canonicalize_source_values,
+        "strongest_interactions": strongest,
+    }
+    _SOURCE_INTERACTION_CACHE[cache_key] = result
+    return result
+
+
+def source_additive_outcome_prior(
+    source_observed: list[replay.Candidate],
+    target_adapter: replay.DatasetAdapter,
+    card: transfer.TransferCard,
+    patch: evolution.KernelSkillPatch,
+) -> tuple[dict[str, float], dict[str, Any]]:
+    """Transfer shrunk source outcome effects for individual mapped values."""
+    active_roles = [
+        role
+        for role in card.roles
+        if role.transfer_weight > 0.0
+        and patch.role_multipliers.get(role.target_field, 1.0) > 0.0
+    ]
+    if patch.source_prior_strength <= 0.0 or not active_roles:
+        return {}, {"active": False, "reason": "additive_prior_disabled_or_no_roles"}
+    cache_key = source_outcome_cache_key(
+        "additive",
+        source_observed,
+        target_adapter,
+        card,
+        patch,
+    )
+    if cache_key in _SOURCE_PRIOR_CACHE:
+        return _SOURCE_PRIOR_CACHE[cache_key]
+
+    source_values = [candidate.objective_value / 100.0 for candidate in source_observed]
+    source_mean = mean(source_values)
+    source_scale = max(pstdev(source_values), 0.05)
+    source_z = [
+        (candidate.objective_value / 100.0 - source_mean) / source_scale
+        for candidate in source_observed
+    ]
+    effects: dict[tuple[str, str], tuple[int, float, float]] = {}
+    for role in active_roles:
+        buckets: dict[str, list[float]] = {}
+        for candidate, outcome in zip(source_observed, source_z):
+            value = mapped_value(
+                role.source_field,
+                str(candidate.metadata.get(role.source_field, "")),
+                patch.canonicalize_source_values,
+            )
+            if value:
+                buckets.setdefault(value, []).append(outcome)
+        role_weight = max(
+            0.02,
+            role.transfer_weight
+            * patch.role_multipliers.get(role.target_field, 1.0),
+        )
+        for value, outcomes in buckets.items():
+            support = len(outcomes)
+            shrinkage = support / (support + 5.0)
+            effects[(role.target_field, value)] = (
+                support,
+                shrinkage * mean(outcomes),
+                role_weight,
+            )
+
+    prior_by_id: dict[str, float] = {}
+    matched_counts: list[int] = []
+    for candidate in target_adapter.candidates:
+        weighted_effects: list[tuple[float, float]] = []
+        for role in active_roles:
+            value = mapped_value(
+                role.target_field,
+                str(candidate.metadata.get(role.target_field, "")),
+                patch.canonicalize_source_values,
+            )
+            effect = effects.get((role.target_field, value))
+            if effect is not None:
+                _support, outcome_effect, role_weight = effect
+                weighted_effects.append((role_weight, outcome_effect))
+        total_weight = sum(weight for weight, _effect in weighted_effects)
+        prior_by_id[candidate.candidate_id] = (
+            sum(weight * effect for weight, effect in weighted_effects)
+            / max(total_weight, 1e-12)
+            if weighted_effects
+            else 0.0
+        )
+        matched_counts.append(len(weighted_effects))
+
+    strongest = sorted(
+        (
+            {
+                "target_field": field,
+                "value": value,
+                "support": support,
+                "effect_z": round(effect, 6),
+                "role_weight": round(role_weight, 6),
+            }
+            for (field, value), (support, effect, role_weight) in effects.items()
+        ),
+        key=lambda item: abs(float(item["effect_z"])),
+        reverse=True,
+    )[:24]
+    result = prior_by_id, {
+        "active": bool(effects) and any(matched_counts),
+        "source_observation_count": len(source_observed),
+        "role_count": len(active_roles),
+        "effect_count": len(effects),
+        "mean_matched_roles": round(mean(matched_counts), 6),
+        "canonicalized_values": patch.canonicalize_source_values,
+        "strongest_effects": strongest,
+    }
+    _SOURCE_PRIOR_CACHE[cache_key] = result
+    return result
+
+
+def source_informed_initial_observations(
+    target_adapter: replay.DatasetAdapter,
+    matched_initial: list[replay.Candidate],
+    source_priors: dict[str, dict[str, float]],
+    source_additive_priors: dict[str, dict[str, float]],
+    source_interaction_priors: dict[str, dict[str, float]],
+    patches: tuple[evolution.KernelSkillPatch, ...],
+    initial_count: int,
+    strategy: str,
+) -> tuple[list[replay.Candidate], dict[str, Any]]:
+    """Use frozen source outcomes to add exploitation or calibration probes."""
+    matched = list(matched_initial[:initial_count])
+    if strategy == "matched" or initial_count <= 0:
+        return matched, {
+            "strategy": "matched",
+            "source_outcome_active": False,
+            "matched_initial_ids": [candidate.candidate_id for candidate in matched],
+            "selected_initial_ids": [candidate.candidate_id for candidate in matched],
+            "replaced_count": 0,
+        }
+    if strategy not in {
+        "source_extremes",
+        "source_positive",
+        "source_negative",
+        "source_positive_quantile",
+        "source_negative_quantile",
+    }:
+        raise ValueError(f"Unsupported source initial strategy: {strategy}")
+
+    candidate_ids = [candidate.candidate_id for candidate in target_adapter.candidates]
+    aggregate = {candidate_id: 0.0 for candidate_id in candidate_ids}
+    total_weight = 0.0
+    component_diagnostics: list[dict[str, Any]] = []
+    for patch in patches:
+        mode = evolution.patch_mode(patch)
+        prior = source_priors.get(mode, {})
+        additive = source_additive_priors.get(mode, {})
+        interaction = source_interaction_priors.get(mode, {})
+        if not prior and not additive and not interaction:
+            continue
+        combined = {
+            candidate_id: (
+                prior.get(candidate_id, 0.0)
+                + additive.get(candidate_id, 0.0)
+                + patch.source_interaction_strength
+                * interaction.get(candidate_id, 0.0)
+            )
+            for candidate_id in candidate_ids
+        }
+        if len({round(value, 12) for value in combined.values()}) <= 1:
+            continue
+        ranked = weighted.rank_normalized(combined)
+        patch_weight = max(0.05, patch.confidence) * max(
+            0.05,
+            patch.source_prior_strength + 0.5 * patch.source_interaction_strength,
+        )
+        for candidate_id, rank in ranked.items():
+            aggregate[candidate_id] += patch_weight * (2.0 * rank - 1.0)
+        total_weight += patch_weight
+        component_diagnostics.append({
+            "patch_mode": mode,
+            "weight": round(patch_weight, 6),
+            "source_prior_active": bool(prior),
+            "source_additive_prior_active": bool(additive),
+            "source_interaction_active": bool(interaction),
+        })
+
+    if total_weight <= 0.0:
+        return matched, {
+            "strategy": strategy,
+            "source_outcome_active": False,
+            "reason": "no_nonconstant_source_outcome_signal",
+            "matched_initial_ids": [candidate.candidate_id for candidate in matched],
+            "selected_initial_ids": [candidate.candidate_id for candidate in matched],
+            "replaced_count": 0,
+        }
+    aggregate = {
+        candidate_id: score / total_weight
+        for candidate_id, score in aggregate.items()
+    }
+    by_id = {
+        candidate.candidate_id: candidate
+        for candidate in target_adapter.candidates
+    }
+    probe_count = min(2, initial_count)
+    preserve_count = initial_count - probe_count
+    selected = list(matched[:preserve_count])
+    selected_ids = {candidate.candidate_id for candidate in selected}
+    selected_groups = {candidate.group for candidate in selected}
+
+    descending = sorted(
+        candidate_ids,
+        key=lambda candidate_id: (aggregate[candidate_id], candidate_id),
+        reverse=True,
+    )
+    ascending = list(reversed(descending))
+    if strategy == "source_extremes":
+        probe_orders = [descending, ascending]
+    elif strategy == "source_positive":
+        probe_orders = [descending, descending]
+    elif strategy == "source_negative":
+        probe_orders = [ascending, ascending]
+    else:
+        ordered = (
+            descending
+            if strategy == "source_positive_quantile"
+            else ascending
+        )
+        offsets = [
+            min(len(ordered) - 1, max(0, int(fraction * len(ordered))))
+            for fraction in (0.02, 0.08)
+        ]
+        probe_orders = [ordered[offset:] for offset in offsets]
+    probe_ids: list[str] = []
+    for order in probe_orders[:probe_count]:
+        candidates = [
+            candidate_id
+            for candidate_id in order
+            if candidate_id not in selected_ids
+        ]
+        diverse = [
+            candidate_id
+            for candidate_id in candidates
+            if by_id[candidate_id].group not in selected_groups
+        ]
+        chosen_id = (diverse or candidates)[0]
+        chosen = by_id[chosen_id]
+        selected.append(chosen)
+        selected_ids.add(chosen_id)
+        selected_groups.add(chosen.group)
+        probe_ids.append(chosen_id)
+
+    return selected, {
+        "strategy": strategy,
+        "source_outcome_active": True,
+        "matched_initial_ids": [candidate.candidate_id for candidate in matched],
+        "selected_initial_ids": [candidate.candidate_id for candidate in selected],
+        "preserved_target_initial_ids": [
+            candidate.candidate_id for candidate in matched[:preserve_count]
+        ],
+        "source_probe_ids": probe_ids,
+        "source_probe_scores": {
+            candidate_id: round(aggregate[candidate_id], 6)
+            for candidate_id in probe_ids
+        },
+        "replaced_count": probe_count,
+        "component_count": len(component_diagnostics),
+        "components": component_diagnostics,
+        "evidence_boundary": (
+            "Initial probes use only frozen source outcomes and public target descriptors. "
+            "No target outcome is read while constructing the initial design."
+        ),
     }
 
 
@@ -305,6 +817,7 @@ def calibrated_prior_adjustments(
     prior_by_id: dict[str, float],
     observed: list[replay.Candidate],
     patch: evolution.KernelSkillPatch,
+    source_strength: float | None = None,
 ) -> tuple[dict[str, float], dict[str, Any]]:
     if patch.calibration_mode == "off" or not prior_by_id:
         return {}, {"active": False, "reason": "calibration_off_or_prior_missing"}
@@ -331,6 +844,11 @@ def calibrated_prior_adjustments(
 
     target_mean = mean(ys)
     target_scale = max(pstdev(ys), 0.05)
+    effective_strength = (
+        patch.source_prior_strength
+        if source_strength is None
+        else max(0.0, source_strength)
+    )
     evidence_gate = min(1.0, len(observed) / 10.0)
     gain_gate = min(1.0, max(0.0, (cv_gain - patch.min_cv_gain) / max(0.15, 1.0 - patch.min_cv_gain)))
     reliability = evidence_gate * math.sqrt(gain_gate)
@@ -341,7 +859,7 @@ def calibrated_prior_adjustments(
         centered = max(-2.5 * target_scale, min(2.5 * target_scale, predicted - target_mean))
         adjustments[candidate_id] = max(
             -adjustment_cap,
-            min(adjustment_cap, patch.source_prior_strength * reliability * centered),
+            min(adjustment_cap, effective_strength * reliability * centered),
         )
     return adjustments, {
         "active": True,
@@ -350,6 +868,7 @@ def calibrated_prior_adjustments(
         "intercept": round(intercept, 6),
         "slope": round(slope, 6),
         "reliability": round(reliability, 6),
+        "source_strength": round(effective_strength, 6),
         "adjustment_cap": round(adjustment_cap, 6),
         "max_abs_adjustment": round(max(abs(value) for value in adjustments.values()), 6),
     }
@@ -519,6 +1038,22 @@ def run_router_policy(
     numeric_length_scale: float,
     categorical_length_scale: float,
     gp_noise: float,
+    initial_observed: list[replay.Candidate] | None = None,
+    target_anchor_scorer: Callable[
+        [
+            set[str],
+            list[replay.Candidate],
+            dict[str, surrogate.FeatureRecord],
+            int,
+        ],
+        tuple[dict[str, float], dict[str, Any]],
+    ]
+    | None = None,
+    target_anchor_label: str = "equal_rank_gp_ucb_gp_ei",
+    router_min_observations: int = 5,
+    router_min_quality: float = 0.20,
+    router_max_transfer_mass: float = 0.45,
+    source_initial_strategy: str = "matched",
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     pool = target_adapter.candidates
     by_id = {candidate.candidate_id: candidate for candidate in pool}
@@ -526,14 +1061,18 @@ def run_router_policy(
         candidate.candidate_id: surrogate.candidate_features(target_adapter, candidate)
         for candidate in pool
     }
-    shuffled = list(pool)
-    random.Random(seed).shuffle(shuffled)
-    observed = shuffled[: task.initial_observations]
-    observed_ids = {candidate.candidate_id for candidate in observed}
-    top10 = {candidate.candidate_id for candidate in sorted(pool, key=lambda item: item.objective_value, reverse=True)[:10]}
-    selected_top10 = any(candidate.candidate_id in top10 for candidate in observed)
+    if initial_observed is None:
+        shuffled = list(pool)
+        random.Random(seed).shuffle(shuffled)
+        matched_initial = shuffled[: task.initial_observations]
+    else:
+        matched_initial = list(initial_observed[: task.initial_observations])
     source_priors: dict[str, dict[str, float]] = {}
     source_prior_diagnostics: dict[str, Any] = {}
+    source_additive_priors: dict[str, dict[str, float]] = {}
+    source_additive_prior_diagnostics: dict[str, Any] = {}
+    source_interaction_priors: dict[str, dict[str, float]] = {}
+    source_interaction_diagnostics: dict[str, Any] = {}
     for patch in patches:
         mode = evolution.patch_mode(patch)
         source_priors[mode], source_prior_diagnostics[mode] = aligned_source_prior(
@@ -542,22 +1081,71 @@ def run_router_policy(
             card,
             patch,
         )
+        (
+            source_additive_priors[mode],
+            source_additive_prior_diagnostics[mode],
+        ) = source_additive_outcome_prior(
+            source_observed,
+            target_adapter,
+            card,
+            patch,
+        )
+        (
+            source_interaction_priors[mode],
+            source_interaction_diagnostics[mode],
+        ) = source_interaction_prior(
+            source_observed,
+            target_adapter,
+            card,
+            patch,
+        )
+    observed, initial_design_diagnostics = source_informed_initial_observations(
+        target_adapter,
+        matched_initial,
+        source_priors,
+        source_additive_priors,
+        source_interaction_priors,
+        patches,
+        task.initial_observations,
+        source_initial_strategy,
+    )
+    source_probe_ids = set(initial_design_diagnostics.get("source_probe_ids", ()))
+    initial_design_diagnostics["revealed_initial_observations"] = [
+        {
+            "candidate_id": candidate.candidate_id,
+            "group": candidate.group,
+            "revealed_value": candidate.objective_value,
+            "source_probe": candidate.candidate_id in source_probe_ids,
+        }
+        for candidate in observed
+    ]
+    observed_ids = {candidate.candidate_id for candidate in observed}
+    top10 = {candidate.candidate_id for candidate in sorted(pool, key=lambda item: item.objective_value, reverse=True)[:10]}
+    selected_top10 = any(candidate.candidate_id in top10 for candidate in observed)
 
     best_trace: list[float] = []
     audit: list[dict[str, Any]] = []
     for round_index in range(task.reveal_budget):
-        anchors, anchor_diagnostics = target_anchor_scores(
-            target_adapter,
-            observed_ids,
-            observed,
-            features_by_id,
-            gp_beta,
-            gp_xi,
-            numeric_length_scale,
-            categorical_length_scale,
-            gp_noise,
-        )
-        anchor_scores = anchors["target_acquisition_portfolio"]
+        if target_anchor_scorer is None:
+            anchors, anchor_diagnostics = target_anchor_scores(
+                target_adapter,
+                observed_ids,
+                observed,
+                features_by_id,
+                gp_beta,
+                gp_xi,
+                numeric_length_scale,
+                categorical_length_scale,
+                gp_noise,
+            )
+            anchor_scores = anchors["target_acquisition_portfolio"]
+        else:
+            anchor_scores, anchor_diagnostics = target_anchor_scorer(
+                observed_ids,
+                observed,
+                features_by_id,
+                round_index,
+            )
         zero_weights, _ = weighted.transfer_categorical_weights(target_adapter, card, 0.0, normalize)
         baseline_loo_mae = weighted_kernel_loo_mae(
             observed,
@@ -604,8 +1192,29 @@ def run_router_policy(
                 categorical_length_scale,
                 gp_noise,
             )
-            adjustments, calibration = calibrated_prior_adjustments(
+            neighbor_adjustments, neighbor_calibration = calibrated_prior_adjustments(
                 source_priors[mode], observed, patch
+            )
+            additive_adjustments, additive_calibration = calibrated_prior_adjustments(
+                source_additive_priors[mode], observed, patch
+            )
+            prior_options = [
+                ("neighbor", neighbor_adjustments, neighbor_calibration),
+                ("additive", additive_adjustments, additive_calibration),
+            ]
+            selected_prior_kind, prior_adjustments, calibration = max(
+                prior_options,
+                key=lambda item: (
+                    bool(item[2].get("active")),
+                    float(item[2].get("cv_gain", -2.0)),
+                    item[0],
+                ),
+            )
+            interaction_adjustments, interaction_calibration = calibrated_prior_adjustments(
+                source_interaction_priors[mode],
+                observed,
+                patch,
+                source_strength=patch.source_interaction_strength,
             )
             patch_weight_ensemble = [
                 weighted.transfer_categorical_weights(
@@ -627,25 +1236,50 @@ def run_router_policy(
             )
             kernel_loo_gain = relative_loo_gain(baseline_loo_mae, patch_loo_mae)
             adjusted_scores = {
-                candidate_id: score + adjustments.get(candidate_id, 0.0)
+                candidate_id: (
+                    score
+                    + prior_adjustments.get(candidate_id, 0.0)
+                    + interaction_adjustments.get(candidate_id, 0.0)
+                )
                 for candidate_id, score in base_scores.items()
             }
             evidence_delta = evidence - gp_evidence
             cv_gain = float(calibration.get("cv_gain", -2.0))
-            prior_active = bool(calibration.get("active")) and cv_gain >= 0.30
+            interaction_cv_gain = float(interaction_calibration.get("cv_gain", -2.0))
+            prior_active = (
+                bool(calibration.get("active")) and cv_gain >= 0.20
+            ) or (
+                bool(interaction_calibration.get("active"))
+                and interaction_cv_gain >= 0.20
+            )
             kernel_active = kernel_loo_gain >= 0.05 and evidence_delta >= 0.0
             if prior_active or kernel_active:
                 quality = max(
                     0.0,
                     cv_gain if prior_active else 0.0,
+                    interaction_cv_gain if prior_active else 0.0,
                     kernel_loo_gain if kernel_active else 0.0,
                 )
                 route_values[mode] = math.log(max(patch.confidence, 0.05)) + 3.0 * quality
                 expert_scores[mode] = weighted.rank_normalized(adjusted_scores)
             route_diagnostics[mode] = {
                 "patch": asdict(patch),
-                "source_prior": source_prior_diagnostics[mode],
+                "source_prior": {
+                    "neighbor": source_prior_diagnostics[mode],
+                    "additive": source_additive_prior_diagnostics[mode],
+                    "selected_kind": selected_prior_kind,
+                },
+                "source_interaction_prior": source_interaction_diagnostics[mode],
                 "calibration": calibration,
+                "prior_calibrations": {
+                    "neighbor": neighbor_calibration,
+                    "additive": additive_calibration,
+                },
+                "interaction_calibration": interaction_calibration,
+                "source_outcome_quality": round(
+                    max(0.0, cv_gain, interaction_cv_gain),
+                    6,
+                ),
                 "kernel_log_marginal_likelihood": round(evidence, 6),
                 "kernel_evidence_delta_vs_gp": round(evidence_delta, 6),
                 "target_loo": {
@@ -666,7 +1300,7 @@ def run_router_policy(
             (
                 max(
                     0.0,
-                    float(route_diagnostics[mode]["calibration"].get("cv_gain", 0.0)),
+                    float(route_diagnostics[mode]["source_outcome_quality"]),
                     float(route_diagnostics[mode]["target_loo"]["relative_gain"]),
                 )
                 for mode in expert_weights
@@ -675,7 +1309,11 @@ def run_router_policy(
         )
         # Weak evidence should converge to the target-only anchor, not receive a
         # fixed minimum transfer weight.
-        transfer_mass = min(0.45, 0.55 * max_quality) if expert_weights else 0.0
+        transfer_mass = (
+            min(router_max_transfer_mass, 0.55 * max_quality)
+            if expert_weights
+            else 0.0
+        )
         combined_scores = {
             candidate_id: (1.0 - transfer_mass) * anchor_scores[candidate_id]
             + transfer_mass
@@ -700,6 +1338,8 @@ def run_router_policy(
             anchor_loss,
             router_risk_budget,
             transfer_mass,
+            min_observations=router_min_observations,
+            min_quality=router_min_quality,
         )
         selected_id = router_selected_id if router_authorized else anchor_selected_id
         selected = by_id[selected_id]
@@ -721,7 +1361,8 @@ def run_router_policy(
                 "revealed_value": selected.objective_value,
                 "best_so_far": best_so_far,
                 "hypothesis_snapshot": {
-                    "target_anchor": "equal_rank_gp_ucb_gp_ei",
+                    "target_anchor": target_anchor_label,
+                    "source_initial_design": initial_design_diagnostics,
                     "transfer_mass": round(transfer_mass, 6),
                     "router_gate": {
                         "anchor_candidate": anchor_selected_id,
@@ -732,8 +1373,9 @@ def run_router_policy(
                         "anchor_acquisition_loss": round(anchor_loss, 6),
                         "risk_budget": round(router_risk_budget, 6),
                         "max_quality": round(max_quality, 6),
-                        "min_observations": 10,
-                        "min_quality": 0.15,
+                        "min_observations": router_min_observations,
+                        "min_quality": router_min_quality,
+                        "max_transfer_mass": router_max_transfer_mass,
                     },
                     "expert_weights": expert_weights,
                     "route_diagnostics": route_diagnostics,
@@ -765,6 +1407,7 @@ def run_seed(
     patches: tuple[evolution.KernelSkillPatch, ...],
     fixed_scales: tuple[float, ...],
     source_observation_count: int,
+    source_seed: int,
     discount: float,
     min_source_support: int,
     initial: int,
@@ -775,16 +1418,36 @@ def run_seed(
     numeric_length_scale: float,
     categorical_length_scale: float,
     gp_noise: float,
+    initial_observed: list[replay.Candidate] | None = None,
+    target_anchor_scorer: Callable[
+        [
+            set[str],
+            list[replay.Candidate],
+            dict[str, surrogate.FeatureRecord],
+            int,
+        ],
+        tuple[dict[str, float], dict[str, Any]],
+    ]
+    | None = None,
+    target_anchor_label: str = "equal_rank_gp_ucb_gp_ei",
+    router_min_observations: int = 5,
+    router_min_quality: float = 0.20,
+    router_max_transfer_mass: float = 0.45,
+    source_initial_strategy: str = "matched",
 ) -> tuple[list[dict[str, Any]], dict[tuple[str, int], list[dict[str, Any]]]]:
     source_adapter = replay.DATASET_BUILDERS[source_dataset]()
     target_adapter = replay.DATASET_BUILDERS[target_dataset]()
     task = replay.make_task(target_adapter, initial, rounds)
-    source_observed = transfer.source_observations(source_adapter, seed, source_observation_count)
+    source_observed = transfer.source_observations(
+        source_adapter,
+        source_seed,
+        source_observation_count,
+    )
     card = transfer.compile_transfer_card(
         source_adapter,
         target_adapter,
         source_observed,
-        transfer.role_map_for(source_dataset, target_dataset),
+        transfer.descriptor_transfer_role_map_for(source_dataset, target_dataset),
         discount,
         min_source_support,
     )
@@ -804,6 +1467,7 @@ def run_seed(
         numeric_length_scale,
         categorical_length_scale,
         gp_noise,
+        source_seed=source_seed,
     )
     ei_metrics, ei_audit = surrogate.run_policy(
         target_adapter,
@@ -846,6 +1510,13 @@ def run_seed(
         numeric_length_scale,
         categorical_length_scale,
         gp_noise,
+        initial_observed,
+        target_anchor_scorer,
+        target_anchor_label,
+        router_min_observations,
+        router_min_quality,
+        router_max_transfer_mass,
+        source_initial_strategy,
     )
     rows.append(router_metrics)
     audits[(router_metrics["mode"], seed)] = router_audit
@@ -887,6 +1558,12 @@ def main() -> None:
     parser.add_argument("--rounds", type=int, default=10)
     parser.add_argument("--initial", type=int, default=5)
     parser.add_argument("--source-observations", type=int, default=96)
+    parser.add_argument(
+        "--source-seed",
+        type=int,
+        default=0,
+        help="Freeze one source history independently of target replay seeds.",
+    )
     parser.add_argument("--discount", type=float, default=0.65)
     parser.add_argument("--min-source-support", type=int, default=3)
     parser.add_argument("--fixed-ensemble-scales", default="0.5,1,1.5,2,3,4")
@@ -915,6 +1592,7 @@ def main() -> None:
         "patches": patches,
         "fixed_scales": fixed_scales,
         "source_observation_count": args.source_observations,
+        "source_seed": args.source_seed,
         "discount": args.discount,
         "min_source_support": args.min_source_support,
         "initial": args.initial,
@@ -952,10 +1630,14 @@ def main() -> None:
         "target_dataset": args.target_dataset,
         "seed_start": args.seed_start,
         "seed_count": args.seeds,
+        "source_seed": args.source_seed,
+        "source_observation_count": args.source_observations,
         "initial_observations": args.initial,
         "rounds": args.rounds,
         "llm_model": record.get("model"),
-        "llm_call_count_for_skill_generation": 1,
+        "llm_call_count_for_skill_generation": int(
+            record.get("llm_generation_call_count", 1)
+        ),
         "patches": [asdict(patch) for patch in patches],
         "strongest_target_mode_by_aggregate": strongest_target_mode,
         "evidence_boundary": (

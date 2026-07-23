@@ -1,5 +1,53 @@
 # Overview
 
+## 2026-07-24：完整 Source-Outcome Transfer 冻结验证
+
+这一轮补上了此前最关键的缺口：迁移不再停留在 source identity、schema 和字段名，
+而是实际读取固定的 source 实验历史及其 measured outcomes。LLM 负责把两个任务的
+公开字段编译成 role map 和可执行 skill；系统再从 source outcomes 中估计邻域
+prior、单字段 effect、两两 interaction residual、初始探针和 GP kernel geometry。
+target outcome 只有在实验点被 reveal 后才能进入在线校准，隐藏结果不会用于初始
+设计、路由或候选打分。
+
+实验预先固定 7 条真实数据路径，覆盖分子性质、材料性质和反应 HTE。每条路径使用
+50 个 calibration seeds 选择 source transfer 或 matched target-only LLM，
+随后冻结策略，在互不重叠的 100 个 held-out seeds 上确认。总 target budget
+统一为 15 个实验点。选择规则同时检查 final best、best-so-far AUC、fold
+稳定性、non-loss rate、配对 95% 置信区间，并要求 source route 不只超过 matched
+target-only LLM，也要通过 strongest target-only BO 的校准比较。
+
+最终 4/7 条路径实际部署 source-outcome transfer，且配对 composite 95% CI
+全部显著为正；另外 3 条由 calibration gate 精确回退，所以部署结果逐 seed
+等于 matched target-only LLM：
+
+| Source → target | 部署 | Final best delta | AUC delta | 达到 matched LLM 最终值节省轮数 |
+| --- | --- | ---: | ---: | ---: |
+| ChemLex → Buchwald-Hartwig | transfer | +9.197 | +11.057 | +2.99 `[+2.05, +3.93]` |
+| Dielectric → expt. gap | transfer | +32.699 | +48.028 | +6.00 `[+5.14, +6.86]` |
+| Expt. gap → dielectric | transfer | +18.065 | +23.723 | +5.03 `[+4.27, +5.79]` |
+| Phonons → dielectric | exact fallback | 0 | 0 | 0 |
+| ESOL → Lipophilicity | exact fallback | 0 | 0 | 0 |
+| FreeSolv → Lipophilicity | transfer | +2.976 | +3.727 | +2.23 `[+1.37, +3.09]` |
+| Lipophilicity → FreeSolv | exact fallback | 0 | 0 | 0 |
+
+需要区分“原始迁移有效”和“部署策略不掉点”。ESOL → Lipophilicity 与
+Lipophilicity → FreeSolv 的 raw source route 是显著负迁移；Phonons →
+dielectric 的 raw composite 均值略正，但 CI 跨 0。它们没有被改写成正结果，
+而是完整保留在报告和 audit 中。当前能够成立的结论是：校准后平台在全部预设路径
+上避免了负迁移，并在多数路径上确认了真实 source-outcome 增益；不能说任意两个
+数据集之间的原始 prior 都能直接迁移。
+
+LLM 输出在 replay 前冻结，held-out 每个 seed 不再调用 API。它提供的是字段角色、
+共享 vocabulary、patch 和 acquisition skill；prior 的数值来自真实 source
+outcomes，是否启用由 target calibration 决定。因此这轮验证的是“LLM 编译的
+可复用迁移 skill + source outcome learning + 安全回退”，而不是每轮让模型凭
+自然语言直接猜下一个实验。
+
+完整结果在
+`experiments/care_replay/results/2026-07-24-source-outcome-transfer/`，包括
+100-seed metrics、逐轮 reasoning traces、每条路径 300 份完整 audit、47 组开发
+筛选结果、轮数分析、模型记录、图和 SHA256 校验。
+
 ## 2026-07-23：Source-schema 迁移扩展验证
 
 这一轮把“LLM 能不能赢 BO”和“source task 是否真的带来额外信息”拆开验证。

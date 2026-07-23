@@ -49,6 +49,31 @@ class RuntimeKnowledgeBaseTest(unittest.TestCase):
             self.assertEqual(con.execute("select count(*) from cards").fetchone()[0], 5)
             con.close()
 
+    def test_source_outcome_skill_explains_outcome_execution(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            result_dir = Path(raw) / "2026-07-24-source-outcome"
+            result_dir.mkdir()
+            (result_dir / "run_manifest.json").write_text(
+                json.dumps({
+                    "study": "source_outcome",
+                    "date": "2026-07-24",
+                }),
+                encoding="utf-8",
+            )
+            (result_dir / "headline_results.csv").write_text(
+                "source,target,evidence_mode,selected_skill,rule_prior,baseline,seeds,"
+                "delta_final_best,final_ci_low,final_ci_high,delta_auc,auc_ci_low,"
+                "auc_ci_high,rounds_saved_top10\n"
+                "source_a,target_b,full_source_outcome,source_outcome_router,"
+                "source_outcome,matched_target_only_llm,100,2.0,1.0,3.0,1.5,"
+                "0.5,2.5,1.0\n",
+                encoding="utf-8",
+            )
+            cards = ingest.cards_from_result_dir(result_dir)
+            skill = next(card for card in cards if card["type"] == "skill")
+            self.assertIn("measured source outcomes", skill["summary"])
+            self.assertIn("exact target-only fallback", skill["content"])
+
 
 if __name__ == "__main__":
     unittest.main()

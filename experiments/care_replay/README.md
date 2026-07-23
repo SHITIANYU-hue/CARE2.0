@@ -28,6 +28,10 @@ Current status:
 - Supports a calibration-only strategy router over target-only BO,
   target-calibrated semantic skills, LLM-direct priors, and LLAMBO-style
   warm-starting. The selected route is frozen before held-out replay.
+- Supports complete source-outcome transfer: fixed measured source histories
+  provide neighbor, additive, interaction, initial-design, and kernel priors;
+  revealed target observations calibrate them online, with an exact matched
+  target-only LLM fallback when calibration rejects transfer.
 
 Run:
 
@@ -51,6 +55,25 @@ Run a real LLM-in-the-loop smoke test:
 export CARE_LLM_API_KEY="..."
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset synthetic_materials_i --seeds 3 --rounds 6 --initial 5 --modes no_care_random,incumbent,llm_no_gate,llm_gate_v1 --llm-model openai/gpt-4o-mini --output-tag llm_commonstack
 ```
+
+Run the frozen seven-pair source-outcome suite:
+
+```bash
+python3 experiments/care_replay/scripts/run_source_outcome_suite.py \
+  --config experiments/care_replay/configs/source_outcome_benchmark.json \
+  --calibration-seed-start 40000 \
+  --heldout-seed-start 41000 \
+  --workers 12 \
+  --parallel-pairs 7 \
+  --output-tag frozen_source_outcome_v1
+```
+
+The suite fixes each source history before target replay and uses 50
+calibration seeds plus 100 disjoint held-out seeds. It selects the source route
+only when it clears paired stability and confidence checks against both the
+matched target-only LLM and the strongest target-only BO route. Otherwise it
+copies the matched target-only policy exactly. The archived confirmation is in
+[`results/2026-07-24-source-outcome-transfer`](results/2026-07-24-source-outcome-transfer/README.md).
 
 The exploration-aware variants are `llm_explore_no_gate` and
 `llm_explore_gate_v1`. They expose public factor coverage, request explicit
@@ -392,6 +415,13 @@ Outputs:
 
 Tracked result snapshots:
 
+- `results/2026-07-24-source-outcome-transfer/`: complete measured
+  source-outcome transfer across seven real molecular, materials, and reaction
+  paths. Four source routes are significantly positive on 100 independent
+  paired seeds; three unsupported routes use exact target-only fallback.
+  The archive includes raw negative routes, round savings, representative
+  reasoning traces, complete calibration/held-out audits, LLM records, and
+  47 development-screen configurations.
 - `results/2026-07-21-cross-domain-semantic-skills/`: LLM-compiled semantic
   rule features fused with target-only GP-UCB/GP-EI. Frozen 500-seed
   confirmations are significantly positive on real Buchwald-Hartwig HTE and
