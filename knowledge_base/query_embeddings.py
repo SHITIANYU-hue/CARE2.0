@@ -58,6 +58,21 @@ def openai_embedding(text: str, model: str) -> list[float]:
     return data["data"][0]["embedding"]
 
 
+def sentence_transformer_embedding(text: str, model: str) -> list[float]:
+    try:
+        from sentence_transformers import SentenceTransformer
+    except ImportError as exc:
+        raise RuntimeError(
+            "Install sentence-transformers before querying this index."
+        ) from exc
+    vector = SentenceTransformer(model).encode(
+        [text],
+        normalize_embeddings=True,
+        show_progress_bar=False,
+    )[0]
+    return vector.tolist()
+
+
 def cosine(a: list[float], b: list[float]) -> float:
     if len(a) != len(b):
         raise ValueError(f"Vector length mismatch: {len(a)} vs {len(b)}")
@@ -76,6 +91,8 @@ def query_vector(records: list[dict[str, Any]], query: str) -> list[float]:
         return hashed_embedding(query, dims)
     if provider == "openai":
         return normalize(openai_embedding(query, model))
+    if provider == "sentence_transformers":
+        return normalize(sentence_transformer_embedding(query, model))
     raise ValueError(f"Unsupported provider: {provider}")
 
 

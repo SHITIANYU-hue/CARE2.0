@@ -70,6 +70,19 @@ python3 knowledge_base/build_embeddings.py --provider openai
 The API key is never stored in the repository. A chat-only model endpoint is not
 enough for this path; the endpoint must support `/v1/embeddings`.
 
+For a local semantic embedding model, install `sentence-transformers` and use:
+
+```bash
+python3 knowledge_base/build_embeddings.py \
+  --provider sentence_transformers \
+  --model sentence-transformers/all-MiniLM-L6-v2
+python3 knowledge_base/query_embeddings.py \
+  "negative transfer reaction representation" --limit 5
+```
+
+The JSONL index records the provider and model for every vector, so the query
+path cannot silently mix hashed, API, and local-model embeddings.
+
 ## Card Model
 
 See `schema.md` for the card fields and supported card types.

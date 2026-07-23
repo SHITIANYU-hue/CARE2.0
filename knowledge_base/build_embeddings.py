@@ -86,6 +86,27 @@ def openai_embeddings(texts: list[str], model: str, batch_size: int) -> list[lis
     return vectors
 
 
+def sentence_transformer_embeddings(
+    texts: list[str],
+    model: str,
+    batch_size: int,
+) -> list[list[float]]:
+    try:
+        from sentence_transformers import SentenceTransformer
+    except ImportError as exc:
+        raise RuntimeError(
+            "Install sentence-transformers before using --provider sentence_transformers."
+        ) from exc
+    encoder = SentenceTransformer(model)
+    vectors = encoder.encode(
+        texts,
+        batch_size=batch_size,
+        normalize_embeddings=True,
+        show_progress_bar=False,
+    )
+    return [vector.tolist() for vector in vectors]
+
+
 def write_jsonl(rows: list[sqlite3.Row], vectors: list[list[float]], provider: str, model: str, out: Path) -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("w", encoding="utf-8") as f:
@@ -108,7 +129,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Build vector embeddings for CARE KB cards.")
     parser.add_argument("--db", type=Path, default=DEFAULT_DB)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
-    parser.add_argument("--provider", choices=["hashed", "openai"], default="hashed")
+    parser.add_argument(
+        "--provider",
+        choices=["hashed", "openai", "sentence_transformers"],
+        default="hashed",
+    )
     parser.add_argument("--model", default=os.environ.get("CARE_EMBEDDING_MODEL", "text-embedding-3-small"))
     parser.add_argument("--dims", type=int, default=256, help="Only used by --provider hashed.")
     parser.add_argument("--batch-size", type=int, default=32)
@@ -119,6 +144,9 @@ def main() -> None:
     if args.provider == "hashed":
         vectors = [hashed_embedding(text, args.dims) for text in texts]
         model = f"hashed-{args.dims}"
+    elif args.provider == "sentence_transformers":
+        model = args.model
+        vectors = sentence_transformer_embeddings(texts, model, args.batch_size)
     else:
         vectors = openai_embeddings(texts, args.model, args.batch_size)
         model = args.model
