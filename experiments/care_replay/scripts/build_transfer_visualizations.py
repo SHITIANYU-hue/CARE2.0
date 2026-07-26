@@ -56,6 +56,13 @@ DOMAIN_COLORS = {
     "Molecular": "#2F855A",
 }
 
+DOMAIN_ORDER = ["Reaction", "Materials", "Molecular"]
+STATUS_COLORS = {
+    "deployed_positive": "#2F855A",
+    "rejected_negative": "#C53030",
+    "fallback_uncertain": "#8B8D98",
+}
+
 
 def pair_label(source: str, target: str) -> str:
     return PAIR_LABELS.get((source, target), f"{source} -> {target}")
@@ -352,6 +359,188 @@ def plot_transfer_graph(records: list[dict[str, Any]], output: Path) -> None:
     plt.close(fig)
 
 
+def plot_transfer_evidence_forest(records: list[dict[str, Any]], output: Path) -> None:
+    """Show the held-out composite delta and its confidence interval per route."""
+
+    import matplotlib.pyplot as plt
+    from matplotlib.lines import Line2D
+
+    ordered = sorted(
+        records,
+        key=lambda record: record["composite_delta"]
+        if math.isfinite(record["composite_delta"])
+        else 0.0,
+    )
+    fig, ax = plt.subplots(figsize=(11.5, max(5.0, len(ordered) * 0.72)))
+    y_values = list(range(len(ordered)))
+    finite_values = [
+        record["composite_delta"]
+        for record in ordered
+        if math.isfinite(record["composite_delta"])
+    ]
+    for y, record in zip(y_values, ordered):
+        color = STATUS_COLORS[record["status"]]
+        value = record["composite_delta"]
+        low = record["composite_ci_low"]
+        high = record["composite_ci_high"]
+        if all(math.isfinite(item) for item in (value, low, high)):
+            ax.errorbar(
+                value,
+                y,
+                xerr=[[value - low], [high - value]],
+                fmt="o",
+                markersize=7,
+                color=color,
+                ecolor=color,
+                elinewidth=2.2,
+                capsize=4,
+                zorder=3,
+            )
+            ax.text(high + 1.8, y, f"{value:+.1f}", va="center", fontsize=9, color=color, fontweight="bold")
+        else:
+            ax.scatter([0], [y], color=color, s=45, zorder=3)
+            ax.text(1.8, y, "n/a", va="center", fontsize=9, color=color)
+    ax.axvline(0, color="#343A40", linewidth=1.1, linestyle="--")
+    ax.set_yticks(
+        y_values,
+        [
+            f"{ {'deployed_positive': '+', 'rejected_negative': '-', 'fallback_uncertain': '~'}[record['status']] } {record['pair']}"
+            for record in ordered
+        ],
+    )
+    ax.set_xlabel("Composite held-out delta (final-best Δ + AUC Δ)")
+    ax.set_title("CARE 2.0 transfer evidence by route", loc="left", fontweight="bold", pad=18)
+    ax.text(
+        0,
+        1.02,
+        "Points show the route estimate; whiskers show the 95% confidence interval. Zero is no transfer gain.",
+        transform=ax.transAxes,
+        color="#5B6168",
+        fontsize=9,
+    )
+    ax.legend(
+        handles=[
+            Line2D([0], [0], marker="o", color=STATUS_COLORS["deployed_positive"], label="Positive deployed", linestyle="none"),
+            Line2D([0], [0], marker="o", color=STATUS_COLORS["rejected_negative"], label="Negative rejected", linestyle="none"),
+            Line2D([0], [0], marker="o", color=STATUS_COLORS["fallback_uncertain"], label="Uncertain fallback", linestyle="none"),
+        ],
+        loc="lower right",
+        frameon=False,
+        ncol=3,
+        fontsize=9,
+    )
+    if finite_values:
+        lower = min(min(finite_values), min(record["composite_ci_low"] for record in ordered if math.isfinite(record["composite_ci_low"])))
+        upper = max(max(finite_values), max(record["composite_ci_high"] for record in ordered if math.isfinite(record["composite_ci_high"])))
+        padding = max(2.0, (upper - lower) * 0.08)
+        ax.set_xlim(lower - padding, upper + padding + 8.0)
+    ax.grid(axis="x", color="#D9D9D4", linewidth=0.7, alpha=0.65)
+    ax.set_axisbelow(True)
+    ax.spines[["top", "right", "left"]].set_visible(False)
+    ax.tick_params(axis="y", length=0)
+    fig.tight_layout()
+    save_figure(fig, output)
+    plt.close(fig)
+
+
+def plot_transfer_metric_profile(records: list[dict[str, Any]], output: Path) -> None:
+    """Compare route strength, headline gains, and rounds saved side by side."""
+
+    import matplotlib.pyplot as plt
+
+    ordered = sorted(records, key=lambda record: record["composite_delta"], reverse=True)
+    metrics = [
+        ("composite_delta", "Composite Δ", "Raw route signal"),
+        ("final_delta", "Final-best Δ", "Deployed route metric"),
+        ("rounds_saved_top10", "Top-10 rounds saved", "Budget efficiency"),
+    ]
+    fig, axes = plt.subplots(1, len(metrics), figsize=(15.5, max(5.4, len(ordered) * 0.62)), sharey=True)
+    labels = [record["pair"] for record in ordered]
+    y_values = list(range(len(ordered)))
+    for index, (field, title, subtitle) in enumerate(metrics):
+        ax = axes[index]
+        values = [float(record[field]) for record in ordered]
+        colors = [STATUS_COLORS[record["status"]] for record in ordered]
+        ax.barh(y_values, values, color=colors, alpha=0.86, height=0.58)
+        ax.axvline(0, color="#343A40", linewidth=1.0)
+        finite = [abs(value) for value in values if math.isfinite(value)]
+        limit = max(1.0, max(finite, default=1.0) * 1.22)
+        ax.set_xlim(-limit * 0.16 if min(values, default=0) < 0 else 0, limit)
+        for y, value in zip(y_values, values):
+            if not math.isfinite(value):
+                continue
+            text = f"{value:+.1f}" if field != "rounds_saved_top10" else f"{value:.1f}"
+            offset = max(limit * 0.025, 0.35)
+            ax.text(value + (offset if value >= 0 else -offset), y, text, va="center", ha="left" if value >= 0 else "right", fontsize=8.5, color="#263238")
+        ax.set_title(title, fontweight="bold", pad=12)
+        ax.text(0, 1.02, subtitle, transform=ax.transAxes, color="#5B6168", fontsize=8.5)
+        ax.grid(axis="x", color="#D9D9D4", linewidth=0.7, alpha=0.65)
+        ax.set_axisbelow(True)
+        ax.spines[["top", "right", "left"]].set_visible(False)
+        ax.tick_params(axis="y", length=0)
+        if index == 0:
+            ax.set_yticks(y_values, labels)
+        else:
+            ax.tick_params(labelleft=False)
+    fig.suptitle("CARE 2.0 transfer route profiles", x=0.02, ha="left", fontsize=16, fontweight="bold")
+    fig.text(0.02, 0.93, "Rejected routes keep their raw composite signal in the first panel; headline and budget panels show the deployed path.", color="#5B6168", fontsize=9)
+    fig.tight_layout(rect=(0, 0, 1, 0.91))
+    save_figure(fig, output)
+    plt.close(fig)
+
+
+def plot_transfer_domain_coverage(records: list[dict[str, Any]], output: Path) -> None:
+    """Summarize which source-domain/target-domain combinations are tested."""
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from matplotlib.colors import TwoSlopeNorm
+
+    values = np.full((len(DOMAIN_ORDER), len(DOMAIN_ORDER)), np.nan)
+    annotations: dict[tuple[int, int], str] = {}
+    for source_index, source_domain in enumerate(DOMAIN_ORDER):
+        for target_index, target_domain in enumerate(DOMAIN_ORDER):
+            group = [
+                record
+                for record in records
+                if DOMAIN_BY_DATASET.get(record["source"]) == source_domain
+                and DOMAIN_BY_DATASET.get(record["target"]) == target_domain
+            ]
+            if not group:
+                annotations[(source_index, target_index)] = "not tested"
+                continue
+            finite = [record["composite_delta"] for record in group if math.isfinite(record["composite_delta"])]
+            values[source_index, target_index] = mean(finite) if finite else 0.0
+            positive = sum(record["status"] == "deployed_positive" for record in group)
+            negative = sum(record["status"] == "rejected_negative" for record in group)
+            uncertain = sum(record["status"] == "fallback_uncertain" for record in group)
+            annotations[(source_index, target_index)] = f"n={len(group)}\n+{positive} / -{negative} / ~{uncertain}\nmean {values[source_index, target_index]:+.1f}"
+    finite_values = values[np.isfinite(values)]
+    low = min(-1.0, float(np.min(finite_values))) if finite_values.size else -1.0
+    high = max(1.0, float(np.max(finite_values))) if finite_values.size else 1.0
+    image = np.ma.masked_invalid(values)
+    fig, ax = plt.subplots(figsize=(8.2, 7.1))
+    heatmap = ax.imshow(image, cmap="RdYlGn", norm=TwoSlopeNorm(vmin=low, vcenter=0.0, vmax=high))
+    ax.set_xticks(range(len(DOMAIN_ORDER)), DOMAIN_ORDER)
+    ax.set_yticks(range(len(DOMAIN_ORDER)), DOMAIN_ORDER)
+    ax.set_xlabel("Target domain")
+    ax.set_ylabel("Source domain")
+    for i in range(len(DOMAIN_ORDER)):
+        for j in range(len(DOMAIN_ORDER)):
+            text = annotations[(i, j)]
+            color = "#263238" if np.isfinite(values[i, j]) else "#8B8D98"
+            ax.text(j, i, text, ha="center", va="center", fontsize=9, color=color, fontweight="bold" if np.isfinite(values[i, j]) else "normal")
+    ax.tick_params(length=0)
+    ax.set_title("CARE 2.0 transfer coverage by domain", loc="left", fontweight="bold", pad=18)
+    ax.text(0, 1.02, "Blank domain pairs are not yet evaluated; mean values summarize the observed composite held-out signal.", transform=ax.transAxes, color="#5B6168", fontsize=9)
+    colorbar = fig.colorbar(heatmap, ax=ax, fraction=0.045, pad=0.04)
+    colorbar.set_label("Mean composite delta")
+    ax.spines[:].set_visible(False)
+    fig.tight_layout()
+    save_figure(fig, output)
+    plt.close(fig)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-outcome-root", type=Path, required=True)
@@ -367,6 +556,9 @@ def main() -> None:
     plot_weight_heatmap(records, args.output_dir / "transfer_role_weight_heatmap")
     plot_transfer_matrix(records, args.output_dir / "transfer_matrix")
     plot_transfer_graph(records, args.output_dir / "transfer_graph")
+    plot_transfer_evidence_forest(records, args.output_dir / "transfer_evidence_forest")
+    plot_transfer_metric_profile(records, args.output_dir / "transfer_metric_profile")
+    plot_transfer_domain_coverage(records, args.output_dir / "transfer_domain_coverage")
     print(json.dumps({"records": len(records), "output_dir": str(args.output_dir)}, indent=2))
 
 

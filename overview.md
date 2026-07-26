@@ -798,9 +798,23 @@ ChemLex 代理数据上提升很明显，但这个结果要很小心地讲。它
    source -> target，边宽表示 composite held-out signal 的幅度，边颜色
    区分正向部署、负向拒绝和不确定回退。
 
+同时补充了三张用于审计和扩展解读的图：
+
+4. `transfer_evidence_forest.png`：逐条路线的 composite delta 和 95% CI，
+   可以直接看出哪些路线显著跨过零点，哪些路线仍然不确定。
+5. `transfer_metric_profile.png`：把 raw composite signal、部署后的
+   Final-best 增益和 Top-10 rounds saved 并排展示，避免只看单一指标。
+6. `transfer_domain_coverage.png`：按 Reaction、Materials、Molecular 汇总
+   source domain -> target domain 的覆盖情况。空白格表示当前还没有验证，
+   不是把没有实验误写成负迁移。
+
 ![CARE 2.0 transfer matrix](experiments/care_replay/results/2026-07-25-transfer-visualizations/transfer_matrix.png)
 
 ![CARE 2.0 transfer graph](experiments/care_replay/results/2026-07-25-transfer-visualizations/transfer_graph.png)
+
+![CARE 2.0 transfer evidence forest](experiments/care_replay/results/2026-07-25-transfer-visualizations/transfer_evidence_forest.png)
+
+![CARE 2.0 transfer domain coverage](experiments/care_replay/results/2026-07-25-transfer-visualizations/transfer_domain_coverage.png)
 
 这三张图基于 `headline_results.csv`、7 条 raw summary 和
 `run_manifest.json` 自动生成，不是手工绘图，因此重新跑脚本可以复现：

@@ -16,6 +16,13 @@ These figures are generated from the frozen source-outcome transfer archive at
 - `transfer_graph.png/pdf`: directed source-to-target migration graph across
   reaction, materials, and molecular tasks. Edge labels show the composite
   held-out signal.
+- `transfer_evidence_forest.png/pdf`: route-level composite delta with its 95%
+  confidence interval, making the zero-gain boundary and uncertain routes
+  explicit.
+- `transfer_metric_profile.png/pdf`: side-by-side comparison of composite
+  signal, deployed final-best delta, and top-10 rounds saved.
+- `transfer_domain_coverage.png/pdf`: source-domain by target-domain coverage;
+  blank cells are domain combinations not evaluated in this archive.
 - `transfer_visualization_data.json`: the exact records used to render the
   figures.
 - `reasoning_trace_index.json`: index of model-call records, representative

@@ -798,10 +798,20 @@ The latest frozen source-outcome study has three generated figures under
 - `transfer_matrix.png/pdf`: positive, rejected-negative, and uncertain
   source-target transfer matrix;
 - `transfer_graph.png/pdf`: directed cross-domain transfer graph.
+- `transfer_evidence_forest.png/pdf`: composite held-out delta and 95% CI for
+  every route, including rejected negative and uncertain routes.
+- `transfer_metric_profile.png/pdf`: route comparison across composite signal,
+  deployed final-best gain, and top-10 rounds saved.
+- `transfer_domain_coverage.png/pdf`: domain-pair coverage and mean composite
+  signal; blank cells show where cross-domain evidence is still missing.
 
 ![Transfer matrix](results/2026-07-25-transfer-visualizations/transfer_matrix.png)
 
 ![Transfer graph](results/2026-07-25-transfer-visualizations/transfer_graph.png)
+
+![Transfer evidence forest](results/2026-07-25-transfer-visualizations/transfer_evidence_forest.png)
+
+![Transfer domain coverage](results/2026-07-25-transfer-visualizations/transfer_domain_coverage.png)
 
 The same directory contains `reasoning_trace_index.json`. It indexes LLM model
 calls and replay audit traces. The saved trace is a structured audit record,
