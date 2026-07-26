@@ -787,3 +787,41 @@ as a positive CARE result.
 The LLM modes ask the model to propose bounded factor-level adjustments from
 revealed observations only. Audit logs store the raw model response, parsed JSON
 policy, applied factor adjustments, model name, and usage metadata.
+
+## Transfer figures and trace archive
+
+The latest frozen source-outcome study has three generated figures under
+`results/2026-07-25-transfer-visualizations/`:
+
+- `transfer_role_weight_heatmap.png/pdf`: role-weight heatmap across candidate
+  LLM patches;
+- `transfer_matrix.png/pdf`: positive, rejected-negative, and uncertain
+  source-target transfer matrix;
+- `transfer_graph.png/pdf`: directed cross-domain transfer graph.
+
+![Transfer matrix](results/2026-07-25-transfer-visualizations/transfer_matrix.png)
+
+![Transfer graph](results/2026-07-25-transfer-visualizations/transfer_graph.png)
+
+The same directory contains `reasoning_trace_index.json`. It indexes LLM model
+calls and replay audit traces. The saved trace is a structured audit record,
+including prompt metadata, raw model output, parsed skill/patch, selected
+candidates, revealed values, and diagnostics; it is not a claim to expose hidden
+chain-of-thought. Rebuild both artifacts with:
+
+```bash
+python3 scripts/build_transfer_visualizations.py \
+  --source-outcome-root results/2026-07-24-source-outcome-transfer \
+  --output-dir results/2026-07-25-transfer-visualizations
+
+python3 scripts/build_reasoning_trace_index.py \
+  --repo-root ../.. \
+  --source-outcome-root results/2026-07-24-source-outcome-transfer \
+  --model-call-root results/2026-07-25-hypothesis-generation \
+  --zero-shot-root results/2026-07-25-hypothesis-zero-shot-suzuki-to-bh-30seed \
+  --zero-shot-root results/2026-07-25-hypothesis-zero-shot-suzuki-to-chemlex-10seed \
+  --zero-shot-root results/2026-07-25-hypothesis-zero-shot-expt-gap-to-dielectric-10seed \
+  --zero-shot-root results/2026-07-25-hypothesis-zero-shot-esol-to-freesolv-10seed \
+  --zero-shot-root results/2026-07-25-hypothesis-zero-shot-freesolv-to-lipophilicity-10seed \
+  --output results/2026-07-25-transfer-visualizations/reasoning_trace_index.json
+```

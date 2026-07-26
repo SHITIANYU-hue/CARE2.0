@@ -777,3 +777,44 @@ ChemLex 代理数据上提升很明显，但这个结果要很小心地讲。它
 最新 prompt follow-up 进一步确认了这点。我们按群里反馈把 LLM 从“像 AI 审稿一样评论”改成“实验策略 proposer”：prompt 变短，要求只根据 transfer card 和已揭示 target evidence 提规则；parser 强制校验 prefer/penalize 方向；v3 版本还把 LLM weight 变成建议上限，实际权重由 target support、target effect 和 transfer role weight 重新校准，同一候选命中多条 LLM 规则时取平均信号而不是直接累加。结果是 v3 的 LLM proposer 比直接加权版本更稳，AUC 到 80.8906，bad interventions 降到 0.6；但 final best 只有 86.1182，仍低于 deterministic `transfer_gate_v1` 的 91.5394。1200-token 重跑把 parse error 降到 0，但指标没有变好，说明瓶颈不是 JSON 截断，而是 LLM 选择规则本身还不够强。这个结果不应该包装成 LLM 已经赢了，而应该作为下一步 rule evolution / policy selector 的依据。
 
 第四，补跨域任务。分子方向可以从单属性扩到 LogP/QED/SA 多目标；材料方向可以接 Matbench 或 Materials Project 中能转成 finite-pool replay 的 property task。这样就能更贴近“化学、材料、药物多个领域的新物质发现平台”的 CARE 2.0 目标。
+
+## 11. Transfer 可视化和 reasoning trace
+
+最新的冻结 source-outcome 结果增加了一个独立的可视化归档：
+`experiments/care_replay/results/2026-07-25-transfer-visualizations/`。
+
+其中三张图分别回答三个问题：
+
+1. `transfer_role_weight_heatmap.png`：不同 source-target pair 对各个
+   transferable role 的平均权重如何。`1.00` 表示中性权重；大于 1 表示
+   candidate patch 组合倾向于加强该 role，小于 1 表示倾向于减弱。行前的
+   `+`、`-`、`~` 分别表示部署的正向迁移、被 gate 拒绝的负向迁移、以及因
+   证据不足而回退的迁移。
+2. `transfer_matrix.png`：source 为行、target 为列。绿色表示 held-out
+   上实际部署且为正的迁移，红色表示原始迁移为负并被拒绝，灰色表示原始
+   信号不稳定并精确回退到 target-only。绿色单元格同时标出 Final best 和
+   AUC 的 delta。
+3. `transfer_graph.png`：跨反应、材料和分子任务的迁移图谱。箭头方向是
+   source -> target，边宽表示 composite held-out signal 的幅度，边颜色
+   区分正向部署、负向拒绝和不确定回退。
+
+![CARE 2.0 transfer matrix](experiments/care_replay/results/2026-07-25-transfer-visualizations/transfer_matrix.png)
+
+![CARE 2.0 transfer graph](experiments/care_replay/results/2026-07-25-transfer-visualizations/transfer_graph.png)
+
+这三张图基于 `headline_results.csv`、7 条 raw summary 和
+`run_manifest.json` 自动生成，不是手工绘图，因此重新跑脚本可以复现：
+
+```bash
+python3 experiments/care_replay/scripts/build_transfer_visualizations.py \
+  --source-outcome-root experiments/care_replay/results/2026-07-24-source-outcome-transfer \
+  --output-dir experiments/care_replay/results/2026-07-25-transfer-visualizations
+```
+
+LLM trace 也正式纳入归档。`reasoning_trace_index.json` 索引了 18 条 LLM
+call record，以及 26 份 source-outcome / zero-shot replay trace。每条记录
+可以追溯到：prompt metadata、模型输出、解析后的 skill 或 patch、usage、
+每个 seed 的候选选择、revealed outcome 和 acquisition diagnostics。这里的
+“reasoning trace”指结构化的可审计决策轨迹，不把隐藏的模型思维链当作实验
+结果。完整 source-outcome 的代表性 trace 在 `reasoning_traces/`，逐 seed
+审计压缩包在 `audit_archives/`，LLM 调用记录在 `model_calls/`。
