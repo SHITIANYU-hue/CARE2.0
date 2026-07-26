@@ -75,6 +75,86 @@ matched target-only LLM and the strongest target-only BO route. Otherwise it
 copies the matched target-only policy exactly. The archived confirmation is in
 [`results/2026-07-24-source-outcome-transfer`](results/2026-07-24-source-outcome-transfer/README.md).
 
+The schema-only router in `scripts/cross_task_router.py` proposes a candidate
+transfer family from public task metadata: reaction component roles for HTE
+tasks, or shared descriptor vocabulary for molecular/materials tasks. It never
+reads target outcomes. The calibration gate still decides whether transfer is
+deployed, so the proposal is an auditable alignment signal rather than a claim
+of positive transfer.
+
+Run the continuous FreeSolv extension with the same route and baseline logic:
+
+```bash
+python3 experiments/care_replay/scripts/run_source_outcome_suite.py \
+  --config experiments/care_replay/configs/source_outcome_freesolv_continuous.json \
+  --strategy full_source_outcome \
+  --calibration-seed-start 50000 \
+  --heldout-seed-start 51000 \
+  --pair-workers 6 \
+  --parallel-pairs 2 \
+  --output-tag freesolv_continuous_v1
+```
+
+The current archive is in
+`results/2026-07-24-freesolv-continuous/`; it keeps this 30/50 extension
+separate from the headline 50/100 seven-pair claim.
+
+For a frozen transfer portfolio, use
+`run_calibrated_source_outcome_portfolio.py`. The candidate list is fixed before
+replay; calibration chooses among it and held-out seeds only execute the chosen
+candidate or the exact target-only fallback:
+
+```bash
+python3 experiments/care_replay/scripts/run_calibrated_source_outcome_portfolio.py \
+  --llm-record experiments/care_replay/configs/source_outcome_llm/generalized_to_bh.json \
+  --target-llm-record experiments/care_replay/results/2026-07-24-source-outcome-transfer/model_calls/chemlex_acidamine_to_buchwald_hartwig_matched_target_only_reaction_chemlex_to_buchwald_hartwig_target_only.json \
+  --target-llm-mode gp_ucb \
+  --source-dataset real_chemlex_acidamine \
+  --target-dataset real_buchwald_hartwig \
+  --calibration-seeds 30 --heldout-seeds 50 \
+  --portfolio standard:0.45:matched,conservative:0.25:matched,positive:0.45:source_positive \
+  --workers 8
+```
+
+The formal ChemLex → Buchwald-Hartwig portfolio archive is in
+`results/2026-07-24-transfer-portfolio-bh/`. It selected `source_positive` and
+beat the matched target-only route on 50 held-out seeds. The materials extension
+in `results/2026-07-24-transfer-portfolio-materials/` rejected all candidates
+and fell back exactly, which is retained as a negative control. The matching
+MoleculeNet FreeSolv → Lipophilicity extension in
+`results/2026-07-24-transfer-portfolio-freesolv-lipophilicity/` also rejected all
+three candidates and fell back exactly on 20 held-out seeds. This is separate
+from the earlier 50/100-seed molecular value-prior result: it uses a different
+frozen protocol and is retained as a portfolio-generalization boundary case.
+The three portfolio extensions are summarized in
+`results/2026-07-24-transfer-portfolio-report/portfolio_report.md` and
+`portfolio_report.json`.
+
+The ChemLex → Buchwald-Hartwig gain has a matched warm-start-only control in
+`results/2026-07-24-transfer-bh-warmstart-control/`. Because that control
+matches the portfolio route seed by seed, the current claim for this extension
+is source-informed initial-design transfer, not an independently established
+continuous source-outcome gain.
+
+The reverse materials initialization audit is kept separately in
+`results/2026-07-24-transfer-materials-reverse-initialization/`. Its
+source-extremes route is exactly reproduced by a transfer-mass-zero warm-start
+control, so it is not counted as continuous source-outcome transfer.
+
+The evidence ladder combining the source-schema semantic extension with the
+stricter source-outcome portfolio is in
+`results/2026-07-24-transfer-evidence-report/`. It reports 4/5 source-schema
+paths with a significant primary gain over the matched target-only LLM and 5/5
+over the strongest target-only BO. It separately labels continuous semantic
+routes, warm-start-only routes, and exact source-outcome fallbacks; the latest
+portfolio has one warm-start deployment and no independently confirmed
+continuous source-outcome candidate.
+
+The matched random-rule controls include a warm-start variant. The ESOL
+warm-start null beats GP-UCB on its held-out batch, so initialization and
+acquisition geometry are treated as separate explanations; a semantic CARE
+claim must also beat the matched warm-start and strongest target-only routes.
+
 The exploration-aware variants are `llm_explore_no_gate` and
 `llm_explore_gate_v1`. They expose public factor coverage, request explicit
 explore/exploit/avoid intents and a counter-hypothesis, calibrate confidence,
@@ -217,6 +297,92 @@ frozen aggregate confirms gains on 6 of 9 predeclared target conditions across
 materials, molecular-property, and wetlab-reaction domains. Full model calls,
 per-seed metrics, compressed audits, and figures are archived under
 [`results/2026-07-22-multidomain-llm-completion`](results/2026-07-22-multidomain-llm-completion/README.md).
+
+Run the matched random-rule null control before making a claim about LLM
+knowledge:
+
+```bash
+python3 experiments/care_replay/scripts/run_random_rule_control.py \
+  --llm-record experiments/care_replay/results/2026-07-22-multidomain-llm-completion/model_calls/phonons_target_only_kb_deepseek.json \
+  --target-dataset real_matbench_phonons \
+  --calibration-seed-start 30000 --calibration-seeds 30 \
+  --heldout-seed-start 31000 --heldout-seeds 100 \
+  --replicates 5 \
+  --workers 8 \
+  --output-dir experiments/care_replay/results/random-rule-null-phonons
+```
+
+This control preserves each frozen skill's field set, rule count, rule arity,
+and execution schedule, randomizes condition values and signs, selects the
+strongest null route on calibration only, and reports it on disjoint held-out
+seeds. A positive semantic result is not attributed to LLM knowledge unless it
+also beats this matched null.
+
+Add `--include-random-warmstart` to run the same matched null through the
+LLAMBO-style initial-design executor as a separate warm-start control.
+
+For a stricter causal check, run the frozen record without any target
+calibration or target-based skill selection:
+
+```bash
+python3 experiments/care_replay/scripts/run_zero_shot_semantic_transfer.py \
+  --llm-record experiments/care_replay/outputs/llm_semantic/suzuki_to_bh_semantic_record.json \
+  --target-dataset real_buchwald_hartwig \
+  --seed-start 40000 --seeds 100 --initial 5 --rounds 10 \
+  --random-replicates 3 --workers 8 \
+  --output-dir experiments/care_replay/results/zero-shot-suzuki-to-bh
+```
+
+This report does not pick the best skill after seeing target outcomes. It
+reports every frozen LLM skill, the same-executor matched random nulls, GP-UCB,
+and mixed-kernel GP-EI on the same seeds. The summary records zero target
+calibration seeds, zero pre-decision target outcomes, and the online target
+budget separately from the source-side generation evidence.
+
+To make the LLM propose scientific hypotheses rather than acquisition
+parameters, generate a hypothesis-only record:
+
+```bash
+python3 experiments/care_replay/scripts/generate_llm_semantic_skills.py \
+  --source-dataset real_suzuki_miyaura \
+  --target-dataset real_buchwald_hartwig \
+  --evidence-mode source_schema_only \
+  --proposal-mode hypothesis_only \
+  --output experiments/care_replay/outputs/llm_semantic/suzuki_to_bh_hypothesis_record.json
+```
+
+The compiler fixes rule magnitude, ridge, semantic mass, and acquisition
+schedule. The LLM contributes only a public-schema condition, direction,
+mechanism, confidence, and failure conditions; invalid or private conditions
+are rejected before replay.
+
+The current five-pair zero-shot matrix is aggregated without winner selection:
+
+```bash
+python3 experiments/care_replay/scripts/build_zero_shot_transfer_report.py \
+  experiments/care_replay/results/2026-07-25-hypothesis-zero-shot-suzuki-to-bh-30seed \
+  experiments/care_replay/results/2026-07-25-hypothesis-zero-shot-suzuki-to-chemlex-10seed \
+  experiments/care_replay/results/2026-07-25-hypothesis-zero-shot-expt-gap-to-dielectric-10seed \
+  experiments/care_replay/results/2026-07-25-hypothesis-zero-shot-esol-to-freesolv-10seed \
+  experiments/care_replay/results/2026-07-25-hypothesis-zero-shot-freesolv-to-lipophilicity-10seed \
+  --output-dir experiments/care_replay/results/2026-07-25-zero-shot-hypothesis-transfer-matrix
+```
+
+The matrix reports 23 frozen hypotheses across five real source-target pairs.
+In the current audit, 1/5 pairs has at least one stable positive hypothesis
+versus mixed-kernel GP-EI, while 2/5 contain a stable negative hypothesis. This
+is the intended interpretation: the protocol demonstrates how to measure
+generalization and failure, not a claim that every domain transfers.
+
+Persist the claims and failure conditions as auditable knowledge cards:
+
+```bash
+python3 knowledge_base/ingest_hypothesis_transfer.py \
+  --report experiments/care_replay/results/2026-07-25-zero-shot-hypothesis-transfer-matrix/zero_shot_transfer_matrix.json \
+  --record experiments/care_replay/results/2026-07-25-hypothesis-generation/suzuki_to_bh_hypothesis_record_commonstack.json \
+  --output knowledge_base/generated_cards/2026-07-25-zero-shot-hypothesis-transfer.json
+python3 knowledge_base/build_kb.py
+```
 
 Run a strong-model LLM transfer follow-up:
 

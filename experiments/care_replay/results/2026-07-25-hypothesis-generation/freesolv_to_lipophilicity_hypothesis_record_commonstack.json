@@ -1,0 +1,390 @@
+{
+  "model": "openai/gpt-4o-mini",
+  "usage": {
+    "prompt_tokens": 1107,
+    "completion_tokens": 627,
+    "total_tokens": 1734,
+    "tps": 68.03,
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "llm_generation_call_count": 1,
+  "api_configuration": {
+    "base_url": "https://api.commonstack.ai/v1",
+    "api_mode": "chat",
+    "structured_mode": "json",
+    "temperature": 0.3,
+    "max_tokens": 3500
+  },
+  "source_dataset": "real_moleculenet_freesolv",
+  "target_dataset": "real_moleculenet_lipophilicity",
+  "evidence_mode": "source_schema_only",
+  "proposal_mode": "hypothesis_only",
+  "hypothesis_compilation": {
+    "mode": "hypothesis_only",
+    "fixed_execution_parameters": true,
+    "accepted_hypotheses": 5,
+    "rejected_hypotheses": 0,
+    "rejections": [],
+    "fixed_parameters": {
+      "rule_weight_magnitude": 0.5,
+      "ridge": 2.0,
+      "prior_scale": 0.25,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01
+    }
+  },
+  "prompt_payload": {
+    "task": "Design a diverse library of scientific transfer proposals for finite-pool search. The proposals must be auditable and grounded in the supplied public schema.",
+    "target": {
+      "dataset": "real_moleculenet_lipophilicity",
+      "title": "MoleculeNet Lipophilicity replay",
+      "objective": "maximize_normalized_lipophilicity",
+      "candidate_count": 4200,
+      "public_semantic_fields": {
+        "smiles_length_bin": {
+          "smiles_long": 2265,
+          "smiles_mid": 1764,
+          "smiles_short": 93,
+          "smiles_very_long": 78
+        },
+        "hetero_atom_bin": {
+          "hetero_high": 2661,
+          "hetero_low": 194,
+          "hetero_mid": 1344,
+          "hetero_none": 1
+        },
+        "halogen_bin": {
+          "halogen_high": 98,
+          "halogen_low": 961,
+          "halogen_mid": 743,
+          "halogen_none": 2398
+        },
+        "aromatic_bin": {
+          "aromatic_high": 1982,
+          "aromatic_low": 545,
+          "aromatic_mid": 1619,
+          "aromatic_none": 54
+        },
+        "ring_token_bin": {
+          "ring_token_high": 1976,
+          "ring_token_low": 113,
+          "ring_token_mid": 2106,
+          "ring_token_none": 5
+        },
+        "branch_bin": {
+          "branch_high": 1183,
+          "branch_low": 817,
+          "branch_mid": 2147,
+          "branch_none": 53
+        },
+        "double_bond_bin": {
+          "double_bond_high": 147,
+          "double_bond_low": 1333,
+          "double_bond_mid": 1843,
+          "double_bond_none": 877
+        }
+      },
+      "hidden_target": "normalized_lipophilicity_score",
+      "boundary": "Field values and counts are public; target outcomes are not included."
+    },
+    "source_transfer_evidence": {
+      "evidence_mode": "source_schema_only",
+      "source_dataset": "real_moleculenet_freesolv",
+      "source_objective": "maximize_hydration_affinity_score",
+      "mapped_roles": [
+        {
+          "source_field": "aromatic_bin",
+          "target_field": "aromatic_bin"
+        },
+        {
+          "source_field": "branch_bin",
+          "target_field": "branch_bin"
+        },
+        {
+          "source_field": "double_bond_bin",
+          "target_field": "double_bond_bin"
+        },
+        {
+          "source_field": "halogen_bin",
+          "target_field": "halogen_bin"
+        },
+        {
+          "source_field": "hetero_atom_bin",
+          "target_field": "hetero_atom_bin"
+        },
+        {
+          "source_field": "ring_token_bin",
+          "target_field": "ring_token_bin"
+        },
+        {
+          "source_field": "smiles_length_bin",
+          "target_field": "smiles_length_bin"
+        }
+      ],
+      "source_outcome_statistics": null,
+      "shared_value_priors": [],
+      "boundary": "Only source identity, objective, and public source-target field alignment are provided. Source outcomes, effects, support counts, and value priors are withheld."
+    },
+    "executor": {
+      "semantic_model": "The hypothesis compiler turns each accepted mechanism hypothesis into one binary rule with a fixed signed weight; target outcomes only fit the online surrogate.",
+      "anchor": "A rank blend of target-only GP-UCB and GP-EI.",
+      "fusion": "semantic_mass_start/end controls the rank mass assigned to the semantic surrogate; the remaining mass stays on the target-only anchor.",
+      "selection": "No target calibration is used in the zero-shot protocol. Every proposal is frozen before the target replay and is reported without target-based selection."
+    },
+    "design_requirements": [
+      "Return exactly 5 diverse hypotheses.",
+      "Use only exact field/value pairs in public_semantic_fields.",
+      "Each conditions object must map a real catalog field name directly to one exact catalog value, for example {\"dominant_family\": \"oxide\"}. Never use literal placeholder keys such as exact_field, field_name, field, or value.",
+      "Give every skill a distinct, descriptive scientific skill_id. Never copy schema placeholders such as short_unique_name or add numeric suffixes to a placeholder.",
+      "Use two-condition interactions only when scientifically meaningful.",
+      "Include at least one skill grounded only in the supplied source-target field alignment; do not imply that source outcome effects were observed.",
+      "Include at least one domain-knowledge proposal.",
+      "Include a counter-hypothesis proposal that reverses or downweights an uncertain source relation.",
+      "Prefer mechanistic, chemically or physically interpretable rules over arbitrary coverage rules.",
+      "Do not claim access to target outcomes and do not output candidate identifiers."
+    ],
+    "allowed_ranges": {
+      "confidence": "[0.05, 1]",
+      "expected_direction": "positive or negative"
+    },
+    "output_contract": {
+      "hypotheses": [
+        {
+          "hypothesis_id": "descriptive_scientific_hypothesis_id",
+          "claim": "one falsifiable mechanism-level transfer claim",
+          "mechanism": "why the source evidence or domain knowledge should transfer",
+          "conditions": {
+            "field_name_from_public_semantic_fields": "exact_catalog_value"
+          },
+          "expected_direction": "positive or negative",
+          "failure_conditions": [
+            "when the hypothesis should be rejected"
+          ],
+          "confidence": 0.7
+        }
+      ]
+    },
+    "proposal_mode": "hypothesis_only"
+  },
+  "raw_response": "```json\n{\n  \"hypotheses\": [\n    {\n      \"hypothesis_id\": \"lipophilicity_influence_of_aromatic_structure\",\n      \"claim\": \"A higher count of aromatic structures increases normalized lipophilicity.\",\n      \"mechanism\": \"Aromatic structures enhance electron delocalization, which can improve lipophilicity.\",\n      \"conditions\": {\n        \"aromatic_bin\": \"aromatic_high\"\n      },\n      \"expected_direction\": \"positive\",\n      \"failure_conditions\": [\n        \"when the aromatic structures do not contribute to lipophilicity\"\n      ],\n      \"confidence\": 0.8\n    },\n    {\n      \"hypothesis_id\": \"impact_of_halogen_substitution_on_lipophilicity\",\n      \"claim\": \"Halogen substitution in molecules increases normalized lipophilicity.\",\n      \"mechanism\": \"Halogens can enhance lipophilicity due to their electronegative nature, affecting molecular interactions.\",\n      \"conditions\": {\n        \"halogen_bin\": \"halogen_high\"\n      },\n      \"expected_direction\": \"positive\",\n      \"failure_conditions\": [\n        \"when halogen substitution leads to steric hindrance\"\n      ],\n      \"confidence\": 0.75\n    },\n    {\n      \"hypothesis_id\": \"branching_effect_on_lipophilicity\",\n      \"claim\": \"Increased branching in molecular structure decreases normalized lipophilicity.\",\n      \"mechanism\": \"Branching can create steric hindrance, reducing the ability of a molecule to interact favorably with lipophilic environments.\",\n      \"conditions\": {\n        \"branch_bin\": \"branch_high\"\n      },\n      \"expected_direction\": \"negative\",\n      \"failure_conditions\": [\n        \"when branching does not affect lipophilicity\"\n      ],\n      \"confidence\": 0.65\n    },\n    {\n      \"hypothesis_id\": \"counter_hypothesis_on_heteroatom_influence\",\n      \"claim\": \"A lower count of heteroatoms may lead to higher normalized lipophilicity.\",\n      \"mechanism\": \"Fewer heteroatoms can reduce polarity, potentially increasing lipophilicity.\",\n      \"conditions\": {\n        \"hetero_atom_bin\": \"hetero_none\"\n      },\n      \"expected_direction\": \"positive\",\n      \"failure_conditions\": [\n        \"when the presence of heteroatoms is essential for lipophilicity\"\n      ],\n      \"confidence\": 0.7\n    },\n    {\n      \"hypothesis_id\": \"domain_knowledge_on_ring_structure_effects\",\n      \"claim\": \"Molecules with a higher count of ring structures exhibit increased normalized lipophilicity.\",\n      \"mechanism\": \"Ring structures can stabilize the molecule and enhance its interaction with lipophilic environments.\",\n      \"conditions\": {\n        \"ring_token_bin\": \"ring_token_high\"\n      },\n      \"expected_direction\": \"positive\",\n      \"failure_conditions\": [\n        \"when ring structures introduce unfavorable interactions\"\n      ],\n      \"confidence\": 0.72\n    }\n  ]\n}\n```",
+  "parsed_response": {
+    "hypotheses": [
+      {
+        "hypothesis_id": "lipophilicity_influence_of_aromatic_structure",
+        "claim": "A higher count of aromatic structures increases normalized lipophilicity.",
+        "mechanism": "Aromatic structures enhance electron delocalization, which can improve lipophilicity.",
+        "conditions": {
+          "aromatic_bin": "aromatic_high"
+        },
+        "expected_direction": "positive",
+        "failure_conditions": [
+          "when the aromatic structures do not contribute to lipophilicity"
+        ],
+        "confidence": 0.8
+      },
+      {
+        "hypothesis_id": "impact_of_halogen_substitution_on_lipophilicity",
+        "claim": "Halogen substitution in molecules increases normalized lipophilicity.",
+        "mechanism": "Halogens can enhance lipophilicity due to their electronegative nature, affecting molecular interactions.",
+        "conditions": {
+          "halogen_bin": "halogen_high"
+        },
+        "expected_direction": "positive",
+        "failure_conditions": [
+          "when halogen substitution leads to steric hindrance"
+        ],
+        "confidence": 0.75
+      },
+      {
+        "hypothesis_id": "branching_effect_on_lipophilicity",
+        "claim": "Increased branching in molecular structure decreases normalized lipophilicity.",
+        "mechanism": "Branching can create steric hindrance, reducing the ability of a molecule to interact favorably with lipophilic environments.",
+        "conditions": {
+          "branch_bin": "branch_high"
+        },
+        "expected_direction": "negative",
+        "failure_conditions": [
+          "when branching does not affect lipophilicity"
+        ],
+        "confidence": 0.65
+      },
+      {
+        "hypothesis_id": "counter_hypothesis_on_heteroatom_influence",
+        "claim": "A lower count of heteroatoms may lead to higher normalized lipophilicity.",
+        "mechanism": "Fewer heteroatoms can reduce polarity, potentially increasing lipophilicity.",
+        "conditions": {
+          "hetero_atom_bin": "hetero_none"
+        },
+        "expected_direction": "positive",
+        "failure_conditions": [
+          "when the presence of heteroatoms is essential for lipophilicity"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "hypothesis_id": "domain_knowledge_on_ring_structure_effects",
+        "claim": "Molecules with a higher count of ring structures exhibit increased normalized lipophilicity.",
+        "mechanism": "Ring structures can stabilize the molecule and enhance its interaction with lipophilic environments.",
+        "conditions": {
+          "ring_token_bin": "ring_token_high"
+        },
+        "expected_direction": "positive",
+        "failure_conditions": [
+          "when ring structures introduce unfavorable interactions"
+        ],
+        "confidence": 0.72
+      }
+    ]
+  },
+  "normalized_skills": [
+    {
+      "skill_id": "lipophilicity_influence_of_aromatic_structure",
+      "rules": [
+        {
+          "rule_id": "lipophilicity_influence_of_aromatic_structure_rule",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "A higher count of aromatic structures increases normalized lipophilicity. Mechanism: Aromatic structures enhance electron delocalization, which can improve lipophilicity. Failure conditions: when the aromatic structures do not contribute to lipophilicity"
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.25,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.8,
+      "hypothesis": "A higher count of aromatic structures increases normalized lipophilicity. Mechanism: Aromatic structures enhance electron delocalization, which can improve lipophilicity. Failure conditions: when the aromatic structures do not contribute to lipophilicity"
+    },
+    {
+      "skill_id": "impact_of_halogen_substitution_on_lipophilicity",
+      "rules": [
+        {
+          "rule_id": "impact_of_halogen_substitution_on_lipophilicity_rule",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_high"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Halogen substitution in molecules increases normalized lipophilicity. Mechanism: Halogens can enhance lipophilicity due to their electronegative nature, affecting molecular interactions. Failure conditions: when halogen substitution leads to steric hindrance"
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.25,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.75,
+      "hypothesis": "Halogen substitution in molecules increases normalized lipophilicity. Mechanism: Halogens can enhance lipophilicity due to their electronegative nature, affecting molecular interactions. Failure conditions: when halogen substitution leads to steric hindrance"
+    },
+    {
+      "skill_id": "branching_effect_on_lipophilicity",
+      "rules": [
+        {
+          "rule_id": "branching_effect_on_lipophilicity_rule",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_high"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Increased branching in molecular structure decreases normalized lipophilicity. Mechanism: Branching can create steric hindrance, reducing the ability of a molecule to interact favorably with lipophilic environments. Failure conditions: when branching does not affect lipophilicity"
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.25,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.65,
+      "hypothesis": "Increased branching in molecular structure decreases normalized lipophilicity. Mechanism: Branching can create steric hindrance, reducing the ability of a molecule to interact favorably with lipophilic environments. Failure conditions: when branching does not affect lipophilicity"
+    },
+    {
+      "skill_id": "counter_hypothesis_on_heteroatom_influence",
+      "rules": [
+        {
+          "rule_id": "counter_hypothesis_on_heteroatom_influence_rule",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_none"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "A lower count of heteroatoms may lead to higher normalized lipophilicity. Mechanism: Fewer heteroatoms can reduce polarity, potentially increasing lipophilicity. Failure conditions: when the presence of heteroatoms is essential for lipophilicity"
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.25,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.7,
+      "hypothesis": "A lower count of heteroatoms may lead to higher normalized lipophilicity. Mechanism: Fewer heteroatoms can reduce polarity, potentially increasing lipophilicity. Failure conditions: when the presence of heteroatoms is essential for lipophilicity"
+    },
+    {
+      "skill_id": "domain_knowledge_on_ring_structure_effects",
+      "rules": [
+        {
+          "rule_id": "domain_knowledge_on_ring_structure_effects_rule",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Molecules with a higher count of ring structures exhibit increased normalized lipophilicity. Mechanism: Ring structures can stabilize the molecule and enhance its interaction with lipophilic environments. Failure conditions: when ring structures introduce unfavorable interactions"
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.25,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.72,
+      "hypothesis": "Molecules with a higher count of ring structures exhibit increased normalized lipophilicity. Mechanism: Ring structures can stabilize the molecule and enhance its interaction with lipophilic environments. Failure conditions: when ring structures introduce unfavorable interactions"
+    }
+  ],
+  "knowledge_retrieval": {
+    "enabled": false,
+    "db": "",
+    "cutoff": "",
+    "card_ids": []
+  }
+}

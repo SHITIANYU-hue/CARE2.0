@@ -16,7 +16,7 @@ import time
 import urllib.error
 import urllib.request
 import zipfile
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from statistics import mean, pstdev
 from typing import Any, Callable, Literal
@@ -1251,6 +1251,34 @@ def real_moleculenet_freesolv_adapter() -> DatasetAdapter:
     )
 
 
+def real_moleculenet_freesolv_continuous_adapter() -> DatasetAdapter:
+    """FreeSolv replay with a fixed monotonic score that avoids clipping ties."""
+    base = real_moleculenet_freesolv_adapter()
+    candidates: list[Candidate] = []
+    for candidate in base.candidates:
+        delta_g = float(candidate.metadata["experimental_hydration_free_energy"])
+        score = 100.0 / (1.0 + math.exp((delta_g + 5.0) / 5.0))
+        metadata = dict(candidate.metadata)
+        metadata["hydration_affinity_continuous_score"] = score
+        candidates.append(replace(
+            candidate,
+            objective_value=score,
+            metadata=metadata,
+        ))
+    return replace(
+        base,
+        dataset_id="real_moleculenet_freesolv_continuous",
+        title="MoleculeNet FreeSolv continuous hydration free-energy replay",
+        objective="maximize_hydration_affinity_continuous_score",
+        hidden_target="hydration_affinity_continuous_score",
+        failure_note=(
+            "This versioned replay uses a fixed monotonic logistic transform of hydration "
+            "free energy so strong molecules remain ordered instead of clipping at 100."
+        ),
+        candidates=tuple(candidates),
+    )
+
+
 def real_moleculenet_lipophilicity_adapter() -> DatasetAdapter:
     path = ensure_public_data_file("moleculenet_lipophilicity.csv")
     records = read_csv_dicts(path)
@@ -1542,6 +1570,7 @@ DATASET_BUILDERS: dict[str, Callable[[], DatasetAdapter]] = {
     "real_chemlex_acidamine": real_chemlex_acidamine_adapter,
     "real_moleculenet_esol": real_moleculenet_esol_adapter,
     "real_moleculenet_freesolv": real_moleculenet_freesolv_adapter,
+    "real_moleculenet_freesolv_continuous": real_moleculenet_freesolv_continuous_adapter,
     "real_moleculenet_lipophilicity": real_moleculenet_lipophilicity_adapter,
     "real_matbench_expt_gap": real_matbench_expt_gap_adapter,
     "real_matbench_dielectric": real_matbench_dielectric_adapter,

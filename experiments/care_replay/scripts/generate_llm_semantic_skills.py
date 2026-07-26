@@ -115,7 +115,10 @@ def build_prompt_payload(
     skill_count: int,
     evidence_mode: str = "full",
     knowledge_context: list[dict[str, Any]] | None = None,
+    proposal_mode: str = "parametric",
 ) -> dict[str, Any]:
+    if proposal_mode not in {"parametric", "hypothesis_only"}:
+        raise ValueError(f"Unsupported proposal mode: {proposal_mode}")
     target = replay.DATASET_BUILDERS[target_dataset]()
     catalog = semantic.semantic_field_catalog(target)
     evidence_requirement = {
@@ -131,9 +134,8 @@ def build_prompt_payload(
     }[evidence_mode]
     payload = {
         "task": (
-            "Design a diverse library of executable semantic optimization skills for finite-pool "
-            "scientific search. Each skill defines interpretable rule features plus a conservative "
-            "Bayesian linear surrogate blended with strong target-only GP-UCB and GP-EI anchors."
+            "Design a diverse library of scientific transfer proposals for finite-pool search. "
+            "The proposals must be auditable and grounded in the supplied public schema."
         ),
         "target": {
             "dataset": target.dataset_id,
@@ -155,6 +157,9 @@ def build_prompt_payload(
             "semantic_model": (
                 "Rules become binary features. Revealed target outcomes fit a ridge Bayesian linear "
                 "surrogate whose coefficient prior follows rule weights."
+            ) if proposal_mode == "parametric" else (
+                "The hypothesis compiler turns each accepted mechanism hypothesis into one binary "
+                "rule with a fixed signed weight; target outcomes only fit the online surrogate."
             ),
             "anchor": "A rank blend of target-only GP-UCB and GP-EI.",
             "fusion": (
@@ -164,10 +169,13 @@ def build_prompt_payload(
             "selection": (
                 "Independent calibration seeds select one frozen skill. Independent held-out seeds "
                 "are evaluated only after selection."
+            ) if proposal_mode == "parametric" else (
+                "No target calibration is used in the zero-shot protocol. Every proposal is frozen "
+                "before the target replay and is reported without target-based selection."
             ),
         },
         "design_requirements": [
-            f"Return exactly {skill_count} diverse skills.",
+            f"Return exactly {skill_count} diverse {'hypotheses' if proposal_mode == 'hypothesis_only' else 'skills'}.",
             "Use only exact field/value pairs in public_semantic_fields.",
             (
                 "Each conditions object must map a real catalog field name directly to one exact "
@@ -178,13 +186,11 @@ def build_prompt_payload(
                 "Give every skill a distinct, descriptive scientific skill_id. Never copy schema "
                 "placeholders such as short_unique_name or add numeric suffixes to a placeholder."
             ),
-            "Give every skill 3-10 rules; use two-condition interactions only when scientifically meaningful.",
-            "Include at least one conservative low-semantic-mass skill.",
+            "Use two-condition interactions only when scientifically meaningful.",
             evidence_requirement,
-            "Include at least one domain-knowledge skill.",
-            "Include a counter-hypothesis skill that reverses or downweights an uncertain source relation.",
+            "Include at least one domain-knowledge proposal.",
+            "Include a counter-hypothesis proposal that reverses or downweights an uncertain source relation.",
             "Prefer mechanistic, chemically or physically interpretable rules over arbitrary coverage rules.",
-            "Use positive weights for conditions expected to improve the target objective and negative weights for risks.",
             "Do not claim access to target outcomes and do not output candidate identifiers.",
             *(
                 [
@@ -195,7 +201,7 @@ def build_prompt_payload(
                 else []
             ),
         ],
-        "allowed_ranges": {
+        "allowed_ranges": ({
             "rule_weight": "[-1, 1]",
             "ridge": "[0.05, 20]",
             "prior_scale": "[0, 1.5]",
@@ -204,8 +210,11 @@ def build_prompt_payload(
             "gp_beta_start_end": "[0.2, 4]",
             "gp_xi": "[0, 0.2]",
             "confidence": "[0.05, 1]",
-        },
-        "output_contract": {
+        } if proposal_mode == "parametric" else {
+            "confidence": "[0.05, 1]",
+            "expected_direction": "positive or negative",
+        }),
+        "output_contract": ({
             "skills": [{
                 "skill_id": "descriptive_scientific_skill_id",
                 "rules": [{
@@ -225,7 +234,18 @@ def build_prompt_payload(
                 "confidence": 0.70,
                 "hypothesis": "what this skill transfers and when it may fail",
             }]
-        },
+        } if proposal_mode == "parametric" else {
+            "hypotheses": [{
+                "hypothesis_id": "descriptive_scientific_hypothesis_id",
+                "claim": "one falsifiable mechanism-level transfer claim",
+                "mechanism": "why the source evidence or domain knowledge should transfer",
+                "conditions": {"field_name_from_public_semantic_fields": "exact_catalog_value"},
+                "expected_direction": "positive or negative",
+                "failure_conditions": ["when the hypothesis should be rejected"],
+                "confidence": 0.70,
+            }]
+        }),
+        "proposal_mode": proposal_mode,
     }
     if knowledge_context:
         payload["care_knowledge_context"] = {
@@ -253,6 +273,15 @@ def main() -> None:
     parser.add_argument("--llm-api-key-env", default="COMMONSTACK_API_KEY")
     parser.add_argument("--llm-temperature", type=float, default=0.45)
     parser.add_argument("--llm-max-tokens", type=int, default=5000)
+    parser.add_argument(
+        "--proposal-mode",
+        choices=("parametric", "hypothesis_only"),
+        default="parametric",
+        help=(
+            "parametric preserves the historical schema; hypothesis_only asks the LLM for "
+            "mechanism claims and compiles execution parameters deterministically."
+        ),
+    )
     parser.add_argument("--kb-db", type=Path)
     parser.add_argument("--kb-limit", type=int, default=5)
     parser.add_argument("--kb-cutoff", default="")
@@ -279,6 +308,7 @@ def main() -> None:
         args.skill_count,
         args.evidence_mode,
         knowledge_context,
+        args.proposal_mode,
     )
     config = replay.LLMConfig(
         base_url=args.llm_base_url,
@@ -304,7 +334,18 @@ def main() -> None:
     parsed = replay.extract_json_object(content)
     target = replay.DATASET_BUILDERS[args.target_dataset]()
     catalog = semantic.semantic_field_catalog(target)
-    skills = semantic.normalize_skills(parsed, catalog, max_skills=args.skill_count)
+    if args.proposal_mode == "hypothesis_only":
+        skills, compilation = semantic.compile_hypothesis_skills(
+            parsed,
+            catalog,
+            max_skills=args.skill_count,
+        )
+    else:
+        skills = semantic.normalize_skills(parsed, catalog, max_skills=args.skill_count)
+        compilation = {
+            "mode": "parametric",
+            "fixed_execution_parameters": False,
+        }
     record = {
         "model": metadata.get("model", args.llm_model),
         "usage": metadata.get("usage", {}),
@@ -319,6 +360,8 @@ def main() -> None:
         "source_dataset": args.source_dataset,
         "target_dataset": args.target_dataset,
         "evidence_mode": args.evidence_mode,
+        "proposal_mode": args.proposal_mode,
+        "hypothesis_compilation": compilation,
         "prompt_payload": payload,
         "raw_response": content,
         "parsed_response": parsed,

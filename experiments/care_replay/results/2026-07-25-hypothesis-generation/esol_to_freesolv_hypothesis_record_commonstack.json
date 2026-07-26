@@ -1,0 +1,353 @@
+{
+  "model": "openai/gpt-4o-mini",
+  "usage": {
+    "prompt_tokens": 1036,
+    "completion_tokens": 552,
+    "total_tokens": 1588,
+    "tps": 75.57,
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "llm_generation_call_count": 1,
+  "api_configuration": {
+    "base_url": "https://api.commonstack.ai/v1",
+    "api_mode": "chat",
+    "structured_mode": "json",
+    "temperature": 0.3,
+    "max_tokens": 3500
+  },
+  "source_dataset": "real_moleculenet_esol",
+  "target_dataset": "real_moleculenet_freesolv_continuous",
+  "evidence_mode": "source_schema_only",
+  "proposal_mode": "hypothesis_only",
+  "hypothesis_compilation": {
+    "mode": "hypothesis_only",
+    "fixed_execution_parameters": true,
+    "accepted_hypotheses": 4,
+    "rejected_hypotheses": 1,
+    "rejections": [
+      "hypothesis_5: no public condition survived"
+    ],
+    "fixed_parameters": {
+      "rule_weight_magnitude": 0.5,
+      "ridge": 2.0,
+      "prior_scale": 0.25,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01
+    }
+  },
+  "prompt_payload": {
+    "task": "Design a diverse library of scientific transfer proposals for finite-pool search. The proposals must be auditable and grounded in the supplied public schema.",
+    "target": {
+      "dataset": "real_moleculenet_freesolv_continuous",
+      "title": "MoleculeNet FreeSolv continuous hydration free-energy replay",
+      "objective": "maximize_hydration_affinity_continuous_score",
+      "candidate_count": 642,
+      "public_semantic_fields": {
+        "smiles_length_bin": {
+          "smiles_long": 13,
+          "smiles_mid": 122,
+          "smiles_short": 506,
+          "smiles_very_long": 1
+        },
+        "hetero_atom_bin": {
+          "hetero_high": 28,
+          "hetero_low": 316,
+          "hetero_mid": 91,
+          "hetero_none": 207
+        },
+        "halogen_bin": {
+          "halogen_high": 43,
+          "halogen_low": 73,
+          "halogen_mid": 59,
+          "halogen_none": 467
+        },
+        "aromatic_bin": {
+          "aromatic_high": 3,
+          "aromatic_low": 203,
+          "aromatic_mid": 61,
+          "aromatic_none": 375
+        },
+        "ring_token_bin": {
+          "ring_token_high": 2,
+          "ring_token_low": 247,
+          "ring_token_mid": 73,
+          "ring_token_none": 320
+        },
+        "branch_bin": {
+          "branch_high": 20,
+          "branch_low": 311,
+          "branch_mid": 116,
+          "branch_none": 195
+        },
+        "double_bond_bin": {
+          "double_bond_low": 179,
+          "double_bond_mid": 71,
+          "double_bond_none": 392
+        }
+      },
+      "hidden_target": "hydration_affinity_continuous_score",
+      "boundary": "Field values and counts are public; target outcomes are not included."
+    },
+    "source_transfer_evidence": {
+      "evidence_mode": "source_schema_only",
+      "source_dataset": "real_moleculenet_esol",
+      "source_objective": "maximize_normalized_solubility",
+      "mapped_roles": [
+        {
+          "source_field": "hbond_donor_bin",
+          "target_field": "hetero_atom_bin"
+        },
+        {
+          "source_field": "ring_bin",
+          "target_field": "ring_token_bin"
+        },
+        {
+          "source_field": "rotatable_bond_bin",
+          "target_field": "branch_bin"
+        },
+        {
+          "source_field": "smiles_length_bin",
+          "target_field": "smiles_length_bin"
+        }
+      ],
+      "source_outcome_statistics": null,
+      "shared_value_priors": [],
+      "boundary": "Only source identity, objective, and public source-target field alignment are provided. Source outcomes, effects, support counts, and value priors are withheld."
+    },
+    "executor": {
+      "semantic_model": "The hypothesis compiler turns each accepted mechanism hypothesis into one binary rule with a fixed signed weight; target outcomes only fit the online surrogate.",
+      "anchor": "A rank blend of target-only GP-UCB and GP-EI.",
+      "fusion": "semantic_mass_start/end controls the rank mass assigned to the semantic surrogate; the remaining mass stays on the target-only anchor.",
+      "selection": "No target calibration is used in the zero-shot protocol. Every proposal is frozen before the target replay and is reported without target-based selection."
+    },
+    "design_requirements": [
+      "Return exactly 5 diverse hypotheses.",
+      "Use only exact field/value pairs in public_semantic_fields.",
+      "Each conditions object must map a real catalog field name directly to one exact catalog value, for example {\"dominant_family\": \"oxide\"}. Never use literal placeholder keys such as exact_field, field_name, field, or value.",
+      "Give every skill a distinct, descriptive scientific skill_id. Never copy schema placeholders such as short_unique_name or add numeric suffixes to a placeholder.",
+      "Use two-condition interactions only when scientifically meaningful.",
+      "Include at least one skill grounded only in the supplied source-target field alignment; do not imply that source outcome effects were observed.",
+      "Include at least one domain-knowledge proposal.",
+      "Include a counter-hypothesis proposal that reverses or downweights an uncertain source relation.",
+      "Prefer mechanistic, chemically or physically interpretable rules over arbitrary coverage rules.",
+      "Do not claim access to target outcomes and do not output candidate identifiers."
+    ],
+    "allowed_ranges": {
+      "confidence": "[0.05, 1]",
+      "expected_direction": "positive or negative"
+    },
+    "output_contract": {
+      "hypotheses": [
+        {
+          "hypothesis_id": "descriptive_scientific_hypothesis_id",
+          "claim": "one falsifiable mechanism-level transfer claim",
+          "mechanism": "why the source evidence or domain knowledge should transfer",
+          "conditions": {
+            "field_name_from_public_semantic_fields": "exact_catalog_value"
+          },
+          "expected_direction": "positive or negative",
+          "failure_conditions": [
+            "when the hypothesis should be rejected"
+          ],
+          "confidence": 0.7
+        }
+      ]
+    },
+    "proposal_mode": "hypothesis_only"
+  },
+  "raw_response": "```json\n{\n  \"hypotheses\": [\n    {\n      \"hypothesis_id\": \"hydrogen_bonding_effect\",\n      \"claim\": \"Increased heteroatoms enhance hydration affinity due to improved hydrogen bonding.\",\n      \"mechanism\": \"Heteroatoms can participate in hydrogen bonding, which is crucial for solvation processes.\",\n      \"conditions\": {\n        \"hetero_atom_bin\": \"hetero_high\"\n      },\n      \"expected_direction\": \"positive\",\n      \"failure_conditions\": [\n        \"when the hypothesis should be rejected\"\n      ],\n      \"confidence\": 0.8\n    },\n    {\n      \"hypothesis_id\": \"ring_structure_influence\",\n      \"claim\": \"The presence of ring structures negatively impacts hydration affinity.\",\n      \"mechanism\": \"Ring structures can restrict molecular flexibility, reducing solvation efficiency.\",\n      \"conditions\": {\n        \"ring_token_bin\": \"ring_token_high\"\n      },\n      \"expected_direction\": \"negative\",\n      \"failure_conditions\": [\n        \"when the hypothesis should be rejected\"\n      ],\n      \"confidence\": 0.75\n    },\n    {\n      \"hypothesis_id\": \"branching_effect_on_solubility\",\n      \"claim\": \"Increased branching in molecular structure correlates with higher hydration affinity.\",\n      \"mechanism\": \"Branching can create more surface area for solvation interactions.\",\n      \"conditions\": {\n        \"branch_bin\": \"branch_high\"\n      },\n      \"expected_direction\": \"positive\",\n      \"failure_conditions\": [\n        \"when the hypothesis should be rejected\"\n      ],\n      \"confidence\": 0.7\n    },\n    {\n      \"hypothesis_id\": \"double_bond_restriction\",\n      \"claim\": \"The presence of double bonds decreases hydration affinity.\",\n      \"mechanism\": \"Double bonds can create rigidity in the molecular structure, limiting solvation.\",\n      \"conditions\": {\n        \"double_bond_bin\": \"double_bond_mid\"\n      },\n      \"expected_direction\": \"negative\",\n      \"failure_conditions\": [\n        \"when the hypothesis should be rejected\"\n      ],\n      \"confidence\": 0.65\n    },\n    {\n      \"hypothesis_id\": \"solubility_hydrogen_bonding\",\n      \"claim\": \"Hydrogen bond donors correlate with increased hydration affinity.\",\n      \"mechanism\": \"Hydrogen bond donors can enhance solvation through favorable interactions.\",\n      \"conditions\": {\n        \"hbond_donor_bin\": \"hbond_donor_bin\"\n      },\n      \"expected_direction\": \"positive\",\n      \"failure_conditions\": [\n        \"when the hypothesis should be rejected\"\n      ],\n      \"confidence\": 0.7\n    }\n  ]\n}\n```",
+  "parsed_response": {
+    "hypotheses": [
+      {
+        "hypothesis_id": "hydrogen_bonding_effect",
+        "claim": "Increased heteroatoms enhance hydration affinity due to improved hydrogen bonding.",
+        "mechanism": "Heteroatoms can participate in hydrogen bonding, which is crucial for solvation processes.",
+        "conditions": {
+          "hetero_atom_bin": "hetero_high"
+        },
+        "expected_direction": "positive",
+        "failure_conditions": [
+          "when the hypothesis should be rejected"
+        ],
+        "confidence": 0.8
+      },
+      {
+        "hypothesis_id": "ring_structure_influence",
+        "claim": "The presence of ring structures negatively impacts hydration affinity.",
+        "mechanism": "Ring structures can restrict molecular flexibility, reducing solvation efficiency.",
+        "conditions": {
+          "ring_token_bin": "ring_token_high"
+        },
+        "expected_direction": "negative",
+        "failure_conditions": [
+          "when the hypothesis should be rejected"
+        ],
+        "confidence": 0.75
+      },
+      {
+        "hypothesis_id": "branching_effect_on_solubility",
+        "claim": "Increased branching in molecular structure correlates with higher hydration affinity.",
+        "mechanism": "Branching can create more surface area for solvation interactions.",
+        "conditions": {
+          "branch_bin": "branch_high"
+        },
+        "expected_direction": "positive",
+        "failure_conditions": [
+          "when the hypothesis should be rejected"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "hypothesis_id": "double_bond_restriction",
+        "claim": "The presence of double bonds decreases hydration affinity.",
+        "mechanism": "Double bonds can create rigidity in the molecular structure, limiting solvation.",
+        "conditions": {
+          "double_bond_bin": "double_bond_mid"
+        },
+        "expected_direction": "negative",
+        "failure_conditions": [
+          "when the hypothesis should be rejected"
+        ],
+        "confidence": 0.65
+      },
+      {
+        "hypothesis_id": "solubility_hydrogen_bonding",
+        "claim": "Hydrogen bond donors correlate with increased hydration affinity.",
+        "mechanism": "Hydrogen bond donors can enhance solvation through favorable interactions.",
+        "conditions": {
+          "hbond_donor_bin": "hbond_donor_bin"
+        },
+        "expected_direction": "positive",
+        "failure_conditions": [
+          "when the hypothesis should be rejected"
+        ],
+        "confidence": 0.7
+      }
+    ]
+  },
+  "normalized_skills": [
+    {
+      "skill_id": "hydrogen_bonding_effect",
+      "rules": [
+        {
+          "rule_id": "hydrogen_bonding_effect_rule",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Increased heteroatoms enhance hydration affinity due to improved hydrogen bonding. Mechanism: Heteroatoms can participate in hydrogen bonding, which is crucial for solvation processes. Failure conditions: when the hypothesis should be rejected"
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.25,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.8,
+      "hypothesis": "Increased heteroatoms enhance hydration affinity due to improved hydrogen bonding. Mechanism: Heteroatoms can participate in hydrogen bonding, which is crucial for solvation processes. Failure conditions: when the hypothesis should be rejected"
+    },
+    {
+      "skill_id": "ring_structure_influence",
+      "rules": [
+        {
+          "rule_id": "ring_structure_influence_rule",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "The presence of ring structures negatively impacts hydration affinity. Mechanism: Ring structures can restrict molecular flexibility, reducing solvation efficiency. Failure conditions: when the hypothesis should be rejected"
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.25,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.75,
+      "hypothesis": "The presence of ring structures negatively impacts hydration affinity. Mechanism: Ring structures can restrict molecular flexibility, reducing solvation efficiency. Failure conditions: when the hypothesis should be rejected"
+    },
+    {
+      "skill_id": "branching_effect_on_solubility",
+      "rules": [
+        {
+          "rule_id": "branching_effect_on_solubility_rule",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_high"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Increased branching in molecular structure correlates with higher hydration affinity. Mechanism: Branching can create more surface area for solvation interactions. Failure conditions: when the hypothesis should be rejected"
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.25,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.7,
+      "hypothesis": "Increased branching in molecular structure correlates with higher hydration affinity. Mechanism: Branching can create more surface area for solvation interactions. Failure conditions: when the hypothesis should be rejected"
+    },
+    {
+      "skill_id": "double_bond_restriction",
+      "rules": [
+        {
+          "rule_id": "double_bond_restriction_rule",
+          "conditions": [
+            [
+              "double_bond_bin",
+              "double_bond_mid"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "The presence of double bonds decreases hydration affinity. Mechanism: Double bonds can create rigidity in the molecular structure, limiting solvation. Failure conditions: when the hypothesis should be rejected"
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.25,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.65,
+      "hypothesis": "The presence of double bonds decreases hydration affinity. Mechanism: Double bonds can create rigidity in the molecular structure, limiting solvation. Failure conditions: when the hypothesis should be rejected"
+    }
+  ],
+  "knowledge_retrieval": {
+    "enabled": false,
+    "db": "",
+    "cutoff": "",
+    "card_ids": []
+  }
+}

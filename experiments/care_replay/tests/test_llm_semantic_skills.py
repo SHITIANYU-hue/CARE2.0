@@ -226,6 +226,56 @@ class LlmSemanticSkillsTest(unittest.TestCase):
         self.assertEqual(payload["mapped_roles"], [])
         self.assertEqual(payload["shared_value_priors"], [])
 
+    def test_hypothesis_compiler_freezes_execution_parameters(self) -> None:
+        skills, compilation = semantic.compile_hypothesis_skills(
+            {
+                "hypotheses": [
+                    {
+                        "hypothesis_id": "acid_activation",
+                        "claim": "A compatible acid motif should improve coupling.",
+                        "mechanism": "The public functional group is a proxy for activation.",
+                        "conditions": {"family": "oxide"},
+                        "expected_direction": "positive",
+                        "failure_conditions": ["Sparse support can make the proxy unreliable."],
+                        "confidence": 0.8,
+                    },
+                    {
+                        "hypothesis_id": "hidden_leak",
+                        "claim": "This must not survive.",
+                        "mechanism": "It uses a private field.",
+                        "conditions": {"hidden_target": "high"},
+                        "expected_direction": "positive",
+                    },
+                ]
+            },
+            {"family": {"oxide": 10, "halide": 5}},
+        )
+        self.assertEqual(len(skills), 1)
+        self.assertTrue(compilation["fixed_execution_parameters"])
+        self.assertEqual(compilation["accepted_hypotheses"], 1)
+        self.assertEqual(compilation["rejected_hypotheses"], 1)
+        skill = skills[0]
+        self.assertEqual(skill.rules[0].weight, 0.5)
+        self.assertEqual(skill.ridge, 2.0)
+        self.assertEqual(skill.prior_scale, 0.25)
+        self.assertEqual(skill.semantic_mass_start, 0.20)
+        self.assertIn("Mechanism:", skill.hypothesis)
+
+    def test_hypothesis_prompt_does_not_offer_llm_parameters(self) -> None:
+        payload = generate.build_prompt_payload(
+            "real_suzuki_miyaura",
+            "real_buchwald_hartwig",
+            64,
+            0.65,
+            3,
+            "source_schema_only",
+            proposal_mode="hypothesis_only",
+        )
+        self.assertEqual(payload["proposal_mode"], "hypothesis_only")
+        self.assertIn("hypotheses", payload["output_contract"])
+        self.assertNotIn("prior_scale", payload["output_contract"]["hypotheses"][0])
+        self.assertNotIn("prior_scale", payload["allowed_ranges"])
+
     def test_prompt_contract_uses_real_catalog_field_placeholders(self) -> None:
         payload = generate.build_prompt_payload(
             "real_suzuki_miyaura",

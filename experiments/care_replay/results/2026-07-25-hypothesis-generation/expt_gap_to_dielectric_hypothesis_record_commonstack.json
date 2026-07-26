@@ -1,0 +1,405 @@
+{
+  "model": "openai/gpt-4o-mini",
+  "usage": {
+    "prompt_tokens": 1127,
+    "completion_tokens": 629,
+    "total_tokens": 1756,
+    "tps": 131.27,
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_write_tokens": 0,
+      "cached_tokens": 0,
+      "image_tokens": 0,
+      "text_tokens": 0,
+      "video_tokens": 0
+    },
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "audio_tokens": 0,
+      "image_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": 0,
+      "text_tokens": 0,
+      "video_tokens": 0
+    }
+  },
+  "llm_generation_call_count": 1,
+  "api_configuration": {
+    "base_url": "https://api.commonstack.ai/v1",
+    "api_mode": "chat",
+    "structured_mode": "json",
+    "temperature": 0.3,
+    "max_tokens": 3500
+  },
+  "source_dataset": "real_matbench_expt_gap",
+  "target_dataset": "real_matbench_dielectric",
+  "evidence_mode": "source_schema_only",
+  "proposal_mode": "hypothesis_only",
+  "hypothesis_compilation": {
+    "mode": "hypothesis_only",
+    "fixed_execution_parameters": true,
+    "accepted_hypotheses": 5,
+    "rejected_hypotheses": 0,
+    "rejections": [],
+    "fixed_parameters": {
+      "rule_weight_magnitude": 0.5,
+      "ridge": 2.0,
+      "prior_scale": 0.25,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01
+    }
+  },
+  "prompt_payload": {
+    "task": "Design a diverse library of scientific transfer proposals for finite-pool search. The proposals must be auditable and grounded in the supplied public schema.",
+    "target": {
+      "dataset": "real_matbench_dielectric",
+      "title": "Matbench refractive-index replay",
+      "objective": "maximize_refractive_index",
+      "candidate_count": 4764,
+      "public_semantic_fields": {
+        "anion_family": {
+          "carbide_or_carbon": 22,
+          "chalcogenide": 831,
+          "halide": 788,
+          "other": 172,
+          "oxide": 2259,
+          "pnictide": 692
+        },
+        "element_count_bin": {
+          "binary": 974,
+          "quinary_senary": 225,
+          "ternary_quaternary": 3565
+        },
+        "dominant_family": {
+          "alkali": 269,
+          "alkaline_earth": 103,
+          "chalcogen": 2447,
+          "halogen": 813,
+          "lanthanide": 11,
+          "light_nonmetal": 219,
+          "metalloid": 283,
+          "other": 3,
+          "pnictogen": 376,
+          "post_transition": 72,
+          "transition_metal": 168
+        },
+        "transition_metal_flag": {
+          "has_transition_metal": 2550,
+          "no_transition_metal": 2214
+        },
+        "lanthanide_flag": {
+          "has_lanthanide": 285,
+          "no_lanthanide": 4479
+        },
+        "mean_atomic_number_bin": {
+          "mean_z_high": 426,
+          "mean_z_low": 2693,
+          "mean_z_mid": 1600,
+          "mean_z_very_high": 45
+        },
+        "max_element_fraction_bin": {
+          "balanced": 317,
+          "concentrated": 2673,
+          "dominant_element_heavy": 128,
+          "moderately_concentrated": 1646
+        }
+      },
+      "hidden_target": "normalized_property_score",
+      "boundary": "Field values and counts are public; target outcomes are not included."
+    },
+    "source_transfer_evidence": {
+      "evidence_mode": "source_schema_only",
+      "source_dataset": "real_matbench_expt_gap",
+      "source_objective": "maximize_normalized_experimental_band_gap",
+      "mapped_roles": [
+        {
+          "source_field": "anion_family",
+          "target_field": "anion_family"
+        },
+        {
+          "source_field": "dominant_family",
+          "target_field": "dominant_family"
+        },
+        {
+          "source_field": "element_count_bin",
+          "target_field": "element_count_bin"
+        },
+        {
+          "source_field": "lanthanide_flag",
+          "target_field": "lanthanide_flag"
+        },
+        {
+          "source_field": "max_element_fraction_bin",
+          "target_field": "max_element_fraction_bin"
+        },
+        {
+          "source_field": "mean_atomic_number_bin",
+          "target_field": "mean_atomic_number_bin"
+        },
+        {
+          "source_field": "transition_metal_flag",
+          "target_field": "transition_metal_flag"
+        }
+      ],
+      "source_outcome_statistics": null,
+      "shared_value_priors": [],
+      "boundary": "Only source identity, objective, and public source-target field alignment are provided. Source outcomes, effects, support counts, and value priors are withheld."
+    },
+    "executor": {
+      "semantic_model": "The hypothesis compiler turns each accepted mechanism hypothesis into one binary rule with a fixed signed weight; target outcomes only fit the online surrogate.",
+      "anchor": "A rank blend of target-only GP-UCB and GP-EI.",
+      "fusion": "semantic_mass_start/end controls the rank mass assigned to the semantic surrogate; the remaining mass stays on the target-only anchor.",
+      "selection": "No target calibration is used in the zero-shot protocol. Every proposal is frozen before the target replay and is reported without target-based selection."
+    },
+    "design_requirements": [
+      "Return exactly 5 diverse hypotheses.",
+      "Use only exact field/value pairs in public_semantic_fields.",
+      "Each conditions object must map a real catalog field name directly to one exact catalog value, for example {\"dominant_family\": \"oxide\"}. Never use literal placeholder keys such as exact_field, field_name, field, or value.",
+      "Give every skill a distinct, descriptive scientific skill_id. Never copy schema placeholders such as short_unique_name or add numeric suffixes to a placeholder.",
+      "Use two-condition interactions only when scientifically meaningful.",
+      "Include at least one skill grounded only in the supplied source-target field alignment; do not imply that source outcome effects were observed.",
+      "Include at least one domain-knowledge proposal.",
+      "Include a counter-hypothesis proposal that reverses or downweights an uncertain source relation.",
+      "Prefer mechanistic, chemically or physically interpretable rules over arbitrary coverage rules.",
+      "Do not claim access to target outcomes and do not output candidate identifiers."
+    ],
+    "allowed_ranges": {
+      "confidence": "[0.05, 1]",
+      "expected_direction": "positive or negative"
+    },
+    "output_contract": {
+      "hypotheses": [
+        {
+          "hypothesis_id": "descriptive_scientific_hypothesis_id",
+          "claim": "one falsifiable mechanism-level transfer claim",
+          "mechanism": "why the source evidence or domain knowledge should transfer",
+          "conditions": {
+            "field_name_from_public_semantic_fields": "exact_catalog_value"
+          },
+          "expected_direction": "positive or negative",
+          "failure_conditions": [
+            "when the hypothesis should be rejected"
+          ],
+          "confidence": 0.7
+        }
+      ]
+    },
+    "proposal_mode": "hypothesis_only"
+  },
+  "raw_response": "```json\n{\n  \"hypotheses\": [\n    {\n      \"hypothesis_id\": \"high_refractive_index_oxide\",\n      \"claim\": \"Oxides with a high mean atomic number will exhibit a higher refractive index.\",\n      \"mechanism\": \"Higher atomic numbers in oxides lead to increased polarizability, enhancing refractive index.\",\n      \"conditions\": {\n        \"mean_atomic_number_bin\": \"mean_z_high\",\n        \"dominant_family\": \"oxide\"\n      },\n      \"expected_direction\": \"positive\",\n      \"failure_conditions\": [\n        \"when mean atomic number does not correlate with refractive index in oxides\"\n      ],\n      \"confidence\": 0.8\n    },\n    {\n      \"hypothesis_id\": \"low_refractive_index_halide\",\n      \"claim\": \"Halides with a low element count will have a lower refractive index.\",\n      \"mechanism\": \"Fewer elements in halides may lead to less complexity in electronic structure, resulting in lower refractive index.\",\n      \"conditions\": {\n        \"element_count_bin\": \"binary\",\n        \"dominant_family\": \"halide\"\n      },\n      \"expected_direction\": \"negative\",\n      \"failure_conditions\": [\n        \"when halides with low element count show unexpectedly high refractive index\"\n      ],\n      \"confidence\": 0.75\n    },\n    {\n      \"hypothesis_id\": \"transition_metal_effect\",\n      \"claim\": \"Materials without transition metals will show a lower refractive index.\",\n      \"mechanism\": \"Transition metals contribute to electronic transitions that enhance refractive index.\",\n      \"conditions\": {\n        \"transition_metal_flag\": \"no_transition_metal\"\n      },\n      \"expected_direction\": \"negative\",\n      \"failure_conditions\": [\n        \"when non-transition metal materials exhibit high refractive index\"\n      ],\n      \"confidence\": 0.65\n    },\n    {\n      \"hypothesis_id\": \"lanthanide_contribution\",\n      \"claim\": \"The presence of lanthanides increases the refractive index of materials.\",\n      \"mechanism\": \"Lanthanides have unique electronic properties that enhance optical characteristics.\",\n      \"conditions\": {\n        \"lanthanide_flag\": \"has_lanthanide\"\n      },\n      \"expected_direction\": \"positive\",\n      \"failure_conditions\": [\n        \"when lanthanide-containing materials show low refractive index\"\n      ],\n      \"confidence\": 0.7\n    },\n    {\n      \"hypothesis_id\": \"counter_hypothesis_anion_family\",\n      \"claim\": \"Chalcogenides may not always yield a high refractive index despite their composition.\",\n      \"mechanism\": \"Chalcogenides can exhibit varying electronic structures that do not guarantee high refractive index.\",\n      \"conditions\": {\n        \"anion_family\": \"chalcogenide\"\n      },\n      \"expected_direction\": \"negative\",\n      \"failure_conditions\": [\n        \"when chalcogenides consistently show high refractive index\"\n      ],\n      \"confidence\": 0.6\n    }\n  ]\n}\n```",
+  "parsed_response": {
+    "hypotheses": [
+      {
+        "hypothesis_id": "high_refractive_index_oxide",
+        "claim": "Oxides with a high mean atomic number will exhibit a higher refractive index.",
+        "mechanism": "Higher atomic numbers in oxides lead to increased polarizability, enhancing refractive index.",
+        "conditions": {
+          "mean_atomic_number_bin": "mean_z_high",
+          "dominant_family": "oxide"
+        },
+        "expected_direction": "positive",
+        "failure_conditions": [
+          "when mean atomic number does not correlate with refractive index in oxides"
+        ],
+        "confidence": 0.8
+      },
+      {
+        "hypothesis_id": "low_refractive_index_halide",
+        "claim": "Halides with a low element count will have a lower refractive index.",
+        "mechanism": "Fewer elements in halides may lead to less complexity in electronic structure, resulting in lower refractive index.",
+        "conditions": {
+          "element_count_bin": "binary",
+          "dominant_family": "halide"
+        },
+        "expected_direction": "negative",
+        "failure_conditions": [
+          "when halides with low element count show unexpectedly high refractive index"
+        ],
+        "confidence": 0.75
+      },
+      {
+        "hypothesis_id": "transition_metal_effect",
+        "claim": "Materials without transition metals will show a lower refractive index.",
+        "mechanism": "Transition metals contribute to electronic transitions that enhance refractive index.",
+        "conditions": {
+          "transition_metal_flag": "no_transition_metal"
+        },
+        "expected_direction": "negative",
+        "failure_conditions": [
+          "when non-transition metal materials exhibit high refractive index"
+        ],
+        "confidence": 0.65
+      },
+      {
+        "hypothesis_id": "lanthanide_contribution",
+        "claim": "The presence of lanthanides increases the refractive index of materials.",
+        "mechanism": "Lanthanides have unique electronic properties that enhance optical characteristics.",
+        "conditions": {
+          "lanthanide_flag": "has_lanthanide"
+        },
+        "expected_direction": "positive",
+        "failure_conditions": [
+          "when lanthanide-containing materials show low refractive index"
+        ],
+        "confidence": 0.7
+      },
+      {
+        "hypothesis_id": "counter_hypothesis_anion_family",
+        "claim": "Chalcogenides may not always yield a high refractive index despite their composition.",
+        "mechanism": "Chalcogenides can exhibit varying electronic structures that do not guarantee high refractive index.",
+        "conditions": {
+          "anion_family": "chalcogenide"
+        },
+        "expected_direction": "negative",
+        "failure_conditions": [
+          "when chalcogenides consistently show high refractive index"
+        ],
+        "confidence": 0.6
+      }
+    ]
+  },
+  "normalized_skills": [
+    {
+      "skill_id": "high_refractive_index_oxide",
+      "rules": [
+        {
+          "rule_id": "high_refractive_index_oxide_rule",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_high"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Oxides with a high mean atomic number will exhibit a higher refractive index. Mechanism: Higher atomic numbers in oxides lead to increased polarizability, enhancing refractive index. Failure conditions: when mean atomic number does not correlate with refractive index in oxides"
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.25,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.8,
+      "hypothesis": "Oxides with a high mean atomic number will exhibit a higher refractive index. Mechanism: Higher atomic numbers in oxides lead to increased polarizability, enhancing refractive index. Failure conditions: when mean atomic number does not correlate with refractive index in oxides"
+    },
+    {
+      "skill_id": "low_refractive_index_halide",
+      "rules": [
+        {
+          "rule_id": "low_refractive_index_halide_rule",
+          "conditions": [
+            [
+              "element_count_bin",
+              "binary"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Halides with a low element count will have a lower refractive index. Mechanism: Fewer elements in halides may lead to less complexity in electronic structure, resulting in lower refractive index. Failure conditions: when halides with low element count show unexpectedly high refractive index"
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.25,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.75,
+      "hypothesis": "Halides with a low element count will have a lower refractive index. Mechanism: Fewer elements in halides may lead to less complexity in electronic structure, resulting in lower refractive index. Failure conditions: when halides with low element count show unexpectedly high refractive index"
+    },
+    {
+      "skill_id": "transition_metal_effect",
+      "rules": [
+        {
+          "rule_id": "transition_metal_effect_rule",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "no_transition_metal"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Materials without transition metals will show a lower refractive index. Mechanism: Transition metals contribute to electronic transitions that enhance refractive index. Failure conditions: when non-transition metal materials exhibit high refractive index"
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.25,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.65,
+      "hypothesis": "Materials without transition metals will show a lower refractive index. Mechanism: Transition metals contribute to electronic transitions that enhance refractive index. Failure conditions: when non-transition metal materials exhibit high refractive index"
+    },
+    {
+      "skill_id": "lanthanide_contribution",
+      "rules": [
+        {
+          "rule_id": "lanthanide_contribution_rule",
+          "conditions": [
+            [
+              "lanthanide_flag",
+              "has_lanthanide"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "The presence of lanthanides increases the refractive index of materials. Mechanism: Lanthanides have unique electronic properties that enhance optical characteristics. Failure conditions: when lanthanide-containing materials show low refractive index"
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.25,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.7,
+      "hypothesis": "The presence of lanthanides increases the refractive index of materials. Mechanism: Lanthanides have unique electronic properties that enhance optical characteristics. Failure conditions: when lanthanide-containing materials show low refractive index"
+    },
+    {
+      "skill_id": "counter_hypothesis_anion_family",
+      "rules": [
+        {
+          "rule_id": "counter_hypothesis_anion_family_rule",
+          "conditions": [
+            [
+              "anion_family",
+              "chalcogenide"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Chalcogenides may not always yield a high refractive index despite their composition. Mechanism: Chalcogenides can exhibit varying electronic structures that do not guarantee high refractive index. Failure conditions: when chalcogenides consistently show high refractive index"
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.25,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.6,
+      "hypothesis": "Chalcogenides may not always yield a high refractive index despite their composition. Mechanism: Chalcogenides can exhibit varying electronic structures that do not guarantee high refractive index. Failure conditions: when chalcogenides consistently show high refractive index"
+    }
+  ],
+  "knowledge_retrieval": {
+    "enabled": false,
+    "db": "",
+    "cutoff": "",
+    "card_ids": []
+  }
+}

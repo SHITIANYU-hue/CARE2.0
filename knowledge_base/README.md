@@ -23,6 +23,22 @@ Generated card JSON is tracked under `knowledge_base/generated_cards/`.
 SQLite, Markdown exports, and embedding indexes remain reproducible generated
 artifacts and are ignored by git.
 
+Hypothesis-only LLM proposals and their zero-shot replay evidence use a separate
+ingester so the scientific claim, mechanism, failure conditions, compiler
+boundary, matched random-null comparison, and result provenance remain visible:
+
+```bash
+python3 knowledge_base/ingest_hypothesis_transfer.py \
+  --report experiments/care_replay/results/2026-07-25-zero-shot-hypothesis-transfer-matrix/zero_shot_transfer_matrix.json \
+  --record experiments/care_replay/results/2026-07-25-hypothesis-generation/suzuki_to_bh_hypothesis_record_commonstack.json \
+  --output knowledge_base/generated_cards/2026-07-25-zero-shot-hypothesis-transfer.json
+python3 knowledge_base/build_kb.py
+```
+
+These cards deliberately use `candidate` or `needs_verification` for mechanism
+claims. A generated hypothesis is not treated as established domain knowledge
+just because it improved one replay.
+
 ## Build
 
 ```bash

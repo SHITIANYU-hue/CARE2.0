@@ -294,6 +294,116 @@ def normalize_skills(
     return tuple(skills)
 
 
+def compile_hypothesis_skills(
+    payload: dict[str, Any],
+    catalog: dict[str, dict[str, int]],
+    max_skills: int = 12,
+) -> tuple[tuple[SemanticSkill, ...], dict[str, Any]]:
+    """Compile mechanism claims without trusting LLM execution parameters.
+
+    This is the hypothesis-only path requested for the zero-shot audit. The LLM
+    supplies a falsifiable claim, public schema conditions, and a direction. The
+    executor fixes the rule magnitude and all acquisition parameters so a gain
+    cannot be attributed to an LLM-chosen hyperparameter.
+    """
+    raw_hypotheses = payload.get("hypotheses", [])
+    if not isinstance(raw_hypotheses, list):
+        return (), {
+            "mode": "hypothesis_only",
+            "fixed_execution_parameters": True,
+            "accepted_hypotheses": 0,
+            "rejected_hypotheses": 0,
+            "rejections": ["hypotheses is not a list"],
+        }
+    compiled: list[SemanticSkill] = []
+    rejections: list[str] = []
+    for index, raw in enumerate(raw_hypotheses[:max_skills]):
+        if not isinstance(raw, dict):
+            rejections.append(f"hypothesis_{index + 1}: not an object")
+            continue
+        raw_conditions = raw.get("conditions", {})
+        if isinstance(raw_conditions, list):
+            normalized: dict[str, Any] = {}
+            for item in raw_conditions:
+                if isinstance(item, dict):
+                    normalized[str(item.get("field", ""))] = item.get("value", "")
+                elif isinstance(item, (list, tuple)) and len(item) == 2:
+                    normalized[str(item[0])] = item[1]
+            raw_conditions = normalized
+        if not isinstance(raw_conditions, dict):
+            rejections.append(f"hypothesis_{index + 1}: conditions is not an object")
+            continue
+        conditions = tuple(sorted(
+            (str(field), str(value))
+            for field, value in raw_conditions.items()
+            if field in catalog and str(value) in catalog[field]
+        ))
+        if not conditions:
+            rejections.append(f"hypothesis_{index + 1}: no public condition survived")
+            continue
+        direction = str(raw.get("expected_direction", "positive")).strip().lower()
+        if direction not in {"positive", "negative"}:
+            rejections.append(f"hypothesis_{index + 1}: invalid expected_direction")
+            continue
+        hypothesis_id = normalize_id(
+            raw.get("hypothesis_id"), "hypothesis", index
+        )
+        claim = str(raw.get("claim", "")).strip()
+        mechanism = str(raw.get("mechanism", "")).strip()
+        failures = raw.get("failure_conditions", [])
+        if isinstance(failures, list):
+            failure_text = "; ".join(str(item).strip() for item in failures if str(item).strip())
+        else:
+            failure_text = str(failures).strip()
+        rationale = (
+            f"{claim} Mechanism: {mechanism} Failure conditions: {failure_text}"
+        ).strip()[:400]
+        skill_payload = {
+            "skills": [{
+                "skill_id": hypothesis_id,
+                "rules": [{
+                    "rule_id": f"{hypothesis_id}_rule",
+                    "conditions": dict(conditions),
+                    "weight": 0.5 if direction == "positive" else -0.5,
+                    "rationale": rationale,
+                }],
+                "ridge": 2.0,
+                "prior_scale": 0.25,
+                "semantic_mass_start": 0.20,
+                "semantic_mass_end": 0.08,
+                "ucb_weight": 0.60,
+                "gp_beta_start": 1.5,
+                "gp_beta_end": 1.0,
+                "gp_xi": 0.01,
+                "confidence": raw.get("confidence", 0.70),
+                "hypothesis": rationale,
+            }],
+        }
+        normalized_skills = normalize_skills(skill_payload, catalog, max_skills=1)
+        if not normalized_skills:
+            rejections.append(f"{hypothesis_id}: normalization failed")
+            continue
+        compiled.append(normalized_skills[0])
+    return tuple(compiled), {
+        "mode": "hypothesis_only",
+        "fixed_execution_parameters": True,
+        "accepted_hypotheses": len(compiled),
+        "rejected_hypotheses": len(rejections),
+        "rejections": rejections,
+        "fixed_parameters": {
+            "rule_weight_magnitude": 0.5,
+            "ridge": 2.0,
+            "prior_scale": 0.25,
+            "semantic_mass_start": 0.20,
+            "semantic_mass_end": 0.08,
+            "ucb_weight": 0.60,
+            "gp_beta_start": 1.5,
+            "gp_beta_end": 1.0,
+            "gp_xi": 0.01,
+        },
+    }
+
+
 def rule_matches(rule: SemanticRule, candidate: replay.Candidate) -> bool:
     return all(str(candidate.metadata.get(field, "")) == value for field, value in rule.conditions)
 

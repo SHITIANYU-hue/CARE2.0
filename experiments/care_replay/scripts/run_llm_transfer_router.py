@@ -38,6 +38,7 @@ _SOURCE_INTERACTION_CACHE: dict[
 MOLECULAR_DATASETS = (
     "real_moleculenet_esol",
     "real_moleculenet_freesolv",
+    "real_moleculenet_freesolv_continuous",
     "real_moleculenet_lipophilicity",
 )
 EXACT_IDENTITY_FIELDS: dict[tuple[str, str], tuple[tuple[str, str], ...]] = {}
@@ -121,6 +122,20 @@ def canonical_transfer_value(field: str, value: str) -> str:
 
 def mapped_value(field: str, value: str, canonicalize: bool) -> str:
     return canonical_transfer_value(field, value) if canonicalize else value.strip().lower()
+
+
+def shared_numeric_descriptor_family(
+    source_dataset: str,
+    target_dataset: str,
+) -> str | None:
+    families = (
+        ("moleculenet", "real_moleculenet_"),
+        ("matbench", "real_matbench_"),
+    )
+    for family, prefix in families:
+        if source_dataset.startswith(prefix) and target_dataset.startswith(prefix):
+            return family
+    return None
 
 
 def source_outcome_cache_key(
@@ -235,13 +250,25 @@ def aligned_source_prior(
         (card.source_dataset, card.target_dataset),
         (),
     )
+    numeric_descriptor_family = shared_numeric_descriptor_family(
+        card.source_dataset,
+        card.target_dataset,
+    )
     active_roles = [
         role
         for role in card.roles
         if role.transfer_weight > 0.0
         and patch.role_multipliers.get(role.target_field, 1.0) > 0.0
     ]
-    if patch.source_prior_strength <= 0.0 or (not active_roles and not identity_fields):
+    use_numeric_descriptors = (
+        numeric_descriptor_family is not None
+        and bool(active_roles)
+    )
+    if patch.source_prior_strength <= 0.0 or (
+        not active_roles
+        and not identity_fields
+        and not use_numeric_descriptors
+    ):
         return {}, {"active": False, "reason": "source_prior_disabled_or_no_roles"}
     cache_key = source_outcome_cache_key(
         "neighbor",
@@ -297,8 +324,7 @@ def aligned_source_prior(
             exact_match_candidate_ids.append(target_candidate.candidate_id)
             continue
         if not active_roles:
-            prior_by_id[target_candidate.candidate_id] = 0.0
-            continue
+            total_role_weight = 0.0
         neighbors: list[tuple[float, float]] = []
         for source_candidate in neighbor_source_observed:
             mismatch = 0.0
@@ -317,7 +343,23 @@ def aligned_source_prior(
                     mismatch += 0.5 * role_weights[role.target_field]
                 elif source_value != target_value:
                     mismatch += role_weights[role.target_field]
-            distance = mismatch / max(total_role_weight, 1e-9)
+            categorical_distance = (
+                mismatch / max(total_role_weight, 1e-9)
+                if active_roles
+                else 0.0
+            )
+            numeric_distance = math.sqrt(
+                (
+                    (source_candidate.x1 - target_candidate.x1) ** 2
+                    + (source_candidate.x2 - target_candidate.x2) ** 2
+                    + (source_candidate.x3 - target_candidate.x3) ** 2
+                )
+                / 3.0
+            )
+            if use_numeric_descriptors:
+                distance = 0.45 * categorical_distance + 0.55 * numeric_distance
+            else:
+                distance = categorical_distance
             neighbors.append((distance, source_z[source_candidate.candidate_id]))
         neighbors.sort(key=lambda item: item[0])
         nearest = neighbors[:neighbor_count]
@@ -347,6 +389,13 @@ def aligned_source_prior(
         "neighbor_source_observation_count": len(neighbor_source_observed),
         "neighbor_count": neighbor_count,
         "temperature": patch.source_similarity_temperature,
+        "numeric_descriptor_family": numeric_descriptor_family,
+        "numeric_descriptor_active": use_numeric_descriptors,
+        "numeric_descriptor_weight": (
+            0.55
+            if use_numeric_descriptors
+            else 0.0
+        ),
         "nearest_distance_mean": (
             round(mean(nearest_distance_values), 6)
             if nearest_distance_values
@@ -1170,6 +1219,7 @@ def run_router_policy(
         expert_scores: dict[str, dict[str, float]] = {}
         route_values: dict[str, float] = {}
         route_diagnostics: dict[str, Any] = {}
+        anchor_rank_scores = weighted.rank_normalized(anchor_scores)
         for patch in patches:
             mode = evolution.patch_mode(patch)
             current_patch_beta = weighted.scheduled_gp_beta(
@@ -1235,13 +1285,21 @@ def run_router_policy(
                 gp_noise,
             )
             kernel_loo_gain = relative_loo_gain(baseline_loo_mae, patch_loo_mae)
-            adjusted_scores = {
+            kernel_adjusted_scores = {
                 candidate_id: (
                     score
                     + prior_adjustments.get(candidate_id, 0.0)
                     + interaction_adjustments.get(candidate_id, 0.0)
                 )
                 for candidate_id, score in base_scores.items()
+            }
+            residual_adjusted_scores = {
+                candidate_id: (
+                    anchor_rank_scores[candidate_id]
+                    + prior_adjustments.get(candidate_id, 0.0)
+                    + interaction_adjustments.get(candidate_id, 0.0)
+                )
+                for candidate_id in anchor_rank_scores
             }
             evidence_delta = evidence - gp_evidence
             cv_gain = float(calibration.get("cv_gain", -2.0))
@@ -1254,14 +1312,28 @@ def run_router_policy(
             )
             kernel_active = kernel_loo_gain >= 0.05 and evidence_delta >= 0.0
             if prior_active or kernel_active:
-                quality = max(
+                prior_quality = max(
                     0.0,
                     cv_gain if prior_active else 0.0,
                     interaction_cv_gain if prior_active else 0.0,
-                    kernel_loo_gain if kernel_active else 0.0,
+                )
+                kernel_quality = kernel_loo_gain if kernel_active else 0.0
+                quality = max(prior_quality, kernel_quality)
+                use_residual_expert = (
+                    prior_active
+                    and (
+                        not kernel_active
+                        or prior_quality >= kernel_quality
+                    )
                 )
                 route_values[mode] = math.log(max(patch.confidence, 0.05)) + 3.0 * quality
-                expert_scores[mode] = weighted.rank_normalized(adjusted_scores)
+                expert_scores[mode] = weighted.rank_normalized(
+                    residual_adjusted_scores
+                    if use_residual_expert
+                    else kernel_adjusted_scores
+                )
+            else:
+                use_residual_expert = False
             route_diagnostics[mode] = {
                 "patch": asdict(patch),
                 "source_prior": {
@@ -1287,6 +1359,13 @@ def run_router_policy(
                     "patch_mae": round(patch_loo_mae, 6),
                     "relative_gain": round(kernel_loo_gain, 6),
                 },
+                "expert_basis": (
+                    "target_anchor_plus_source_outcome_residual"
+                    if use_residual_expert
+                    else "llm_kernel_plus_source_outcome_residual"
+                    if prior_active or kernel_active
+                    else "inactive"
+                ),
                 "gp_beta_schedule": {
                     "start": patch.gp_beta,
                     "end": patch.gp_beta_end,

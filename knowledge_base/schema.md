@@ -46,6 +46,13 @@ and an FTS5 search index from those cards.
 - `open_question`: an unresolved scientific, data, or engineering question.
 - `action`: a concrete next step.
 
+Hypothesis cards generated from the hypothesis-only LLM path must retain the
+claim, mechanism, public-schema conditions, expected direction, and explicit
+failure conditions. They should normally use `candidate` or
+`needs_verification` status until an independent replay or external scientific
+source supports them. A replay improvement alone does not promote a hypothesis
+to established mechanism knowledge.
+
 ## RAG Integration
 
 The SQLite database includes a `cards_fts` FTS5 table. For vector retrieval, use

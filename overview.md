@@ -1,5 +1,214 @@
 # Overview
 
+## 2026-07-25：把“LLM 增益”拆成可检验的 zero-shot 证据
+
+最新讨论指出了三个需要正面处理的方法学问题：如果用 target calibration
+挑策略，收益可能主要来自 gate；如果 LLM 同时决定 rule weight、ridge 和
+acquisition schedule，就无法把收益解释成科学知识；如果没有同执行器的
+random skill null，也不能排除“任意规则结构”本身带来的收益。这个批评对当前
+实现是成立的。原有 calibration/held-out 结果仍然保留，但不再把它们单独当作
+LLM 泛化证据。
+
+为此新增两条审计路径：
+
+1. `run_zero_shot_semantic_transfer.py` 在 target 上不做 calibration、不按 target
+   结果挑 skill，直接报告所有冻结的 LLM skill、matched random null、GP-UCB 和
+   mixed-kernel GP-EI。每个策略使用同一组 seed，target outcome 只在正常 online
+   acquisition 之后揭示。
+2. `generate_llm_semantic_skills.py --proposal-mode hypothesis_only` 只让 LLM
+   输出机制假设、公开字段条件、方向、置信度和失败条件；编译器固定 rule magnitude、
+   ridge、semantic mass 和 acquisition schedule，并拒绝私有字段。这样可以把
+   “LLM 提出的科学假设”与“手工调出来的执行参数”分开。
+
+这两条路径目前是新增的验证协议，尚未替换历史主结果。正式结论需要同时看
+zero-shot、matched random null 和 strongest target-only acquisition；若 zero-shot
+不赢 random null，只能说执行器有效，不能说 LLM 知识有效。若 hypothesis-only
+仍然不赢，则下一步应改进假设表示和可验证的 mechanism library，而不是继续放宽
+gate 或增加 target calibration。
+
+首轮结果已经跑完：
+
+- Suzuki -> Buchwald-Hartwig 的 30-seed zero-shot 中，冻结的
+  `high_mw_ligand_effect` 相对 GP-UCB 的 composite 为 `+8.0112`
+  （95% normal CI `[+2.8732, +13.1492]`），相对 mixed-kernel GP-EI 为
+  `+7.0149`（CI `[+1.6881, +12.3418]`）。不过 Final Best 的 CI 仍跨 0，逐 seed
+  win rate 为 `43.3%`，所以这是一条条件正信号，不是全面胜出。
+- Suzuki -> ChemLex 的 10-seed 扩展中，`counter_hypothesis_branching` 和
+  `reagent_effectiveness` 的平均 composite 相对 mixed-kernel GP-EI 分别为
+  `+22.35` 和 `+19.18`，但 CI 都跨 0。
+- dielectric -> experimental-gap 的材料扩展中，`low_mean_atomic_number`
+  的平均 composite 为 `+15.28`，但 `high_chalcogenide_effect` 为 `-23.97`
+  且 CI 完全低于 0；这同时显示了候选正信号和负迁移。
+
+因此当前最准确的说法是：zero-shot frozen skill 在多个领域出现了候选增益，
+反应 pair 的证据最强，但还没有证明 LLM 在大多数 source-target 上稳定超过
+strongest target-only baseline。三组归档分别位于
+`results/2026-07-25-zero-shot-suzuki-to-bh-30seed/`、
+`results/2026-07-25-zero-shot-suzuki-to-chemlex-10seed/` 和
+`results/2026-07-25-zero-shot-dielectric-to-expt-gap-10seed/`。
+
+随后用新的 Common Stack key 实际调用 `openai/gpt-4o-mini`，生成了
+`hypothesis_only` 的 Suzuki -> BH record，并做了同规格 30-seed replay。最佳
+`ligand_mw_influence` 相对 mixed-kernel GP-EI 的 composite 为 `+4.4166`，但
+95% CI 是 `[-2.6207, +11.4540]`，win rate 为 `50%`；另外两个 hypothesis
+显著为负。这个结果说明 hypothesis-only 协议确实把“LLM 知识”和“LLM 手调
+参数”分开了，但当前 prompt 还没有产生稳定优势。生成 record、每 seed trace
+和校验哈希位于
+`results/2026-07-25-hypothesis-zero-shot-suzuki-to-bh-30seed/`。
+
+## 2026-07-24：跨领域泛化目标的对照补充
+
+为检验 semantic skill 的收益是否只是“规则特征 + target 在线拟合”的机制红利，新增了
+matched random-rule null control。该 null 保留每个 LLM skill 的字段集合、规则数量、
+条件阶数、ridge、semantic mass 和 acquisition schedule，只随机化条件取值和规则方向；
+随后用同一套 calibration/held-out 协议，并在 calibration 上选择最佳随机路线。
+
+第一轮 Matbench Phonons 结果使用 10 个 calibration seeds、30 个 held-out seeds、3
+个随机重复和 5 个 skill。calibration 选出的最佳随机路线在 held-out 上相对 GP-UCB：
+
+| 指标 | Delta |
+| --- | ---: |
+| Final best | -1.3163 |
+| Best-so-far AUC | -0.6295 |
+| Final best + AUC | -1.9458 |
+| Final best win rate | 36.7% |
+
+这轮结果不能单独证明 LLM 语义知识已经具有因果优势，但说明 matched random rule 没有
+复现正向 held-out 行为。第一轮 ESOL null 已完成：held-out Final Best `+0.4924`、AUC
+`+0.2297`，但 win rate 只有 `36.7%`，所以不能把它当成稳定泛化优势；ESOL 的
+random-rule + warm-start null 则相对 GP-UCB 为 Final Best `+1.1143`、AUC
+`+2.1257`，提示初始化本身可以贡献增益。结果、原始
+metrics 和选择摘要分别在
+`experiments/care_replay/results/random-rule-null-phonons-40seed/` 和
+`experiments/care_replay/results/random-rule-null-esol-40seed/`、
+`experiments/care_replay/results/random-rule-null-esol-warmstart-40seed/`。ChemLex null
+因 RDKit 候选空间计算成本较高，当前本地批量任务已停止，仍需在服务器上完成；已有真实 ChemLex
+source-outcome 结果仍保留在正式冻结归档中。
+
+当前项目目标因此固定为：在冻结协议下，让 CARE 2.0 在多个 source-target 组合上
+超过强 target-only baseline，并验证跨领域泛化。已有 source-outcome 冻结套件覆盖 7
+条真实路径，新增 null control 用来约束“LLM 知识有效”的因果解释；下一步优先补齐
+random warm-start、传统 transfer BO baseline 和跨任务 router 的首轮审计已经补齐；
+下一步要在服务器完成 ChemLex null，并扩大 source-target 矩阵，继续验证 transfer
+是否能在新任务上超过 strongest target-only baseline。
+
+新增的 ESOL random-rule + warm-start null 在 held-out 上相对 GP-UCB 也有正向结果
+（Final Best `+1.1143`，AUC `+2.1257`，近似 95% CI 均高于 0），所以不能把所有
+GP-UCB 增益归给 LLM 语义。后续主结论必须放在 matched warm-start、strongest
+target-only acquisition 和 source-outcome transfer 的三方比较上。
+
+## 2026-07-24：跨任务路由补充
+
+新增 `scripts/cross_task_router.py`，把跨域迁移的第一步从 pair-specific 手调提取
+成 schema-only route proposal。它只读取公开的任务族、decision columns 和字段角色：
+反应任务按 substrate/condition/catalyst/solvent 等角色对齐，材料和分子任务按共享
+descriptor vocabulary 对齐；没有公开对齐时推荐 target-only。它不读取任何 target
+outcome，也不绕过 calibration gate。
+
+正式 7-pair 结果接入这层后，4 条候选 transfer 路径通过 gate 并超过 strongest
+target-only BO 与 matched target-only LLM，3 条候选路径被 gate 拒绝并精确回退。
+因此目前的强结论是“路由后部署不产生负迁移，且多数预设路径有显著 source-outcome
+增益”，而不是“所有 source-target 都能直接迁移”。对应的逐路径 route proposal、
+部署结果和随机 null 对照已写入
+`experiments/care_replay/results/goal-report-2026-07-24/goal_report.md`。
+
+另外完成了一个连续 FreeSolv 扩展（30 calibration / 50 held-out）：
+Lipophilicity → FreeSolv continuous 和 ESOL → FreeSolv continuous 的 raw
+transfer route 都显著超过传统 target-only BO，但没有显著超过 matched target-only
+LLM，因此两条都被 gate 拒绝。这个结果不能算正向 CARE transfer，却说明当前 gate
+确实在区分“超过 classical BO”和“真正超过强 LLM baseline”。完整审计在
+`experiments/care_replay/results/2026-07-24-freesolv-continuous/`。
+
+随后对连续 FreeSolv 做了 source-extremes 初始设计和 `bound_v2` CI 边界消融。
+两种改法都没有在新 held-out 上稳定超过 matched target-only LLM，因此没有被并入
+主策略；完整失败对照和 2,060 份 audit 在
+`experiments/care_replay/results/2026-07-24-freesolv-routing-ablation/`。这说明当前
+路由器宁可放弃不稳定迁移，也不会靠放宽 gate 制造正例。
+
+此外，用冻结的 `gpt-4o-mini` branching skill 做了独立模型对照：target-only
+GPT-4o-mini 在连续 FreeSolv 上优于对应 source-outcome route，gate 同样拒绝了
+迁移。结果在
+`experiments/care_replay/results/2026-07-24-gpt4o-freesolv-branching/`，说明
+“换更强模型”与“source transfer 有增量”是两个需要分别验证的问题。
+
+进一步把 DeepSeek source patch 和 GPT-4o-mini target-only skill 组成 model
+portfolio 后，source route 仍未超过 target-only skill，calibration 也因 fold
+稳定性不足而拒绝部署。完整对照在
+`experiments/care_replay/results/2026-07-24-freesolv-model-portfolio/`。
+
+## 2026-07-24：Transfer Portfolio 扩展验证
+
+在单一 transfer 配置之外，新增了一个冻结的 candidate portfolio。每个
+source-target pair 在启动前固定候选集合；候选之间只在 calibration seeds 上竞争，
+held-out seeds 只执行 calibration 选出的候选，若没有候选同时超过 matched target-only
+LLM 和 strongest target-only BO，就精确回退。当前候选覆盖标准 transfer、保守 transfer
+和基于 source outcome 的 positive initial design。
+
+在 ChemLex → Buchwald-Hartwig 的真实反应路径上，先做了 5/10 smoke 验证链路，再做
+30 calibration / 50 held-out 的正式扩展。portfolio 在 calibration 上自动选择
+`source_positive`，held-out 相对 matched target-only GP-UCB 的结果为：
+
+| 指标 | Delta | 近似 95% CI | Win rate |
+| --- | ---: | ---: | ---: |
+| Final best | +10.2095 | [+7.2982, +13.1208] | 88% |
+| Best-so-far AUC | +9.2076 | [+5.5913, +12.8239] | 68% |
+
+这说明 source outcome 不只是提供一个固定规则，还可以帮助系统在不同 transfer
+initial design 之间做校准选择；但这仍是一条反应路径上的 30/50 扩展，不能替代
+跨分子、材料和反应的全矩阵验证。完整 summary、metrics、690 份 audit 和校验清单在
+`experiments/care_replay/results/2026-07-24-transfer-portfolio-bh/`。
+
+随后补了同 seed 的 warm-start-only 归因对照：固定 `router_max_transfer_mass=0`，
+保留 `source_positive` 初始设计。它在 50 个 held-out seed 上逐 seed 复现了
+portfolio 的 Final best `99.6191` 和 AUC `89.554`。所以这组 +10.2095 / +9.2076
+的增益目前应称为 source-informed initial-design transfer，不能再表述成后续
+continuous source-outcome adjustment 的独立增益。对照的 530 份 audit 在
+`experiments/care_replay/results/2026-07-24-transfer-bh-warmstart-control/`。
+
+同一 portfolio 在 Matbench expt. gap → dielectric 的材料路径上做了 10/20 扩展。
+这次没有候选同时通过 matched target-only LLM 与 strongest target-only BO 的联合
+校准门槛，因此 20 个 held-out seed 全部精确回退到 target-only。这个结果没有被
+改写成正迁移，完整候选 metrics、260 份 audit 和 SHA256 清单在
+`experiments/care_replay/results/2026-07-24-transfer-portfolio-materials/`。
+
+在 MoleculeNet FreeSolv → Lipophilicity 上也做了同规格的 10/20 portfolio 扩展。
+standard、conservative 和 source-positive 三个候选都没有通过联合校准门槛；因此
+held-out 阶段精确回退到 matched target-only，20 个 seed 相对该 fallback 的
+Final best 和 AUC delta 都是 0。这个负对照说明 schema 共享并不自动保证
+source-outcome transfer，router 的拒绝是必要的。完整候选 metrics、260 份 audit 和
+SHA256 清单在
+`experiments/care_replay/results/2026-07-24-transfer-portfolio-freesolv-lipophilicity/`。
+需要和此前 50/100-seed 的 FreeSolv → Lipophilicity value-prior 结果区分：两者的
+冻结协议、target mode 和 seed 配置不同，旧结果仍是分子方向的主正例，本轮则是对
+自动 portfolio 泛化边界的独立检验。
+
+三条新 portfolio 路径的统一汇总在
+`experiments/care_replay/results/2026-07-24-transfer-portfolio-report/`。按这套
+更严格的 candidate-selection protocol，当前是 1/3 路径实际部署 transfer、2/3
+路径精确回退。这里的含义不是“跨领域失败”，而是 selector 只在校准证据足够时放行；
+但它也意味着目前还不能声称所有领域都能稳定超过 baseline。后续主线应继续增加
+不重叠的 source-target pair，并在相同的 calibration/held-out 规则下追求更多强
+baseline 正例，而不是放宽 gate。
+
+另外对反向材料路径 Matbench dielectric → experimental band gap 做了一个归因审计。
+`source_extremes` portfolio 在 20 个 held-out seed 上达到 Final best/AUC `100/100`，
+看起来非常强；但把 source-outcome transfer mass 固定为 0、只保留同一组
+source-informed initial probes 后，结果逐 seed 完全相同。因此这条增益应归为
+source-informed warm start，而不是持续 transfer，不能计入正向 transfer 数量。完整
+portfolio 与 warm-start control 在
+`experiments/care_replay/results/2026-07-24-transfer-materials-reverse-initialization/`。
+
+为了避免把不同层次的迁移混成一个数字，最新增加了证据阶梯汇总
+`experiments/care_replay/results/2026-07-24-transfer-evidence-report/`。在 5 条
+source-schema semantic 路径的 300-seed held-out 验证中，4/5 条相对 matched
+target-only LLM 在 Final best 或 AUC 上显著为正，5/5 条相对 strongest target-only
+BO 为正；其中 2 条是每轮持续执行的 direct-prior/semantic route，2 条只改变初始
+实验点。另一方面，严格 source-outcome portfolio 的 3 条新路径只有 1 条通过，且
+被归因为 warm-start，连续 transfer candidate 是 0 条，另外 2 条精确 fallback。
+因此目前可以说 CARE 2.0 已经有跨分子、材料和反应任务的可复现 routed LLM
+泛化证据，但不能把所有 source-outcome 增益都说成连续迁移，也不能声称所有
+source-target pair 都提升。
+
 ## 2026-07-24：完整 Source-Outcome Transfer 冻结验证
 
 这一轮补上了此前最关键的缺口：迁移不再停留在 source identity、schema 和字段名，
@@ -526,6 +735,26 @@ ChemLex 代理数据上提升很明显，但这个结果要很小心地讲。它
 加入 ensemble 后，portfolio 里 policy 数从 134 增到 137。calibration selector 在 held-out 上相对 GP-UCB 为正的 pair 从 3/11 增到 4/11；transfer-only selector 相对 GP-UCB 从 2/11 增到 3/11；相对 best target-only baseline 从 1/11 增到 2/11。严格 risk-aware selector 仍然只放行 2 个 pair，这个保守性目前是合理的，因为负迁移还存在。
 
 这版对 CARE 2.0 的意义是：transfer 不应该只做 additive score patch，也不应该只靠一个固定规则；更自然的形式是“源领域沉淀 skill -> 目标领域校准 -> 进入 acquisition geometry -> selector 决定是否启用”。scale ensemble 是朝这个方向迈的一步。
+
+## 8.3 按最新设计建议补做：hypothesis-only zero-shot transfer audit
+
+前面很多结果使用了 target calibration，适合回答“在 replay 中能否选择一个更好的 route”，但不能直接包装成 zero-shot transfer。根据最新讨论，这一轮把协议收紧：LLM 只输出可证伪的 claim、mechanism、公开字段条件、方向和 failure conditions；编译器固定 rule weight、ridge、prior scale 和 acquisition schedule。target replay 之前不看 target outcome，也不根据 target outcome 选 hypothesis。每个 hypothesis 都完整报告，并加入同样规则数、条件阶数、executor 和 seed schedule 的 matched-random null。
+
+本轮使用真实 LLM `openai/gpt-4o-mini` 生成 hypothesis-only record，之后冻结 record 再回放。结果目录是 `experiments/care_replay/results/2026-07-25-zero-shot-hypothesis-transfer-matrix/`，完整矩阵有 5 个 source-target pair、23 个冻结 hypotheses。每个 pair 的 seed 数和在线预算见下表：
+
+| Source -> Target | Seeds | Hypotheses | 稳定正向 hypothesis | 稳定负向 hypothesis |
+| --- | ---: | ---: | ---: | ---: |
+| Suzuki-Miyaura -> Buchwald-Hartwig | 30 | 4 | 0 | 2 |
+| Suzuki-Miyaura -> ChemLex acid-amine | 10 | 5 | 0 | 0 |
+| Matbench Expt Gap -> Matbench Dielectric | 10 | 5 | 0 | 1 |
+| MoleculeNet ESOL -> FreeSolv | 10 | 4 | 2 | 0 |
+| FreeSolv -> Lipophilicity | 10 | 5 | 0 | 0 |
+
+“稳定正向”要求至少一个 primary metric 相对 mixed-kernel GP-EI 的 normal 95% CI 完全高于 0；不是看某一个 seed，也不是只挑平均值最大的规则。唯一出现 pair-level 稳定正向的是 ESOL -> FreeSolv，其中 `hydrogen_bonding_effect` 的 composite delta 为 +14.9492，95% CI 为 [+1.1688, +28.7295]，`ring_structure_influence` 的 composite delta 为 +12.6694，95% CI 为 [+1.7793, +23.5595]。反应、材料和 FreeSolv -> Lipophilicity 在这套严格 zero-shot 协议下没有稳定正向，BH 和材料各有稳定负向 hypothesis。这些负例也被保留，不能用“最优 hypothesis”掩盖。
+
+这轮的结论比之前更窄但更可信：LLM hypothesis 有跨域泛化的可行性，但目前还不能说“多数数据集都有提升”，更不能说 LLM 已经整体超过强 baseline。当前可复用的平台能力是：LLM 提出结构化科学假说，compiler 固定执行参数，replay harness 做无泄漏验证，matched-random null 判断收益是否只是规则结构造成，knowledge base 保存 claim、mechanism、failure conditions 和结果边界。
+
+对应的知识库卡片在 `knowledge_base/generated_cards/2026-07-25-zero-shot-hypothesis-transfer.json`。其中 mechanism claim 使用 `candidate` 或 `needs_verification` 状态；只有在多 seed、明确 baseline 和边界条件下才记录为 experiment result，避免把一次 replay 的收益直接沉淀成科学事实。
 
 ## 9. 现在能得出的结论
 

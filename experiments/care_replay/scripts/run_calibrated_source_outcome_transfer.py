@@ -16,6 +16,7 @@ from typing import Any
 import llm_semantic_skills as semantic
 import run_calibrated_frozen_llm_selector as selector
 import run_calibrated_llm_semantic_selector as semantic_selector
+import cross_task_router
 import run_llm_kernel_skill_evolution as evolution
 import run_llm_transfer_router as outcome_router
 import run_synthetic_suzuki as replay
@@ -587,7 +588,14 @@ def main() -> None:
         parser.error("Calibration and held-out seed ranges must not overlap.")
 
     record = json.loads(args.llm_record.read_text(encoding="utf-8"))
+    source = replay.DATASET_BUILDERS[args.source_dataset]()
     target = replay.DATASET_BUILDERS[args.target_dataset]()
+    route_proposal = cross_task_router.propose_route(
+        args.source_dataset,
+        args.target_dataset,
+        source.decision_columns,
+        target.decision_columns,
+    ).as_dict()
     target_llm_record = json.loads(args.target_llm_record.read_text(encoding="utf-8"))
     target_llm_skill = resolve_target_llm_skill(
         target_llm_record,
@@ -656,6 +664,7 @@ def main() -> None:
         args.min_final_non_loss_rate,
         args.min_composite_ci_low,
     )
+    selection["schema_route_proposal"] = route_proposal
     add_selector_alias(rows, audits, selected_mode, heldout_seeds, selection)
     all_modes = (
         *selector.TARGET_MODES,
@@ -682,6 +691,7 @@ def main() -> None:
         "experiment": "care_calibrated_source_outcome_transfer",
         "source_dataset": args.source_dataset,
         "target_dataset": args.target_dataset,
+        "schema_route_proposal": route_proposal,
         "source_history": {
             "seed": args.source_seed,
             "observation_count": args.source_observations,

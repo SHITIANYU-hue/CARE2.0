@@ -385,8 +385,29 @@ ROLE_MAPS: dict[tuple[str, str], dict[str, str]] = {
         "double_bond_bin": "double_bond_bin",
     },
     (
+        "real_moleculenet_lipophilicity",
+        "real_moleculenet_freesolv_continuous",
+    ): {
+        "smiles_length_bin": "smiles_length_bin",
+        "hetero_atom_bin": "hetero_atom_bin",
+        "halogen_bin": "halogen_bin",
+        "aromatic_bin": "aromatic_bin",
+        "ring_token_bin": "ring_token_bin",
+        "branch_bin": "branch_bin",
+        "double_bond_bin": "double_bond_bin",
+    },
+    (
         "real_moleculenet_esol",
         "real_moleculenet_freesolv",
+    ): {
+        "smiles_length_bin": "smiles_length_bin",
+        "hbond_donor_bin": "hetero_atom_bin",
+        "ring_bin": "ring_token_bin",
+        "rotatable_bond_bin": "branch_bin",
+    },
+    (
+        "real_moleculenet_esol",
+        "real_moleculenet_freesolv_continuous",
     ): {
         "smiles_length_bin": "smiles_length_bin",
         "hbond_donor_bin": "hetero_atom_bin",
@@ -551,8 +572,24 @@ VALUE_PRIOR_FIELDS: dict[tuple[str, str], set[tuple[str, str]]] = {
         ("double_bond_bin", "double_bond_bin"),
     },
     (
+        "real_moleculenet_lipophilicity",
+        "real_moleculenet_freesolv_continuous",
+    ): {
+        ("smiles_length_bin", "smiles_length_bin"),
+        ("hetero_atom_bin", "hetero_atom_bin"),
+        ("halogen_bin", "halogen_bin"),
+        ("aromatic_bin", "aromatic_bin"),
+        ("ring_token_bin", "ring_token_bin"),
+        ("branch_bin", "branch_bin"),
+        ("double_bond_bin", "double_bond_bin"),
+    },
+    (
         "real_moleculenet_esol",
         "real_moleculenet_freesolv",
+    ): {("smiles_length_bin", "smiles_length_bin")},
+    (
+        "real_moleculenet_esol",
+        "real_moleculenet_freesolv_continuous",
     ): {("smiles_length_bin", "smiles_length_bin")},
     (
         "real_moleculenet_esol",

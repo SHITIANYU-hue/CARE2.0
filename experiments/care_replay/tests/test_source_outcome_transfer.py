@@ -146,6 +146,67 @@ class SourceOutcomeTransferTests(unittest.TestCase):
         self.assertEqual(len(prior), len(target.candidates))
         self.assertGreater(len({round(value, 6) for value in prior.values()}), 1)
 
+    def test_aligned_prior_uses_shared_numeric_descriptors_within_family(self) -> None:
+        source = replay.DATASET_BUILDERS["real_moleculenet_esol"]()
+        target = replay.DATASET_BUILDERS["real_moleculenet_lipophilicity"]()
+        observed = transfer.source_observations(source, 0, 128)
+        card = transfer.compile_transfer_card(
+            source,
+            target,
+            observed,
+            transfer.role_map_for(source.dataset_id, target.dataset_id),
+            0.65,
+            3,
+        )
+        patch = evolution.KernelSkillPatch(
+            patch_id="numeric_prior",
+            scales=(0.0, 1.0),
+            role_multipliers={},
+            gp_beta=1.5,
+            gp_beta_end=1.0,
+            source_prior_strength=1.0,
+            source_similarity_temperature=0.35,
+            source_neighbor_count=12,
+            calibration_mode="signed",
+            min_cv_gain=0.02,
+            confidence=0.7,
+            reason="test shared numeric descriptors",
+            canonicalize_source_values=True,
+        )
+        prior, diagnostics = router.aligned_source_prior(
+            observed,
+            target,
+            card,
+            patch,
+        )
+        self.assertTrue(diagnostics["active"])
+        self.assertEqual(diagnostics["numeric_descriptor_family"], "moleculenet")
+        self.assertTrue(diagnostics["numeric_descriptor_active"])
+        self.assertGreater(len({round(value, 6) for value in prior.values()}), 1)
+
+    def test_cross_family_prior_does_not_reuse_numeric_coordinates(self) -> None:
+        self.assertIsNone(
+            router.shared_numeric_descriptor_family(
+                "real_chemlex_acidamine",
+                "real_buchwald_hartwig",
+            )
+        )
+
+    def test_continuous_freesolv_adapter_preserves_order_without_clipping(self) -> None:
+        adapter = replay.DATASET_BUILDERS[
+            "real_moleculenet_freesolv_continuous"
+        ]()
+        values = [candidate.objective_value for candidate in adapter.candidates]
+        self.assertLess(max(values), 100.0)
+        self.assertGreater(len(set(round(value, 8) for value in values)), 450)
+        ordered = sorted(
+            adapter.candidates,
+            key=lambda candidate: float(
+                candidate.metadata["experimental_hydration_free_energy"]
+            ),
+        )
+        self.assertGreater(ordered[0].objective_value, ordered[-1].objective_value)
+
     def test_source_initial_extremes_preserve_budget_and_ignore_target_outcomes(self) -> None:
         adapter = replay.DATASET_BUILDERS["real_matbench_dielectric"]()
         matched = list(adapter.candidates[:5])
@@ -387,6 +448,66 @@ class SourceOutcomeTransferTests(unittest.TestCase):
             "matched_target_only_llm"
         ]
         self.assertLess(comparison["composite"]["normal_95ci_low"], 0.0)
+
+    def test_prior_only_route_uses_target_anchor_residual_expert(self) -> None:
+        source = replay.DATASET_BUILDERS["real_moleculenet_esol"]()
+        target = replay.DATASET_BUILDERS["real_moleculenet_lipophilicity"]()
+        source_observed = transfer.source_observations(source, 0, 128)
+        card = transfer.compile_transfer_card(
+            source,
+            target,
+            source_observed,
+            transfer.role_map_for(source.dataset_id, target.dataset_id),
+            0.65,
+            3,
+        )
+        patch = evolution.KernelSkillPatch(
+            patch_id="residual_expert",
+            scales=(12.0,),
+            role_multipliers={},
+            gp_beta=1.5,
+            gp_beta_end=1.5,
+            source_prior_strength=1.0,
+            source_similarity_temperature=0.35,
+            source_neighbor_count=12,
+            calibration_mode="signed",
+            min_cv_gain=-1.0,
+            confidence=0.8,
+            reason="test source residual expert",
+            source_interaction_strength=0.5,
+            source_interaction_min_support=4,
+            canonicalize_source_values=True,
+        )
+        task = replay.make_task(target, initial_observations=5, reveal_budget=1)
+        initial = list(target.candidates[:5])
+        _metrics, audit = router.run_router_policy(
+            source,
+            target,
+            task,
+            3,
+            card,
+            source_observed,
+            (patch,),
+            True,
+            1.5,
+            0.01,
+            0.35,
+            3.0,
+            0.05,
+            initial_observed=initial,
+            router_min_observations=5,
+            router_min_quality=0.0,
+            router_max_transfer_mass=0.15,
+            source_initial_strategy="matched",
+        )
+        diagnostics = audit[0]["hypothesis_snapshot"]["route_diagnostics"][
+            evolution.patch_mode(patch)
+        ]
+        if diagnostics["active"] and diagnostics["source_outcome_quality"] > 0.0:
+            self.assertEqual(
+                diagnostics["expert_basis"],
+                "target_anchor_plus_source_outcome_residual",
+            )
 
 
 if __name__ == "__main__":
