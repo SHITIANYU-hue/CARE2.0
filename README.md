@@ -56,6 +56,7 @@ The latest project sync focuses on three workstreams:
 
 The latest tracked replay output is in:
 
+- `experiments/care_replay/results/2026-07-27-bh-replication-smoke/`
 - `experiments/care_replay/results/2026-07-24-source-outcome-transfer/`
 - `experiments/care_replay/results/2026-07-23-source-evidence-extension/`
 - `experiments/care_replay/results/2026-07-22-multidomain-llm-completion/`

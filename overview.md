@@ -1,5 +1,27 @@
 # Overview
 
+## 2026-07-27：BH semantic skill 独立复核
+
+在已有 Suzuki → Buchwald-Hartwig 500-seed frozen confirmation 之外，补做了一轮
+新的独立 smoke replication。复核使用原先已经生成的 `gpt-4o-mini` skill record，
+冻结 `high_mw_ligand_effect`，不在 replay 期间调用 LLM，并使用完全不重叠的
+10 个 calibration seeds（82000-82009）和 30 个 held-out seeds（83000-83029）。
+每个 seed 同时跑 GP-UCB、mixed-kernel GP-EI、target acquisition portfolio、
+semantic skill、LLM direct prior 和 LLAMBO-style warm start。
+
+在 held-out seeds 上，semantic skill 相对最强 target-only mixed-kernel GP-EI 的
+配对增益为：Final best `+2.5801`（95% CI `[+0.4088, +4.7515]`）、best-so-far
+AUC `+3.2158`（`[+0.1176, +6.3140]`）、top-10 hit `+0.1667`
+（`[+0.0044, +0.3289]`）。这条结果支持之前反应 HTE 正向信号在新 seed 上仍然
+出现，但样本量只有 30，不能替代正式 500-seed 结果。
+
+这次复核也把 LLM 贡献的边界暴露得更清楚：calibration 阶段的 strategy router
+选择了 LLM direct-prior 路线；held-out 上 CARE router 与 direct-prior baseline
+逐 seed 相同。因此当前能说的是“冻结的语义 skill 在这条跨任务路径上超过了
+传统强 BO baseline”，不能说“CARE router 又额外超过了 direct-prior LLM”。完整
+metrics、selection summary、冻结 record 和 per-round audit trace 在
+`experiments/care_replay/results/2026-07-27-bh-replication-smoke/`。
+
 ## 2026-07-25：把“LLM 增益”拆成可检验的 zero-shot 证据
 
 最新讨论指出了三个需要正面处理的方法学问题：如果用 target calibration
