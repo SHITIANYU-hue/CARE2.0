@@ -1,0 +1,42 @@
+# Materials semantic-skill replication and router audit
+
+Date: 2026-07-27
+
+This archive tests the frozen dielectric -> experimental band-gap record on
+new seed ranges. It contains both a single-skill control and an automatic
+frozen-skill router run.
+
+## Automatic router run
+
+- Calibration: 10 seeds (`86000-86009`).
+- Held out: 30 seeds (`87000-87029`).
+- Target: real Matbench experimental band gap.
+- Source: real Matbench dielectric.
+- Candidate skills: all 8 skills in the frozen `gpt-4o-mini` record.
+- Baselines: GP-UCB, mixed-kernel GP-EI, target acquisition portfolio.
+- Replay budget: 5 initial observations plus 10 reveal rounds.
+
+Calibration selected the target acquisition portfolio as the anchor and
+rejected every LLM semantic skill. The held-out CARE strategy router therefore
+deployed target-only and exactly matched the target acquisition portfolio. No
+LLM skill was promoted, and no positive LLM-transfer claim is made from this
+run.
+
+## Single-skill control
+
+The `counter_transition_metal` skill was evaluated separately on calibration
+seeds `84000-84009` and held-out seeds `85000-85029`. On held-out seeds it was
+numerically above the target acquisition portfolio by Final best `+2.3375`,
+AUC `+0.9738`, and top-10 hit `+0.0333`, but all confidence intervals crossed
+zero. The calibration gate rejected it and the strategy router fell back to
+GP-UCB. This is an uncertain/negative control, not a confirmed gain.
+
+The result is useful because it shows the intended behavior of the router:
+material skills that look promising on a small calibration sample are not
+automatically deployed without fold stability and risk-adjusted evidence.
+
+## Reproduction
+
+The two subdirectories contain per-seed metrics, selection summaries, frozen
+LLM records, compressed audit traces, and local SHA256 manifests. Replay uses
+zero new LLM calls; the generation record is frozen before evaluation.

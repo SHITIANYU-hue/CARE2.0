@@ -1,5 +1,21 @@
 # Overview
 
+## 2026-07-27：材料 skill router 独立复核
+
+继续用新的 seed 区间复核 dielectric → experimental band gap。全候选 router
+在 calibration 阶段比较了冻结 record 中的 8 个材料 skills 与 GP-UCB、mixed-kernel
+GP-EI 和 target acquisition portfolio；使用 10 个 calibration seeds
+（86000-86009）和 30 个 held-out seeds（87000-87029）。最终选择了
+target acquisition portfolio，所有 LLM skills 都被拒绝，held-out 阶段精确
+fallback，没有部署 LLM transfer。
+
+另外对 `counter_transition_metal` 做了单 skill 控制（84000-84009 / 85000-85029）。
+它在 held-out 上相对 target portfolio 的均值差为 Final best `+2.3375`、AUC
+`+0.9738`、top-10 `+0.0333`，但三个区间都跨 0，不能算确认增益。这个结果说明
+材料方向目前更需要增加有效的材料表征或更强的 target-calibrated descriptor，
+而不是继续放宽 gate。完整 metrics、selection summary 和 audit trace 在
+`experiments/care_replay/results/2026-07-27-materials-replication/`。
+
 ## 2026-07-27：BH semantic skill 独立复核
 
 在已有 Suzuki → Buchwald-Hartwig 500-seed frozen confirmation 之外，补做了一轮

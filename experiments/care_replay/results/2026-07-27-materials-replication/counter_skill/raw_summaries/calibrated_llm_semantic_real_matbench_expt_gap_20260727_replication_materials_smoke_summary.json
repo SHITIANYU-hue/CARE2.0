@@ -1,0 +1,520 @@
+{
+  "experiment": "care_calibrated_llm_semantic_skill_selector",
+  "source_dataset": "real_matbench_dielectric",
+  "target_dataset": "real_matbench_expt_gap",
+  "evidence_mode": "full",
+  "llm_model": "openai/gpt-4o-mini",
+  "llm_generation_call_count": 1,
+  "new_llm_call_count": 0,
+  "rule_prior_enabled": true,
+  "semantic_model_enabled": true,
+  "semantic_field_catalog": {
+    "anion_family": {
+      "carbide_or_carbon": 85,
+      "chalcogenide": 1485,
+      "halide": 177,
+      "other": 1307,
+      "oxide": 1090,
+      "pnictide": 460
+    },
+    "element_count_bin": {
+      "binary": 1041,
+      "ternary_quaternary": 3563
+    },
+    "dominant_family": {
+      "alkali": 95,
+      "alkaline_earth": 114,
+      "chalcogen": 2044,
+      "halogen": 169,
+      "lanthanide": 229,
+      "light_nonmetal": 47,
+      "metalloid": 570,
+      "other": 31,
+      "pnictogen": 114,
+      "post_transition": 319,
+      "transition_metal": 872
+    },
+    "transition_metal_flag": {
+      "has_transition_metal": 2999,
+      "no_transition_metal": 1605
+    },
+    "lanthanide_flag": {
+      "has_lanthanide": 1285,
+      "no_lanthanide": 3319
+    },
+    "mean_atomic_number_bin": {
+      "mean_z_high": 1227,
+      "mean_z_low": 903,
+      "mean_z_mid": 2175,
+      "mean_z_very_high": 299
+    },
+    "max_element_fraction_bin": {
+      "balanced": 302,
+      "concentrated": 2411,
+      "dominant_element_heavy": 147,
+      "moderately_concentrated": 1744
+    }
+  },
+  "skills": [
+    {
+      "skill_id": "counter_transition_metal",
+      "rules": [
+        {
+          "rule_id": "transition_metal_risk",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": -0.7,
+          "rationale": "Transition metals may introduce unwanted electronic states."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.2,
+      "semantic_mass_end": 0.3,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 1.8,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.1,
+      "confidence": 0.6,
+      "hypothesis": "This skill downweights transition metals due to their uncertain effects."
+    }
+  ],
+  "skill_variant_policy": "record",
+  "calibration_seed_start": 84000,
+  "calibration_seed_count": 10,
+  "heldout_seed_start": 85000,
+  "heldout_seed_count": 30,
+  "selection": {
+    "target_anchor_mode": "gp_ucb",
+    "target_anchor_summary": {
+      "gp_ucb": {
+        "final_best": 73.6125,
+        "best_so_far_auc": 56.89625,
+        "top10_hit": 0.3,
+        "composite": 130.50875
+      },
+      "mixed_kernel_gp_ei": {
+        "final_best": 61.8,
+        "best_so_far_auc": 51.7625,
+        "top10_hit": 0.2,
+        "composite": 113.5625
+      },
+      "target_acquisition_portfolio": {
+        "final_best": 64.8875,
+        "best_so_far_auc": 53.165,
+        "top10_hit": 0.2,
+        "composite": 118.0525
+      }
+    },
+    "eligible_skill_modes": [],
+    "selected_mode": "llm_semantic_counter_transition_metal",
+    "selected_llm_skill": true,
+    "skill_diagnostics": {
+      "llm_semantic_counter_transition_metal": {
+        "final_best": {
+          "n": 10.0,
+          "mean": 6.325,
+          "std": 36.993673,
+          "se": 11.698427,
+          "normal_95ci_low": -16.603916,
+          "normal_95ci_high": 29.253916,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.7
+        },
+        "best_so_far_auc": {
+          "n": 10.0,
+          "mean": 0.83125,
+          "std": 15.327425,
+          "se": 4.846957,
+          "normal_95ci_low": -8.668786,
+          "normal_95ci_high": 10.331286,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.5
+        },
+        "composite": {
+          "n": 10.0,
+          "mean": 7.15625,
+          "std": 50.534582,
+          "se": 15.980438,
+          "normal_95ci_low": -24.165409,
+          "normal_95ci_high": 38.477909,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.6
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          -15.9625,
+          33.175,
+          48.875,
+          -23.61875,
+          -6.6875
+        ],
+        "risk_adjusted_composite_gain": -0.833969,
+        "eligible": false
+      }
+    },
+    "thresholds": {
+      "min_risk_adjusted_composite_gain": 0.25,
+      "min_positive_fold_rate": 0.8,
+      "min_final_non_loss_rate": 0.55
+    },
+    "rule": "The skill was selected on an earlier development range and frozen before these seeds. Calibration seeds in this run select only the target-only comparison anchor.",
+    "calibration_selected_mode": "gp_ucb",
+    "preselected_skill_id": "counter_transition_metal"
+  },
+  "calibration": {
+    "gp_ucb": {
+      "final_best": 73.6125,
+      "best_so_far_auc": 56.89625,
+      "top10_hit": 0.3,
+      "composite": 130.50875
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 61.8,
+      "best_so_far_auc": 51.7625,
+      "top10_hit": 0.2,
+      "composite": 113.5625
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 64.8875,
+      "best_so_far_auc": 53.165,
+      "top10_hit": 0.2,
+      "composite": 118.0525
+    },
+    "llm_semantic_counter_transition_metal": {
+      "final_best": 79.9375,
+      "best_so_far_auc": 57.7275,
+      "top10_hit": 0.5,
+      "composite": 137.665
+    }
+  },
+  "heldout": {
+    "gp_ucb": {
+      "final_best": 65.041667,
+      "best_so_far_auc": 58.915833,
+      "top10_hit": 0.166667,
+      "composite": 123.9575
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 66.254167,
+      "best_so_far_auc": 56.869167,
+      "top10_hit": 0.2,
+      "composite": 123.123334
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 68.625,
+      "best_so_far_auc": 58.722083,
+      "top10_hit": 0.233333,
+      "composite": 127.347083
+    },
+    "llm_semantic_counter_transition_metal": {
+      "final_best": 70.9625,
+      "best_so_far_auc": 59.695833,
+      "top10_hit": 0.266667,
+      "composite": 130.658333
+    },
+    "llm_calibrated_selector": {
+      "final_best": 70.9625,
+      "best_so_far_auc": 59.695833,
+      "top10_hit": 0.266667,
+      "composite": 130.658333
+    },
+    "care_strategy_router": {
+      "final_best": 65.041667,
+      "best_so_far_auc": 58.915833,
+      "top10_hit": 0.166667,
+      "composite": 123.9575
+    }
+  },
+  "heldout_strongest_target_mode_descriptive_only": "target_acquisition_portfolio",
+  "heldout_pairwise": {
+    "gp_ucb": {
+      "final_best": {
+        "n": 30.0,
+        "mean": 5.920833,
+        "std": 27.990818,
+        "se": 5.110401,
+        "normal_95ci_low": -4.095552,
+        "normal_95ci_high": 15.937219,
+        "win_rate": 0.4,
+        "non_loss_rate": 0.566667
+      },
+      "best_so_far_auc": {
+        "n": 30.0,
+        "mean": 0.78,
+        "std": 21.623874,
+        "se": 3.947961,
+        "normal_95ci_low": -6.958004,
+        "normal_95ci_high": 8.518004,
+        "win_rate": 0.533333,
+        "non_loss_rate": 0.533333
+      },
+      "top10_hit": {
+        "n": 30.0,
+        "mean": 0.1,
+        "std": 0.395811,
+        "se": 0.072265,
+        "normal_95ci_low": -0.041639,
+        "normal_95ci_high": 0.241639,
+        "win_rate": 0.133333,
+        "non_loss_rate": 0.966667
+      }
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": {
+        "n": 30.0,
+        "mean": 4.708333,
+        "std": 19.043463,
+        "se": 3.476845,
+        "normal_95ci_low": -2.106282,
+        "normal_95ci_high": 11.522949,
+        "win_rate": 0.4,
+        "non_loss_rate": 0.666667
+      },
+      "best_so_far_auc": {
+        "n": 30.0,
+        "mean": 2.826667,
+        "std": 13.84784,
+        "se": 2.528258,
+        "normal_95ci_low": -2.128719,
+        "normal_95ci_high": 7.782053,
+        "win_rate": 0.566667,
+        "non_loss_rate": 0.6
+      },
+      "top10_hit": {
+        "n": 30.0,
+        "mean": 0.066667,
+        "std": 0.249444,
+        "se": 0.045542,
+        "normal_95ci_low": -0.022596,
+        "normal_95ci_high": 0.155929,
+        "win_rate": 0.066667,
+        "non_loss_rate": 1.0
+      }
+    },
+    "target_acquisition_portfolio": {
+      "final_best": {
+        "n": 30.0,
+        "mean": 2.3375,
+        "std": 23.898203,
+        "se": 4.363195,
+        "normal_95ci_low": -6.214362,
+        "normal_95ci_high": 10.889362,
+        "win_rate": 0.333333,
+        "non_loss_rate": 0.6
+      },
+      "best_so_far_auc": {
+        "n": 30.0,
+        "mean": 0.97375,
+        "std": 18.411731,
+        "se": 3.361507,
+        "normal_95ci_low": -5.614803,
+        "normal_95ci_high": 7.562303,
+        "win_rate": 0.533333,
+        "non_loss_rate": 0.566667
+      },
+      "top10_hit": {
+        "n": 30.0,
+        "mean": 0.033333,
+        "std": 0.314466,
+        "se": 0.057413,
+        "normal_95ci_low": -0.079197,
+        "normal_95ci_high": 0.145864,
+        "win_rate": 0.066667,
+        "non_loss_rate": 0.966667
+      }
+    }
+  },
+  "external_llm_baselines": {},
+  "care_vs_external_llm": {},
+  "strategy_router": {
+    "selected_mode": "gp_ucb",
+    "selected_llm_strategy": false,
+    "target_anchor_mode": "gp_ucb",
+    "candidate_modes": [
+      "gp_ucb",
+      "llm_semantic_counter_transition_metal"
+    ],
+    "eligible_modes": [
+      "gp_ucb"
+    ],
+    "diagnostics": {
+      "gp_ucb": {
+        "eligible": true,
+        "risk_adjusted_composite_gain": 0.0,
+        "reason": "target-only fallback"
+      },
+      "llm_semantic_counter_transition_metal": {
+        "final_best": {
+          "n": 10.0,
+          "mean": 6.325,
+          "std": 36.993673,
+          "se": 11.698427,
+          "normal_95ci_low": -16.603916,
+          "normal_95ci_high": 29.253916,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.7
+        },
+        "best_so_far_auc": {
+          "n": 10.0,
+          "mean": 0.83125,
+          "std": 15.327425,
+          "se": 4.846957,
+          "normal_95ci_low": -8.668786,
+          "normal_95ci_high": 10.331286,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.5
+        },
+        "composite": {
+          "n": 10.0,
+          "mean": 7.15625,
+          "std": 50.534582,
+          "se": 15.980438,
+          "normal_95ci_low": -24.165409,
+          "normal_95ci_high": 38.477909,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.6
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          -15.9625,
+          33.175,
+          48.875,
+          -23.61875,
+          -6.6875
+        ],
+        "risk_adjusted_composite_gain": -0.833969,
+        "eligible": false
+      }
+    },
+    "thresholds": {
+      "min_risk_adjusted_composite_gain": 0.25,
+      "min_positive_fold_rate": 0.8,
+      "min_final_non_loss_rate": 0.55
+    },
+    "rule": "Choose among the frozen semantic selector, LLM-direct prior, LLAMBO-style warm-start, and the target-only anchor using calibration seeds only. Require non-negative final-best and AUC deltas, stable folds, and a positive risk-adjusted composite gain; otherwise fall back to the target-only anchor.",
+    "evidence_boundary": "Only calibration outcomes choose the strategy. Held-out outcomes are used once for the frozen comparison."
+  },
+  "strategy_router_strongest_target_mode": "target_acquisition_portfolio",
+  "strategy_router_pairwise": {
+    "gp_ucb": {
+      "final_best": {
+        "n": 30.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      },
+      "best_so_far_auc": {
+        "n": 30.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      },
+      "top10_hit": {
+        "n": 30.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      }
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": {
+        "n": 30.0,
+        "mean": -1.2125,
+        "std": 19.148927,
+        "se": 3.4961,
+        "normal_95ci_low": -8.064856,
+        "normal_95ci_high": 5.639856,
+        "win_rate": 0.233333,
+        "non_loss_rate": 0.8
+      },
+      "best_so_far_auc": {
+        "n": 30.0,
+        "mean": 2.046667,
+        "std": 14.384204,
+        "se": 2.626184,
+        "normal_95ci_low": -3.100655,
+        "normal_95ci_high": 7.193988,
+        "win_rate": 0.266667,
+        "non_loss_rate": 0.7
+      },
+      "top10_hit": {
+        "n": 30.0,
+        "mean": -0.033333,
+        "std": 0.314466,
+        "se": 0.057413,
+        "normal_95ci_low": -0.145864,
+        "normal_95ci_high": 0.079197,
+        "win_rate": 0.033333,
+        "non_loss_rate": 0.933333
+      }
+    },
+    "target_acquisition_portfolio": {
+      "final_best": {
+        "n": 30.0,
+        "mean": -3.583333,
+        "std": 13.277304,
+        "se": 2.424093,
+        "normal_95ci_low": -8.334556,
+        "normal_95ci_high": 1.167889,
+        "win_rate": 0.133333,
+        "non_loss_rate": 0.833333
+      },
+      "best_so_far_auc": {
+        "n": 30.0,
+        "mean": 0.19375,
+        "std": 7.862196,
+        "se": 1.435434,
+        "normal_95ci_low": -2.619701,
+        "normal_95ci_high": 3.007201,
+        "win_rate": 0.233333,
+        "non_loss_rate": 0.766667
+      },
+      "top10_hit": {
+        "n": 30.0,
+        "mean": -0.066667,
+        "std": 0.249444,
+        "se": 0.045542,
+        "normal_95ci_low": -0.155929,
+        "normal_95ci_high": 0.022596,
+        "win_rate": 0.0,
+        "non_loss_rate": 0.933333
+      }
+    }
+  },
+  "strategy_router_vs_external_llm": {},
+  "strategy_router_validation": {
+    "selected_llm_strategy": false,
+    "strongest_target_mode": "target_acquisition_portfolio",
+    "final_95ci_positive": false,
+    "auc_95ci_positive": false,
+    "top10_95ci_positive": false
+  },
+  "heldout_validation": {
+    "selected_llm_skill": true,
+    "strongest_target_mode": "target_acquisition_portfolio",
+    "final_95ci_positive": false,
+    "auc_95ci_positive": false,
+    "top10_95ci_positive": false
+  },
+  "evidence_boundary": {
+    "generation": "Only source outcomes and public source/target descriptors are summarized. No target outcomes are present.",
+    "evaluation": "Calibration selects a skill before held-out evaluation. Every per-round fit uses only previously revealed target outcomes."
+  }
+}
