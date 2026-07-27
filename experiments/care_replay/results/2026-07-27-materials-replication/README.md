@@ -49,6 +49,25 @@ exploratory candidate-positive result, not a confirmed material transfer win.
 The larger run is stored under `router_30x50/` and should be read together
 with the existing 500-seed material confirmation rather than replacing it.
 
+## 30-seed calibration and 100-seed held-out check
+
+The same frozen router was then evaluated with 30 calibration seeds
+(`90000-90029`) and 100 held-out seeds (`91000-91099`). Calibration again
+selected `counter_transition_metal`. Against the strongest target-only
+mixed-kernel GP-EI baseline, the held-out strategy-router deltas were:
+
+| Metric | Delta | 95% CI |
+| --- | ---: | ---: |
+| Final best | `+6.52` | `[+0.13, +12.91]` |
+| Best-so-far AUC | `+2.59` | `[-1.60, +6.77]` |
+| Top-10 hit | `+0.16` | `[+0.05, +0.25]` |
+
+This is stronger than the 30/50 point estimate and gives positive evidence
+for final best and top-10 discovery in this material pair. AUC remains
+inconclusive, and this is still one source-target pair; it should not be
+reported as a universal cross-domain result. The raw metrics, frozen model
+record, per-seed audit archive, and SHA256 manifest are under `router_30x100/`.
+
 ## Reproduction
 
 The two subdirectories contain per-seed metrics, selection summaries, frozen

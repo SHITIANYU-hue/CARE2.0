@@ -24,6 +24,16 @@ seeds 做了全候选 router 检查（88000-88029 / 89000-89049）。这次 cali
 区间仍跨 0，因此这轮只能作为候选正向信号，不能替代已有 500-seed 材料主结果。
 归档在同一目录的 `router_30x50/`。
 
+随后把同一冻结 record 和 router 扩到 30 个 calibration seeds 与 100 个 held-out
+seeds（90000-90029 / 91000-91099）。calibration 再次选择了
+`counter_transition_metal`。在 held-out 上，相对最强的 target-only
+mixed-kernel GP-EI，Final best 提升 `+6.52`（95% CI `[+0.13,+12.91]`），
+top-10 hit 提升 `+0.16`（`[+0.05,+0.25]`），best-so-far AUC 提升 `+2.59`
+（`[-1.60,+6.77]`）。这说明材料 pair 的最终最优值和 top-10 发现率已经出现
+可重复的正向证据，但 AUC 仍不显著，而且这里只验证了一个 source-target pair，
+不能外推成“所有材料任务都提升”。完整 raw metrics、frozen record 和每 seed
+trace 在 `experiments/care_replay/results/2026-07-27-materials-replication/router_30x100/`。
+
 ## 2026-07-27：BH semantic skill 独立复核
 
 在已有 Suzuki → Buchwald-Hartwig 500-seed frozen confirmation 之外，补做了一轮
