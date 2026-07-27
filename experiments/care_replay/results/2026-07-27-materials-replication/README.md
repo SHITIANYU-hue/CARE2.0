@@ -35,6 +35,20 @@ The result is useful because it shows the intended behavior of the router:
 material skills that look promising on a small calibration sample are not
 automatically deployed without fold stability and risk-adjusted evidence.
 
+## Larger router check
+
+To check whether the 10-seed calibration was simply too small, the full frozen
+skill set was rerun with 30 calibration seeds (`88000-88029`) and 50 held-out
+seeds (`89000-89049`). Calibration selected `counter_transition_metal`. On the
+held-out seeds its strategy-router delta versus mixed-kernel GP-EI was Final
+best `+5.11` (95% CI `[-3.78, +14.00]`), AUC `+3.42`
+(`[-2.65, +9.49]`), and top-10 hit `+0.08` (`[-0.05, +0.21]`). The point
+estimate is positive, but none of the intervals excludes zero. This is an
+exploratory candidate-positive result, not a confirmed material transfer win.
+
+The larger run is stored under `router_30x50/` and should be read together
+with the existing 500-seed material confirmation rather than replacing it.
+
 ## Reproduction
 
 The two subdirectories contain per-seed metrics, selection summaries, frozen

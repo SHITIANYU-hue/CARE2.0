@@ -16,6 +16,14 @@ fallback，没有部署 LLM transfer。
 而不是继续放宽 gate。完整 metrics、selection summary 和 audit trace 在
 `experiments/care_replay/results/2026-07-27-materials-replication/`。
 
+为排除 10-seed calibration 过小，又用 30 个 calibration seeds 和 50 个 held-out
+seeds 做了全候选 router 检查（88000-88029 / 89000-89049）。这次 calibration
+选择了 `counter_transition_metal`；held-out 相对 mixed-kernel GP-EI 的 Final best
+为 `+5.11`（95% CI `[-3.78, +14.00]`），AUC `+3.42`
+（`[-2.65, +9.49]`），top-10 `+0.08`（`[-0.05, +0.21]`）。点估计为正但
+区间仍跨 0，因此这轮只能作为候选正向信号，不能替代已有 500-seed 材料主结果。
+归档在同一目录的 `router_30x50/`。
+
 ## 2026-07-27：BH semantic skill 独立复核
 
 在已有 Suzuki → Buchwald-Hartwig 500-seed frozen confirmation 之外，补做了一轮
