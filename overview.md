@@ -1,5 +1,29 @@
 # Overview
 
+## 2026-07-28：baseline、逐轮效率与 LLM 规则公式补全
+
+按 7/28 评审意见补了一套统一的评估说明。新的汇总不再只列某个方法相对
+incumbent 的结果，而是把正式七条 source-target 路径同时对齐到两类主对照：
+每条路径最强的 target-only BO，以及预算、初始点和 seed 完全一致的
+matched target-only LLM。50 个 calibration seeds 只负责冻结“迁移或精确回退”，
+100 个不重叠的 held-out seeds 才用于报告。四条部署迁移的路径同时超过两类
+对照；另外三条精确回退，因此相对 matched LLM 的增益为 0，而不是把负迁移
+隐藏成正结果。
+
+逐轮部分新增了达到 matched LLM 最终质量和命中全局 top-10 所节省的 target
+acquisition rounds，并列出第 1、3、5 轮和最终轮的 best-so-far delta。这样可以
+直接讨论“少做多少轮实验”，不再只看 final best。baseline inventory 也补齐了
+random、public incumbent、GP-UCB、mixed-kernel GP-EI、target portfolio、LLM
+direct prior、LLAMBO-style warm start、matched target-only LLM、matched random
+rule 和 CARE source-outcome router，并明确这些历史控制并非全部在七条路径上
+逐一重跑。
+
+同时新增 `LLM_RULE_FORMULAS.md`，把 LLM 输出的 kernel patch、role weight、
+source-neighbor/additive/interaction prior、target LOO calibration、expert softmax、
+transfer mass 和在线 gate 写成与代码一致的公式。图、CSV、公式和校验哈希归档在
+`experiments/care_replay/results/2026-07-28-evaluation-completion/`，生成脚本为
+`experiments/care_replay/scripts/build_20260728_evaluation_completion.py`。
+
 ## 2026-07-27：材料 skill router 独立复核
 
 继续用新的 seed 区间复核 dielectric → experimental band gap。全候选 router

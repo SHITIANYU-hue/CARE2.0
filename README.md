@@ -56,6 +56,7 @@ The latest project sync focuses on three workstreams:
 
 The latest tracked replay output is in:
 
+- `experiments/care_replay/results/2026-07-28-evaluation-completion/`
 - `experiments/care_replay/results/2026-07-27-materials-replication/`
 - `experiments/care_replay/results/2026-07-27-bh-replication-smoke/`
 - `experiments/care_replay/results/2026-07-24-source-outcome-transfer/`
@@ -96,6 +97,13 @@ categorical kernel, producing a small positive acquisition-level result over
 GP-UCB on Suzuki-to-Buchwald-Hartwig and FreeSolv-to-Lipophilicity replay.
 Raw public data files, per-mode metrics, audit logs, and knowledge snapshots
 are kept under `experiments/care_replay/`.
+
+The 2026-07-28 evaluation-completion package consolidates the frozen seven-pair
+suite into a strongest-BO comparison, a matched target-only LLM comparison,
+paired iteration-efficiency plots, and a baseline/control coverage matrix. It
+also provides the executed equations for LLM-generated kernel patches,
+source-outcome priors, target calibration, expert routing, and gates. All
+figures are rebuilt from archived JSON/CSV rather than manually entered values.
 
 The 2026-07-24 snapshot is the first complete source-outcome transfer
 confirmation. LLM-compiled role maps are combined with fixed measured source
