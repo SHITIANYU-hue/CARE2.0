@@ -509,6 +509,76 @@ class SourceOutcomeTransferTests(unittest.TestCase):
                 "target_anchor_plus_source_outcome_residual",
             )
 
+    def test_fixed_data_only_patch_contains_no_llm_specific_role_choices(self) -> None:
+        target = replay.DATASET_BUILDERS["real_matbench_expt_gap"]()
+        patch = calibrated.fixed_data_only_patch(
+            target,
+            (0.5, 1.0, 2.0),
+            1.5,
+        )
+        self.assertEqual(
+            patch.role_multipliers,
+            {field: 1.0 for field in target.decision_columns},
+        )
+        self.assertEqual(patch.scales, (0.0, 0.5, 1.0, 2.0))
+        self.assertEqual(patch.confidence, 1.0)
+        self.assertIn("Deterministic non-LLM control", patch.reason)
+
+    def test_mechanism_attribution_detects_warmstart_only_gain(self) -> None:
+        rows = []
+        audits = {}
+        for seed in range(5):
+            for mode, final, auc in (
+                ("matched_target_only_llm", 10.0, 9.0),
+                (calibrated.WARMSTART_ONLY_MODE, 12.0, 11.0),
+                (calibrated.DATA_ONLY_MODE, 12.5, 11.5),
+                ("llm_transfer_router", 12.0, 11.0),
+            ):
+                rows.append({
+                    "mode": mode,
+                    "seed": seed,
+                    "final_best": final,
+                    "best_so_far_auc": auc,
+                    "top10_hit": 0,
+                })
+            audits[("llm_transfer_router", seed)] = [{
+                "hypothesis_snapshot": {
+                    "source_initial_design": {
+                        "source_outcome_active": True,
+                        "replaced_count": 2,
+                    },
+                    "transfer_mass": 0.0,
+                    "router_gate": {
+                        "authorized": True,
+                        "anchor_candidate": "a",
+                        "selected_candidate": "a",
+                    },
+                }
+            }]
+        result = calibrated.mechanism_attribution(
+            rows,
+            audits,
+            set(range(5)),
+            selected_source_outcome_transfer=True,
+            include_controls=True,
+        )
+        self.assertEqual(
+            result["classification"],
+            "source_informed_initial_design_only",
+        )
+        self.assertEqual(
+            result["post_initialization_source_outcome_effect"][
+                "exact_seed_match_rate"
+            ],
+            1.0,
+        )
+        self.assertEqual(
+            result["full_route_action_diagnostics"][
+                "source_initial_active_seed_rate"
+            ],
+            1.0,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

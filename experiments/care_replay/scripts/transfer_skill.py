@@ -98,6 +98,7 @@ class TransferSkill:
     source_dataset: str
     target_dataset: str
     hypothesis: dict[str, Any]
+    execution_contract: dict[str, Any]
     source_evidence: dict[str, Any]
     role_map: dict[str, str]
     operators: tuple[TransferOperator, ...]
@@ -164,6 +165,7 @@ class TransferSkill:
             "source_dataset": self.source_dataset,
             "target_dataset": self.target_dataset,
             "hypothesis": _json_clone(self.hypothesis),
+            "execution_contract": _json_clone(self.execution_contract),
             "source_evidence": _json_clone(self.source_evidence),
             "role_map": dict(self.role_map),
             "operators": [asdict(operator) for operator in self.operators],
@@ -268,6 +270,38 @@ def compile_transfer_skill(
                 "gain, stability, and confidence requirement against both target anchors."
             ),
         },
+        execution_contract={
+            "artifact_type": "source_outcome_transfer_policy",
+            "llm_role": (
+                "Offline proposal of a bounded kernel-patch portfolio. The LLM is not "
+                "called during target replay."
+            ),
+            "llm_generated_executable_patch_fields": [
+                "scales",
+                "role_multipliers",
+                "gp_beta",
+                "gp_beta_end",
+                "source_prior_strength",
+                "source_similarity_temperature",
+                "source_neighbor_count",
+                "calibration_mode",
+                "min_cv_gain",
+                "confidence",
+                "source_interaction_strength",
+                "source_interaction_min_support",
+                "canonicalize_source_values",
+            ],
+            "advisory_only_fields": [
+                "hypothesis.claim",
+                "hypothesis.route_rationale",
+                "hypothesis.candidate_patch_rationales[].reason",
+                "hypothesis.failure_condition",
+            ],
+            "causal_credit_rule": (
+                "LLM patch credit requires a held-out gain over the fixed data-only "
+                "transfer control; a gain over target-only alone is insufficient."
+            ),
+        },
         source_evidence=_json_clone(source_evidence),
         role_map=dict(role_map),
         operators=operators,
@@ -342,8 +376,19 @@ def build_canonical_trace(
             "target_anchor_mode": selection["target_anchor_mode"],
             "thresholds": selection["thresholds"],
             "diagnostics": selection["source_outcome_diagnostics"],
+            "decision_scope": selection.get("decision_scope"),
+            "real_experiment_deployment_ready": selection.get(
+                "real_experiment_deployment_ready"
+            ),
+            "offline_selection_cost": selection.get("offline_selection_cost"),
         },
     )
+    if "mechanism_attribution" in selection:
+        append(
+            "evaluation",
+            "mechanism_attribution",
+            selection["mechanism_attribution"],
+        )
 
     for seed in sorted(heldout_seeds):
         seed_events = audits.get((selector_mode, seed), [])

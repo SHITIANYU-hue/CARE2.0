@@ -73,6 +73,14 @@ class TransferSkillTests(unittest.TestCase):
             payload = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual(payload["fingerprint"], first.fingerprint)
         self.assertEqual(payload["operators"][0]["name"], "source_informed_initial_design")
+        self.assertEqual(
+            payload["execution_contract"]["artifact_type"],
+            "source_outcome_transfer_policy",
+        )
+        self.assertIn(
+            "hypothesis.failure_condition",
+            payload["execution_contract"]["advisory_only_fields"],
+        )
 
     def test_hidden_target_outcomes_are_rejected(self) -> None:
         with self.assertRaisesRegex(ValueError, "Hidden target evidence"):
@@ -107,6 +115,9 @@ class TransferSkillTests(unittest.TestCase):
             "target_anchor_mode": "gp_ucb",
             "thresholds": {"min_positive_fold_rate": 0.8},
             "source_outcome_diagnostics": {"gp_ucb": {"eligible": True}},
+            "mechanism_attribution": {
+                "classification": "continuous_component_not_established"
+            },
         }
         audits = {
             ("care_source_outcome_router", 101): [
@@ -151,6 +162,13 @@ class TransferSkillTests(unittest.TestCase):
         )
         self.assertEqual(acquisition["payload"]["selected_candidate"], "candidate-7")
         self.assertEqual(acquisition["payload"]["transfer_mass"], 0.2)
+        mechanism = next(
+            event for event in events if event["event_type"] == "mechanism_attribution"
+        )
+        self.assertEqual(
+            mechanism["payload"]["classification"],
+            "continuous_component_not_established",
+        )
 
 
 if __name__ == "__main__":

@@ -27,6 +27,8 @@ import transfer_skill as canonical_skill
 
 SELECTOR_MODE = "care_source_outcome_router"
 MATCHED_TARGET_LLM_MODE = "matched_target_only_llm"
+WARMSTART_ONLY_MODE = "source_warmstart_only"
+DATA_ONLY_MODE = "fixed_data_only_transfer"
 
 
 def resolve_target_llm_skill(
@@ -303,6 +305,60 @@ def run_matched_target_llm(
     return metrics, audit
 
 
+def fixed_data_only_patch(
+    target_adapter: replay.DatasetAdapter,
+    fixed_scales: tuple[float, ...],
+    gp_beta: float,
+) -> evolution.KernelSkillPatch:
+    """One deterministic source-outcome patch with no LLM-generated choices."""
+
+    scales = tuple(dict.fromkeys((0.0, *fixed_scales)))
+    return evolution.KernelSkillPatch(
+        patch_id="fixed_data_only",
+        scales=scales,
+        role_multipliers={field: 1.0 for field in target_adapter.decision_columns},
+        gp_beta=gp_beta,
+        gp_beta_end=gp_beta,
+        source_prior_strength=1.0,
+        source_similarity_temperature=0.35,
+        source_neighbor_count=12,
+        calibration_mode="signed",
+        min_cv_gain=0.02,
+        confidence=1.0,
+        reason=(
+            "Deterministic non-LLM control: equal role weights and fixed source-prior "
+            "settings isolate the value of measured source outcomes."
+        ),
+        source_interaction_strength=0.75,
+        source_interaction_min_support=5,
+        canonicalize_source_values=True,
+    )
+
+
+def renamed_control(
+    metrics: dict[str, Any],
+    audit: list[dict[str, Any]],
+    mode: str,
+    description: str,
+    split: str,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    renamed_metrics = dict(metrics)
+    renamed_metrics["mode"] = mode
+    renamed_metrics["split"] = split
+    renamed_metrics["selected_source_mode"] = ""
+    renamed_audit: list[dict[str, Any]] = []
+    for source_event in audit:
+        event = deepcopy(source_event)
+        event["mode"] = mode
+        event["split"] = split
+        event["mechanism_control"] = {
+            "mode": mode,
+            "description": description,
+        }
+        renamed_audit.append(event)
+    return renamed_metrics, renamed_audit
+
+
 def evaluate_seed(
     seed: int,
     split: str,
@@ -328,6 +384,7 @@ def evaluate_seed(
     router_min_quality: float,
     router_max_transfer_mass: float,
     source_initial_strategy: str,
+    include_mechanism_controls: bool,
 ) -> tuple[list[dict[str, Any]], dict[tuple[str, int], list[dict[str, Any]]]]:
     target_adapter = replay.DATASET_BUILDERS[target_dataset]()
     task = replay.make_task(target_adapter, initial, rounds)
@@ -398,6 +455,94 @@ def evaluate_seed(
         event["split"] = split
     rows.append(target_metrics)
     audits[(MATCHED_TARGET_LLM_MODE, seed)] = target_audit
+    if include_mechanism_controls:
+        source_adapter = replay.DATASET_BUILDERS[source_dataset]()
+        source_observed = transfer.source_observations(
+            source_adapter,
+            source_seed,
+            source_observations,
+        )
+        card = transfer.compile_transfer_card(
+            source_adapter,
+            target_adapter,
+            source_observed,
+            transfer.descriptor_transfer_role_map_for(
+                source_dataset,
+                target_dataset,
+            ),
+            discount,
+            min_source_support,
+        )
+        warm_metrics, warm_audit = outcome_router.run_router_policy(
+            source_adapter,
+            target_adapter,
+            task,
+            seed,
+            card,
+            source_observed,
+            patches,
+            normalize,
+            gp_beta,
+            gp_xi,
+            numeric_length_scale,
+            categorical_length_scale,
+            gp_noise,
+            initial_observed,
+            anchor_scorer,
+            target_llm_mode,
+            router_min_observations,
+            router_min_quality,
+            0.0,
+            source_initial_strategy,
+        )
+        warm_metrics, warm_audit = renamed_control(
+            warm_metrics,
+            warm_audit,
+            WARMSTART_ONLY_MODE,
+            (
+                "Uses the same source-informed initial design as the full route, "
+                "then fixes transfer mass to zero for every sequential round."
+            ),
+            split,
+        )
+        rows.append(warm_metrics)
+        audits[(WARMSTART_ONLY_MODE, seed)] = warm_audit
+
+        data_patch = fixed_data_only_patch(target_adapter, fixed_scales, gp_beta)
+        data_metrics, data_audit = outcome_router.run_router_policy(
+            source_adapter,
+            target_adapter,
+            task,
+            seed,
+            card,
+            source_observed,
+            (data_patch,),
+            normalize,
+            gp_beta,
+            gp_xi,
+            numeric_length_scale,
+            categorical_length_scale,
+            gp_noise,
+            initial_observed,
+            anchor_scorer,
+            target_llm_mode,
+            router_min_observations,
+            router_min_quality,
+            router_max_transfer_mass,
+            source_initial_strategy,
+        )
+        data_metrics, data_audit = renamed_control(
+            data_metrics,
+            data_audit,
+            DATA_ONLY_MODE,
+            (
+                "Uses measured source outcomes with a deterministic equal-role patch; "
+                "no LLM-generated patch fields are used."
+            ),
+            split,
+        )
+        rows.append(data_metrics)
+        audits[(DATA_ONLY_MODE, seed)] = data_audit
     return rows, audits
 
 
@@ -520,6 +665,153 @@ def add_selector_alias(
         audits[(SELECTOR_MODE, seed)] = alias_events
 
 
+def component_effect(
+    rows: list[dict[str, Any]],
+    left_mode: str,
+    right_mode: str,
+    seeds: set[int],
+) -> dict[str, Any]:
+    final = selector.paired_deltas(
+        rows,
+        left_mode,
+        right_mode,
+        seeds,
+        "final_best",
+    )
+    auc = selector.paired_deltas(
+        rows,
+        left_mode,
+        right_mode,
+        seeds,
+        "best_so_far_auc",
+    )
+    composite = [left + right for left, right in zip(final, auc)]
+    return {
+        "left_mode": left_mode,
+        "right_mode": right_mode,
+        "final_best": selector.delta_summary(final),
+        "best_so_far_auc": selector.delta_summary(auc),
+        "composite": selector.delta_summary(composite),
+        "exact_seed_match_rate": round(
+            sum(
+                abs(final_delta) <= 1e-12 and abs(auc_delta) <= 1e-12
+                for final_delta, auc_delta in zip(final, auc)
+            )
+            / max(1, len(composite)),
+            6,
+        ),
+    }
+
+
+def route_action_diagnostics(
+    audits: dict[tuple[str, int], list[dict[str, Any]]],
+    mode: str,
+    seeds: set[int],
+) -> dict[str, Any]:
+    round_count = 0
+    positive_mass_rounds = 0
+    changed_action_rounds = 0
+    source_initial_active_seeds = 0
+    for seed in seeds:
+        events = audits.get((mode, seed), [])
+        if events:
+            initial = events[0].get("hypothesis_snapshot", {}).get(
+                "source_initial_design",
+                {},
+            )
+            if bool(initial.get("source_outcome_active")) and int(
+                initial.get("replaced_count", 0)
+            ) > 0:
+                source_initial_active_seeds += 1
+        for event in events:
+            snapshot = event.get("hypothesis_snapshot", {})
+            router_gate = snapshot.get("router_gate", {})
+            round_count += 1
+            if float(snapshot.get("transfer_mass", 0.0)) > 0.0:
+                positive_mass_rounds += 1
+            if (
+                router_gate.get("authorized")
+                and router_gate.get("anchor_candidate") is not None
+                and router_gate.get("selected_candidate")
+                != router_gate.get("anchor_candidate")
+            ):
+                changed_action_rounds += 1
+    return {
+        "seed_count": len(seeds),
+        "round_count": round_count,
+        "source_initial_active_seed_rate": round(
+            source_initial_active_seeds / max(1, len(seeds)),
+            6,
+        ),
+        "positive_transfer_mass_round_rate": round(
+            positive_mass_rounds / max(1, round_count),
+            6,
+        ),
+        "post_initialization_action_change_rate": round(
+            changed_action_rounds / max(1, round_count),
+            6,
+        ),
+    }
+
+
+def mechanism_attribution(
+    rows: list[dict[str, Any]],
+    audits: dict[tuple[str, int], list[dict[str, Any]]],
+    heldout_seeds: set[int],
+    selected_source_outcome_transfer: bool,
+    include_controls: bool,
+) -> dict[str, Any]:
+    if not include_controls:
+        return {
+            "status": "not_run",
+            "reason": "Mechanism controls were explicitly disabled.",
+        }
+    warm_start = component_effect(
+        rows,
+        WARMSTART_ONLY_MODE,
+        MATCHED_TARGET_LLM_MODE,
+        heldout_seeds,
+    )
+    continuous = component_effect(
+        rows,
+        "llm_transfer_router",
+        WARMSTART_ONLY_MODE,
+        heldout_seeds,
+    )
+    llm_patch = component_effect(
+        rows,
+        "llm_transfer_router",
+        DATA_ONLY_MODE,
+        heldout_seeds,
+    )
+    actions = route_action_diagnostics(
+        audits,
+        "llm_transfer_router",
+        heldout_seeds,
+    )
+    if not selected_source_outcome_transfer:
+        classification = "offline_selector_fallback"
+    elif continuous["exact_seed_match_rate"] == 1.0:
+        classification = "source_informed_initial_design_only"
+    elif continuous["composite"]["normal_95ci_low"] > 0.0:
+        classification = "continuous_source_outcome_gain_supported"
+    else:
+        classification = "continuous_component_not_established"
+    return {
+        "status": "complete",
+        "classification": classification,
+        "source_informed_initial_design_effect": warm_start,
+        "post_initialization_source_outcome_effect": continuous,
+        "llm_patch_increment_over_fixed_data_only": llm_patch,
+        "full_route_action_diagnostics": actions,
+        "interpretation_rule": (
+            "The full route is called continuous only when it improves over the same "
+            "source-informed initial design with transfer mass fixed to zero. LLM patch "
+            "credit additionally requires improvement over the fixed data-only route."
+        ),
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Frozen calibration and held-out evaluation for complete source-outcome transfer."
@@ -575,6 +867,14 @@ def main() -> None:
     parser.add_argument("--min-positive-fold-rate", type=float, default=0.8)
     parser.add_argument("--min-final-non-loss-rate", type=float, default=0.6)
     parser.add_argument("--min-composite-ci-low", type=float, default=0.0)
+    parser.add_argument(
+        "--no-mechanism-controls",
+        action="store_true",
+        help=(
+            "Skip the matched warm-start-only and fixed data-only controls. "
+            "The canonical confirmation protocol runs them by default."
+        ),
+    )
     parser.add_argument("--output-tag", default="")
     args = parser.parse_args()
 
@@ -652,9 +952,12 @@ def main() -> None:
         "router_max_transfer_mass": args.router_max_transfer_mass,
         "source_initial_strategy": args.source_initial_strategy,
         "target_anchor_mode": args.target_llm_mode,
+        "include_mechanism_controls": not args.no_mechanism_controls,
     }
     gate_policy = {
         "fallback_mode": MATCHED_TARGET_LLM_MODE,
+        "decision_scope": "offline_replay_model_selection",
+        "real_experiment_deployment_ready": False,
         "online_router": {
             "min_observations": args.router_min_observations,
             "min_quality": args.router_min_quality,
@@ -734,6 +1037,9 @@ def main() -> None:
         "router_min_quality": skill.execution["router_min_quality"],
         "router_max_transfer_mass": skill.execution["router_max_transfer_mass"],
         "source_initial_strategy": skill.execution["source_initial_strategy"],
+        "include_mechanism_controls": skill.execution[
+            "include_mechanism_controls"
+        ],
     }
     if args.workers == 1:
         results = [
@@ -763,12 +1069,24 @@ def main() -> None:
     )
     selection["schema_route_proposal"] = route_proposal
     selection["transfer_skill"] = skill.identity()
+    selection["decision_scope"] = "offline_replay_model_selection"
+    selection["real_experiment_deployment_ready"] = False
+    selection["deployment_note"] = (
+        "Calibration seeds reveal archived target outcomes and are valid for offline "
+        "benchmark model selection only. They are not a cost-feasible real-lab gate."
+    )
     add_selector_alias(rows, audits, selected_mode, heldout_seeds, selection)
     canonical_skill.attach_skill_identity(audits, skill)
+    control_modes = (
+        (WARMSTART_ONLY_MODE, DATA_ONLY_MODE)
+        if not args.no_mechanism_controls
+        else ()
+    )
     all_modes = (
         *selector.TARGET_MODES,
         MATCHED_TARGET_LLM_MODE,
         "llm_transfer_router",
+        *control_modes,
         SELECTOR_MODE,
     )
     calibration = selector.mode_means(rows, all_modes, calibration_seeds)
@@ -784,8 +1102,36 @@ def main() -> None:
             ))
             for field in ("final_best", "best_so_far_auc", "top10_hit")
         }
-        for baseline in (*selector.TARGET_MODES, MATCHED_TARGET_LLM_MODE)
+        for baseline in (
+            *selector.TARGET_MODES,
+            MATCHED_TARGET_LLM_MODE,
+            *control_modes,
+        )
     }
+    attribution = mechanism_attribution(
+        rows,
+        audits,
+        heldout_seeds,
+        selection["selected_source_outcome_transfer"],
+        not args.no_mechanism_controls,
+    )
+    selection["mechanism_attribution"] = attribution
+    offline_selection_cost = {
+        "evaluated_mode_count": len(calibration),
+        "calibration_seed_count": len(calibration_seeds),
+        "observations_per_policy_replay": args.initial + args.rounds,
+        "gross_reveal_equivalents": (
+            len(calibration)
+            * len(calibration_seeds)
+            * (args.initial + args.rounds)
+        ),
+        "interpretation": (
+            "Gross policy-replay count, not a count of unique candidates. It is cheap "
+            "for archived lookup but is not an acceptable cost model for wet-lab "
+            "deployment."
+        ),
+    }
+    selection["offline_selection_cost"] = offline_selection_cost
     summary = {
         "experiment": "care_calibrated_source_outcome_transfer",
         "source_dataset": args.source_dataset,
@@ -832,6 +1178,13 @@ def main() -> None:
         "calibration": calibration,
         "heldout": heldout,
         "heldout_pairwise": pairwise,
+        "mechanism_controls": {
+            "enabled": not args.no_mechanism_controls,
+            "warmstart_only_mode": WARMSTART_ONLY_MODE,
+            "fixed_data_only_mode": DATA_ONLY_MODE,
+        },
+        "mechanism_attribution": attribution,
+        "offline_selection_cost": offline_selection_cost,
         "evidence_boundary": (
             "The source history contains public source features and measured source outcomes. "
             "Source history, mappings, and patches are frozen before target replay. Target "

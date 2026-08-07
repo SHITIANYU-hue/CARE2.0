@@ -28,10 +28,10 @@ Current status:
 - Supports a calibration-only strategy router over target-only BO,
   target-calibrated semantic skills, LLM-direct priors, and LLAMBO-style
   warm-starting. The selected route is frozen before held-out replay.
-- Supports complete source-outcome transfer: fixed measured source histories
+- Evaluates candidate source-outcome mechanisms: fixed measured source histories
   provide neighbor, additive, interaction, initial-design, and kernel priors;
   revealed target observations calibrate them online, with an exact matched
-  target-only LLM fallback when calibration rejects transfer.
+  target-only LLM fallback when offline replay selection rejects transfer.
 - Freezes the canonical method in [`CARE2_METHOD.md`](CARE2_METHOD.md). Every
   confirmed pair now emits one executable `TransferSkill` and one compact
   source-to-deployment trace in addition to the full audit logs.
@@ -78,9 +78,16 @@ only when it clears paired stability and confidence checks against both the
 matched target-only LLM and the strongest target-only BO route. Otherwise it
 copies the matched target-only policy exactly. The archived confirmation is in
 [`results/2026-07-24-source-outcome-transfer`](results/2026-07-24-source-outcome-transfer/README.md).
+This selection is an offline replay protocol, not a deployable wet-lab gate:
+calibration consumes archived target outcomes that would be expensive in a new
+physical experiment.
 The exact skill, thresholds, record hashes, and round-level deployment chain are
 written as `*_transfer_skill.json` and `*_canonical_trace.jsonl` under
 `outputs/runs/`.
+Canonical runs now include `source_warmstart_only` and
+`fixed_data_only_transfer` by default. These controls attribute gain separately
+to source-informed initialization, post-initialization transfer, and the LLM
+patch. Use `--no-mechanism-controls` only for debugging.
 
 The schema-only router in `scripts/cross_task_router.py` proposes a candidate
 transfer family from public task metadata: reaction component roles for HTE

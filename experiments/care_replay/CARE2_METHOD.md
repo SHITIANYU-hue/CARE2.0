@@ -14,10 +14,13 @@ policy. Revealed target observations can calibrate those experts before each
 new selection. Hidden target outcomes are never used to compile the skill or
 score an unrevealed candidate.
 
-The deployed route is chosen on calibration seeds. Transfer is accepted only
+The reported offline route is chosen on calibration seeds. Transfer is accepted only
 when it clears every frozen gain, stability, non-loss, and confidence test
 against both the matched target-only LLM policy and the strongest target-only
 BO policy. Otherwise CARE executes the matched target-only policy exactly.
+This is an offline benchmark selection protocol because the calibration seeds
+reveal archived target outcomes. It is not a cost-feasible gate for a new wet-lab
+task and must not be described as such.
 
 ## The one public execution path
 
@@ -42,10 +45,13 @@ python3 experiments/care_replay/scripts/run_care2.py suite \
 canonical single-pair algorithm. `suite` only repeats that algorithm over a
 frozen list of pairs; it does not implement a second transfer method.
 
-## What a TransferSkill contains
+## What the current TransferSkill contains
 
-`scripts/transfer_skill.py` defines the versioned `TransferSkill` artifact. It
-contains:
+`scripts/transfer_skill.py` defines the versioned `TransferSkill` artifact. The
+name is retained for API compatibility. At the present evidence level, the
+artifact is more precisely a frozen source-outcome transfer policy: it has not
+yet demonstrated accumulation or reuse across a sequence of completed tasks.
+It contains:
 
 - a source-target hypothesis and its failure condition;
 - the fixed source history summary and source-target role map;
@@ -56,6 +62,8 @@ contains:
 - the disjoint calibration and held-out seed ranges used for confirmation;
 - hashes of both frozen LLM records;
 - an evidence boundary that forbids hidden target outcomes.
+- an execution contract that separates executable LLM patch fields from
+  advisory-only mechanism text.
 
 The artifact is executable rather than descriptive. The canonical runner reads
 its router settings and confirmation thresholds from the compiled skill. A
@@ -72,7 +80,7 @@ evidence summary changes.
 | Skill compilation | `transfer_skill.compile_transfer_skill` | versioned executable `TransferSkill` |
 | Transfer execution | `run_llm_transfer_router.run_router_policy` | source-informed acquisition scores |
 | Online safety check | `run_llm_transfer_router.router_gate_decision` | use router candidate or target anchor each round |
-| Confirmation gate | `run_calibrated_source_outcome_transfer.select_route` | transfer or exact target-only fallback |
+| Offline benchmark selection | `run_calibrated_source_outcome_transfer.select_route` | transfer or exact target-only fallback on replay |
 | Target experiment | `run_llm_transfer_router.run_seed` | finite-pool prequential replay |
 | Statistical evaluation | selector delta/fold/CI helpers | paired final, AUC, non-loss, fold and CI statistics |
 | Audit and memory artifact | `transfer_skill.build_canonical_trace` | source-to-gate-to-outcome JSONL trace |
@@ -112,18 +120,46 @@ same target seeds and reveal budget:
 | --- | --- |
 | Does any historical transfer help? | deployed CARE vs strongest target-only BO |
 | Does it beat an LLM that has no source evidence? | deployed CARE vs matched target-only LLM |
-| What happens without the confirmation gate? | raw `llm_transfer_router` vs deployed `care_source_outcome_router` |
-| Does the gate prevent a loss? | rejected pairs reproduce the matched target-only LLM exactly |
+| Does source-informed initialization explain the gain? | full route vs `source_warmstart_only` |
+| Do LLM-generated patch choices add value beyond source data? | full route vs `fixed_data_only_transfer` |
+| What happens without offline benchmark selection? | raw `llm_transfer_router` vs reported `care_source_outcome_router` |
+| Does offline selection prevent a replay loss? | rejected pairs reproduce the matched target-only LLM exactly |
 
-The random-rule controls live in `run_random_rule_control.py`. Source-evidence
-causality is summarized by `build_source_evidence_ablation.py`. A single
-same-budget similarity-only arm and an online-gate-off arm are not yet part of
-the frozen confirmation suite; they must be reported as planned ablations, not
-as completed evidence.
+The two mechanism controls now run by default for every canonical pair. The
+summary reports three separate held-out effects: source-informed initialization,
+post-initialization source-outcome transfer, and the LLM patch increment over a
+fixed non-LLM patch. The random-rule controls live in
+`run_random_rule_control.py`, and source-evidence causality is summarized by
+`build_source_evidence_ablation.py`. A same-budget classical transfer BO arm,
+similarity-only arm, and online-gate-off arm are not yet part of the frozen
+suite; they must be reported as planned ablations, not completed evidence.
+
+## What is and is not executed from the LLM output
+
+The LLM is called once before replay. Numeric patch fields such as scales, role
+multipliers, GP exploration settings, prior strength, calibration mode, and
+confidence are executable inputs. They may still be rejected or down-weighted
+by target evidence. Mechanism prose, failure-condition prose, and rationale
+text are recorded for review but are not executable conditions. Therefore an
+LLM contribution is not inferred from the presence of an LLM record: it must
+beat `fixed_data_only_transfer` on held-out seeds.
+
+## Real-experiment boundary
+
+Calibration and held-out replay answer whether a reported offline result is
+honest. They do not solve zero-shot deployment on a new expensive experiment.
+The deployable problem is evaluated separately by the zero-target-calibration
+hypothesis matrix. Until that route is reliable, the canonical summary emits
+`real_experiment_deployment_ready: false`. It also reports the number of
+evaluated modes and gross policy-replay reveal equivalents so that offline
+selection cost is visible rather than hidden behind the word "gate."
 
 ## Claim boundary
 
 The current method supports evaluated source-target paths in reactions,
 molecular properties, and materials. It does not by itself establish arbitrary
-far-domain transfer. A positive result means that one frozen skill passed the
+far-domain transfer. A positive result means that one frozen transfer policy passed the
 specified confirmation protocol on held-out seeds for that declared pair.
+It does not establish a causal LLM gain unless the full route also beats the
+fixed data-only control, and it does not establish continuous transfer unless
+the full route beats the matched source-informed warm-start-only control.
