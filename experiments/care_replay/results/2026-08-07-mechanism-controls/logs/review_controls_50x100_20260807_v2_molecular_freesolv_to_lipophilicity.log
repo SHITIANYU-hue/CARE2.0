@@ -1,0 +1,1499 @@
+{
+  "experiment": "care_calibrated_source_outcome_transfer",
+  "source_dataset": "real_moleculenet_freesolv",
+  "target_dataset": "real_moleculenet_lipophilicity",
+  "schema_route_proposal": {
+    "source_dataset": "real_moleculenet_freesolv",
+    "target_dataset": "real_moleculenet_lipophilicity",
+    "source_family": "molecules",
+    "target_family": "molecules",
+    "shared_field_count": 7,
+    "shared_field_ratio": 1.0,
+    "shared_role_count": 0,
+    "candidate_route_families": [
+      "shared_descriptor_source_outcome",
+      "target_only"
+    ],
+    "recommended_candidate": "shared_descriptor_source_outcome",
+    "rationale": "The tasks share at least half of their public descriptor vocabulary; offer descriptor-aligned source-outcome transfer, then gate it on target evidence.",
+    "outcome_gate_required": true
+  },
+  "transfer_skill": {
+    "schema_version": "care.transfer_skill/v1",
+    "skill_id": "care2::real_moleculenet_freesolv::real_moleculenet_lipophilicity::f8deef64ede5",
+    "source_dataset": "real_moleculenet_freesolv",
+    "target_dataset": "real_moleculenet_lipophilicity",
+    "hypothesis": {
+      "candidate_patch_rationales": [
+        {
+          "confidence": 0.6,
+          "patch_id": "exploration_patch_high_beta",
+          "reason": "Exploration-focused patch to enhance search space with high uncertainty. Targets diverse roles while downweighting weaker features."
+        },
+        {
+          "confidence": 0.4,
+          "patch_id": "conservative_patch_low_beta",
+          "reason": "Conservative patch to ensure stability in predictions, focusing on high-confidence roles and downweighting uncertain mappings."
+        },
+        {
+          "confidence": 0.5,
+          "patch_id": "counter_hypothesis_patch",
+          "reason": "Tests a counter-hypothesis by downweighting the strongest role and emphasizing alternative mappings to explore new relationships."
+        },
+        {
+          "confidence": 0.7,
+          "patch_id": "high_confidence_roles_patch",
+          "reason": "Focuses on the two highest-confidence roles to maximize transfer effectiveness while maintaining a conservative approach."
+        },
+        {
+          "confidence": 0.4,
+          "patch_id": "multi_scale_ensemble_patch",
+          "reason": "Utilizes a multi-scale ensemble approach to balance the uncertainty in role effectiveness while leveraging source knowledge."
+        },
+        {
+          "confidence": 0.3,
+          "patch_id": "safety_anchor_patch",
+          "reason": "Includes a scale 0 anchor to ensure safety in predictions while exploring other roles with lower confidence."
+        }
+      ],
+      "claim": "Frozen measured outcomes from real_moleculenet_freesolv can improve finite-pool search on real_moleculenet_lipophilicity through the shared_descriptor_source_outcome route without reading hidden target outcomes.",
+      "failure_condition": "Reject the transfer route when calibration does not clear every frozen gain, stability, and confidence requirement against both target anchors.",
+      "route_family": "shared_descriptor_source_outcome",
+      "route_rationale": "The tasks share at least half of their public descriptor vocabulary; offer descriptor-aligned source-outcome transfer, then gate it on target evidence."
+    },
+    "execution_contract": {
+      "advisory_only_fields": [
+        "hypothesis.claim",
+        "hypothesis.route_rationale",
+        "hypothesis.candidate_patch_rationales[].reason",
+        "hypothesis.failure_condition"
+      ],
+      "artifact_type": "source_outcome_transfer_policy",
+      "causal_credit_rule": "LLM patch credit requires a held-out gain over the fixed data-only transfer control; a gain over target-only alone is insufficient.",
+      "llm_generated_executable_patch_fields": [
+        "scales",
+        "role_multipliers",
+        "gp_beta",
+        "gp_beta_end",
+        "source_prior_strength",
+        "source_similarity_temperature",
+        "source_neighbor_count",
+        "calibration_mode",
+        "min_cv_gain",
+        "confidence",
+        "source_interaction_strength",
+        "source_interaction_min_support",
+        "canonicalize_source_values"
+      ],
+      "llm_role": "Offline proposal of a bounded kernel-patch portfolio. The LLM is not called during target replay."
+    },
+    "source_evidence": {
+      "evidence_summary": "Compiled 7 active role transfers from real_moleculenet_freesolv using 600 observed source rows and 15 conservative shared-vocabulary value priors. Direction is not transferred as a raw chemical rule; the card transfers role-level evidence strength and only transfers source value priors when source and target fields share the same public descriptor vocabulary.",
+      "fixed_across_target_seeds": true,
+      "observation_count": 600,
+      "roles": [
+        {
+          "confidence": 0.1811,
+          "source_field": "smiles_length_bin",
+          "source_max_abs_effect": 9.2782,
+          "source_mean_abs_effect": 6.0156,
+          "source_support_count": 3,
+          "target_field": "smiles_length_bin",
+          "transfer_weight": 0.5311
+        },
+        {
+          "confidence": 0.3128,
+          "source_field": "hetero_atom_bin",
+          "source_max_abs_effect": 13.8037,
+          "source_mean_abs_effect": 10.3648,
+          "source_support_count": 4,
+          "target_field": "hetero_atom_bin",
+          "transfer_weight": 0.6628
+        },
+        {
+          "confidence": 0.153,
+          "source_field": "halogen_bin",
+          "source_max_abs_effect": 6.7539,
+          "source_mean_abs_effect": 2.4668,
+          "source_support_count": 4,
+          "target_field": "halogen_bin",
+          "transfer_weight": 0.503
+        },
+        {
+          "confidence": 0.127,
+          "source_field": "aromatic_bin",
+          "source_max_abs_effect": 5.6054,
+          "source_mean_abs_effect": 3.8689,
+          "source_support_count": 4,
+          "target_field": "aromatic_bin",
+          "transfer_weight": 0.477
+        },
+        {
+          "confidence": 0.1075,
+          "source_field": "ring_token_bin",
+          "source_max_abs_effect": 5.5087,
+          "source_mean_abs_effect": 4.9326,
+          "source_support_count": 3,
+          "target_field": "ring_token_bin",
+          "transfer_weight": 0.4575
+        },
+        {
+          "confidence": 0.174,
+          "source_field": "branch_bin",
+          "source_max_abs_effect": 7.6781,
+          "source_mean_abs_effect": 3.6293,
+          "source_support_count": 4,
+          "target_field": "branch_bin",
+          "transfer_weight": 0.524
+        },
+        {
+          "confidence": 0.223,
+          "source_field": "double_bond_bin",
+          "source_max_abs_effect": 11.4279,
+          "source_mean_abs_effect": 4.9848,
+          "source_support_count": 3,
+          "target_field": "double_bond_bin",
+          "transfer_weight": 0.573
+        }
+      ],
+      "source_seed": 0,
+      "transfer_card_id": "transfer_real_moleculenet_freesolv_to_real_moleculenet_lipophilicity",
+      "value_priors": [
+        {
+          "confidence": 0.1628,
+          "source_effect": -4.0077,
+          "source_field": "aromatic_bin",
+          "source_support_count": 348,
+          "target_field": "aromatic_bin",
+          "transfer_weight": 0.019117,
+          "value": "aromatic_none"
+        },
+        {
+          "confidence": 0.2158,
+          "source_effect": 5.3117,
+          "source_field": "aromatic_bin",
+          "source_support_count": 60,
+          "target_field": "aromatic_bin",
+          "transfer_weight": 0.025337,
+          "value": "aromatic_mid"
+        },
+        {
+          "confidence": 0.2277,
+          "source_effect": 5.6054,
+          "source_field": "aromatic_bin",
+          "source_support_count": 189,
+          "target_field": "aromatic_bin",
+          "transfer_weight": 0.026738,
+          "value": "aromatic_low"
+        },
+        {
+          "confidence": 0.2188,
+          "source_effect": -5.3847,
+          "source_field": "branch_bin",
+          "source_support_count": 186,
+          "target_field": "branch_bin",
+          "transfer_weight": 0.028216,
+          "value": "branch_none"
+        },
+        {
+          "confidence": 0.3119,
+          "source_effect": 7.6781,
+          "source_field": "branch_bin",
+          "source_support_count": 108,
+          "target_field": "branch_bin",
+          "transfer_weight": 0.040233,
+          "value": "branch_mid"
+        },
+        {
+          "confidence": 0.4643,
+          "source_effect": 11.4279,
+          "source_field": "double_bond_bin",
+          "source_support_count": 66,
+          "target_field": "double_bond_bin",
+          "transfer_weight": 0.065482,
+          "value": "double_bond_mid"
+        },
+        {
+          "confidence": 0.2744,
+          "source_effect": -6.7539,
+          "source_field": "halogen_bin",
+          "source_support_count": 40,
+          "target_field": "halogen_bin",
+          "transfer_weight": 0.033972,
+          "value": "halogen_high"
+        },
+        {
+          "confidence": 0.5608,
+          "source_effect": 13.8037,
+          "source_field": "hetero_atom_bin",
+          "source_support_count": 81,
+          "target_field": "hetero_atom_bin",
+          "transfer_weight": 0.08,
+          "value": "hetero_mid"
+        },
+        {
+          "confidence": 0.5493,
+          "source_effect": 13.5215,
+          "source_field": "hetero_atom_bin",
+          "source_support_count": 27,
+          "target_field": "hetero_atom_bin",
+          "transfer_weight": 0.08,
+          "value": "hetero_high"
+        },
+        {
+          "confidence": 0.4779,
+          "source_effect": -11.7632,
+          "source_field": "hetero_atom_bin",
+          "source_support_count": 190,
+          "target_field": "hetero_atom_bin",
+          "transfer_weight": 0.077967,
+          "value": "hetero_none"
+        },
+        {
+          "confidence": 0.1973,
+          "source_effect": -4.8571,
+          "source_field": "ring_token_bin",
+          "source_support_count": 295,
+          "target_field": "ring_token_bin",
+          "transfer_weight": 0.022221,
+          "value": "ring_token_none"
+        },
+        {
+          "confidence": 0.2238,
+          "source_effect": 5.5087,
+          "source_field": "ring_token_bin",
+          "source_support_count": 69,
+          "target_field": "ring_token_bin",
+          "transfer_weight": 0.025202,
+          "value": "ring_token_mid"
+        },
+        {
+          "confidence": 0.18,
+          "source_effect": 4.4319,
+          "source_field": "ring_token_bin",
+          "source_support_count": 234,
+          "target_field": "ring_token_bin",
+          "transfer_weight": 0.020276,
+          "value": "ring_token_low"
+        },
+        {
+          "confidence": 0.3769,
+          "source_effect": 9.2782,
+          "source_field": "smiles_length_bin",
+          "source_support_count": 118,
+          "target_field": "smiles_length_bin",
+          "transfer_weight": 0.049277,
+          "value": "smiles_mid"
+        },
+        {
+          "confidence": 0.2524,
+          "source_effect": 6.2132,
+          "source_field": "smiles_length_bin",
+          "source_support_count": 12,
+          "target_field": "smiles_length_bin",
+          "transfer_weight": 0.032998,
+          "value": "smiles_long"
+        }
+      ]
+    },
+    "role_map": {
+      "smiles_length_bin": "smiles_length_bin",
+      "hetero_atom_bin": "hetero_atom_bin",
+      "halogen_bin": "halogen_bin",
+      "aromatic_bin": "aromatic_bin",
+      "ring_token_bin": "ring_token_bin",
+      "branch_bin": "branch_bin",
+      "double_bond_bin": "double_bond_bin"
+    },
+    "operators": [
+      {
+        "name": "source_informed_initial_design",
+        "source_outcome_required": true,
+        "parameters": {
+          "strategy": "source_positive"
+        }
+      },
+      {
+        "name": "mapped_neighbor_outcome_prior",
+        "source_outcome_required": true,
+        "parameters": {
+          "enabled_by_patch": "source_prior_strength > 0"
+        }
+      },
+      {
+        "name": "mapped_additive_outcome_prior",
+        "source_outcome_required": true,
+        "parameters": {
+          "minimum_source_support": 3
+        }
+      },
+      {
+        "name": "mapped_interaction_residual_prior",
+        "source_outcome_required": true,
+        "parameters": {
+          "enabled_by_patch": "source_interaction_strength > 0"
+        }
+      },
+      {
+        "name": "source_weighted_kernel_geometry",
+        "source_outcome_required": true,
+        "parameters": {
+          "fixed_ensemble_scales": [
+            0.5,
+            1.0,
+            1.5,
+            2.0,
+            3.0,
+            4.0
+          ]
+        }
+      },
+      {
+        "name": "prequential_expert_routing",
+        "source_outcome_required": true,
+        "parameters": {
+          "minimum_target_observations": 5,
+          "minimum_quality": 0.2,
+          "maximum_transfer_mass": 0.15
+        }
+      },
+      {
+        "name": "calibrated_exact_fallback",
+        "source_outcome_required": false,
+        "parameters": {
+          "fallback_mode": "matched_target_only_llm"
+        }
+      }
+    ],
+    "kernel_patches": [
+      {
+        "calibration_mode": "signed",
+        "canonicalize_source_values": true,
+        "confidence": 0.6,
+        "gp_beta": 2.5,
+        "gp_beta_end": 1.2,
+        "min_cv_gain": 0.1,
+        "patch_id": "exploration_patch_high_beta",
+        "reason": "Exploration-focused patch to enhance search space with high uncertainty. Targets diverse roles while downweighting weaker features.",
+        "role_multipliers": {
+          "aromatic_bin": 1.0,
+          "branch_bin": 0.8,
+          "double_bond_bin": 0.8,
+          "halogen_bin": 0.5,
+          "hetero_atom_bin": 0.5,
+          "ring_token_bin": 1.0,
+          "smiles_length_bin": 1.5
+        },
+        "scales": [
+          2.0,
+          4.0,
+          6.0
+        ],
+        "source_interaction_min_support": 5,
+        "source_interaction_strength": 0.75,
+        "source_neighbor_count": 20,
+        "source_prior_strength": 1.0,
+        "source_similarity_temperature": 0.5
+      },
+      {
+        "calibration_mode": "positive_only",
+        "canonicalize_source_values": true,
+        "confidence": 0.4,
+        "gp_beta": 1.2,
+        "gp_beta_end": 1.0,
+        "min_cv_gain": 0.02,
+        "patch_id": "conservative_patch_low_beta",
+        "reason": "Conservative patch to ensure stability in predictions, focusing on high-confidence roles and downweighting uncertain mappings.",
+        "role_multipliers": {
+          "aromatic_bin": 1.0,
+          "branch_bin": 0.5,
+          "double_bond_bin": 0.5,
+          "halogen_bin": 0.5,
+          "hetero_atom_bin": 0.8,
+          "ring_token_bin": 1.0,
+          "smiles_length_bin": 1.0
+        },
+        "scales": [
+          1.0,
+          2.0,
+          3.0
+        ],
+        "source_interaction_min_support": 5,
+        "source_interaction_strength": 0.375,
+        "source_neighbor_count": 10,
+        "source_prior_strength": 0.5,
+        "source_similarity_temperature": 0.3
+      },
+      {
+        "calibration_mode": "signed",
+        "canonicalize_source_values": true,
+        "confidence": 0.5,
+        "gp_beta": 1.5,
+        "gp_beta_end": 1.5,
+        "min_cv_gain": 0.05,
+        "patch_id": "counter_hypothesis_patch",
+        "reason": "Tests a counter-hypothesis by downweighting the strongest role and emphasizing alternative mappings to explore new relationships.",
+        "role_multipliers": {
+          "aromatic_bin": 0.5,
+          "branch_bin": 1.0,
+          "double_bond_bin": 1.0,
+          "halogen_bin": 1.0,
+          "hetero_atom_bin": 1.5,
+          "ring_token_bin": 1.0,
+          "smiles_length_bin": 0.5
+        },
+        "scales": [
+          1.0,
+          3.0,
+          5.0
+        ],
+        "source_interaction_min_support": 5,
+        "source_interaction_strength": 0.25,
+        "source_neighbor_count": 15,
+        "source_prior_strength": 0.0,
+        "source_similarity_temperature": 0.4
+      },
+      {
+        "calibration_mode": "positive_only",
+        "canonicalize_source_values": true,
+        "confidence": 0.7,
+        "gp_beta": 1.5,
+        "gp_beta_end": 1.5,
+        "min_cv_gain": 0.04,
+        "patch_id": "high_confidence_roles_patch",
+        "reason": "Focuses on the two highest-confidence roles to maximize transfer effectiveness while maintaining a conservative approach.",
+        "role_multipliers": {
+          "aromatic_bin": 0.8,
+          "branch_bin": 0.5,
+          "double_bond_bin": 0.5,
+          "halogen_bin": 0.8,
+          "hetero_atom_bin": 1.5,
+          "ring_token_bin": 0.8,
+          "smiles_length_bin": 1.5
+        },
+        "scales": [
+          1.0,
+          2.0,
+          3.0
+        ],
+        "source_interaction_min_support": 5,
+        "source_interaction_strength": 1.125,
+        "source_neighbor_count": 12,
+        "source_prior_strength": 1.5,
+        "source_similarity_temperature": 0.2
+      },
+      {
+        "calibration_mode": "signed",
+        "canonicalize_source_values": true,
+        "confidence": 0.4,
+        "gp_beta": 1.5,
+        "gp_beta_end": 1.5,
+        "min_cv_gain": 0.03,
+        "patch_id": "multi_scale_ensemble_patch",
+        "reason": "Utilizes a multi-scale ensemble approach to balance the uncertainty in role effectiveness while leveraging source knowledge.",
+        "role_multipliers": {
+          "aromatic_bin": 1.0,
+          "branch_bin": 0.6,
+          "double_bond_bin": 0.5,
+          "halogen_bin": 1.0,
+          "hetero_atom_bin": 0.8,
+          "ring_token_bin": 0.8,
+          "smiles_length_bin": 1.0
+        },
+        "scales": [
+          1.0,
+          2.0,
+          4.0
+        ],
+        "source_interaction_min_support": 5,
+        "source_interaction_strength": 0.75,
+        "source_neighbor_count": 8,
+        "source_prior_strength": 1.0,
+        "source_similarity_temperature": 0.3
+      },
+      {
+        "calibration_mode": "positive_only",
+        "canonicalize_source_values": true,
+        "confidence": 0.3,
+        "gp_beta": 1.5,
+        "gp_beta_end": 1.5,
+        "min_cv_gain": 0.01,
+        "patch_id": "safety_anchor_patch",
+        "reason": "Includes a scale 0 anchor to ensure safety in predictions while exploring other roles with lower confidence.",
+        "role_multipliers": {
+          "aromatic_bin": 1.0,
+          "branch_bin": 0.5,
+          "double_bond_bin": 0.5,
+          "halogen_bin": 0.5,
+          "hetero_atom_bin": 0.5,
+          "ring_token_bin": 1.0,
+          "smiles_length_bin": 1.0
+        },
+        "scales": [
+          0.0,
+          1.0,
+          2.0
+        ],
+        "source_interaction_min_support": 5,
+        "source_interaction_strength": 0.6,
+        "source_neighbor_count": 10,
+        "source_prior_strength": 0.8,
+        "source_similarity_temperature": 0.4
+      }
+    ],
+    "execution": {
+      "calibration_seed_count": 50,
+      "calibration_seed_start": 64000,
+      "categorical_length_scale": 3.0,
+      "discount": 0.65,
+      "fixed_ensemble_scales": [
+        0.5,
+        1.0,
+        1.5,
+        2.0,
+        3.0,
+        4.0
+      ],
+      "gp_beta": 1.5,
+      "gp_noise": 0.05,
+      "gp_xi": 0.01,
+      "heldout_seed_count": 100,
+      "heldout_seed_start": 65000,
+      "include_mechanism_controls": true,
+      "initial_observations": 2,
+      "min_source_support": 3,
+      "normalize_kernel_weights": true,
+      "numeric_length_scale": 0.35,
+      "reveal_rounds": 13,
+      "router_max_transfer_mass": 0.15,
+      "router_min_observations": 5,
+      "router_min_quality": 0.2,
+      "source_initial_strategy": "source_positive",
+      "source_observation_count": 600,
+      "source_seed": 0,
+      "target_anchor_mode": "llm_semantic_domain_knowledge_polar_surface_control_noprior"
+    },
+    "gate": {
+      "confirmation": {
+        "min_composite_ci_low": 0.0,
+        "min_final_non_loss_rate": 0.6,
+        "min_positive_fold_rate": 0.8,
+        "min_risk_adjusted_gain": 0.25,
+        "must_beat_matched_target_llm": true,
+        "must_beat_strongest_target_only_bo": true
+      },
+      "decision_scope": "offline_replay_model_selection",
+      "fallback_mode": "matched_target_only_llm",
+      "online_router": {
+        "max_transfer_mass": 0.15,
+        "min_observations": 5,
+        "min_quality": 0.2
+      },
+      "real_experiment_deployment_ready": false
+    },
+    "provenance": {
+      "source_patch_model": "openai/gpt-4o-mini",
+      "source_patch_record": "/data/CARE2.0-review-controls/experiments/care_replay/configs/source_outcome_llm/esol_to_lipo.json",
+      "source_patch_record_sha256": "4dfa14fd7b5c47653f52b9963f764392abc454095dc25246dd5a1d7d438caa2e",
+      "target_anchor_model": "deepspeek-v3.2",
+      "target_anchor_record": "/data/CARE2.0-review-controls/experiments/care_replay/results/2026-07-23-source-evidence-extension/model_calls/molecular_esol_to_lipophilicity_target_only.json",
+      "target_anchor_record_sha256": "969903d2dc7a3e13bd3789bf2074be4f91da319e2d6c15b540838f2090b5daf0"
+    },
+    "evidence_boundary": "The skill is compiled from public schemas, a fixed measured source history, and frozen LLM records. Hidden target outcomes are absent. Target outcomes enter only after each selected target candidate is revealed.",
+    "fingerprint": "414fcb714ff7bbcc41d8d7d05a33cb798be43a145f7850cb5e6b259b948e3430"
+  },
+  "source_history": {
+    "seed": 0,
+    "observation_count": 600,
+    "fixed_across_target_seeds": true
+  },
+  "source_outcome_components": [
+    "source-outcome-informed initial target probes",
+    "mapped source-neighbor outcome prior",
+    "mapped additive source outcome-effect prior",
+    "source pairwise interaction residual prior",
+    "source-outcome-informed GP categorical geometry",
+    "prequential target calibration and exact target-only fallback"
+  ],
+  "llm_model": "openai/gpt-4o-mini",
+  "llm_generation_call_count": 1,
+  "matched_target_only_llm": {
+    "model": "deepspeek-v3.2",
+    "generation_call_count": 1,
+    "frozen_mode": "llm_semantic_domain_knowledge_polar_surface_control_noprior",
+    "record_path": "/data/CARE2.0-review-controls/experiments/care_replay/results/2026-07-23-source-evidence-extension/model_calls/molecular_esol_to_lipophilicity_target_only.json"
+  },
+  "patches": [
+    {
+      "patch_id": "exploration_patch_high_beta",
+      "scales": [
+        2.0,
+        4.0,
+        6.0
+      ],
+      "role_multipliers": {
+        "smiles_length_bin": 1.5,
+        "hetero_atom_bin": 0.5,
+        "halogen_bin": 0.5,
+        "aromatic_bin": 1.0,
+        "ring_token_bin": 1.0,
+        "branch_bin": 0.8,
+        "double_bond_bin": 0.8
+      },
+      "gp_beta": 2.5,
+      "gp_beta_end": 1.2,
+      "source_prior_strength": 1.0,
+      "source_similarity_temperature": 0.5,
+      "source_neighbor_count": 20,
+      "calibration_mode": "signed",
+      "min_cv_gain": 0.1,
+      "confidence": 0.6,
+      "reason": "Exploration-focused patch to enhance search space with high uncertainty. Targets diverse roles while downweighting weaker features.",
+      "source_interaction_strength": 0.75,
+      "source_interaction_min_support": 5,
+      "canonicalize_source_values": true
+    },
+    {
+      "patch_id": "conservative_patch_low_beta",
+      "scales": [
+        1.0,
+        2.0,
+        3.0
+      ],
+      "role_multipliers": {
+        "smiles_length_bin": 1.0,
+        "hetero_atom_bin": 0.8,
+        "halogen_bin": 0.5,
+        "aromatic_bin": 1.0,
+        "ring_token_bin": 1.0,
+        "branch_bin": 0.5,
+        "double_bond_bin": 0.5
+      },
+      "gp_beta": 1.2,
+      "gp_beta_end": 1.0,
+      "source_prior_strength": 0.5,
+      "source_similarity_temperature": 0.3,
+      "source_neighbor_count": 10,
+      "calibration_mode": "positive_only",
+      "min_cv_gain": 0.02,
+      "confidence": 0.4,
+      "reason": "Conservative patch to ensure stability in predictions, focusing on high-confidence roles and downweighting uncertain mappings.",
+      "source_interaction_strength": 0.375,
+      "source_interaction_min_support": 5,
+      "canonicalize_source_values": true
+    },
+    {
+      "patch_id": "counter_hypothesis_patch",
+      "scales": [
+        1.0,
+        3.0,
+        5.0
+      ],
+      "role_multipliers": {
+        "smiles_length_bin": 0.5,
+        "hetero_atom_bin": 1.5,
+        "halogen_bin": 1.0,
+        "aromatic_bin": 0.5,
+        "ring_token_bin": 1.0,
+        "branch_bin": 1.0,
+        "double_bond_bin": 1.0
+      },
+      "gp_beta": 1.5,
+      "gp_beta_end": 1.5,
+      "source_prior_strength": 0.0,
+      "source_similarity_temperature": 0.4,
+      "source_neighbor_count": 15,
+      "calibration_mode": "signed",
+      "min_cv_gain": 0.05,
+      "confidence": 0.5,
+      "reason": "Tests a counter-hypothesis by downweighting the strongest role and emphasizing alternative mappings to explore new relationships.",
+      "source_interaction_strength": 0.25,
+      "source_interaction_min_support": 5,
+      "canonicalize_source_values": true
+    },
+    {
+      "patch_id": "high_confidence_roles_patch",
+      "scales": [
+        1.0,
+        2.0,
+        3.0
+      ],
+      "role_multipliers": {
+        "smiles_length_bin": 1.5,
+        "hetero_atom_bin": 1.5,
+        "halogen_bin": 0.8,
+        "aromatic_bin": 0.8,
+        "ring_token_bin": 0.8,
+        "branch_bin": 0.5,
+        "double_bond_bin": 0.5
+      },
+      "gp_beta": 1.5,
+      "gp_beta_end": 1.5,
+      "source_prior_strength": 1.5,
+      "source_similarity_temperature": 0.2,
+      "source_neighbor_count": 12,
+      "calibration_mode": "positive_only",
+      "min_cv_gain": 0.04,
+      "confidence": 0.7,
+      "reason": "Focuses on the two highest-confidence roles to maximize transfer effectiveness while maintaining a conservative approach.",
+      "source_interaction_strength": 1.125,
+      "source_interaction_min_support": 5,
+      "canonicalize_source_values": true
+    },
+    {
+      "patch_id": "multi_scale_ensemble_patch",
+      "scales": [
+        1.0,
+        2.0,
+        4.0
+      ],
+      "role_multipliers": {
+        "smiles_length_bin": 1.0,
+        "hetero_atom_bin": 0.8,
+        "halogen_bin": 1.0,
+        "aromatic_bin": 1.0,
+        "ring_token_bin": 0.8,
+        "branch_bin": 0.6,
+        "double_bond_bin": 0.5
+      },
+      "gp_beta": 1.5,
+      "gp_beta_end": 1.5,
+      "source_prior_strength": 1.0,
+      "source_similarity_temperature": 0.3,
+      "source_neighbor_count": 8,
+      "calibration_mode": "signed",
+      "min_cv_gain": 0.03,
+      "confidence": 0.4,
+      "reason": "Utilizes a multi-scale ensemble approach to balance the uncertainty in role effectiveness while leveraging source knowledge.",
+      "source_interaction_strength": 0.75,
+      "source_interaction_min_support": 5,
+      "canonicalize_source_values": true
+    },
+    {
+      "patch_id": "safety_anchor_patch",
+      "scales": [
+        0.0,
+        1.0,
+        2.0
+      ],
+      "role_multipliers": {
+        "smiles_length_bin": 1.0,
+        "hetero_atom_bin": 0.5,
+        "halogen_bin": 0.5,
+        "aromatic_bin": 1.0,
+        "ring_token_bin": 1.0,
+        "branch_bin": 0.5,
+        "double_bond_bin": 0.5
+      },
+      "gp_beta": 1.5,
+      "gp_beta_end": 1.5,
+      "source_prior_strength": 0.8,
+      "source_similarity_temperature": 0.4,
+      "source_neighbor_count": 10,
+      "calibration_mode": "positive_only",
+      "min_cv_gain": 0.01,
+      "confidence": 0.3,
+      "reason": "Includes a scale 0 anchor to ensure safety in predictions while exploring other roles with lower confidence.",
+      "source_interaction_strength": 0.6,
+      "source_interaction_min_support": 5,
+      "canonicalize_source_values": true
+    }
+  ],
+  "calibration_seed_start": 64000,
+  "calibration_seed_count": 50,
+  "heldout_seed_start": 65000,
+  "heldout_seed_count": 100,
+  "initial_observations": 2,
+  "rounds": 13,
+  "router": {
+    "min_observations": 5,
+    "min_quality": 0.2,
+    "max_transfer_mass": 0.15,
+    "source_initial_strategy": "source_positive"
+  },
+  "selection": {
+    "selected_mode": "matched_target_only_llm",
+    "selected_source_outcome_transfer": false,
+    "target_anchor_mode": "mixed_kernel_gp_ei",
+    "matched_target_only_llm_mode": "matched_target_only_llm",
+    "target_anchor_summary": {
+      "gp_ucb": {
+        "final_best": 89.54,
+        "best_so_far_auc": 85.05404,
+        "top10_hit": 0.1,
+        "composite": 174.59404
+      },
+      "mixed_kernel_gp_ei": {
+        "final_best": 89.55,
+        "best_so_far_auc": 85.92655,
+        "top10_hit": 0.16,
+        "composite": 175.47655
+      },
+      "target_acquisition_portfolio": {
+        "final_best": 88.4325,
+        "best_so_far_auc": 83.959814,
+        "top10_hit": 0.26,
+        "composite": 172.392314
+      }
+    },
+    "source_outcome_diagnostics": {
+      "matched_target_only_llm": {
+        "final_best": {
+          "n": 50.0,
+          "mean": -2.1025,
+          "std": 2.386117,
+          "se": 0.337448,
+          "normal_95ci_low": -2.763898,
+          "normal_95ci_high": -1.441102,
+          "win_rate": 0.16,
+          "non_loss_rate": 0.3
+        },
+        "best_so_far_auc": {
+          "n": 50.0,
+          "mean": -0.156306,
+          "std": 3.774077,
+          "se": 0.533735,
+          "normal_95ci_low": -1.202427,
+          "normal_95ci_high": 0.889815,
+          "win_rate": 0.46,
+          "non_loss_rate": 0.46
+        },
+        "composite": {
+          "n": 50.0,
+          "mean": -2.258806,
+          "std": 5.382701,
+          "se": 0.761229,
+          "normal_95ci_low": -3.750815,
+          "normal_95ci_high": -0.766797,
+          "win_rate": 0.28,
+          "non_loss_rate": 0.28
+        },
+        "positive_fold_rate": 0.2,
+        "fold_composite_means": [
+          -3.05958,
+          0.25773,
+          -2.27785,
+          -3.58072,
+          -2.63361
+        ],
+        "risk_adjusted_composite_gain": -3.020035,
+        "eligible": false
+      },
+      "mixed_kernel_gp_ei": {
+        "final_best": {
+          "n": 50.0,
+          "mean": 0.45,
+          "std": 3.881044,
+          "se": 0.548862,
+          "normal_95ci_low": -0.62577,
+          "normal_95ci_high": 1.52577,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.5
+        },
+        "best_so_far_auc": {
+          "n": 50.0,
+          "mean": 1.91965,
+          "std": 4.881241,
+          "se": 0.690312,
+          "normal_95ci_low": 0.566639,
+          "normal_95ci_high": 3.272661,
+          "win_rate": 0.58,
+          "non_loss_rate": 0.58
+        },
+        "composite": {
+          "n": 50.0,
+          "mean": 2.36965,
+          "std": 8.095983,
+          "se": 1.144945,
+          "normal_95ci_low": 0.125558,
+          "normal_95ci_high": 4.613742,
+          "win_rate": 0.56,
+          "non_loss_rate": 0.58
+        },
+        "positive_fold_rate": 1.0,
+        "fold_composite_means": [
+          0.30003,
+          1.20004,
+          1.2183,
+          3.43273,
+          5.69715
+        ],
+        "risk_adjusted_composite_gain": 1.224705,
+        "eligible": false
+      }
+    },
+    "thresholds": {
+      "min_risk_adjusted_gain": 0.25,
+      "min_positive_fold_rate": 0.8,
+      "min_final_non_loss_rate": 0.6,
+      "min_composite_95ci_low": 0.0
+    },
+    "rule": "Select source-outcome transfer only from calibration seeds. It must pass the non-negative final/AUC, fold stability, non-loss, one-standard-error gain, and positive composite 95% confidence-bound requirements against both the frozen matched target-only LLM and the strongest target-only BO. Otherwise deploy the frozen matched target-only LLM exactly.",
+    "schema_route_proposal": {
+      "source_dataset": "real_moleculenet_freesolv",
+      "target_dataset": "real_moleculenet_lipophilicity",
+      "source_family": "molecules",
+      "target_family": "molecules",
+      "shared_field_count": 7,
+      "shared_field_ratio": 1.0,
+      "shared_role_count": 0,
+      "candidate_route_families": [
+        "shared_descriptor_source_outcome",
+        "target_only"
+      ],
+      "recommended_candidate": "shared_descriptor_source_outcome",
+      "rationale": "The tasks share at least half of their public descriptor vocabulary; offer descriptor-aligned source-outcome transfer, then gate it on target evidence.",
+      "outcome_gate_required": true
+    },
+    "transfer_skill": {
+      "schema_version": "care.transfer_skill/v1",
+      "skill_id": "care2::real_moleculenet_freesolv::real_moleculenet_lipophilicity::f8deef64ede5",
+      "fingerprint": "414fcb714ff7bbcc41d8d7d05a33cb798be43a145f7850cb5e6b259b948e3430"
+    },
+    "decision_scope": "offline_replay_model_selection",
+    "real_experiment_deployment_ready": false,
+    "deployment_note": "Calibration seeds reveal archived target outcomes and are valid for offline benchmark model selection only. They are not a cost-feasible real-lab gate.",
+    "mechanism_attribution": {
+      "status": "complete",
+      "classification": "offline_selector_fallback",
+      "source_informed_initial_design_effect": {
+        "left_mode": "source_warmstart_only",
+        "right_mode": "matched_target_only_llm",
+        "final_best": {
+          "n": 100.0,
+          "mean": -0.44,
+          "std": 3.515612,
+          "se": 0.351561,
+          "normal_95ci_low": -1.12906,
+          "normal_95ci_high": 0.24906,
+          "win_rate": 0.31,
+          "non_loss_rate": 0.48
+        },
+        "best_so_far_auc": {
+          "n": 100.0,
+          "mean": 1.376584,
+          "std": 4.881607,
+          "se": 0.488161,
+          "normal_95ci_low": 0.419789,
+          "normal_95ci_high": 2.333379,
+          "win_rate": 0.53,
+          "non_loss_rate": 0.53
+        },
+        "composite": {
+          "n": 100.0,
+          "mean": 0.936584,
+          "std": 7.765863,
+          "se": 0.776586,
+          "normal_95ci_low": -0.585525,
+          "normal_95ci_high": 2.458693,
+          "win_rate": 0.46,
+          "non_loss_rate": 0.46
+        },
+        "exact_seed_match_rate": 0.0
+      },
+      "post_initialization_source_outcome_effect": {
+        "left_mode": "llm_transfer_router",
+        "right_mode": "source_warmstart_only",
+        "final_best": {
+          "n": 100.0,
+          "mean": 0.0,
+          "std": 0.0,
+          "se": 0.0,
+          "normal_95ci_low": 0.0,
+          "normal_95ci_high": 0.0,
+          "win_rate": 0.0,
+          "non_loss_rate": 1.0
+        },
+        "best_so_far_auc": {
+          "n": 100.0,
+          "mean": 0.0,
+          "std": 0.0,
+          "se": 0.0,
+          "normal_95ci_low": 0.0,
+          "normal_95ci_high": 0.0,
+          "win_rate": 0.0,
+          "non_loss_rate": 1.0
+        },
+        "composite": {
+          "n": 100.0,
+          "mean": 0.0,
+          "std": 0.0,
+          "se": 0.0,
+          "normal_95ci_low": 0.0,
+          "normal_95ci_high": 0.0,
+          "win_rate": 0.0,
+          "non_loss_rate": 1.0
+        },
+        "exact_seed_match_rate": 1.0
+      },
+      "llm_patch_increment_over_fixed_data_only": {
+        "left_mode": "llm_transfer_router",
+        "right_mode": "fixed_data_only_transfer",
+        "final_best": {
+          "n": 100.0,
+          "mean": 0.0,
+          "std": 0.0,
+          "se": 0.0,
+          "normal_95ci_low": 0.0,
+          "normal_95ci_high": 0.0,
+          "win_rate": 0.0,
+          "non_loss_rate": 1.0
+        },
+        "best_so_far_auc": {
+          "n": 100.0,
+          "mean": 0.0,
+          "std": 0.0,
+          "se": 0.0,
+          "normal_95ci_low": 0.0,
+          "normal_95ci_high": 0.0,
+          "win_rate": 0.0,
+          "non_loss_rate": 1.0
+        },
+        "composite": {
+          "n": 100.0,
+          "mean": 0.0,
+          "std": 0.0,
+          "se": 0.0,
+          "normal_95ci_low": 0.0,
+          "normal_95ci_high": 0.0,
+          "win_rate": 0.0,
+          "non_loss_rate": 1.0
+        },
+        "exact_seed_match_rate": 1.0
+      },
+      "full_route_action_diagnostics": {
+        "seed_count": 100,
+        "round_count": 1300,
+        "source_initial_active_seed_rate": 1.0,
+        "positive_transfer_mass_round_rate": 0.0,
+        "post_initialization_action_change_rate": 0.0
+      },
+      "interpretation_rule": "The full route is called continuous only when it improves over the same source-informed initial design with transfer mass fixed to zero. LLM patch credit additionally requires improvement over the fixed data-only route."
+    },
+    "offline_selection_cost": {
+      "evaluated_mode_count": 7,
+      "calibration_seed_count": 50,
+      "observations_per_policy_replay": 15,
+      "gross_reveal_equivalents": 5250,
+      "interpretation": "Gross policy-replay count, not a count of unique candidates. It is cheap for archived lookup but is not an acceptable cost model for wet-lab deployment."
+    }
+  },
+  "calibration": {
+    "gp_ucb": {
+      "final_best": 89.54,
+      "best_so_far_auc": 85.05404,
+      "top10_hit": 0.1,
+      "composite": 174.59404
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 89.55,
+      "best_so_far_auc": 85.92655,
+      "top10_hit": 0.16,
+      "composite": 175.47655
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 88.4325,
+      "best_so_far_auc": 83.959814,
+      "top10_hit": 0.26,
+      "composite": 172.392314
+    },
+    "matched_target_only_llm": {
+      "final_best": 92.1025,
+      "best_so_far_auc": 88.002506,
+      "top10_hit": 0.62,
+      "composite": 180.105006
+    },
+    "llm_transfer_router": {
+      "final_best": 90.0,
+      "best_so_far_auc": 87.8462,
+      "top10_hit": 0.0,
+      "composite": 177.8462
+    },
+    "source_warmstart_only": {
+      "final_best": 90.0,
+      "best_so_far_auc": 87.8462,
+      "top10_hit": 0.0,
+      "composite": 177.8462
+    },
+    "fixed_data_only_transfer": {
+      "final_best": 90.0,
+      "best_so_far_auc": 87.8462,
+      "top10_hit": 0.0,
+      "composite": 177.8462
+    }
+  },
+  "heldout": {
+    "gp_ucb": {
+      "final_best": 88.45125,
+      "best_so_far_auc": 84.83346,
+      "top10_hit": 0.17,
+      "composite": 173.28471
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 88.31375,
+      "best_so_far_auc": 84.584324,
+      "top10_hit": 0.11,
+      "composite": 172.898074
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 87.97125,
+      "best_so_far_auc": 84.591343,
+      "top10_hit": 0.1,
+      "composite": 172.562593
+    },
+    "matched_target_only_llm": {
+      "final_best": 90.44,
+      "best_so_far_auc": 86.469616,
+      "top10_hit": 0.39,
+      "composite": 176.909616
+    },
+    "llm_transfer_router": {
+      "final_best": 90.0,
+      "best_so_far_auc": 87.8462,
+      "top10_hit": 0.0,
+      "composite": 177.8462
+    },
+    "source_warmstart_only": {
+      "final_best": 90.0,
+      "best_so_far_auc": 87.8462,
+      "top10_hit": 0.0,
+      "composite": 177.8462
+    },
+    "fixed_data_only_transfer": {
+      "final_best": 90.0,
+      "best_so_far_auc": 87.8462,
+      "top10_hit": 0.0,
+      "composite": 177.8462
+    },
+    "care_source_outcome_router": {
+      "final_best": 90.44,
+      "best_so_far_auc": 86.469616,
+      "top10_hit": 0.39,
+      "composite": 176.909616
+    }
+  },
+  "heldout_pairwise": {
+    "gp_ucb": {
+      "final_best": {
+        "n": 100.0,
+        "mean": 1.98875,
+        "std": 5.285685,
+        "se": 0.528569,
+        "normal_95ci_low": 0.952756,
+        "normal_95ci_high": 3.024744,
+        "win_rate": 0.57,
+        "non_loss_rate": 0.73
+      },
+      "best_so_far_auc": {
+        "n": 100.0,
+        "mean": 1.636156,
+        "std": 5.613402,
+        "se": 0.56134,
+        "normal_95ci_low": 0.535929,
+        "normal_95ci_high": 2.736383,
+        "win_rate": 0.58,
+        "non_loss_rate": 0.63
+      },
+      "top10_hit": {
+        "n": 100.0,
+        "mean": 0.22,
+        "std": 0.575847,
+        "se": 0.057585,
+        "normal_95ci_low": 0.107134,
+        "normal_95ci_high": 0.332866,
+        "win_rate": 0.3,
+        "non_loss_rate": 0.92
+      }
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": {
+        "n": 100.0,
+        "mean": 2.12625,
+        "std": 5.300752,
+        "se": 0.530075,
+        "normal_95ci_low": 1.087303,
+        "normal_95ci_high": 3.165197,
+        "win_rate": 0.56,
+        "non_loss_rate": 0.73
+      },
+      "best_so_far_auc": {
+        "n": 100.0,
+        "mean": 1.885292,
+        "std": 5.804865,
+        "se": 0.580486,
+        "normal_95ci_low": 0.747538,
+        "normal_95ci_high": 3.023046,
+        "win_rate": 0.56,
+        "non_loss_rate": 0.61
+      },
+      "top10_hit": {
+        "n": 100.0,
+        "mean": 0.28,
+        "std": 0.549181,
+        "se": 0.054918,
+        "normal_95ci_low": 0.17236,
+        "normal_95ci_high": 0.38764,
+        "win_rate": 0.33,
+        "non_loss_rate": 0.95
+      }
+    },
+    "target_acquisition_portfolio": {
+      "final_best": {
+        "n": 100.0,
+        "mean": 2.46875,
+        "std": 5.009752,
+        "se": 0.500975,
+        "normal_95ci_low": 1.486839,
+        "normal_95ci_high": 3.450661,
+        "win_rate": 0.61,
+        "non_loss_rate": 0.76
+      },
+      "best_so_far_auc": {
+        "n": 100.0,
+        "mean": 1.878273,
+        "std": 5.459756,
+        "se": 0.545976,
+        "normal_95ci_low": 0.808161,
+        "normal_95ci_high": 2.948385,
+        "win_rate": 0.62,
+        "non_loss_rate": 0.68
+      },
+      "top10_hit": {
+        "n": 100.0,
+        "mean": 0.29,
+        "std": 0.553082,
+        "se": 0.055308,
+        "normal_95ci_low": 0.181596,
+        "normal_95ci_high": 0.398404,
+        "win_rate": 0.34,
+        "non_loss_rate": 0.95
+      }
+    },
+    "matched_target_only_llm": {
+      "final_best": {
+        "n": 100.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      },
+      "best_so_far_auc": {
+        "n": 100.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      },
+      "top10_hit": {
+        "n": 100.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      }
+    },
+    "source_warmstart_only": {
+      "final_best": {
+        "n": 100.0,
+        "mean": 0.44,
+        "std": 3.515612,
+        "se": 0.351561,
+        "normal_95ci_low": -0.24906,
+        "normal_95ci_high": 1.12906,
+        "win_rate": 0.52,
+        "non_loss_rate": 0.69
+      },
+      "best_so_far_auc": {
+        "n": 100.0,
+        "mean": -1.376584,
+        "std": 4.881607,
+        "se": 0.488161,
+        "normal_95ci_low": -2.333379,
+        "normal_95ci_high": -0.419789,
+        "win_rate": 0.47,
+        "non_loss_rate": 0.47
+      },
+      "top10_hit": {
+        "n": 100.0,
+        "mean": 0.39,
+        "std": 0.48775,
+        "se": 0.048775,
+        "normal_95ci_low": 0.294401,
+        "normal_95ci_high": 0.485599,
+        "win_rate": 0.39,
+        "non_loss_rate": 1.0
+      }
+    },
+    "fixed_data_only_transfer": {
+      "final_best": {
+        "n": 100.0,
+        "mean": 0.44,
+        "std": 3.515612,
+        "se": 0.351561,
+        "normal_95ci_low": -0.24906,
+        "normal_95ci_high": 1.12906,
+        "win_rate": 0.52,
+        "non_loss_rate": 0.69
+      },
+      "best_so_far_auc": {
+        "n": 100.0,
+        "mean": -1.376584,
+        "std": 4.881607,
+        "se": 0.488161,
+        "normal_95ci_low": -2.333379,
+        "normal_95ci_high": -0.419789,
+        "win_rate": 0.47,
+        "non_loss_rate": 0.47
+      },
+      "top10_hit": {
+        "n": 100.0,
+        "mean": 0.39,
+        "std": 0.48775,
+        "se": 0.048775,
+        "normal_95ci_low": 0.294401,
+        "normal_95ci_high": 0.485599,
+        "win_rate": 0.39,
+        "non_loss_rate": 1.0
+      }
+    }
+  },
+  "mechanism_controls": {
+    "enabled": true,
+    "warmstart_only_mode": "source_warmstart_only",
+    "fixed_data_only_mode": "fixed_data_only_transfer"
+  },
+  "mechanism_attribution": {
+    "status": "complete",
+    "classification": "offline_selector_fallback",
+    "source_informed_initial_design_effect": {
+      "left_mode": "source_warmstart_only",
+      "right_mode": "matched_target_only_llm",
+      "final_best": {
+        "n": 100.0,
+        "mean": -0.44,
+        "std": 3.515612,
+        "se": 0.351561,
+        "normal_95ci_low": -1.12906,
+        "normal_95ci_high": 0.24906,
+        "win_rate": 0.31,
+        "non_loss_rate": 0.48
+      },
+      "best_so_far_auc": {
+        "n": 100.0,
+        "mean": 1.376584,
+        "std": 4.881607,
+        "se": 0.488161,
+        "normal_95ci_low": 0.419789,
+        "normal_95ci_high": 2.333379,
+        "win_rate": 0.53,
+        "non_loss_rate": 0.53
+      },
+      "composite": {
+        "n": 100.0,
+        "mean": 0.936584,
+        "std": 7.765863,
+        "se": 0.776586,
+        "normal_95ci_low": -0.585525,
+        "normal_95ci_high": 2.458693,
+        "win_rate": 0.46,
+        "non_loss_rate": 0.46
+      },
+      "exact_seed_match_rate": 0.0
+    },
+    "post_initialization_source_outcome_effect": {
+      "left_mode": "llm_transfer_router",
+      "right_mode": "source_warmstart_only",
+      "final_best": {
+        "n": 100.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      },
+      "best_so_far_auc": {
+        "n": 100.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      },
+      "composite": {
+        "n": 100.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      },
+      "exact_seed_match_rate": 1.0
+    },
+    "llm_patch_increment_over_fixed_data_only": {
+      "left_mode": "llm_transfer_router",
+      "right_mode": "fixed_data_only_transfer",
+      "final_best": {
+        "n": 100.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      },
+      "best_so_far_auc": {
+        "n": 100.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      },
+      "composite": {
+        "n": 100.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      },
+      "exact_seed_match_rate": 1.0
+    },
+    "full_route_action_diagnostics": {
+      "seed_count": 100,
+      "round_count": 1300,
+      "source_initial_active_seed_rate": 1.0,
+      "positive_transfer_mass_round_rate": 0.0,
+      "post_initialization_action_change_rate": 0.0
+    },
+    "interpretation_rule": "The full route is called continuous only when it improves over the same source-informed initial design with transfer mass fixed to zero. LLM patch credit additionally requires improvement over the fixed data-only route."
+  },
+  "offline_selection_cost": {
+    "evaluated_mode_count": 7,
+    "calibration_seed_count": 50,
+    "observations_per_policy_replay": 15,
+    "gross_reveal_equivalents": 5250,
+    "interpretation": "Gross policy-replay count, not a count of unique candidates. It is cheap for archived lookup but is not an acceptable cost model for wet-lab deployment."
+  },
+  "evidence_boundary": "The source history contains public source features and measured source outcomes. Source history, mappings, and patches are frozen before target replay. Target outcomes enter only after reveal and are used prequentially; hidden target rows never enter source compilation, calibration, routing, or candidate scoring."
+}
