@@ -20,7 +20,9 @@ import cross_task_router
 import run_llm_kernel_skill_evolution as evolution
 import run_llm_transfer_router as outcome_router
 import run_synthetic_suzuki as replay
+import run_transfer_ablation as transfer
 import run_transfer_weighted_kernel as weighted
+import transfer_skill as canonical_skill
 
 
 SELECTOR_MODE = "care_source_outcome_router"
@@ -610,6 +612,101 @@ def main() -> None:
     if not patches:
         raise RuntimeError("The record contains no executable source-outcome patches.")
     fixed_scales = weighted.parse_scales(args.fixed_ensemble_scales)
+    source_observed = transfer.source_observations(
+        source,
+        args.source_seed,
+        args.source_observations,
+    )
+    role_map = transfer.descriptor_transfer_role_map_for(
+        args.source_dataset,
+        args.target_dataset,
+    )
+    transfer_card = transfer.compile_transfer_card(
+        source,
+        target,
+        source_observed,
+        role_map,
+        args.discount,
+        args.min_source_support,
+    )
+    execution = {
+        "calibration_seed_start": args.calibration_seed_start,
+        "calibration_seed_count": args.calibration_seeds,
+        "heldout_seed_start": args.heldout_seed_start,
+        "heldout_seed_count": args.heldout_seeds,
+        "source_observation_count": args.source_observations,
+        "source_seed": args.source_seed,
+        "initial_observations": args.initial,
+        "reveal_rounds": args.rounds,
+        "discount": args.discount,
+        "min_source_support": args.min_source_support,
+        "fixed_ensemble_scales": list(fixed_scales),
+        "normalize_kernel_weights": not args.no_normalize,
+        "gp_beta": args.gp_beta,
+        "gp_xi": args.gp_xi,
+        "numeric_length_scale": args.numeric_length_scale,
+        "categorical_length_scale": args.categorical_length_scale,
+        "gp_noise": args.gp_noise,
+        "router_min_observations": args.router_min_observations,
+        "router_min_quality": args.router_min_quality,
+        "router_max_transfer_mass": args.router_max_transfer_mass,
+        "source_initial_strategy": args.source_initial_strategy,
+        "target_anchor_mode": args.target_llm_mode,
+    }
+    gate_policy = {
+        "fallback_mode": MATCHED_TARGET_LLM_MODE,
+        "online_router": {
+            "min_observations": args.router_min_observations,
+            "min_quality": args.router_min_quality,
+            "max_transfer_mass": args.router_max_transfer_mass,
+        },
+        "confirmation": {
+            "min_risk_adjusted_gain": args.min_risk_adjusted_gain,
+            "min_positive_fold_rate": args.min_positive_fold_rate,
+            "min_final_non_loss_rate": args.min_final_non_loss_rate,
+            "min_composite_ci_low": args.min_composite_ci_low,
+            "must_beat_matched_target_llm": True,
+            "must_beat_strongest_target_only_bo": True,
+        },
+    }
+    skill = canonical_skill.compile_transfer_skill(
+        source_dataset=args.source_dataset,
+        target_dataset=args.target_dataset,
+        route_proposal=route_proposal,
+        source_evidence={
+            "transfer_card_id": transfer_card.card_id,
+            "source_seed": args.source_seed,
+            "observation_count": len(source_observed),
+            "fixed_across_target_seeds": True,
+            "roles": [asdict(role) for role in transfer_card.roles],
+            "value_priors": [asdict(prior) for prior in transfer_card.value_priors],
+            "evidence_summary": transfer_card.evidence_summary,
+        },
+        role_map=role_map,
+        kernel_patches=[asdict(patch) for patch in patches],
+        execution=execution,
+        gate=gate_policy,
+        provenance={
+            "source_patch_model": record.get("model"),
+            "source_patch_record": str(args.llm_record),
+            "source_patch_record_sha256": canonical_skill.file_sha256(args.llm_record),
+            "target_anchor_model": target_llm_record.get("model"),
+            "target_anchor_record": str(args.target_llm_record),
+            "target_anchor_record_sha256": canonical_skill.file_sha256(
+                args.target_llm_record
+            ),
+        },
+    )
+    calibration_seeds = set(range(
+        skill.execution["calibration_seed_start"],
+        skill.execution["calibration_seed_start"]
+        + skill.execution["calibration_seed_count"],
+    ))
+    heldout_seeds = set(range(
+        skill.execution["heldout_seed_start"],
+        skill.execution["heldout_seed_start"]
+        + skill.execution["heldout_seed_count"],
+    ))
     jobs = [
         *((seed, "calibration") for seed in sorted(calibration_seeds)),
         *((seed, "heldout") for seed in sorted(heldout_seeds)),
@@ -621,22 +718,22 @@ def main() -> None:
         "target_llm_mode": args.target_llm_mode,
         "target_llm_skill": target_llm_skill,
         "fixed_scales": fixed_scales,
-        "source_observations": args.source_observations,
-        "source_seed": args.source_seed,
-        "discount": args.discount,
-        "min_source_support": args.min_source_support,
-        "initial": args.initial,
-        "rounds": args.rounds,
-        "normalize": not args.no_normalize,
-        "gp_beta": args.gp_beta,
-        "gp_xi": args.gp_xi,
-        "numeric_length_scale": args.numeric_length_scale,
-        "categorical_length_scale": args.categorical_length_scale,
-        "gp_noise": args.gp_noise,
-        "router_min_observations": args.router_min_observations,
-        "router_min_quality": args.router_min_quality,
-        "router_max_transfer_mass": args.router_max_transfer_mass,
-        "source_initial_strategy": args.source_initial_strategy,
+        "source_observations": skill.execution["source_observation_count"],
+        "source_seed": skill.execution["source_seed"],
+        "discount": skill.execution["discount"],
+        "min_source_support": skill.execution["min_source_support"],
+        "initial": skill.execution["initial_observations"],
+        "rounds": skill.execution["reveal_rounds"],
+        "normalize": skill.execution["normalize_kernel_weights"],
+        "gp_beta": skill.execution["gp_beta"],
+        "gp_xi": skill.execution["gp_xi"],
+        "numeric_length_scale": skill.execution["numeric_length_scale"],
+        "categorical_length_scale": skill.execution["categorical_length_scale"],
+        "gp_noise": skill.execution["gp_noise"],
+        "router_min_observations": skill.execution["router_min_observations"],
+        "router_min_quality": skill.execution["router_min_quality"],
+        "router_max_transfer_mass": skill.execution["router_max_transfer_mass"],
+        "source_initial_strategy": skill.execution["source_initial_strategy"],
     }
     if args.workers == 1:
         results = [
@@ -659,13 +756,15 @@ def main() -> None:
     selected_mode, selection = select_route(
         rows,
         calibration_seeds,
-        args.min_risk_adjusted_gain,
-        args.min_positive_fold_rate,
-        args.min_final_non_loss_rate,
-        args.min_composite_ci_low,
+        skill.gate["confirmation"]["min_risk_adjusted_gain"],
+        skill.gate["confirmation"]["min_positive_fold_rate"],
+        skill.gate["confirmation"]["min_final_non_loss_rate"],
+        skill.gate["confirmation"]["min_composite_ci_low"],
     )
     selection["schema_route_proposal"] = route_proposal
+    selection["transfer_skill"] = skill.identity()
     add_selector_alias(rows, audits, selected_mode, heldout_seeds, selection)
+    canonical_skill.attach_skill_identity(audits, skill)
     all_modes = (
         *selector.TARGET_MODES,
         MATCHED_TARGET_LLM_MODE,
@@ -692,6 +791,7 @@ def main() -> None:
         "source_dataset": args.source_dataset,
         "target_dataset": args.target_dataset,
         "schema_route_proposal": route_proposal,
+        "transfer_skill": skill.as_dict(),
         "source_history": {
             "seed": args.source_seed,
             "observation_count": args.source_observations,
@@ -746,6 +846,19 @@ def main() -> None:
         output_id += f"_{args.output_tag}"
     rows.sort(key=lambda row: (str(row.get("split", "")), int(row["seed"]), str(row["mode"])))
     outcome_router.write_outputs(output_id, rows, audits, summary)
+    artifact_root = outcome_router.OUTPUT_RUNS
+    skill.write(artifact_root / f"{output_id}_transfer_skill.json")
+    trace = canonical_skill.build_canonical_trace(
+        skill=skill,
+        selection=selection,
+        audits=audits,
+        selector_mode=SELECTOR_MODE,
+        heldout_seeds=heldout_seeds,
+    )
+    canonical_skill.write_trace(
+        artifact_root / f"{output_id}_canonical_trace.jsonl",
+        trace,
+    )
     print(json.dumps(summary, ensure_ascii=False, indent=2))
 
 

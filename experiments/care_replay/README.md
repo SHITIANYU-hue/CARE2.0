@@ -32,6 +32,9 @@ Current status:
   provide neighbor, additive, interaction, initial-design, and kernel priors;
   revealed target observations calibrate them online, with an exact matched
   target-only LLM fallback when calibration rejects transfer.
+- Freezes the canonical method in [`CARE2_METHOD.md`](CARE2_METHOD.md). Every
+  confirmed pair now emits one executable `TransferSkill` and one compact
+  source-to-deployment trace in addition to the full audit logs.
 
 Run:
 
@@ -56,14 +59,15 @@ export CARE_LLM_API_KEY="..."
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset synthetic_materials_i --seeds 3 --rounds 6 --initial 5 --modes no_care_random,incumbent,llm_no_gate,llm_gate_v1 --llm-model openai/gpt-4o-mini --output-tag llm_commonstack
 ```
 
-Run the frozen seven-pair source-outcome suite:
+Run the frozen seven-pair source-outcome suite through the canonical entry point:
 
 ```bash
-python3 experiments/care_replay/scripts/run_source_outcome_suite.py \
+python3 experiments/care_replay/scripts/run_care2.py suite \
   --config experiments/care_replay/configs/source_outcome_benchmark.json \
+  --strategy full_source_outcome \
   --calibration-seed-start 40000 \
   --heldout-seed-start 41000 \
-  --workers 12 \
+  --pair-workers 12 \
   --parallel-pairs 7 \
   --output-tag frozen_source_outcome_v1
 ```
@@ -74,6 +78,9 @@ only when it clears paired stability and confidence checks against both the
 matched target-only LLM and the strongest target-only BO route. Otherwise it
 copies the matched target-only policy exactly. The archived confirmation is in
 [`results/2026-07-24-source-outcome-transfer`](results/2026-07-24-source-outcome-transfer/README.md).
+The exact skill, thresholds, record hashes, and round-level deployment chain are
+written as `*_transfer_skill.json` and `*_canonical_trace.jsonl` under
+`outputs/runs/`.
 
 The schema-only router in `scripts/cross_task_router.py` proposes a candidate
 transfer family from public task metadata: reaction component roles for HTE
