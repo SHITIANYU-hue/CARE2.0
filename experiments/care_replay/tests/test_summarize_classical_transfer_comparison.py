@@ -47,3 +47,17 @@ def test_paired_comparison_matches_seeds() -> None:
     assert result["seed_count"] == 2
     assert result["final_best"]["mean_delta"] == 1.5
     assert result["best_so_far_auc"]["mean_delta"] == 2.0
+
+
+def test_hybrid_selection_can_choose_care_or_classical() -> None:
+    care = [row(summary.CARE_MODE, 1, "calibration", 5.0, 5.0)]
+    classical = [
+        row("target_gp_ucb", 1, "calibration", 2.0, 2.0),
+        row("rgpe", 1, "calibration", 6.0, 6.0),
+        row("multitask_gp_icm", 1, "calibration", 3.0, 3.0),
+    ]
+    selected, _scores = summary.select_hybrid_mode(care, classical)
+    assert selected == "rgpe"
+    classical[1] = row("rgpe", 1, "calibration", 4.0, 4.0)
+    selected, _scores = summary.select_hybrid_mode(care, classical)
+    assert selected == summary.CARE_MODE
