@@ -37,9 +37,10 @@ def select_classical_mode(rows: list[dict[str, Any]]) -> tuple[str, dict[str, fl
 def select_hybrid_mode(
     care_rows: list[dict[str, Any]],
     classical_rows: list[dict[str, Any]],
+    care_calibration_mode: str = CARE_MODE,
 ) -> tuple[str, dict[str, float]]:
     scores = {
-        CARE_MODE: calibration_score(care_rows, CARE_MODE),
+        CARE_MODE: calibration_score(care_rows, care_calibration_mode),
         **{
             mode: calibration_score(classical_rows, mode)
             for mode in CLASSICAL_MODES
@@ -99,13 +100,17 @@ def summarize_pair(
     pair_id: str,
     classical_metrics: Path,
     care_metrics: Path,
+    care_summary: Path,
 ) -> dict[str, Any]:
     classical_rows = read_rows(classical_metrics)
     care_rows = read_rows(care_metrics)
+    care_record = json.loads(care_summary.read_text(encoding="utf-8"))
+    care_calibration_mode = str(care_record["selection"]["selected_mode"])
     selected_mode, calibration_scores = select_classical_mode(classical_rows)
     selected_hybrid_mode, hybrid_calibration_scores = select_hybrid_mode(
         care_rows,
         classical_rows,
+        care_calibration_mode,
     )
     comparisons = {
         mode: paired_comparison(care_rows, CARE_MODE, classical_rows, mode)
@@ -130,6 +135,7 @@ def summarize_pair(
         "hybrid_portfolio": {
             "selection_scope": "calibration_only",
             "selected_mode": selected_hybrid_mode,
+            "care_calibration_mode": care_calibration_mode,
             "calibration_composite_scores": hybrid_calibration_scores,
             "heldout_vs_target_gp": hybrid_vs_target_gp,
             "real_experiment_deployment_ready": False,
@@ -142,6 +148,15 @@ def locate_care_metrics(care_tables: Path, tag: str, pair_id: str) -> Path:
     if len(matches) != 1:
         raise ValueError(
             f"Expected one CARE metrics file for {pair_id}; found {len(matches)}: {matches}"
+        )
+    return matches[0]
+
+
+def locate_care_summary(care_runs: Path, tag: str, pair_id: str) -> Path:
+    matches = sorted(care_runs.glob(f"*{tag}_{pair_id}_summary.json"))
+    if len(matches) != 1:
+        raise ValueError(
+            f"Expected one CARE summary for {pair_id}; found {len(matches)}: {matches}"
         )
     return matches[0]
 
@@ -215,6 +230,7 @@ def main() -> None:
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--classical-dir", type=Path, required=True)
     parser.add_argument("--care-tables", type=Path, required=True)
+    parser.add_argument("--care-runs", type=Path, required=True)
     parser.add_argument("--care-tag", required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     args = parser.parse_args()
@@ -227,6 +243,7 @@ def main() -> None:
                 pair_id,
                 args.classical_dir / f"{pair_id}_metrics.csv",
                 locate_care_metrics(args.care_tables, args.care_tag, pair_id),
+                locate_care_summary(args.care_runs, args.care_tag, pair_id),
             )
         )
     summary = {

@@ -56,8 +56,32 @@ def test_hybrid_selection_can_choose_care_or_classical() -> None:
         row("rgpe", 1, "calibration", 6.0, 6.0),
         row("multitask_gp_icm", 1, "calibration", 3.0, 3.0),
     ]
-    selected, _scores = summary.select_hybrid_mode(care, classical)
+    selected, _scores = summary.select_hybrid_mode(
+        care,
+        classical,
+        summary.CARE_MODE,
+    )
     assert selected == "rgpe"
     classical[1] = row("rgpe", 1, "calibration", 4.0, 4.0)
-    selected, _scores = summary.select_hybrid_mode(care, classical)
+    selected, _scores = summary.select_hybrid_mode(
+        care,
+        classical,
+        summary.CARE_MODE,
+    )
     assert selected == summary.CARE_MODE
+
+
+def test_hybrid_uses_frozen_care_candidate_for_calibration() -> None:
+    care = [row("matched_target_only_llm", 1, "calibration", 7.0, 7.0)]
+    classical = [
+        row("target_gp_ucb", 1, "calibration", 2.0, 2.0),
+        row("rgpe", 1, "calibration", 6.0, 6.0),
+        row("multitask_gp_icm", 1, "calibration", 3.0, 3.0),
+    ]
+    selected, scores = summary.select_hybrid_mode(
+        care,
+        classical,
+        "matched_target_only_llm",
+    )
+    assert selected == summary.CARE_MODE
+    assert scores[summary.CARE_MODE] == 14.0
