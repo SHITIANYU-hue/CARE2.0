@@ -26,9 +26,9 @@ their incremental benefit has not been established on the inspected routes.
 4. **Accumulation:** the current artifact does not update a shared skill library
    across completed tasks. Calling it a reusable, accumulating skill would be
    premature.
-5. **Missing baselines:** target-only BO is necessary but insufficient. A
-   classical transfer BO comparison is required wherever the source and target
-   input spaces permit a fair implementation.
+5. **Missing baselines:** target-only BO is necessary but insufficient. This
+   was a valid gap in the reviewed commit. RGPE and a two-task ICM GP are now
+   included wherever source and target have the same ordered feature space.
 
 ## Overstated findings
 
@@ -64,22 +64,28 @@ experimental question, now tested against a fixed data-only control.
   fields from advisory-only text and identifies the artifact as a frozen
   source-outcome transfer policy.
 
-## Work that remains
+## Classical baseline follow-up
 
-A classic transfer baseline has not been added by relabeling the existing
-router. RGPE and conventional multi-task GP normally assume a compatible input
-space; several CARE pairs have heterogeneous reaction roles or descriptor
-spaces. The correct next experiment is therefore split:
+A classic transfer baseline was added as a separate implementation rather than
+by relabeling the existing router. RGPE and conventional multi-task GP normally
+assume a compatible input space, so the confirmation suite is split correctly:
 
-- run faithful RGPE / multi-task GP on same-space or explicitly harmonized
-  molecular and materials pairs;
-- use a heterogeneous-domain transfer GP or another declared mapping method on
-  reaction pairs;
-- compare all methods with identical initial observations, reveal budget,
-  source history, calibration budget, and held-out seeds.
+- RGPE and a two-task ICM GP run on five same-space molecular/materials pairs;
+- all methods use identical initial observations, reveal budgets, source
+  histories, and disjoint 30/100 calibration/held-out seeds;
+- heterogeneous reaction pairs remain excluded until a declared mapping or a
+  heterogeneous-domain transfer method is implemented.
 
-Until that comparison exists, CARE should claim improvement over matched
-target-only baselines, not superiority over transfer BO.
+The result is not a blanket CARE win. Classical transfer is exceptionally
+strong for Dielectric to Band Gap and harmful on several other routes. A
+calibration-selected CARE/classical portfolio has positive mean AUC gains on
+all five pairs, but all CARE source-transfer candidates were rejected. The
+positive CARE arms are target-only fallbacks, so this result supports model
+routing rather than a causal source-transfer or LLM-patch claim. See
+`results/2026-08-08-classical-transfer-confirmation/`.
+
+Work still remains on a zero-target-cost router, accumulated transfer memory,
+and a declared heterogeneous-domain baseline for reaction tasks.
 
 Primary references: [RGPE](https://ml.informatik.uni-freiburg.de/wp-content/uploads/papers/18-AUTOML-RGPE.pdf),
 [transfer GP for Bayesian optimization](https://proceedings.mlr.press/v151/tighineanu22a.html),

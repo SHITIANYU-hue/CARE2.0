@@ -124,15 +124,22 @@ same target seeds and reveal budget:
 | Do LLM-generated patch choices add value beyond source data? | full route vs `fixed_data_only_transfer` |
 | What happens without offline benchmark selection? | raw `llm_transfer_router` vs reported `care_source_outcome_router` |
 | Does offline selection prevent a replay loss? | rejected pairs reproduce the matched target-only LLM exactly |
+| Does CARE beat classical same-space transfer BO? | CARE vs calibration-selected RGPE / two-task ICM GP |
+| Can one frozen portfolio avoid method-specific failures? | calibration-selected CARE / RGPE / ICM / target-GP router |
 
 The two mechanism controls now run by default for every canonical pair. The
 summary reports three separate held-out effects: source-informed initialization,
 post-initialization source-outcome transfer, and the LLM patch increment over a
 fixed non-LLM patch. The random-rule controls live in
 `run_random_rule_control.py`, and source-evidence causality is summarized by
-`build_source_evidence_ablation.py`. A same-budget classical transfer BO arm,
-similarity-only arm, and online-gate-off arm are not yet part of the frozen
-suite; they must be reported as planned ablations, not completed evidence.
+`build_source_evidence_ablation.py`. The same-budget classical transfer suite
+is frozen in `configs/classical_transfer_benchmark_v1.json` and implemented by
+`run_classical_transfer_baselines.py`. It contains RGPE and a two-task ICM GP
+for five feature-compatible molecular/materials pairs. Its confirmation result
+is archived in `results/2026-08-08-classical-transfer-confirmation/`.
+
+A similarity-only arm, online-gate-off arm, and a heterogeneous-domain
+classical baseline for reaction tasks are not yet completed evidence.
 
 ## What is and is not executed from the LLM output
 
