@@ -1,0 +1,142 @@
+{
+  "schema_version": "care.skill_bank/v1",
+  "bank_id": "care2-wetlab-transfer",
+  "evidence": [
+    {
+      "evidence_id": "reizman_mixed_space_contract",
+      "source_tasks": [
+        "real_reizman_suzuki_case_1",
+        "real_reizman_suzuki_case_2",
+        "real_reizman_suzuki_case_3"
+      ],
+      "task_family": "suzuki_reaction_optimization",
+      "status": "validated",
+      "lesson": "Represent residence time, temperature, and catalyst loading as continuous dimensions while keeping catalyst identity categorical.",
+      "applicability": [
+        "same declared mixed search space"
+      ],
+      "failure_modes": [
+        "incompatible bounds or catalyst vocabulary"
+      ],
+      "trace_references": [
+        "629e3ce29730e67ec0784828c8bbfe4376e5711b672bcea48c028b9c962ce1f5",
+        "99b14da6692a4853e10b2d547ab20a0347236fa3069bd69e1020c27679276e3d",
+        "37d077561d1b8c5106a19e1ecc1fecd61f02a0082c5fe7498b8cbd3952d22b66"
+      ],
+      "observation_count": 288,
+      "provenance": {
+        "source_commit": "99cd89b378cd8d7a624f22ae138fb6f0a85ef440"
+      }
+    },
+    {
+      "evidence_id": "separate_source_experts",
+      "source_tasks": [
+        "real_reizman_suzuki_case_1",
+        "real_reizman_suzuki_case_2",
+        "real_reizman_suzuki_case_3"
+      ],
+      "task_family": "suzuki_reaction_optimization",
+      "status": "candidate",
+      "lesson": "Keep each completed substrate task as a separate predictive expert; combine experts only through online rank evidence or model evidence.",
+      "applicability": [
+        "multiple completed source tasks"
+      ],
+      "failure_modes": [
+        "pooling tasks can hide opposing substrate-specific effects",
+        "few target observations make expert weights uncertain"
+      ],
+      "trace_references": [
+        "629e3ce29730e67ec0784828c8bbfe4376e5711b672bcea48c028b9c962ce1f5",
+        "99b14da6692a4853e10b2d547ab20a0347236fa3069bd69e1020c27679276e3d",
+        "37d077561d1b8c5106a19e1ecc1fecd61f02a0082c5fe7498b8cbd3952d22b66"
+      ],
+      "observation_count": 288,
+      "provenance": {
+        "source_summaries": [
+          {
+            "dataset_id": "real_reizman_suzuki_case_1",
+            "candidate_count": 96,
+            "catalyst_count": 8,
+            "yield_min": 0.6,
+            "yield_max": 98.7,
+            "task_sha256": "629e3ce29730e67ec0784828c8bbfe4376e5711b672bcea48c028b9c962ce1f5"
+          },
+          {
+            "dataset_id": "real_reizman_suzuki_case_2",
+            "candidate_count": 96,
+            "catalyst_count": 8,
+            "yield_min": 0.1,
+            "yield_max": 47.6,
+            "task_sha256": "99b14da6692a4853e10b2d547ab20a0347236fa3069bd69e1020c27679276e3d"
+          },
+          {
+            "dataset_id": "real_reizman_suzuki_case_3",
+            "candidate_count": 96,
+            "catalyst_count": 8,
+            "yield_min": 0.2,
+            "yield_max": 94.1,
+            "task_sha256": "37d077561d1b8c5106a19e1ecc1fecd61f02a0082c5fe7498b8cbd3952d22b66"
+          }
+        ]
+      }
+    },
+    {
+      "evidence_id": "exact_target_fallback",
+      "source_tasks": [
+        "real_reizman_suzuki_case_1",
+        "real_reizman_suzuki_case_2",
+        "real_reizman_suzuki_case_3"
+      ],
+      "task_family": "sequential_optimization",
+      "status": "validated",
+      "lesson": "Run a matched target-only acquisition policy beside transfer and retain an exact fallback when source evidence is contradictory.",
+      "applicability": [
+        "all sequential target tasks"
+      ],
+      "failure_modes": [
+        "claiming fallback performance as source-transfer gain"
+      ],
+      "trace_references": [
+        "care2_classical_transfer_confirmation_v1"
+      ],
+      "observation_count": 288,
+      "provenance": {
+        "review_followup": "2026-08-08 classical transfer confirmation"
+      }
+    },
+    {
+      "evidence_id": "reizman_development_transfer_gate_v1",
+      "source_tasks": [
+        "real_reizman_suzuki_case_1",
+        "real_reizman_suzuki_case_2",
+        "real_reizman_suzuki_case_3"
+      ],
+      "task_family": "suzuki_reaction_optimization",
+      "status": "validated",
+      "lesson": "On task-disjoint development folds, admit a source-informed route only when its paired best-so-far AUC confidence-interval lower bound is above zero; otherwise use the exact target-only fallback. The frozen v1 route was target_gp_ucb.",
+      "applicability": [
+        "new tasks sharing the declared Reizman search space"
+      ],
+      "failure_modes": [
+        "choosing a source route from evaluation-task outcomes",
+        "forcing transfer when every development confidence interval crosses or falls below zero"
+      ],
+      "trace_references": [
+        "ff88e9d194fc07212ed0f70ab800fc9f82077a9afda032c78f66a4246a3148f9",
+        "6d0f3f0e004ba80f6a641ce996ea4993ba9ba67add98b2c68cdb5491c0e4fa2b"
+      ],
+      "observation_count": 90,
+      "provenance": {
+        "selection_scope": "leave_one_development_task_out_only",
+        "selection_metric": "best_so_far_auc",
+        "selection_required_ci_low": 0.0,
+        "selected_route": {
+          "mode": "target_gp_ucb"
+        },
+        "evaluation_task_ids_not_loaded": [
+          "real_reizman_suzuki_case_4"
+        ]
+      }
+    }
+  ]
+}

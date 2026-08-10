@@ -916,6 +916,84 @@ def synthetic_materials_adapter() -> DatasetAdapter:
     )
 
 
+def real_reizman_suzuki_adapter(case_number: int) -> DatasetAdapter:
+    """Load one mixed continuous/categorical Reizman Suzuki task.
+
+    Cases share one declared search space but have different substrates.  The
+    fixed bounds below come from the published experimental design, not from
+    target outcomes.
+    """
+
+    if case_number not in {1, 2, 3, 4}:
+        raise ValueError("Reizman Suzuki case_number must be between 1 and 4.")
+    path = RAW_DATA / "reizman_suzuki" / f"reizman_suzuki_case_{case_number}.csv"
+    if not path.exists():
+        raise FileNotFoundError(f"Missing pinned Reizman Suzuki data: {path}")
+    records = read_csv_dicts(path)
+    pool: list[Candidate] = []
+    for index, row in enumerate(records):
+        residence_time = float(row["t_res"])
+        temperature = float(row["temperature"])
+        catalyst_loading = float(row["catalyst_loading"])
+        catalyst = str(row["catalyst"]).strip()
+        reaction_yield = clamp_score(float(row["yld"]))
+        pool.append(
+            Candidate(
+                candidate_id=f"reizman_suzuki_case{case_number}_{index:03d}",
+                group=catalyst,
+                x1=(residence_time - 60.0) / (600.0 - 60.0),
+                x2=(temperature - 30.0) / (110.0 - 30.0),
+                x3=(catalyst_loading - 0.498) / (2.515 - 0.498),
+                objective_value=reaction_yield,
+                metadata={
+                    "catalyst": catalyst,
+                    "residence_time_seconds": residence_time,
+                    "temperature_celsius": temperature,
+                    "catalyst_loading_mol_percent": catalyst_loading,
+                    "turnover_number": float(row["ton"]),
+                    "yield_value": reaction_yield,
+                    "source_row": index + 2,
+                    "source_case": case_number,
+                },
+                numeric_features=(
+                    (residence_time - 60.0) / (600.0 - 60.0),
+                    (temperature - 30.0) / (110.0 - 30.0),
+                    (catalyst_loading - 0.498) / (2.515 - 0.498),
+                ),
+            )
+        )
+    return DatasetAdapter(
+        dataset_id=f"real_reizman_suzuki_case_{case_number}",
+        title=f"Reizman Suzuki mixed-variable wetlab case {case_number}",
+        objective="maximize_yield",
+        decision_columns=("catalyst",),
+        hidden_target="yield_value",
+        group_column="catalyst",
+        preferred_groups=(),
+        failure_note=(
+            "Catalyst effects can change with substrate, residence time, "
+            "temperature, and loading; no fixed preferred catalyst is encoded."
+        ),
+        candidates=tuple(pool),
+    )
+
+
+def real_reizman_suzuki_case_1_adapter() -> DatasetAdapter:
+    return real_reizman_suzuki_adapter(1)
+
+
+def real_reizman_suzuki_case_2_adapter() -> DatasetAdapter:
+    return real_reizman_suzuki_adapter(2)
+
+
+def real_reizman_suzuki_case_3_adapter() -> DatasetAdapter:
+    return real_reizman_suzuki_adapter(3)
+
+
+def real_reizman_suzuki_case_4_adapter() -> DatasetAdapter:
+    return real_reizman_suzuki_adapter(4)
+
+
 def real_buchwald_hartwig_adapter() -> DatasetAdapter:
     path = ensure_public_data_file("dreher_doyle_buchwald_hartwig.xlsx")
     records = rows_to_dicts(read_xlsx_rows(path, "FullCV_01"))
@@ -1567,6 +1645,10 @@ DATASET_BUILDERS: dict[str, Callable[[], DatasetAdapter]] = {
     "synthetic_materials_i": synthetic_materials_adapter,
     "real_buchwald_hartwig": real_buchwald_hartwig_adapter,
     "real_suzuki_miyaura": real_suzuki_miyaura_adapter,
+    "real_reizman_suzuki_case_1": real_reizman_suzuki_case_1_adapter,
+    "real_reizman_suzuki_case_2": real_reizman_suzuki_case_2_adapter,
+    "real_reizman_suzuki_case_3": real_reizman_suzuki_case_3_adapter,
+    "real_reizman_suzuki_case_4": real_reizman_suzuki_case_4_adapter,
     "real_chemlex_acidamine": real_chemlex_acidamine_adapter,
     "real_moleculenet_esol": real_moleculenet_esol_adapter,
     "real_moleculenet_freesolv": real_moleculenet_freesolv_adapter,

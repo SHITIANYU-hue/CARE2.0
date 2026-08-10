@@ -161,6 +161,16 @@ hypothesis matrix. Until that route is reliable, the canonical summary emits
 evaluated modes and gross policy-replay reveal equivalents so that offline
 selection cost is visible rather than hidden behind the word "gate."
 
+The first deployable multi-source boundary is implemented separately in
+`run_multisource_transfer_baselines.py` and documented in
+`MULTISOURCE_WETLAB_PROTOCOL.md`. It uses real Reizman Suzuki campaigns,
+leave-one-development-task-out route selection, an untouched confirmation
+campaign, and a stateful ask/tell interface. Its persistent
+`skill_banks/care2-wetlab-transfer/SKILL.md` should not be confused with the
+pair-local `TransferSkill`: the former accumulates multi-task evidence and
+explicit abstention rules, while the latter remains the executable policy for
+one declared source-target pair.
+
 ## Claim boundary
 
 The current method supports evaluated source-target paths in reactions,

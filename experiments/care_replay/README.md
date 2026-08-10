@@ -35,6 +35,12 @@ Current status:
 - Freezes the canonical method in [`CARE2_METHOD.md`](CARE2_METHOD.md). Every
   confirmed pair now emits one executable `TransferSkill` and one compact
   source-to-deployment trace in addition to the full audit logs.
+- Adds a real multi-source wet-lab benchmark using Reizman Suzuki cases 1-3 as
+  completed sources and case 4 as a task-disjoint confirmation target. See
+  [`MULTISOURCE_WETLAB_PROTOCOL.md`](MULTISOURCE_WETLAB_PROTOCOL.md).
+- Adds a persistent agent-readable `SkillBank` under
+  `skill_banks/care2-wetlab-transfer/` plus a leakage-resistant sequential
+  `ask()` / `tell()` boundary.
 
 Run:
 
