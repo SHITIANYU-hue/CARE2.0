@@ -994,6 +994,105 @@ def real_reizman_suzuki_case_4_adapter() -> DatasetAdapter:
     return real_reizman_suzuki_adapter(4)
 
 
+BAUMGARTNER_CN_CAMPAIGNS = (
+    ("aniline_ephos", "Aniline - EPhos"),
+    ("aniline_tbuxphos", "Aniline - tBuXPhos"),
+    ("aniline_tbubrettphos", "Aniline - tBuBrettPhos"),
+    ("aniline_alphos", "Aniline - AlPhos"),
+    ("benzamide_tbuxphos", "Benzamide - tBuXPhos"),
+    ("benzamide_tbubrettphos", "Benzamide - tBuBrettPhos"),
+    ("benzamide_alphos", "Benzamide - AlPhos"),
+    ("phenethylamine_tbuxphos", "Phenethylamine - tBuXPhos"),
+    ("phenethylamine_tbubrettphos", "Phenethylamine - tBuBrettPhos"),
+    ("phenethylamine_alphos", "Phenethylamine - AlPhos"),
+    ("morpholine_tbubrettphos", "Morpholine - tBuBrettPhos"),
+    ("morpholine_alphos", "Morpholine - AlPhos"),
+    (
+        "morpholine_tbubrettphos_preliminary",
+        "Morpholine - tBuBrettPhos (Preliminary)",
+    ),
+)
+
+
+def real_baumgartner_cn_adapter(campaign_id: str) -> DatasetAdapter:
+    """Load one mixed-variable Baumgartner C-N optimization campaign."""
+
+    campaign_lookup = dict(BAUMGARTNER_CN_CAMPAIGNS)
+    if campaign_id not in campaign_lookup:
+        raise ValueError(f"Unknown Baumgartner C-N campaign: {campaign_id}")
+    campaign_name = campaign_lookup[campaign_id]
+    path = RAW_DATA / "baumgartner_cn" / "op9b00236_si_002.xlsx"
+    if not path.exists():
+        raise FileNotFoundError(f"Missing pinned Baumgartner C-N data: {path}")
+    records = rows_to_dicts(read_xlsx_rows(path, "Reaction data"))
+    selected = [record for record in records if record.get("Optimization") == campaign_name]
+    if not selected:
+        raise ValueError(f"No rows found for Baumgartner campaign {campaign_name}")
+    normalized_name = campaign_name.replace(" (Preliminary)", "")
+    substrate, precatalyst = normalized_name.split(" - ", maxsplit=1)
+    pool: list[Candidate] = []
+    for index, row in enumerate(selected):
+        reaction_yield = row.get("Reaction Yield")
+        if not isinstance(reaction_yield, (int, float)):
+            continue
+        base = str(row["Base"]).strip()
+        base_equivalents = float(row["Base equivalents"])
+        temperature = float(row["Temperature (degC)"])
+        residence_time = float(row["Residence Time Actual (min)"])
+        catalyst_loading = float(row["Precatalyst loading in mol%"])
+        numeric_features = (
+            (base_equivalents - 1.0) / (3.5 - 1.0),
+            (temperature - 30.0) / (100.0 - 30.0),
+            (residence_time - 1.0) / (35.0 - 1.0),
+            (catalyst_loading - 0.009) / (0.020 - 0.009),
+        )
+        yield_percent = clamp_score(100.0 * float(reaction_yield))
+        conversion = row.get("Conversion")
+        conversion_percent = (
+            100.0 * float(conversion)
+            if isinstance(conversion, (int, float))
+            else None
+        )
+        pool.append(
+            Candidate(
+                candidate_id=f"baumgartner_cn_{campaign_id}_{index:03d}",
+                group="mixed_base",
+                x1=numeric_features[0],
+                x2=numeric_features[1],
+                x3=numeric_features[2],
+                objective_value=yield_percent,
+                metadata={
+                    "base": base,
+                    "base_equivalents": base_equivalents,
+                    "temperature_celsius": temperature,
+                    "residence_time_minutes": residence_time,
+                    "precatalyst_loading_mol_percent": catalyst_loading,
+                    "substrate": substrate,
+                    "precatalyst": precatalyst,
+                    "campaign_name": campaign_name,
+                    "conversion_percent": conversion_percent,
+                    "yield_value": yield_percent,
+                    "source_row": index + 2,
+                },
+                numeric_features=numeric_features,
+            )
+        )
+    return DatasetAdapter(
+        dataset_id=f"real_baumgartner_cn_{campaign_id}",
+        title=f"Baumgartner C-N campaign: {campaign_name}",
+        objective="maximize_yield",
+        decision_columns=("base",),
+        hidden_target="yield_value",
+        group_column="base",
+        preferred_groups=(),
+        failure_note=(
+            "Base effects interact with substrate, precatalyst, temperature, "
+            "residence time, equivalents, and catalyst loading."
+        ),
+        candidates=tuple(pool),
+    )
+
+
 def real_buchwald_hartwig_adapter() -> DatasetAdapter:
     path = ensure_public_data_file("dreher_doyle_buchwald_hartwig.xlsx")
     records = rows_to_dicts(read_xlsx_rows(path, "FullCV_01"))
@@ -1649,6 +1748,12 @@ DATASET_BUILDERS: dict[str, Callable[[], DatasetAdapter]] = {
     "real_reizman_suzuki_case_2": real_reizman_suzuki_case_2_adapter,
     "real_reizman_suzuki_case_3": real_reizman_suzuki_case_3_adapter,
     "real_reizman_suzuki_case_4": real_reizman_suzuki_case_4_adapter,
+    **{
+        f"real_baumgartner_cn_{campaign_id}": (
+            lambda campaign_id=campaign_id: real_baumgartner_cn_adapter(campaign_id)
+        )
+        for campaign_id, _campaign_name in BAUMGARTNER_CN_CAMPAIGNS
+    },
     "real_chemlex_acidamine": real_chemlex_acidamine_adapter,
     "real_moleculenet_esol": real_moleculenet_esol_adapter,
     "real_moleculenet_freesolv": real_moleculenet_freesolv_adapter,

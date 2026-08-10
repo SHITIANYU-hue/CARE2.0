@@ -1,0 +1,176 @@
+#!/usr/bin/env python3
+"""Compile the frozen Baumgartner initial-design transfer skill."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+from pathlib import Path
+from typing import Any
+
+import run_synthetic_suzuki as replay
+from skill_bank import ReusableSkill, SkillEvidence, compile_skill_bank
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def task_digest(adapter: replay.DatasetAdapter) -> str:
+    payload = [
+        {
+            "candidate_id": candidate.candidate_id,
+            "public_conditions": {
+                "base": candidate.metadata["base"],
+                "numeric_features": candidate.numeric_features,
+            },
+            "outcome": candidate.objective_value,
+        }
+        for candidate in adapter.candidates
+    ]
+    encoded = json.dumps(
+        payload, sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def build_bank(config: dict[str, Any], selection: dict[str, Any]) -> Any:
+    protocol = config["protocol"]
+    development = tuple(protocol["development_task_ids"])
+    evaluation = tuple(protocol["evaluation_task_ids"])
+    selected_route = dict(selection["selected_route"])
+    selected_mode = str(selection["selected_mode"])
+    comparison = selection["candidate_comparisons"][selected_mode][
+        protocol["selection_metric"]
+    ]
+    adapters = [replay.DATASET_BUILDERS[task_id]() for task_id in development]
+    observation_count = sum(len(adapter.candidates) for adapter in adapters)
+    task_hashes = tuple(task_digest(adapter) for adapter in adapters)
+    evidence = (
+        SkillEvidence(
+            evidence_id="baumgartner_campaign_space_contract",
+            source_tasks=development,
+            task_family="cn_reaction_optimization",
+            status="validated",
+            lesson=(
+                "The 13 Baumgartner campaigns expose the same base, equivalents, "
+                "temperature, residence-time, and precatalyst-loading decision space."
+            ),
+            applicability=("declared compatible C-N mixed-variable campaign",),
+            failure_modes=("changed units, bounds, or base vocabulary",),
+            trace_references=task_hashes,
+            observation_count=observation_count,
+            provenance={
+                "source_commit": "99cd89b378cd8d7a624f22ae138fb6f0a85ef440"
+            },
+        ),
+        SkillEvidence(
+            evidence_id="baumgartner_diverse_warmstart_development_v1",
+            source_tasks=development,
+            task_family="cn_reaction_optimization",
+            status="validated",
+            lesson=(
+                "Task-disjoint development selected a source-rank plus diversity "
+                "initial design before an unchanged target-only GP-UCB continuation."
+            ),
+            applicability=(
+                "three initial experiments followed by target-only sequential optimization",
+            ),
+            failure_modes=(
+                "selecting the route from evaluation outcomes",
+                "claiming the warm-start result as continuous acquisition transfer",
+            ),
+            trace_references=(
+                selection["config_fingerprint"],
+                hashlib.sha256(
+                    json.dumps(
+                        selection["candidate_comparisons"],
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ).encode("utf-8")
+                ).hexdigest(),
+            ),
+            observation_count=observation_count,
+            provenance={
+                "selection_scope": selection["selection_scope"],
+                "selected_route": selected_route,
+                "primary_metric": protocol["selection_metric"],
+                "development_task_mean_delta": comparison["task_mean_delta"],
+                "development_task_95ci": [
+                    comparison["task_95ci_low"],
+                    comparison["task_95ci_high"],
+                ],
+                "development_task_nonloss_rate": comparison[
+                    "task_nonloss_rate"
+                ],
+                "evaluation_task_ids_not_loaded": selection[
+                    "evaluation_task_ids_not_loaded"
+                ],
+            },
+        ),
+    )
+    skill = ReusableSkill(
+        skill_id="source_guided_diverse_initial_design",
+        title="Source-guided diverse initial design",
+        task_families=("cn_reaction_optimization",),
+        instructions=(
+            "Validate the target variables, units, bounds, and categorical semantics against the source campaign contract.",
+            "Choose completed sources with the same substrate; if none exist, use sources with the same precatalyst; otherwise use all compatible sources.",
+            "Fit one GP expert per source and aggregate candidate predictions through median normalized ranks.",
+            "Select the first experiment by source rank, then select two more with 0.15 source-rank weight and 0.85 mixed-space diversity weight.",
+            "After the three initial outcomes are revealed, discard the source prior and run the frozen target-only GP-UCB for subsequent proposals.",
+            "Compare deployment against both random initial design and pure space filling; retain all negative-transfer evidence.",
+        ),
+        abstain_when=(
+            "source and target decision spaces lack a declared mapping",
+            "target constraints make any proposed condition invalid",
+            "task-disjoint development evidence fails the frozen confidence and non-loss gate",
+        ),
+        evidence_ids=(
+            "baumgartner_campaign_space_contract",
+            "baumgartner_diverse_warmstart_development_v1",
+        ),
+    )
+    return compile_skill_bank(
+        bank_id="care2-baumgartner-initial-design",
+        development_task_ids=development,
+        evaluation_task_ids=evaluation,
+        evidence=evidence,
+        skills=(skill,),
+        provenance={
+            "builder": "build_baumgartner_warmstart_skill_bank.py",
+            "source_repository": "https://github.com/sustainable-processes/multitask",
+            "protocol": protocol["version"],
+            "target_outcomes_used_for_skill_building": False,
+            "claim_boundary": "initial-design transfer only",
+        },
+    )
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=ROOT / "configs" / "baumgartner_multisource_warmstart_v1.json",
+    )
+    parser.add_argument("--selection-record", type=Path, required=True)
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=ROOT / "skill_banks" / "care2-baumgartner-initial-design",
+    )
+    args = parser.parse_args()
+    config = json.loads(args.config.read_text(encoding="utf-8"))
+    selection = json.loads(args.selection_record.read_text(encoding="utf-8"))
+    if selection["config_fingerprint"] != hashlib.sha256(
+        json.dumps(config, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest():
+        raise ValueError("Selection record does not match the frozen config.")
+    bank = build_bank(config, selection)
+    bank.write(args.output_dir)
+    print(json.dumps(bank.as_dict(), ensure_ascii=False, indent=2))
+
+
+if __name__ == "__main__":
+    main()

@@ -41,6 +41,10 @@ Current status:
 - Adds a persistent agent-readable `SkillBank` under
   `skill_banks/care2-wetlab-transfer/` plus a leakage-resistant sequential
   `ask()` / `tell()` boundary.
+- Adds 13 real Baumgartner C-N campaigns and a task-disjoint benchmark for
+  source-guided diverse initial design. The first nine campaigns select and
+  freeze the route; the final four are confirmation tasks. See
+  [`BAUMGARTNER_WARMSTART_PROTOCOL.md`](BAUMGARTNER_WARMSTART_PROTOCOL.md).
 
 Run:
 
@@ -57,6 +61,24 @@ python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_m
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_matbench_expt_gap --seeds 30 --rounds 10
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset all --seeds 30 --rounds 10
 ```
+
+Calibrate and then confirm the Baumgartner initial-design skill:
+
+```bash
+python3 experiments/care_replay/scripts/run_multisource_warmstart.py calibrate \
+  --config experiments/care_replay/configs/baumgartner_multisource_warmstart_v1.json \
+  --output-dir /tmp/care2-baumgartner-development
+
+python3 experiments/care_replay/scripts/run_multisource_warmstart.py confirm \
+  --config experiments/care_replay/configs/baumgartner_multisource_warmstart_v1.json \
+  --selection-record /tmp/care2-baumgartner-development/selection_record.json \
+  --output-dir /tmp/care2-baumgartner-confirmation
+```
+
+Every method receives three initial observations and ten target reveals. The
+transfer route uses source outcomes only for initial design; all methods then
+run the same target-only GP-UCB. Random initialization and deterministic mixed
+space filling are both treated as baselines.
 
 Run a real LLM-in-the-loop smoke test:
 
