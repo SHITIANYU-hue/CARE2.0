@@ -42,9 +42,13 @@ def validate_protocol(config: Mapping[str, Any]) -> None:
         raise ValueError(f"Development and evaluation tasks overlap: {sorted(overlap)}")
     if protocol.get("target_task_calibration", True):
         raise ValueError("Warm-start confirmation forbids target-task calibration.")
+    declared_tasks = development | evaluation
+    for case in protocol.get("evaluation_cases", []):
+        declared_tasks.add(str(case["target_task_id"]))
+        declared_tasks.update(str(item) for item in case["source_task_ids"])
     missing = [
         task_id
-        for task_id in development | evaluation
+        for task_id in declared_tasks
         if task_id not in replay.DATASET_BUILDERS
     ]
     if missing:
@@ -142,11 +146,15 @@ def source_diverse_initial(
     source_prior: np.ndarray,
     count: int,
     diversity_weight: float,
+    source_quantile: float = 0.0,
 ) -> list[int]:
     if not 0.0 <= diversity_weight <= 1.0:
         raise ValueError("diversity_weight must lie in [0, 1].")
+    if not 0.0 <= source_quantile < 1.0:
+        raise ValueError("source_quantile must lie in [0, 1).")
     features = classical.feature_arrays(adapter, adapter.candidates)
     selected = [int(np.argmax(source_prior))]
+    eligible = source_prior >= np.quantile(source_prior, source_quantile)
     while len(selected) < count:
         min_distance = np.full(len(adapter.candidates), np.inf, dtype=np.float64)
         for index in selected:
@@ -160,7 +168,12 @@ def source_diverse_initial(
             (1.0 - diversity_weight) * source_prior
             + diversity_weight * normalized_distance
         )
+        scores[~eligible] = -np.inf
         scores[np.asarray(selected, dtype=int)] = -np.inf
+        if not np.isfinite(scores).any():
+            raise ValueError(
+                "source_quantile leaves too few candidates for the initial design."
+            )
         selected.append(int(np.argmax(scores)))
     return selected
 
@@ -178,12 +191,15 @@ def random_initial(
 def public_conditions(candidate: replay.Candidate) -> dict[str, Any]:
     return {
         "base": candidate.metadata.get("base"),
+        "precatalyst": candidate.metadata.get("precatalyst"),
         "base_equivalents": candidate.metadata.get("base_equivalents"),
         "temperature_celsius": candidate.metadata.get("temperature_celsius"),
         "residence_time_minutes": candidate.metadata.get("residence_time_minutes"),
+        "residence_time_seconds": candidate.metadata.get("residence_time_seconds"),
         "precatalyst_loading_mol_percent": candidate.metadata.get(
             "precatalyst_loading_mol_percent"
         ),
+        "precatalyst_fraction": candidate.metadata.get("precatalyst_fraction"),
     }
 
 
@@ -284,7 +300,9 @@ def run_target_gp(
 def policy_id(policy: Mapping[str, Any]) -> str:
     scope = str(policy["source_scope"])
     weight = float(policy["diversity_weight"])
-    return f"warmstart_{scope}_{weight:.2f}"
+    quantile = float(policy.get("source_quantile", 0.0))
+    suffix = f"_q{quantile:.2f}" if quantile > 0.0 else ""
+    return f"warmstart_{scope}_{weight:.2f}{suffix}"
 
 
 def mean_for(
@@ -427,6 +445,7 @@ def calibrate(config: dict[str, Any], output_dir: Path) -> dict[str, Any]:
                     source_prior,
                     initial_count,
                     float(policy["diversity_weight"]),
+                    float(policy.get("source_quantile", 0.0)),
                 ),
                 rounds,
                 mode,
@@ -474,12 +493,26 @@ def calibrate(config: dict[str, Any], output_dir: Path) -> dict[str, Any]:
         for mode in (RANDOM_MODE, SPACE_FILLING_MODE)
     }
     if eligible:
-        selected_mode = max(
-            eligible,
-            key=lambda mode: (
+        selection_priority = str(
+            protocol.get("eligible_selection_priority", "confidence_then_mean")
+        )
+        if selection_priority == "mean_then_confidence":
+            selection_key = lambda mode: (
+                comparisons[mode][metric]["task_mean_delta"],
+                comparisons[mode][metric]["task_95ci_low"],
+            )
+        elif selection_priority == "confidence_then_mean":
+            selection_key = lambda mode: (
                 comparisons[mode][metric]["task_95ci_low"],
                 comparisons[mode][metric]["task_mean_delta"],
-            ),
+            )
+        else:
+            raise ValueError(
+                f"Unknown eligible_selection_priority: {selection_priority}"
+            )
+        selected_mode = max(
+            eligible,
+            key=selection_key,
         )
         selected_policy = next(
             policy for policy in policies if policy_id(policy) == selected_mode
@@ -503,6 +536,9 @@ def calibrate(config: dict[str, Any], output_dir: Path) -> dict[str, Any]:
         "selection_metric": metric,
         "selection_required_ci_low": required_ci_low,
         "selection_required_task_nonloss_rate": required_nonloss,
+        "eligible_selection_priority": protocol.get(
+            "eligible_selection_priority", "confidence_then_mean"
+        ),
         "best_source_mode": best_source_mode,
         "best_source_policy": best_source_policy,
         "selected_mode": selected_mode,
@@ -572,8 +608,16 @@ def confirm(
     protocol = config["protocol"]
     evaluation = list(protocol["evaluation_task_ids"])
     development = list(protocol["development_task_ids"])
-    best_policy = dict(selection["best_source_policy"])
+    evaluation_sources = {
+        str(case["target_task_id"]): [str(item) for item in case["source_task_ids"]]
+        for case in protocol.get("evaluation_cases", [])
+    }
     selected_route = dict(selection["selected_route"])
+    source_policy = (
+        selected_route
+        if selected_route["mode"] == SOURCE_MODE
+        else dict(selection["best_source_policy"])
+    )
     initial_count = int(protocol["initial_observations"])
     rounds = int(protocol["reveal_rounds"])
     rows: list[dict[str, Any]] = []
@@ -610,8 +654,9 @@ def confirm(
         )
         rows.append(space_result[0])
         audit_groups[f"{target_id}_{SPACE_FILLING_MODE}"] = space_result[1]
+        source_pool = evaluation_sources.get(target_id, development)
         source_ids = source_ids_for_scope(
-            target, development, str(best_policy["source_scope"])
+            target, source_pool, str(source_policy["source_scope"])
         )
         source_prior, source_ids = build_source_consensus(
             target, source_ids, protocol
@@ -622,14 +667,15 @@ def confirm(
                 target,
                 source_prior,
                 initial_count,
-                float(best_policy["diversity_weight"]),
+                float(source_policy["diversity_weight"]),
+                float(source_policy.get("source_quantile", 0.0)),
             ),
             rounds,
             SOURCE_MODE,
             -1,
             protocol["kernel"],
             source_ids,
-            best_policy,
+            source_policy,
         )
         rows.append(source_result[0])
         audit_groups[f"{target_id}_{SOURCE_MODE}"] = source_result[1]
@@ -661,6 +707,7 @@ def confirm(
         "protocol_version": protocol["version"],
         "target_task_calibration": False,
         "development_selection": dict(selection),
+        "evaluated_source_policy": dict(source_policy),
         "aggregate_by_task": aggregate_by_task(rows),
         "comparisons": {
             SOURCE_MODE: task_level_comparison(

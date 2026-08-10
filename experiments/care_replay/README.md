@@ -45,6 +45,9 @@ Current status:
   source-guided diverse initial design. The first nine campaigns select and
   freeze the route; the final four are confirmation tasks. See
   [`BAUMGARTNER_WARMSTART_PROTOCOL.md`](BAUMGARTNER_WARMSTART_PROTOCOL.md).
+- Adds a v2 source-quality floor and a separate Baumgartner Suzuki external
+  confirmation target. See
+  [`BAUMGARTNER_WARMSTART_V2_PROTOCOL.md`](BAUMGARTNER_WARMSTART_V2_PROTOCOL.md).
 
 Run:
 

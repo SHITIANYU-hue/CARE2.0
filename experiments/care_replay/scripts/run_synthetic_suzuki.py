@@ -1014,6 +1014,78 @@ BAUMGARTNER_CN_CAMPAIGNS = (
 )
 
 
+BAUMGARTNER_SUZUKI_CAMPAIGNS = (
+    ("minlp1", "MINLP1 optimization"),
+    ("minlp2", "MINLP2 optimization"),
+)
+
+
+def real_baumgartner_suzuki_adapter(campaign_id: str) -> DatasetAdapter:
+    """Load one Baumgartner Suzuki mixed-variable campaign."""
+
+    campaign_lookup = dict(BAUMGARTNER_SUZUKI_CAMPAIGNS)
+    if campaign_id not in campaign_lookup:
+        raise ValueError(f"Unknown Baumgartner Suzuki campaign: {campaign_id}")
+    sheet_name = campaign_lookup[campaign_id]
+    path = RAW_DATA / "baumgartner_suzuki" / "c8re00032h2.xlsx"
+    if not path.exists():
+        raise FileNotFoundError(f"Missing pinned Baumgartner Suzuki data: {path}")
+    records = rows_to_dicts(read_xlsx_rows(path, sheet_name))
+    pool: list[Candidate] = []
+    for index, row in enumerate(records):
+        reaction_yield = row.get("Reaction Yield")
+        if not isinstance(reaction_yield, (int, float)):
+            continue
+        precatalyst = str(row["Reagent 3 ID"]).strip()
+        temperature = float(row["Temperature (°C)"])
+        residence_time = float(row["Residence Time Actual (s)"])
+        catalyst_fraction = float(row["Reagent 3 Conc in mol%"])
+        numeric_features = (
+            (temperature - 30.0) / (110.0 - 30.0),
+            (residence_time - 60.0) / (660.0 - 60.0),
+            (catalyst_fraction - 0.004) / (0.026 - 0.004),
+        )
+        raw_yield = float(reaction_yield)
+        yield_percent = clamp_score(
+            100.0 * raw_yield if abs(raw_yield) <= 1.5 else raw_yield
+        )
+        pool.append(
+            Candidate(
+                candidate_id=f"baumgartner_suzuki_{campaign_id}_{index:03d}",
+                group=precatalyst,
+                x1=numeric_features[0],
+                x2=numeric_features[1],
+                x3=numeric_features[2],
+                objective_value=yield_percent,
+                metadata={
+                    "precatalyst": precatalyst,
+                    "temperature_celsius": temperature,
+                    "residence_time_seconds": residence_time,
+                    "precatalyst_fraction": catalyst_fraction,
+                    "substrate": "3-Chloropyridine Suzuki coupling",
+                    "campaign_name": sheet_name,
+                    "yield_value": yield_percent,
+                    "source_row": index + 2,
+                },
+                numeric_features=numeric_features,
+            )
+        )
+    return DatasetAdapter(
+        dataset_id=f"real_baumgartner_suzuki_{campaign_id}",
+        title=f"Baumgartner Suzuki campaign: {sheet_name}",
+        objective="maximize_yield",
+        decision_columns=("precatalyst",),
+        hidden_target="yield_value",
+        group_column="precatalyst",
+        preferred_groups=(),
+        failure_note=(
+            "Precatalyst effects interact with temperature, residence time, and "
+            "precatalyst loading."
+        ),
+        candidates=tuple(pool),
+    )
+
+
 def real_baumgartner_cn_adapter(campaign_id: str) -> DatasetAdapter:
     """Load one mixed-variable Baumgartner C-N optimization campaign."""
 
@@ -1753,6 +1825,14 @@ DATASET_BUILDERS: dict[str, Callable[[], DatasetAdapter]] = {
             lambda campaign_id=campaign_id: real_baumgartner_cn_adapter(campaign_id)
         )
         for campaign_id, _campaign_name in BAUMGARTNER_CN_CAMPAIGNS
+    },
+    **{
+        f"real_baumgartner_suzuki_{campaign_id}": (
+            lambda campaign_id=campaign_id: real_baumgartner_suzuki_adapter(
+                campaign_id
+            )
+        )
+        for campaign_id, _campaign_name in BAUMGARTNER_SUZUKI_CAMPAIGNS
     },
     "real_chemlex_acidamine": real_chemlex_acidamine_adapter,
     "real_moleculenet_esol": real_moleculenet_esol_adapter,

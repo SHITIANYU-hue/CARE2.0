@@ -39,6 +39,8 @@ def build_bank(config: dict[str, Any], selection: dict[str, Any]) -> Any:
     development = tuple(protocol["development_task_ids"])
     evaluation = tuple(protocol["evaluation_task_ids"])
     selected_route = dict(selection["selected_route"])
+    diversity_weight = float(selected_route.get("diversity_weight", 0.0))
+    source_quantile = float(selected_route.get("source_quantile", 0.0))
     selected_mode = str(selection["selected_mode"])
     comparison = selection["candidate_comparisons"][selected_mode][
         protocol["selection_metric"]
@@ -71,7 +73,8 @@ def build_bank(config: dict[str, Any], selection: dict[str, Any]) -> Any:
             status="validated",
             lesson=(
                 "Task-disjoint development selected a source-rank plus diversity "
-                "initial design before an unchanged target-only GP-UCB continuation."
+                "initial design with an explicit source-quality floor before an "
+                "unchanged target-only GP-UCB continuation."
             ),
             applicability=(
                 "three initial experiments followed by target-only sequential optimization",
@@ -112,12 +115,19 @@ def build_bank(config: dict[str, Any], selection: dict[str, Any]) -> Any:
     skill = ReusableSkill(
         skill_id="source_guided_diverse_initial_design",
         title="Source-guided diverse initial design",
-        task_families=("cn_reaction_optimization",),
+        task_families=(
+            "cn_reaction_optimization",
+            "mixed_variable_reaction_optimization",
+        ),
         instructions=(
             "Validate the target variables, units, bounds, and categorical semantics against the source campaign contract.",
             "Choose completed sources with the same substrate; if none exist, use sources with the same precatalyst; otherwise use all compatible sources.",
             "Fit one GP expert per source and aggregate candidate predictions through median normalized ranks.",
-            "Select the first experiment by source rank, then select two more with 0.15 source-rank weight and 0.85 mixed-space diversity weight.",
+            (
+                "Select the first experiment by source rank, then select two more "
+                f"from the top {100.0 * (1.0 - source_quantile):.0f}% source-ranked "
+                f"region with {diversity_weight:.2f} mixed-space diversity weight."
+            ),
             "After the three initial outcomes are revealed, discard the source prior and run the frozen target-only GP-UCB for subsequent proposals.",
             "Compare deployment against both random initial design and pure space filling; retain all negative-transfer evidence.",
         ),

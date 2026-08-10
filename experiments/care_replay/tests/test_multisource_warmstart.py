@@ -4,6 +4,7 @@ import json
 import sys
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 
@@ -65,6 +66,25 @@ def test_source_diverse_initial_is_unique_and_deterministic() -> None:
     assert len(first) == len(set(first)) == 3
 
 
+def test_source_quantile_keeps_diverse_candidates_in_admissible_region() -> None:
+    target = replay.real_baumgartner_cn_adapter("aniline_ephos")
+    prior = np.linspace(0.0, 1.0, len(target.candidates))
+    selected = warmstart.source_diverse_initial(
+        target, prior, 3, diversity_weight=1.0, source_quantile=0.5
+    )
+    threshold = float(np.quantile(prior, 0.5))
+    assert all(float(prior[index]) >= threshold for index in selected)
+
+
+def test_baumgartner_suzuki_campaigns_share_feature_contract() -> None:
+    source = replay.real_baumgartner_suzuki_adapter("minlp1")
+    target = replay.real_baumgartner_suzuki_adapter("minlp2")
+    assert source.decision_columns == target.decision_columns == ("precatalyst",)
+    assert source.candidates and target.candidates
+    assert all(len(candidate.numeric_features) == 3 for candidate in source.candidates)
+    assert all(len(candidate.numeric_features) == 3 for candidate in target.candidates)
+
+
 def test_small_calibration_and_confirmation_run_without_target_calibration(
     tmp_path: Path,
 ) -> None:
@@ -92,6 +112,8 @@ def test_small_calibration_and_confirmation_run_without_target_calibration(
     confirmation_dir = tmp_path / "confirmation"
     summary = warmstart.confirm(config, selection, confirmation_dir)
     assert summary["target_task_calibration"] is False
+    if selection["selected_route"]["mode"] == warmstart.SOURCE_MODE:
+        assert summary["evaluated_source_policy"] == selection["selected_route"]
     assert set(summary["aggregate_by_task"]) == set(
         protocol["evaluation_task_ids"]
     )
