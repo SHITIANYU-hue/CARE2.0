@@ -457,9 +457,14 @@ def run_experiment(
     target = replay.DATASET_BUILDERS[experiment["target_dataset"]]()
     for source in sources:
         classical.validate_compatible_spaces(source, target)
+    observation_counts = list(experiment["source_observations"])
+    if len(sources) != len(observation_counts):
+        raise ValueError(
+            "source_observations must contain one count per source dataset."
+        )
     source_posteriors = []
     for source, observation_count in zip(
-        sources, experiment["source_observations"], strict=True
+        sources, observation_counts
     ):
         observed = transfer.source_observations(
             source,
