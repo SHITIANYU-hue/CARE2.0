@@ -34,9 +34,19 @@ def task_digest(adapter: replay.DatasetAdapter) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
-def build_bank(config: dict[str, Any], selection: dict[str, Any]) -> Any:
+def build_bank(
+    config: dict[str, Any],
+    selection: dict[str, Any],
+    confirmation: dict[str, Any] | None = None,
+) -> Any:
     protocol = config["protocol"]
-    development = tuple(protocol["development_task_ids"])
+    calibration_tasks = tuple(protocol["development_task_ids"])
+    external_source_tasks = tuple(
+        source_id
+        for case in protocol.get("evaluation_cases", [])
+        for source_id in case["source_task_ids"]
+    )
+    development = tuple(dict.fromkeys((*calibration_tasks, *external_source_tasks)))
     evaluation = tuple(protocol["evaluation_task_ids"])
     selected_route = dict(selection["selected_route"])
     diversity_weight = float(selected_route.get("diversity_weight", 0.0))
@@ -45,13 +55,13 @@ def build_bank(config: dict[str, Any], selection: dict[str, Any]) -> Any:
     comparison = selection["candidate_comparisons"][selected_mode][
         protocol["selection_metric"]
     ]
-    adapters = [replay.DATASET_BUILDERS[task_id]() for task_id in development]
+    adapters = [replay.DATASET_BUILDERS[task_id]() for task_id in calibration_tasks]
     observation_count = sum(len(adapter.candidates) for adapter in adapters)
     task_hashes = tuple(task_digest(adapter) for adapter in adapters)
     evidence = (
         SkillEvidence(
             evidence_id="baumgartner_campaign_space_contract",
-            source_tasks=development,
+            source_tasks=calibration_tasks,
             task_family="cn_reaction_optimization",
             status="validated",
             lesson=(
@@ -68,7 +78,7 @@ def build_bank(config: dict[str, Any], selection: dict[str, Any]) -> Any:
         ),
         SkillEvidence(
             evidence_id="baumgartner_diverse_warmstart_development_v1",
-            source_tasks=development,
+            source_tasks=calibration_tasks,
             task_family="cn_reaction_optimization",
             status="validated",
             lesson=(
@@ -112,6 +122,51 @@ def build_bank(config: dict[str, Any], selection: dict[str, Any]) -> Any:
             },
         ),
     )
+    evidence_items = list(evidence)
+    if confirmation is not None:
+        comparison = confirmation["comparisons"]["development_selected_route"]
+        primary = comparison["best_so_far_auc"]
+        external_adapters = [
+            replay.DATASET_BUILDERS[task_id]() for task_id in external_source_tasks
+        ]
+        evidence_items.append(
+            SkillEvidence(
+                evidence_id="baumgartner_suzuki_external_confirmation_v2",
+                source_tasks=external_source_tasks,
+                task_family="mixed_variable_reaction_optimization",
+                status="candidate",
+                lesson=(
+                    "The frozen source-quality-bounded initial design improved "
+                    f"best-so-far AUC by {primary['task_mean_delta']:+.6f} on the "
+                    "external Baumgartner Suzuki MINLP2 campaign."
+                ),
+                applicability=(
+                    "source and target campaigns share declared mixed-variable semantics",
+                ),
+                failure_modes=(
+                    "one external target does not establish task-level generalization",
+                    "using the target outcome to retune the frozen source quantile",
+                ),
+                trace_references=(
+                    hashlib.sha256(
+                        json.dumps(
+                            confirmation,
+                            sort_keys=True,
+                            separators=(",", ":"),
+                        ).encode("utf-8")
+                    ).hexdigest(),
+                ),
+                observation_count=sum(
+                    len(adapter.candidates) for adapter in external_adapters
+                ),
+                provenance={
+                    "external_target_task_ids": list(evaluation),
+                    "best_so_far_auc_delta": primary["task_mean_delta"],
+                    "final_best_delta": comparison["final_best"]["task_mean_delta"],
+                    "route_frozen_before_external_execution": True,
+                },
+            )
+        )
     skill = ReusableSkill(
         skill_id="source_guided_diverse_initial_design",
         title="Source-guided diverse initial design",
@@ -136,22 +191,20 @@ def build_bank(config: dict[str, Any], selection: dict[str, Any]) -> Any:
             "target constraints make any proposed condition invalid",
             "task-disjoint development evidence fails the frozen confidence and non-loss gate",
         ),
-        evidence_ids=(
-            "baumgartner_campaign_space_contract",
-            "baumgartner_diverse_warmstart_development_v1",
-        ),
+        evidence_ids=tuple(item.evidence_id for item in evidence_items),
     )
     return compile_skill_bank(
         bank_id="care2-baumgartner-initial-design",
         development_task_ids=development,
         evaluation_task_ids=evaluation,
-        evidence=evidence,
+        evidence=evidence_items,
         skills=(skill,),
         provenance={
             "builder": "build_baumgartner_warmstart_skill_bank.py",
             "source_repository": "https://github.com/sustainable-processes/multitask",
             "protocol": protocol["version"],
-            "target_outcomes_used_for_skill_building": False,
+            "target_outcomes_used_for_skill_selection": False,
+            "external_confirmation_included": confirmation is not None,
             "claim_boundary": "initial-design transfer only",
         },
     )
@@ -165,6 +218,7 @@ def main() -> None:
         default=ROOT / "configs" / "baumgartner_multisource_warmstart_v1.json",
     )
     parser.add_argument("--selection-record", type=Path, required=True)
+    parser.add_argument("--confirmation-summary", type=Path)
     parser.add_argument(
         "--output-dir",
         type=Path,
@@ -173,11 +227,16 @@ def main() -> None:
     args = parser.parse_args()
     config = json.loads(args.config.read_text(encoding="utf-8"))
     selection = json.loads(args.selection_record.read_text(encoding="utf-8"))
+    confirmation = (
+        json.loads(args.confirmation_summary.read_text(encoding="utf-8"))
+        if args.confirmation_summary
+        else None
+    )
     if selection["config_fingerprint"] != hashlib.sha256(
         json.dumps(config, sort_keys=True, separators=(",", ":")).encode("utf-8")
     ).hexdigest():
         raise ValueError("Selection record does not match the frozen config.")
-    bank = build_bank(config, selection)
+    bank = build_bank(config, selection, confirmation)
     bank.write(args.output_dir)
     print(json.dumps(bank.as_dict(), ensure_ascii=False, indent=2))
 

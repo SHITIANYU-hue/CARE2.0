@@ -25,12 +25,21 @@ The selected route was frozen as:
 The server selection record is byte-identical to the local preflight record
 (`SHA-256 ad22d60effbf6e89424203a8abe6d430b6920708f60f6b04f6a2bbdf4ab249d0`).
 
-## Confirmation status
+## Confirmation result
 
-The four evaluation campaigns remain outside development selection. Confirmation
-is run only after the code, configuration, selection record, and reusable skill
-have been committed. Results are added under `confirmation/` without changing
-the frozen route.
+The four evaluation campaigns were run only after the code, configuration,
+selection record, and reusable skill were committed. V1 did **not** generalize:
+
+- best-so-far AUC delta: `-1.204666`;
+- task-level 95% CI: `[-2.927358, +0.518025]`;
+- AUC task win/non-loss rates: `1/4` and `1/4`;
+- final-best delta: `-1.610000`.
+
+The largest failure was unseen-substrate Morpholine-tBuBrettPhos. Development
+tasks almost always had a same-substrate source, while the Morpholine tasks fell
+back to same-precatalyst sources. That fallback had not been isolated during
+development selection. V1 is retained as negative-transfer evidence and the
+motivation for the v2 source-quality floor.
 
 ## Files
 
@@ -38,6 +47,7 @@ the frozen route.
 - `development/selection_record.json`: complete policy comparison and route.
 - `development/development_metrics.csv`: raw per-task/per-mode metrics.
 - `development/development_audits.tar.gz`: every candidate reveal and outcome.
+- `confirmation/`: frozen v1 metrics, summary, stdout, and all audits.
 - `skill_bank/`: exact reusable skill compiled from development evidence.
 
 ## Claim boundary

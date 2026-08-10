@@ -33,11 +33,38 @@ development selection. The target receives three initial observations and ten
 target-only GP-UCB reveals, matched to 100 random-initial runs and deterministic
 space filling.
 
-## Status
+## External confirmation result
 
-The code, data version, configuration, selection record, and skill are committed
-before the external target is executed. Confirmation results are added under
-`confirmation/` without changing the frozen route.
+The code, data version, configuration, selection record, and skill were committed
+before MINLP2 was executed. The frozen v2 route produced:
+
+- best-so-far AUC: `98.061210`;
+- stronger non-transfer AUC: `89.400090` (space filling);
+- AUC delta: `+8.661120`;
+- final best yield: `100.000000`;
+- mean random-initial final best: `94.767349`;
+- final-best delta: `+5.232651`.
+
+Across 100 random-initial runs, mean AUC was `88.840191` with a normal 95% CI
+of `[87.344314, 90.336069]`. Fifteen random runs matched or exceeded the frozen
+route's AUC, so this single-target result is a large practical gain but not a
+task-level statistical confirmation.
+
+The frozen route reached 100% yield after five total observations (three initial
+plus two GP-UCB reveals). Only 46% of random-initial runs reached 100% within the
+13-observation budget; among successful random runs, the median was seven total
+observations. Space filling did not reach 95% yield.
+
+## Post-hoc stress test
+
+V2 was also rerun on the four already observed v1 targets. This is not held-out
+evidence. It changed mean AUC delta from `-1.204666` to `+0.381563`, with three
+task wins and one loss (`-0.722288`). Final best was non-inferior on all four
+tasks. The result supports the diagnosed failure-mode fix but is kept separate
+from the external confirmation.
+
+Raw external and post-hoc metrics, stdout, and audits are under `confirmation/`
+and `posthoc_stress/`.
 
 ## Claim boundary
 

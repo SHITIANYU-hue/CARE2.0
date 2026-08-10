@@ -14,6 +14,7 @@ sys.path.insert(0, str(SCRIPTS))
 
 import run_multisource_warmstart as warmstart  # noqa: E402
 import run_synthetic_suzuki as replay  # noqa: E402
+import build_baumgartner_warmstart_skill_bank as build_skill  # noqa: E402
 
 
 def frozen_config() -> dict:
@@ -131,3 +132,26 @@ def test_confirmation_rejects_changed_frozen_config(tmp_path: Path) -> None:
     config["protocol"]["reveal_rounds"] += 1
     with pytest.raises(ValueError, match="frozen config"):
         warmstart.confirm(config, selection, tmp_path)
+
+
+def test_v2_skill_bank_keeps_external_confirmation_separate() -> None:
+    config = json.loads(
+        (ROOT / "configs" / "baumgartner_multisource_warmstart_v2.json").read_text()
+    )
+    result_root = (
+        ROOT
+        / "results"
+        / "2026-08-10-baumgartner-warmstart-v2-external-confirmation"
+    )
+    selection = json.loads(
+        (result_root / "development" / "selection_record.json").read_text()
+    )
+    confirmation = json.loads(
+        (result_root / "confirmation" / "confirmation_summary.json").read_text()
+    )
+    bank = build_skill.build_bank(config, selection, confirmation)
+    evidence = {item.evidence_id: item for item in bank.evidence}
+    external = evidence["baumgartner_suzuki_external_confirmation_v2"]
+    assert external.status == "candidate"
+    assert "real_baumgartner_suzuki_minlp1" in bank.development_task_ids
+    assert bank.evaluation_task_ids == ("real_baumgartner_suzuki_minlp2",)
