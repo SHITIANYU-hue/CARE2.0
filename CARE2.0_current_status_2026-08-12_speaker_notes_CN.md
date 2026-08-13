@@ -23,20 +23,21 @@
 
 ## 第 2 页：最新状态：先给结论
 
-**本页核心：** 最新外部验证显示 v2 能更早找到好实验，但当前证据只有一个外部 target，而且这轮没有使用 LLM。
+**本页核心：** 固定 v2 已有一个冻结外部正例；随后完成的真实 LLM 组件实验在五个 target 上平均 AUC 提高 2.12，但仍是回顾性证据。
 
 **详细讲解：**
 
-这一页是整份汇报的数字摘要。第一，AUC 相对更强 baseline 提高 8.66。这里的 AUC 不是分类任务里的 ROC-AUC，而是把每一轮目前找到的最好结果连成 best-so-far 曲线，再计算曲线下面积。AUC 越高，说明越早找到高质量实验，而不只是最后一轮碰巧找到好点。
+这一页把两条证据分开讲。第一条是严格的外部证据：Frozen v2 在 Suzuki MINLP2 上相对更强 target-only baseline 的 best-so-far AUC 提高 8.66。这里的 AUC 表示搜索过程中多早找到高质量实验。这个结果在 target outcome 揭示前已经冻结，但该切片没有使用 LLM。
 
-第二，Frozen v2 最终找到数据集中的 100% 产率。这里的 100% 是实验产率，不是准确率，也不是置信度。第三，v2 达到 100% 只需要 5 次总观测；成功的随机初始化运行中位数需要 7 次，所以在这个 target 上相当于少做两次实验。第四，目前只有 1 个严格冻结的外部 target，因此最准确的说法是：source-outcome initial design 在这个真实反应优化任务上有实际价值。不能直接说所有领域都提升，也不能把结果归因给 LLM，因为本轮 LLM 没有参与。
+第二条是随后完成的真实 LLM 组件实验。我们通过 CommonStack 实际调用 openai/gpt-5.4，让模型在看不到 target outcome 的情况下生成 initial-design hypothesis；按任务结构选择 raw 或 compiled 方案后，五个 target 的平均 AUC 相对 fixed v2 提高 2.12，4/5 不下降。不过 95% 置信区间是 [-0.226, 4.473]，而且这五个 target 以前都被项目使用过，所以这是回顾性组件证据，不是新的外部确认。
 
-**名词解释：** AUC=搜索全过程的效率；baseline=用来比较的对照方法；Frozen=策略和参数在看 target 结果前已锁定。
+**名词解释：** AUC=搜索全过程的效率；Frozen=策略和参数在看 target 结果前已锁定；回顾性组件实验=在已有任务上检查模块行为，不能替代全新 target。
 
 **转场：** 有了结果后，下面回到问题定义：我们到底在优化什么。
 
 **参考文件：**
 - `/Users/rentamac/Documents/Codex/2026-05-12/CARE2.0/experiments/care_replay/results/2026-08-10-baumgartner-warmstart-v2-external-confirmation/README.md`
+- `/Users/rentamac/Documents/Codex/2026-05-12/CARE2.0/experiments/care_replay/results/2026-08-12-llm-hypothesis-initial-design/README.md`
 
 ## 第 3 页：问题定义：有限预算的逐轮实验
 
@@ -477,21 +478,78 @@ SkillBank 保存 task cards、role maps、frozen TransferSkill、正负案例、
 
 **名词解释：** hypothesis-only=LLM 只生成迁移假设，不接触 target outcome，也不改变后续优化预算；matched random=输出格式和复杂度匹配的随机假设对照。
 
-**转场：** 最后两页把已成立、未成立和下一步工作明确分开。
+**转场：** 下面进入本轮新增的真实 LLM 实验：它具体读什么、输出什么，以及是否超过 fixed v2。
 
 **参考文件：**
 - `/Users/rentamac/Documents/Codex/2026-05-12/CARE2.0/experiments/care_replay/CARE2_METHOD.md`
 - `/Users/rentamac/Documents/Codex/2026-05-12/CARE2.0/skill_banks`
+- `/Users/rentamac/Documents/Codex/2026-05-12/CARE2.0/experiments/care_replay/results/2026-08-12-llm-hypothesis-initial-design/README.md`
 
-## 第 28 页：结论边界
+## 第 28 页：真实 LLM 如何进入执行链
 
-**本页核心：** 已经成立的是可信迁移流程和一个外部正例；尚未成立的是所有任务提升与 LLM 普遍优势。
+**本页核心：** LLM 不再只是写解释，而是在看不到 target outcome 的情况下冻结一个可执行 initial-design hypothesis。
 
 **详细讲解：**
 
-左栏是可以明确说的：我们建立了统一、可审计的 replay harness；source-outcome initial design 在一个真实外部 Suzuki target 上有实际价值；v1 的独立失败推动了 v2 的可解释修订；最新外部 AUC 相对强 baseline 提高 8.66。
+这一页讲清楚本轮新增的真实 LLM 调用。输入包括完成的 source outcomes、source 层统计、target schema、公开候选条件和 source-prior 排名短名单；明确不包含任何 target outcome。使用 CommonStack 上的 openai/gpt-5.4，模型输出一个 JSON hypothesis：三条 candidate IDs、各自角色、机制解释、置信度、失败条件和是否 abstain。原始 prompt、原始 response、token usage、API timing 和 SHA-256 都保存。
 
-中栏是不能说的：任意跨领域稳定迁移、LLM 在多数路径优于 fixed rule、source 在优化全程持续贡献，以及单个 target 的 task-level 显著性。右栏是项目真正的定位：可信赖的科学知识迁移框架，强调强 baseline、冻结协议、负迁移审计、exact fallback，以及成功与失败共同沉淀。
+输出有两种执行方式。Raw LLM 直接执行模型选出的三个点；Compiled LLM 把模型提供的语义锚点，与 source 共识最优点和 top-50% 质量区内的 maximin 几何探针组合。三点以后，两种方法都退出 source 和 LLM，统一运行 target-only GP-UCB。这样 LLM 真正改变了实验开局，但后续预算和优化器仍可公平比较。
+
+**名词解释：** semantic anchor=LLM 根据科学机制挑出的重点条件；compiler=把语义建议转换成满足质量和几何约束的执行方案；abstain=LLM 主动拒绝迁移。
+
+**转场：** 下一页用 Suzuki MINLP2 展示 raw LLM 为什么失败，以及安全 compiler 如何把它变成正增益。
+
+**参考文件：**
+- `/Users/rentamac/Documents/Codex/2026-05-12/CARE2.0/experiments/care_replay/results/2026-08-12-llm-hypothesis-initial-design/README.md`
+- `/Users/rentamac/Documents/Codex/2026-05-12/CARE2.0/experiments/care_replay/scripts/run_llm_initial_design_hypothesis.py`
+
+## 第 29 页：Suzuki LLM Case Study
+
+**本页核心：** LLM 给出了正确的反应区域，但直接选三点覆盖不足；安全编译后 AUC 反超 fixed v2。
+
+**详细讲解：**
+
+真实模型在不知道 MINLP2 产率的情况下提出：同底物 source 支持高温、高 loading 的 P2L1 XPhos Cl 区域，温度是主要迁移因子，置信度 0.73。Raw LLM 选了三个都集中在该催化剂家族的点，虽然初始质量不错，但给后续 GP 的几何信息不足，AUC 只有 91.819，低于 fixed v2 的 98.061。
+
+安全 compiler 没有丢掉 LLM。它保留 LLM 的 candidate 024 作为 semantic anchor，加入 source 共识最优 candidate 039，再从 source top-50% 区域中选择 maximin geometry probe 013。这个三点组合 AUC 达到 100，比 fixed v2 高 1.939，二者 final best 都是 100%。这说明合理角色不是让 LLM 替代数值优化，而是让 LLM提出可解释的科学方向，由 compiler 保证可优化性。
+
+**名词解释：** Raw LLM=直接执行三点；Compiled LLM=保留一条 LLM 语义决策并加确定性安全约束；AUC=越早找到好结果越高。
+
+**转场：** 单个 case 还不够，下一页汇总五个 target，看 LLM 增益是否只出现在 Suzuki。
+
+**参考文件：**
+- `/Users/rentamac/Documents/Codex/2026-05-12/CARE2.0/experiments/care_replay/results/2026-08-12-llm-hypothesis-initial-design/suzuki_minlp2/evaluation_compiled/summary.json`
+- `/Users/rentamac/Documents/Codex/2026-05-12/CARE2.0/experiments/care_replay/results/2026-08-12-llm-hypothesis-initial-design/suzuki_minlp2/llm_hypothesis_record.json`
+
+## 第 30 页：五任务 LLM 组件结果
+
+**本页核心：** 任务结构路由在五个 target 上平均 AUC 比 fixed v2 高 2.12，4/5 不下降，但置信区间仍跨零。
+
+**详细讲解：**
+
+五个 target 都是真实 API 调用，共五条主 hypothesis、66,293 tokens。候选路由完全由任务结构决定：只有一个 completed source 时采用 compiled LLM；有多个 source 时采用 raw semantic design。每个 target 的后续 GP、预算和 candidate pool 与 fixed v2 完全一致。
+
+逐任务 AUC delta 是：Suzuki +1.939，Morpholine-AlPhos +5.203，Phenethylamine-AlPhos -0.947，Morpholine-tBuBrettPhos +4.422，preliminary 0。平均 +2.123，win 3/5，non-loss 4/5，final best 5/5 不下降。95% CI 为 [-0.226, 4.473]，仍然跨 0，所以不能写成统计上已经证明 LLM 普遍优于 fixed rule。
+
+还要说明，这条路由是在观察组件行为后形成，五个 target 也都曾被项目使用，因此属于 retrospective ablation。正确下一步是冻结 prompt、compiler 和 route，在全新的 target 上执行。
+
+**名词解释：** 任务结构路由=按 source 数量选择 raw 或 compiled，不读取 target outcome；retrospective ablation=回顾性组件实验，不是新的外部确认。
+
+**转场：** 有了这组结果后，再重新划分哪些结论已经成立、哪些仍然需要外部确认。
+
+**参考文件：**
+- `/Users/rentamac/Documents/Codex/2026-05-12/CARE2.0/experiments/care_replay/results/2026-08-12-llm-hypothesis-initial-design/aggregate/suite_summary.json`
+- `/Users/rentamac/Documents/Codex/2026-05-12/CARE2.0/experiments/care_replay/results/2026-08-12-llm-hypothesis-initial-design/README.md`
+
+## 第 31 页：结论边界
+
+**本页核心：** 已经成立的是可信迁移流程、一个外部固定规则正例和真实 LLM 的正向组件信号；尚未成立的是 LLM 外部普遍优势。
+
+**详细讲解：**
+
+左栏是可以明确说的：我们建立了统一、可审计的 replay harness；固定 v2 在一个真实外部 Suzuki target 上相对强 baseline 的 AUC 提高 8.66；真实 LLM 已经生成并执行结构化 hypothesis；五任务回顾性组件实验平均 AUC 提高 2.12。
+
+中栏是不能说的：任意跨领域稳定迁移、LLM 已在全新 target 普遍优于 fixed rule、task-level CI 已排除零增益，以及 source 在优化全程持续贡献。右栏是项目真正的定位：可信赖的科学知识迁移框架，强调强 baseline、冻结协议、负迁移审计、exact fallback，以及成功和失败共同沉淀。
 
 一句话收束：历史实验可以形成可执行、可拒绝、可验证的 Skill，但每个泛化结论都要由冻结后的新任务来支持。
 
@@ -501,16 +559,17 @@ SkillBank 保存 task cards、role maps、frozen TransferSkill、正负案例、
 
 **参考文件：**
 - `/Users/rentamac/Documents/Codex/2026-05-12/CARE2.0/experiments/care_replay/results/2026-08-12-status-and-ppt/CARE2_CURRENT_STATUS_CN.md`
+- `/Users/rentamac/Documents/Codex/2026-05-12/CARE2.0/experiments/care_replay/results/2026-08-12-llm-hypothesis-initial-design/README.md`
 
-## 第 29 页：下一步实验
+## 第 32 页：下一步实验
 
-**本页核心：** 优先增加真正外部 target，并在统一协议下隔离 LLM 的独立增量。
+**本页核心：** 优先冻结 prompt、compiler 和 route，再用真正外部 target 检验 LLM 的独立增量。
 
 **详细讲解：**
 
 P0 第一项是扩大 external targets：冻结同一个 v2 skill family，在更多未参与开发的 C-N、Suzuki 或相邻 reaction campaigns 上执行。只有多个独立 target 才能计算 task-level CI。P0 第二项是冻结统一 Confirmation Protocol，包括任务根列表、预算、primary metric、selection hash 和 skill fingerprint，防止每个结果出来后改变口径。
 
-P1 是隔离 LLM：在同一个 v2 executor 上比较 fixed v2、LLM hypothesis-only 和 matched random hypothesis，所有组使用相同 source、candidate pool 和 target budget。另一个 P1 是 skill accumulation：target 完成后进入 SkillBank，检验后续任务是否能稳定复用，以及系统是否会在不合适时 abstain。P2 才是扩展领域，顺序应先 reaction 到 reaction、molecule 到 molecule、materials 到 materials，再讨论远距离迁移。
+针对 LLM，还要额外冻结 prompt、模型版本、raw/compiled route、compiler 参数和 trace schema。面对新 target 时不能再根据结果选择哪条路线。确认实验仍然比较 fixed v2、LLM hypothesis-only 和 matched random hypothesis，所有组使用相同 source、candidate pool、initial-design size 和 target budget。之后再研究 skill accumulation 和远距离领域扩展。
 
 **名词解释：** Confirmation Protocol=事先冻结任务、预算、指标和版本的确认性实验协议；skill accumulation=随着完成任务增加，SkillBank 是否带来可重复收益。
 
@@ -518,8 +577,9 @@ P1 是隔离 LLM：在同一个 v2 executor 上比较 fixed v2、LLM hypothesis-
 
 **参考文件：**
 - `/Users/rentamac/Documents/Codex/2026-05-12/CARE2.0/experiments/care_replay/results/2026-08-12-status-and-ppt/CARE2_CURRENT_STATUS_CN.md`
+- `/Users/rentamac/Documents/Codex/2026-05-12/CARE2.0/experiments/care_replay/results/2026-08-12-llm-hypothesis-initial-design/README.md`
 
-## 第 30 页：答疑与讨论口径
+## 第 33 页：答疑与讨论口径
 
 **本页核心：** 这四个问题决定目前能把结论说到哪一步。
 
@@ -527,7 +587,7 @@ P1 是隔离 LLM：在同一个 v2 executor 上比较 fixed v2、LLM hypothesis-
 
 问题一：是不是挑了三个好 seed？不是。前三个点是冻结的算法输出，不是随机 seed；external target 在冻结前没有读取 outcome。问题二：为什么不持续使用 source prior？因为当前实验先隔离 initial-design contribution，持续 prior 需要单独与 warm-start-only 比较，否则归因不清楚。
 
-问题三：为什么 +8.66 不直接说统计显著？因为它来自一个 target。100 个 random seeds 不是 100 个独立科学任务，只能说明该 target 上随机初始化的分布。问题四：这算跨领域吗？目前是不同 reaction-optimization datasets 之间的迁移，属于同领域或相邻任务迁移，还不足以证明化学到材料等远距离跨领域泛化。
+问题三：LLM 是否已经优于 fixed v2？目前五个既有 target 平均 +2.12，4/5 不下降，但 CI 跨零，所以只能说有正向信号。问题四：这算跨领域吗？目前主要是不同 reaction-optimization datasets 之间的迁移，属于同领域或相邻任务迁移，还不足以证明化学到材料等远距离跨领域泛化。
 
 讨论应收束到三个具体决定：下一批 external targets 是什么；LLM hypothesis-only 对照如何冻结；Confirmation Protocol 和 SkillBank 的版本规则如何确定。
 
@@ -537,3 +597,4 @@ P1 是隔离 LLM：在同一个 v2 executor 上比较 fixed v2、LLM hypothesis-
 
 **参考文件：**
 - `/Users/rentamac/Documents/Codex/2026-05-12/CARE2.0/experiments/care_replay/results/2026-08-12-status-and-ppt/CARE2_CURRENT_STATUS_CN.md`
+- `/Users/rentamac/Documents/Codex/2026-05-12/CARE2.0/experiments/care_replay/results/2026-08-12-llm-hypothesis-initial-design/README.md`
