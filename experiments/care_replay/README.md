@@ -90,6 +90,39 @@ export CARE_LLM_API_KEY="..."
 python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset synthetic_materials_i --seeds 3 --rounds 6 --initial 5 --modes no_care_random,incumbent,llm_no_gate,llm_gate_v1 --llm-model openai/gpt-4o-mini --output-tag llm_commonstack
 ```
 
+Run the evidence-bounded LLM scientist loop:
+
+```bash
+export COMMONSTACK_API_KEY="..."
+
+python3 experiments/care_replay/scripts/run_llm_initial_design_hypothesis.py generate \
+  --config experiments/care_replay/configs/baumgartner_multisource_warmstart_v2.json \
+  --target-task real_baumgartner_suzuki_minlp2 \
+  --source-tasks real_baumgartner_suzuki_minlp1 \
+  --output /tmp/care2/hypothesis.json
+
+python3 experiments/care_replay/scripts/run_llm_initial_design_hypothesis.py reflect \
+  --config experiments/care_replay/configs/baumgartner_multisource_warmstart_v2.json \
+  --hypothesis-record /tmp/care2/hypothesis.json \
+  --initial-design-mode compiled \
+  --output /tmp/care2/reflection.json
+
+python3 experiments/care_replay/scripts/run_llm_initial_design_hypothesis.py evaluate \
+  --config experiments/care_replay/configs/baumgartner_multisource_warmstart_v2.json \
+  --hypothesis-record /tmp/care2/hypothesis.json \
+  --reflection-record /tmp/care2/reflection.json \
+  --output-dir /tmp/care2/evaluation
+```
+
+The initial LLM sees completed source outcomes and public target conditions but
+no target outcomes. After the initial design is executed, the reflection LLM
+sees only those revealed target observations, revises or falsifies the
+hypothesis, and proposes follow-up experiments or stops transfer. A frozen
+acquisition-risk gate decides whether a proposal may spend the remaining target
+budget; rejected proposals remain in the trace and knowledge base. The
+five-target retrospective archive is in
+[`results/2026-08-14-llm-reflective-scientist`](results/2026-08-14-llm-reflective-scientist/README.md).
+
 Run the frozen seven-pair source-outcome suite through the canonical entry point:
 
 ```bash

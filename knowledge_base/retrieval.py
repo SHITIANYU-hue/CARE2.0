@@ -7,6 +7,7 @@ from typing import Any
 
 
 ALLOWED_RUNTIME_TYPES = ("skill", "transfer", "mechanism")
+ALLOWED_RUNTIME_STATUSES = ("active", "done")
 
 
 def _query_tokens(query: str) -> str:
@@ -19,6 +20,7 @@ def retrieve_runtime_cards(
     query: str,
     limit: int = 5,
     allowed_types: tuple[str, ...] = ALLOWED_RUNTIME_TYPES,
+    allowed_statuses: tuple[str, ...] = ALLOWED_RUNTIME_STATUSES,
     cutoff: str = "",
 ) -> list[dict[str, Any]]:
     if not db.exists() or not query.strip() or limit <= 0:
@@ -26,7 +28,8 @@ def retrieve_runtime_cards(
     con = sqlite3.connect(db)
     con.row_factory = sqlite3.Row
     placeholders = ",".join("?" for _ in allowed_types)
-    params: list[Any] = [_query_tokens(query), *allowed_types]
+    status_placeholders = ",".join("?" for _ in allowed_statuses)
+    params: list[Any] = [_query_tokens(query), *allowed_types, *allowed_statuses]
     cutoff_clause = ""
     if cutoff:
         cutoff_clause = " and c.updated_at <= ?"
@@ -39,6 +42,8 @@ def retrieve_runtime_cards(
         join cards c on c.id = cards_fts.id
         where cards_fts match ?
           and c.type in ({placeholders})
+          and c.status in ({status_placeholders})
+          and (c.type != 'skill' or c.status = 'active')
           and c.evidence_boundary = 'public'
           {cutoff_clause}
         order by score

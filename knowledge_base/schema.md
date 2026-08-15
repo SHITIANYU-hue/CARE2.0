@@ -53,6 +53,12 @@ failure conditions. They should normally use `candidate` or
 source supports them. A replay improvement alone does not promote a hypothesis
 to established mechanism knowledge.
 
+Self-updated `skill` cards enter with `candidate` status. Runtime retrieval uses
+only `active` skills; `done` remains valid for completed result and log cards.
+Promotion to `active` requires an explicit
+task-disjoint, pre-frozen, outcome-blind confirmation record plus an operator
+authorization; a single positive replay is not sufficient.
+
 ## RAG Integration
 
 The SQLite database includes a `cards_fts` FTS5 table. For vector retrieval, use

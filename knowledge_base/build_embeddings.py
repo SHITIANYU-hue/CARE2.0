@@ -109,7 +109,8 @@ def sentence_transformer_embeddings(
 
 def write_jsonl(rows: list[sqlite3.Row], vectors: list[list[float]], provider: str, model: str, out: Path) -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
-    with out.open("w", encoding="utf-8") as f:
+    temporary = out.with_name(out.name + ".tmp")
+    with temporary.open("w", encoding="utf-8") as f:
         if len(rows) != len(vectors):
             raise RuntimeError(f"Card/vector length mismatch: {len(rows)} cards, {len(vectors)} vectors")
         for row, vector in zip(rows, vectors):
@@ -123,6 +124,7 @@ def write_jsonl(rows: list[sqlite3.Row], vectors: list[list[float]], provider: s
                 "embedding": vector,
             }
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
+    os.replace(temporary, out)
 
 
 def main() -> None:

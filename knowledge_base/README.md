@@ -23,6 +23,55 @@ Generated card JSON is tracked under `knowledge_base/generated_cards/`.
 SQLite, Markdown exports, and embedding indexes remain reproducible generated
 artifacts and are ignored by git.
 
+## Controlled self-update
+
+Completed result directories can update the card store, SQLite/FTS database,
+Markdown index, and embedding index in one transaction:
+
+```bash
+python3 knowledge_base/self_update.py \
+  experiments/care_replay/results/<completed-run>
+```
+
+To discover every new or changed result manifest under the replay results
+directory:
+
+```bash
+python3 knowledge_base/self_update.py --discover
+```
+
+The updater fingerprints each result, skips unchanged runs, records an audit
+event, and rebuilds the local hashed embedding index by default. Discovery
+supports standard replay manifests and the LLM initial-design suite's
+`aggregate/suite_summary.json`; the latter is expanded into an aggregate result
+card plus one candidate hypothesis card per target, including its trace path.
+The reflective scientist suite is handled the same way, additionally preserving
+hypothesis status, revised claims, stop decisions, and gate outcomes.
+Use `--embedding-provider openai` only when a supported embedding endpoint and
+`CARE_OPENAI_API_KEY` are configured.
+
+New `skill` cards are staged as `candidate` and are excluded from runtime RAG.
+Automatic evidence ingestion does not imply automatic scientific validation.
+A skill can become `active` only when the run manifest contains all four
+`knowledge_update` confirmations below and the operator supplies
+`--allow-promotion`:
+
+```json
+{
+  "knowledge_update": {
+    "allow_skill_promotion": true,
+    "task_disjoint_confirmation": true,
+    "protocol_frozen_before_evaluation": true,
+    "external_outcomes_not_used_during_selection": true
+  }
+}
+```
+
+State and append-only audit records are written under
+`knowledge_base/self_update/`. The API function `self_update.self_update(...)`
+can also be called by an experiment runner after it has successfully finalized
+its result directory.
+
 Hypothesis-only LLM proposals and their zero-shot replay evidence use a separate
 ingester so the scientific claim, mechanism, failure conditions, compiler
 boundary, matched random-null comparison, and result provenance remain visible:
@@ -62,8 +111,10 @@ python3 knowledge_base/query_kb.py "Suzuki ChemLex"
 
 `retrieval.py` is the runtime API used by the LLM skill generator. Runtime
 retrieval accepts only public `skill`, `transfer`, and `mechanism` cards and
-supports an experiment-date cutoff. Model-call records retain the retrieved
-card IDs so every prompt can be reconstructed.
+supports an experiment-date cutoff. A skill must be explicitly `active`; legacy
+`done`, candidate, and needs-verification skills are not returned to runtime
+agents. Model-call records retain the retrieved card IDs so every prompt can be
+reconstructed.
 
 ## Embeddings
 

@@ -9,6 +9,7 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parent
+REPO_ROOT = ROOT.parent
 DEFAULT_OUT_DIR = ROOT / "generated_cards"
 
 
@@ -21,6 +22,14 @@ def load_rows(path: Path) -> list[dict[str, str]]:
         return []
     with path.open(newline="", encoding="utf-8") as handle:
         return list(csv.DictReader(handle))
+
+
+def display_path(path: Path) -> str:
+    resolved = path.resolve()
+    try:
+        return resolved.relative_to(REPO_ROOT.resolve()).as_posix()
+    except ValueError:
+        return path.as_posix()
 
 
 def metric_label(row: dict[str, str]) -> str:
@@ -43,6 +52,7 @@ def make_card(
     related_ids: list[str],
     date: str,
     confidence: str,
+    status: str = "done",
 ) -> dict[str, Any]:
     return {
         "id": card_id,
@@ -53,12 +63,184 @@ def make_card(
         "tags": tags,
         "source_ids": [],
         "related_ids": related_ids,
-        "status": "done",
+        "status": status,
         "priority": "P1",
         "confidence": confidence,
         "evidence_boundary": "public",
         "updated_at": date,
     }
+
+
+def llm_initial_design_suite_cards(
+    result_dir: Path,
+    run_id: str,
+    study: str,
+    date: str,
+) -> list[dict[str, Any]]:
+    summary_path = result_dir / "aggregate" / "suite_summary.json"
+    if not summary_path.exists():
+        return []
+    suite = json.loads(summary_path.read_text(encoding="utf-8"))
+    if suite.get("schema_version") != "care.llm_initial_design_suite/v1":
+        return []
+
+    auc = suite.get("auc_delta_vs_fixed_v2", {})
+    final = suite.get("final_best_delta_vs_fixed_v2", {})
+    route = suite.get("route", {})
+    result_id = f"experiment-result.{slug(study)}-llm-initial-design-{date}"
+    task_rows = [row for row in suite.get("per_task", []) if isinstance(row, dict)]
+    hypothesis_ids = [
+        f"hypothesis.{slug(study)}-{slug(str(row.get('target_task', 'unknown')))}-{date}"
+        for row in task_rows
+    ]
+    ci_low = float(auc.get("task_95ci_low", 0.0) or 0.0)
+    ci_high = float(auc.get("task_95ci_high", 0.0) or 0.0)
+    significance = (
+        "task-level CI excludes zero"
+        if ci_low > 0.0
+        else "task-level CI crosses zero"
+    )
+    cards: list[dict[str, Any]] = [make_card(
+        result_id,
+        "experiment_result",
+        f"{study}: LLM hypothesis initial-design suite",
+        (
+            f"Across {suite.get('task_count', 0)} targets, routed LLM initial design changed "
+            f"search AUC by {float(auc.get('task_mean', 0.0) or 0.0):+.4f} versus fixed v2; "
+            f"{significance}."
+        ),
+        (
+            f"Evidence class: {suite.get('evidence_class', 'unknown')}. "
+            f"AUC 95% CI [{ci_low:+.4f}, {ci_high:+.4f}], task win rate "
+            f"{float(auc.get('task_win_rate', 0.0) or 0.0):.3f}, non-loss rate "
+            f"{float(auc.get('task_nonloss_rate', 0.0) or 0.0):.3f}. Final-best delta "
+            f"{float(final.get('task_mean', 0.0) or 0.0):+.4f}. Route "
+            f"{route.get('name', 'unknown')} does not use target outcomes during selection, "
+            f"but remains {route.get('status', 'unconfirmed')}."
+        ),
+        [
+            "llm-hypothesis",
+            "initial-design",
+            "component-ablation",
+            "retrospective",
+            "needs-external-confirmation",
+        ],
+        [run_id, *hypothesis_ids],
+        date,
+        "medium",
+    )]
+
+    for row, hypothesis_id in zip(task_rows, hypothesis_ids):
+        target = str(row.get("target_task", "unknown"))
+        auc_delta = float(row.get("routed_auc_delta_vs_fixed", 0.0) or 0.0)
+        final_delta = float(row.get("routed_final_delta_vs_fixed", 0.0) or 0.0)
+        cards.append(make_card(
+            hypothesis_id,
+            "hypothesis",
+            f"LLM transfer hypothesis for {target}",
+            str(row.get("hypothesis", "No hypothesis text was recorded.")),
+            (
+                f"Route: {row.get('route_mode', 'unknown')} ({row.get('route_reason', 'no reason recorded')}). "
+                f"Against fixed v2, routed AUC delta was {auc_delta:+.4f} and final-best delta "
+                f"was {final_delta:+.4f}. LLM confidence was "
+                f"{float(row.get('llm_confidence', 0.0) or 0.0):.3f}. Trace: "
+                f"{row.get('hypothesis_record', 'not recorded')}. This retrospective card is a "
+                "candidate claim, not a validated transferable mechanism."
+            ),
+            [
+                target,
+                str(row.get("route_mode", "unknown")),
+                "llm-reasoning-trace",
+                "outcome-blind-selection",
+                "candidate-hypothesis",
+            ],
+            [run_id, result_id],
+            date,
+            "medium",
+            "candidate",
+        ))
+    return cards
+
+
+def llm_reflective_suite_cards(
+    result_dir: Path,
+    run_id: str,
+    study: str,
+    date: str,
+) -> list[dict[str, Any]]:
+    summary_path = result_dir / "aggregate" / "suite_summary.json"
+    if not summary_path.exists():
+        return []
+    suite = json.loads(summary_path.read_text(encoding="utf-8"))
+    if suite.get("schema_version") != "care.llm_reflective_scientist_suite/v1":
+        return []
+
+    auc = suite.get("auc_delta_vs_fixed_v2", {})
+    gate = suite.get("gate", {})
+    result_id = f"experiment-result.{slug(study)}-llm-reflective-scientist-{date}"
+    task_rows = [row for row in suite.get("per_task", []) if isinstance(row, dict)]
+    hypothesis_ids = [
+        f"hypothesis.{slug(study)}-{slug(str(row.get('target_task', 'unknown')))}-reflection-{date}"
+        for row in task_rows
+    ]
+    ci_low = float(auc.get("task_95ci_low", 0.0) or 0.0)
+    ci_high = float(auc.get("task_95ci_high", 0.0) or 0.0)
+    status_counts = suite.get("reflection_hypothesis_status_counts", {})
+    cards: list[dict[str, Any]] = [make_card(
+        result_id,
+        "experiment_result",
+        f"{study}: evidence-bounded LLM scientist loop",
+        (
+            f"Across {suite.get('task_count', 0)} targets, the reflective LLM route changed "
+            f"search AUC by {float(auc.get('task_mean', 0.0) or 0.0):+.4f} versus fixed v2; "
+            f"95% CI [{ci_low:+.4f}, {ci_high:+.4f}]."
+        ),
+        (
+            f"The LLM classified hypotheses as {status_counts}, stopped transfer on "
+            f"{float(suite.get('reflection_stop_rate', 0.0) or 0.0):.3f} of tasks, and the "
+            f"zero-loss acquisition gate authorized {gate.get('acceptance_count', 0)} of "
+            f"{gate.get('proposal_count', 0)} follow-up proposals. This retrospective suite "
+            "demonstrates an auditable scientist loop, not independent external confirmation."
+        ),
+        [
+            "llm-as-scientist",
+            "hypothesis-revision",
+            "counterexample-planning",
+            "reflection-gate",
+            "retrospective",
+        ],
+        [run_id, *hypothesis_ids],
+        date,
+        "medium",
+    )]
+    for row, hypothesis_id in zip(task_rows, hypothesis_ids):
+        status = str(row.get("hypothesis_status", "unknown"))
+        cards.append(make_card(
+            hypothesis_id,
+            "hypothesis",
+            f"Reflected transfer hypothesis for {row.get('target_task', 'unknown')}",
+            str(row.get("revised_hypothesis", "No revised hypothesis recorded.")),
+            (
+                f"Reflection status: {status}. Evidence interpretation: "
+                f"{row.get('evidence_interpretation', 'not recorded')} Against fixed v2, "
+                f"AUC delta was {float(row.get('auc_delta_vs_fixed', 0.0) or 0.0):+.4f}; "
+                f"stop_transfer={bool(row.get('stop_transfer', False))}; gate accepted "
+                f"{row.get('gate_acceptance_count', 0)} of {row.get('gate_proposal_count', 0)} "
+                f"proposals. Trace: {row.get('reflection_record', 'not recorded')}."
+            ),
+            [
+                str(row.get("target_task", "unknown")),
+                f"hypothesis-{status}",
+                "llm-reasoning-trace",
+                "hypothesis-revision",
+                "candidate-hypothesis",
+            ],
+            [run_id, result_id],
+            date,
+            "medium",
+            "candidate",
+        ))
+    return cards
 
 
 def cards_from_result_dir(result_dir: Path) -> list[dict[str, Any]]:
@@ -73,7 +255,7 @@ def cards_from_result_dir(result_dir: Path) -> list[dict[str, Any]]:
         f"{study} reproducibility archive",
         f"Reproducibility archive for {study}.",
         (
-            f"Result directory: {result_dir.as_posix()}. The archive contains the manifest, "
+            f"Result directory: {display_path(result_dir)}. The archive contains the manifest, "
             "per-seed metrics, summaries, model-call records, audit logs, and figures when present."
         ),
         ["replay", "audit", "trace", date],
@@ -81,6 +263,8 @@ def cards_from_result_dir(result_dir: Path) -> list[dict[str, Any]]:
         date,
         "high",
     )]
+    cards.extend(llm_initial_design_suite_cards(result_dir, run_id, study, date))
+    cards.extend(llm_reflective_suite_cards(result_dir, run_id, study, date))
     for row in load_rows(result_dir / "headline_results.csv"):
         source = row.get("source", "")
         target = row["target"]
@@ -197,6 +381,7 @@ def cards_from_result_dir(result_dir: Path) -> list[dict[str, Any]]:
             [run_id, result_id],
             date,
             "high" if label == "confirmed_positive" else "medium",
+            "candidate",
         ))
     negatives = manifest.get("negative_results")
     if not isinstance(negatives, list):

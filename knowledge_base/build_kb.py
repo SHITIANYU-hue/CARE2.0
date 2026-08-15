@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sqlite3
 from collections import defaultdict
 from pathlib import Path
@@ -66,9 +67,11 @@ def card_search_text(card: dict) -> str:
 
 
 def build_sqlite(cards: list[dict], out: Path) -> None:
-    if out.exists():
-        out.unlink()
-    con = sqlite3.connect(out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    temporary = out.with_name(out.name + ".tmp")
+    if temporary.exists():
+        temporary.unlink()
+    con = sqlite3.connect(temporary)
     con.execute("pragma journal_mode=delete")
     con.execute(
         """
@@ -141,6 +144,7 @@ def build_sqlite(cards: list[dict], out: Path) -> None:
     con.execute("create index idx_cards_status on cards(status)")
     con.commit()
     con.close()
+    os.replace(temporary, out)
 
 
 def write_markdown(cards: list[dict], out: Path) -> None:
@@ -225,7 +229,9 @@ def write_markdown(cards: list[dict], out: Path) -> None:
                 ]
             )
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    temporary = out.with_name(out.name + ".tmp")
+    temporary.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    os.replace(temporary, out)
 
 
 def main() -> None:

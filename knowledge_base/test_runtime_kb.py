@@ -41,7 +41,13 @@ class RuntimeKnowledgeBaseTest(unittest.TestCase):
                 encoding="utf-8",
             )
             cards = ingest.cards_from_result_dir(result_dir)
+            skill = next(card for card in cards if card["type"] == "skill")
+            self.assertEqual(skill["status"], "candidate")
             db = root / "kb.sqlite"
+            build_kb.build_sqlite(cards, db)
+            found = retrieval.retrieve_runtime_cards(db, "ring rule target calibration", 5)
+            self.assertFalse(any(card["type"] == "skill" for card in found))
+            skill["status"] = "active"
             build_kb.build_sqlite(cards, db)
             found = retrieval.retrieve_runtime_cards(db, "ring rule target calibration", 5)
             self.assertTrue(any(card["type"] == "skill" for card in found))
@@ -71,6 +77,7 @@ class RuntimeKnowledgeBaseTest(unittest.TestCase):
             )
             cards = ingest.cards_from_result_dir(result_dir)
             skill = next(card for card in cards if card["type"] == "skill")
+            self.assertEqual(skill["status"], "candidate")
             self.assertIn("measured source outcomes", skill["summary"])
             self.assertIn("exact target-only fallback", skill["content"])
 

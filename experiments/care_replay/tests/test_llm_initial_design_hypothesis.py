@@ -136,6 +136,86 @@ class LLMInitialDesignHypothesisTest(unittest.TestCase):
             record["llm_semantic_anchor"], "baumgartner_suzuki_minlp2_024"
         )
 
+    def test_reflection_normalizer_accepts_revision_and_stop(self) -> None:
+        result = llm_design.normalize_reflection(
+            {
+                "hypothesis_status": "mixed",
+                "evidence_interpretation": "The anchor worked but the mechanism is narrow.",
+                "revised_hypothesis": "The effect holds only at high temperature.",
+                "selected_candidate_ids": ["c", "d"],
+                "confidence": 0.61,
+                "stop_transfer": False,
+            },
+            shortlist(),
+            2,
+        )
+        self.assertEqual(result["selected_candidate_ids"], ["c", "d"])
+        self.assertEqual(result["hypothesis_status"], "mixed")
+        stopped = llm_design.normalize_reflection(
+            {
+                "hypothesis_status": "falsified",
+                "selected_candidate_ids": ["c", "d"],
+                "confidence": 0.2,
+                "stop_transfer": True,
+                "stop_reason": "The revealed evidence contradicts the mechanism.",
+            },
+            shortlist(),
+            2,
+        )
+        self.assertEqual(stopped["selected_candidate_ids"], [])
+
+    def test_reflection_boundary_rejects_unrevealed_outcome(self) -> None:
+        llm_design.assert_reflection_prompt_boundary(
+            {
+                "scientific_context": {
+                    "remaining_candidate_shortlist": [
+                        {"candidate_id": "a", "temperature_celsius": 100}
+                    ]
+                }
+            }
+        )
+        with self.assertRaises(ValueError):
+            llm_design.assert_reflection_prompt_boundary(
+                {
+                    "scientific_context": {
+                        "remaining_candidate_shortlist": [
+                            {"candidate_id": "a", "target_outcome": 99.0}
+                        ]
+                    }
+                }
+            )
+
+    def test_reflective_policy_preserves_total_reveal_budget(self) -> None:
+        config = json.loads(
+            (
+                Path(__file__).resolve().parents[1]
+                / "configs"
+                / "baumgartner_multisource_warmstart_v2.json"
+            ).read_text()
+        )
+        target = llm_design.replay.DATASET_BUILDERS[
+            "real_baumgartner_suzuki_minlp2"
+        ]()
+        metrics, audit = llm_design.run_reflective_target_gp(
+            target,
+            [0, 1, 2],
+            [3, 4],
+            4,
+            config["protocol"]["kernel"],
+            ["real_baumgartner_suzuki_minlp1"],
+            {"hypothesis_status": "mixed"},
+        )
+        self.assertEqual(metrics["initial_observations"], 3)
+        self.assertEqual(metrics["reveal_rounds"], 4)
+        self.assertEqual(
+            [event["event"] for event in audit].count("llm_reflection_reveal"),
+            2,
+        )
+        self.assertEqual(
+            [event["event"] for event in audit].count("target_gp_reveal"),
+            2,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
