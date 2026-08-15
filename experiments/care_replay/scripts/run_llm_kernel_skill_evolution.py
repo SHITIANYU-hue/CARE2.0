@@ -727,7 +727,7 @@ def main() -> None:
     parser.add_argument("--llm-api-key-env", default="CARE_LLM_API_KEY")
     parser.add_argument(
         "--llm-api-mode",
-        choices=("chat", "completion"),
+        choices=("chat", "completion", "anthropic"),
         default=os.environ.get("CARE_LLM_API_MODE", "chat"),
     )
     parser.add_argument(

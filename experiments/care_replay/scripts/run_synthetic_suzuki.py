@@ -160,7 +160,7 @@ class LLMConfig:
     model: str
     temperature: float
     max_tokens: int
-    api_mode: Literal["chat", "completion"] = "chat"
+    api_mode: Literal["chat", "completion", "anthropic"] = "chat"
     structured_mode: Literal["tool", "json"] = "tool"
 
 
@@ -2679,7 +2679,7 @@ def trace_llm_event(event: dict[str, Any]) -> None:
 
 
 def chat_completion_text(config: LLMConfig, messages: list[dict[str, str]]) -> tuple[str, dict[str, Any]]:
-    if config.api_mode not in {"chat", "completion"}:
+    if config.api_mode not in {"chat", "completion", "anthropic"}:
         raise ValueError(f"Unknown LLM API mode: {config.api_mode}")
     if config.api_mode == "chat":
         payload = {
@@ -2710,7 +2710,7 @@ def chat_completion_text(config: LLMConfig, messages: list[dict[str, str]]) -> t
         elif config.structured_mode != "json":
             raise ValueError(f"Unknown structured output mode: {config.structured_mode}")
         endpoint = "/chat/completions"
-    else:
+    elif config.api_mode == "completion":
         prompt = "\n\n".join(
             f"{message['role'].upper()}:\n{message['content']}"
             for message in messages
@@ -2722,6 +2722,28 @@ def chat_completion_text(config: LLMConfig, messages: list[dict[str, str]]) -> t
             "max_tokens": config.max_tokens,
         }
         endpoint = "/completions"
+    else:
+        system = "\n\n".join(
+            message["content"]
+            for message in messages
+            if message["role"] == "system"
+        )
+        anthropic_messages = [
+            {
+                "role": message["role"],
+                "content": message["content"],
+            }
+            for message in messages
+            if message["role"] in {"user", "assistant"}
+        ]
+        payload = {
+            "model": config.model,
+            "messages": anthropic_messages,
+            "max_tokens": config.max_tokens,
+        }
+        if system:
+            payload["system"] = system
+        endpoint = "/v1/messages"
     retryable_http = {408, 409, 425, 429, 500, 502, 503, 504}
     retryable_errors = (
         TimeoutError,
@@ -2748,13 +2770,21 @@ def chat_completion_text(config: LLMConfig, messages: list[dict[str, str]]) -> t
         }
     )
     for attempt in range(4):
+        headers = {
+            "Authorization": "Bearer " + config.api_key,
+            "Content-Type": "application/json",
+        }
+        if config.api_mode == "anthropic":
+            headers.update(
+                {
+                    "x-api-key": config.api_key,
+                    "anthropic-version": "2023-06-01",
+                }
+            )
         req = urllib.request.Request(
             config.base_url.rstrip("/") + endpoint,
             data=json.dumps(payload).encode("utf-8"),
-            headers={
-                "Authorization": "Bearer " + config.api_key,
-                "Content-Type": "application/json",
-            },
+            headers=headers,
             method="POST",
         )
         try:
@@ -2845,10 +2875,38 @@ def chat_completion_text(config: LLMConfig, messages: list[dict[str, str]]) -> t
         tool_calls = message.get("tool_calls") or []
         if tool_calls:
             content = tool_calls[0].get("function", {}).get("arguments", "") or content
-    else:
+    elif config.api_mode == "completion":
         content = data["choices"][0].get("text", "")
         tool_calls = []
-    usage = data.get("usage", {})
+    else:
+        blocks = data.get("content", [])
+        text_blocks = [
+            str(block.get("text", ""))
+            for block in blocks
+            if isinstance(block, dict) and block.get("type") == "text"
+        ]
+        tool_blocks = [
+            block
+            for block in blocks
+            if isinstance(block, dict) and block.get("type") == "tool_use"
+        ]
+        if tool_blocks and isinstance(tool_blocks[0].get("input"), dict):
+            content = json.dumps(tool_blocks[0]["input"], ensure_ascii=False)
+        else:
+            content = "\n".join(text_blocks)
+        tool_calls = tool_blocks
+    native_usage = data.get("usage", {})
+    if config.api_mode == "anthropic":
+        prompt_tokens = int(native_usage.get("input_tokens", 0) or 0)
+        completion_tokens = int(native_usage.get("output_tokens", 0) or 0)
+        usage = {
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "total_tokens": prompt_tokens + completion_tokens,
+            "native": native_usage,
+        }
+    else:
+        usage = native_usage
     trace_llm_event(
         {
             "event": "call_ok",
@@ -3376,7 +3434,7 @@ def main() -> None:
     parser.add_argument("--llm-api-key-env", default="CARE_LLM_API_KEY")
     parser.add_argument(
         "--llm-api-mode",
-        choices=("chat", "completion"),
+        choices=("chat", "completion", "anthropic"),
         default=os.environ.get("CARE_LLM_API_MODE", "chat"),
     )
     parser.add_argument(

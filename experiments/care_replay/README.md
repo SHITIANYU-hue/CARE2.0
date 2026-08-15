@@ -123,6 +123,38 @@ budget; rejected proposals remain in the trace and knowledge base. The
 five-target retrospective archive is in
 [`results/2026-08-14-llm-reflective-scientist`](results/2026-08-14-llm-reflective-scientist/README.md).
 
+Run the high-participation online LLM scientist. The initial LLM selects three
+outcome-blind experiments; after they are revealed, the LLM selects every next
+experiment from a compact menu containing target-only GP-UCB, source-prior, and
+rank-fusion consensus plus geometric probes. The trace records each prompt, validated decision, executed
+candidate, and subsequent reveal. The main causal comparison is against the
+same LLM initial design followed by target-only GP-UCB, under the same budget.
+
+```bash
+export COMMONSTACK_API_KEY="..."
+
+python3 experiments/care_replay/scripts/run_online_llm_scientist.py generate-initial \
+  --config experiments/care_replay/configs/baumgartner_multisource_warmstart_v1.json \
+  --target-task real_baumgartner_cn_phenethylamine_alphos \
+  --source-tasks real_baumgartner_cn_aniline_alphos \
+  --llm-model anthropic/claude-fable-5 \
+  --per-view-limit 6 \
+  --output /tmp/care2-online/initial.json
+
+python3 experiments/care_replay/scripts/run_online_llm_scientist.py run \
+  --config experiments/care_replay/configs/baumgartner_multisource_warmstart_v1.json \
+  --initial-record /tmp/care2-online/initial.json \
+  --initial-design-mode auto \
+  --llm-model anthropic/claude-fable-5 \
+  --fail-on-llm-error \
+  --output-dir /tmp/care2-online/evaluation
+```
+
+For a native Anthropic-compatible endpoint, use `--llm-api-mode anthropic`, set
+`--llm-base-url` to the endpoint root, and point `--llm-api-key-env` to the
+environment variable holding the token. No API key is written to a trace or
+result artifact.
+
 Run the frozen seven-pair source-outcome suite through the canonical entry point:
 
 ```bash
@@ -913,3 +945,29 @@ python3 scripts/build_reasoning_trace_index.py \
   --zero-shot-root results/2026-07-25-hypothesis-zero-shot-freesolv-to-lipophilicity-10seed \
   --output results/2026-07-25-transfer-visualizations/reasoning_trace_index.json
 ```
+
+## High-participation online LLM scientist
+
+`run_online_llm_scientist.py` lets an LLM participate in the initial design and
+every subsequent target reveal. The controller combines target-only GP-UCB,
+source-outcome priors, and a consensus rank into a calibrated candidate menu;
+the LLM then writes a testable hypothesis and selects the next experiment. The
+first online reveal uses the consensus rank-one candidate as a frozen safety
+anchor, while retaining the LLM hypothesis and decision in the trace. Later
+rounds execute the LLM choice from the calibrated menu.
+
+The frozen 2026-08-15 Claude Opus 5 development suite is archived under
+`results/2026-08-15-opus5-online-scientist/`. It contains 48 real model-guided
+replay decisions across five real chemistry targets, with complete prompts,
+responses, normalized decisions, revealed outcomes, usage, summaries, and
+checksums. LLM participation was 100%, with zero API or structured-output
+errors in the selected runs. Against the fixed CARE v2 control at matched target
+budget, best-so-far AUC improved on three targets and tied on two (mean delta
+`+0.8442`, no losses). Against GP-UCB starting from the identical LLM initial
+design, mean AUC delta was `+1.3046`; two targets improved, two tied, and one
+regressed. These are retrospective development results, not independent
+confirmatory evidence of cross-domain generalization.
+
+Native Anthropic Messages API calls are supported with `--llm-api-mode
+anthropic`. Supply credentials only through the named environment variable; no
+credential is written to the output artifacts.

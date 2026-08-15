@@ -153,7 +153,11 @@ def main() -> None:
     parser.add_argument("--llm-api-key-env", default="CARE_LLM_API_KEY")
     parser.add_argument("--llm-temperature", type=float, default=0.3)
     parser.add_argument("--llm-max-tokens", type=int, default=2600)
-    parser.add_argument("--llm-api-mode", choices=("chat", "completion"), default="chat")
+    parser.add_argument(
+        "--llm-api-mode",
+        choices=("chat", "completion", "anthropic"),
+        default="chat",
+    )
     parser.add_argument("--llm-structured-mode", choices=("tool", "json"), default="json")
     args = parser.parse_args()
     api_key = os.environ.get(args.llm_api_key_env) or os.environ.get("CARE_LLM_API_KEY")
