@@ -1,0 +1,44 @@
+{
+  "protocol": {
+    "version": "care2_online_llm_generalization_v5",
+    "status": "frozen_before_execution",
+    "evidence_class": "independent_target_extension_with_bounded_llm_authority",
+    "initial_observations": 3,
+    "reveal_rounds": 10,
+    "source_inducing_limit": 64,
+    "selection_metric": "best_so_far_auc",
+    "primary_comparator": "same_llm_initial_design_plus_target_only_gp_ucb",
+    "router_update": "transfer_intersection_or_target_gp_top3_llm_rerank",
+    "target_score_transforms": {
+      "real_matbench_mp_gap": "clip(PBE_band_gap_eV / 8 * 100)",
+      "real_matbench_mp_e_form": "100 / (1 + exp(formation_energy_eV_per_atom))"
+    },
+    "kernel": {
+      "gp_beta": 1.5,
+      "numeric_length_scale": 0.35,
+      "categorical_length_scale": 3.0,
+      "gp_noise": 0.05
+    },
+    "constraints": {
+      "matched_target_reveal_budget": true,
+      "target_outcomes_hidden_until_selection": true,
+      "initial_design_outcome_blind": true,
+      "no_target_task_parameter_tuning": true,
+      "transfer_candidate_max_target_gp_rank": 10,
+      "safety_fallback_target_gp_count": 3,
+      "prior_targets_not_reused_for_v5_evaluation": true
+    },
+    "evaluation_cases": [
+      {
+        "pair_id": "materials_expt_gap_to_mp_gap",
+        "source_task_ids": ["real_matbench_expt_gap"],
+        "target_task_id": "real_matbench_mp_gap"
+      },
+      {
+        "pair_id": "materials_perovskites_to_mp_e_form",
+        "source_task_ids": ["real_matbench_perovskites"],
+        "target_task_id": "real_matbench_mp_e_form"
+      }
+    ]
+  }
+}

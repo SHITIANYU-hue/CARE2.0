@@ -86,6 +86,41 @@ def test_baumgartner_suzuki_campaigns_share_feature_contract() -> None:
     assert all(len(candidate.numeric_features) == 3 for candidate in target.candidates)
 
 
+def test_generic_task_descriptor_uses_domain_and_representation() -> None:
+    source = replay.real_moleculenet_freesolv_continuous_adapter()
+    target = replay.real_moleculenet_lipophilicity_adapter()
+    source_descriptor = warmstart.task_descriptor(source)
+    target_descriptor = warmstart.task_descriptor(target)
+    assert source_descriptor["domain"] == target_descriptor["domain"] == "molecular_property"
+    assert source_descriptor["representation"] == target_descriptor["representation"]
+    assert warmstart.source_ids_for_scope(
+        target,
+        [source.dataset_id],
+        "same_substrate_then_precatalyst",
+    ) == [source.dataset_id]
+
+
+def test_shared_esol_adapter_matches_molecule_transfer_contract() -> None:
+    source = replay.real_moleculenet_freesolv_continuous_adapter()
+    target = replay.real_moleculenet_esol_common_adapter()
+    assert source.decision_columns == target.decision_columns
+    assert target.candidates
+    assert all(
+        0.0 <= candidate.objective_value <= 100.0
+        for candidate in target.candidates
+    )
+
+
+def test_bace_and_steels_holdouts_use_shared_transfer_contracts() -> None:
+    molecule_source = replay.real_moleculenet_freesolv_continuous_adapter()
+    molecule_target = replay.real_moleculenet_bace_common_adapter()
+    material_source = replay.real_matbench_expt_gap_adapter()
+    material_target = replay.real_matbench_steels_adapter()
+    assert molecule_source.decision_columns == molecule_target.decision_columns
+    assert material_source.decision_columns == material_target.decision_columns
+    assert molecule_target.candidates and material_target.candidates
+
+
 def test_small_calibration_and_confirmation_run_without_target_calibration(
     tmp_path: Path,
 ) -> None:

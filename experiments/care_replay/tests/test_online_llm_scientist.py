@@ -80,6 +80,94 @@ class OnlineLlmScientistTests(unittest.TestCase):
             2,
         )
 
+    def test_candidate_menu_routes_to_target_gp_after_transfer_stop(self) -> None:
+        observed = [0, 1, 2]
+        source_prior, _ = warmstart.build_source_consensus(
+            self.target,
+            [SOURCE_ID],
+            self.config["protocol"],
+        )
+        menu, diagnostics = online.build_candidate_menu(
+            self.target,
+            observed,
+            source_prior,
+            self.config["protocol"]["kernel"],
+            4,
+            2,
+            2,
+            2,
+            1,
+            "target_gp",
+        )
+        eligible = [
+            row for row in menu if row["model_evidence"]["decision_eligible"]
+        ]
+        self.assertEqual(
+            sorted(row["model_evidence"]["gp_rank"] for row in eligible),
+            [1, 2],
+        )
+        self.assertEqual(diagnostics["eligibility_mode"], "target_gp")
+
+    def test_transfer_rank_gate_falls_back_to_gp_rank_one(self) -> None:
+        observed = [0, 1, 2]
+        source_prior, _ = warmstart.build_source_consensus(
+            self.target,
+            [SOURCE_ID],
+            self.config["protocol"],
+        )
+        menu, diagnostics = online.build_candidate_menu(
+            self.target,
+            observed,
+            source_prior,
+            self.config["protocol"]["kernel"],
+            4,
+            2,
+            2,
+            2,
+            1,
+            "transfer_consensus",
+            0,
+        )
+        eligible = [
+            row for row in menu if row["model_evidence"]["decision_eligible"]
+        ]
+        self.assertEqual(len(eligible), 1)
+        self.assertEqual(eligible[0]["model_evidence"]["gp_rank"], 1)
+        self.assertEqual(
+            diagnostics["eligibility_mode"],
+            "target_gp_safety_fallback",
+        )
+
+    def test_transfer_rank_gate_can_preserve_bounded_llm_choice(self) -> None:
+        observed = [0, 1, 2]
+        source_prior, _ = warmstart.build_source_consensus(
+            self.target,
+            [SOURCE_ID],
+            self.config["protocol"],
+        )
+        menu, diagnostics = online.build_candidate_menu(
+            self.target,
+            observed,
+            source_prior,
+            self.config["protocol"]["kernel"],
+            4,
+            2,
+            2,
+            2,
+            1,
+            "transfer_consensus",
+            0,
+            3,
+        )
+        eligible = [
+            row for row in menu if row["model_evidence"]["decision_eligible"]
+        ]
+        self.assertEqual(
+            sorted(row["model_evidence"]["gp_rank"] for row in eligible),
+            [1, 2, 3],
+        )
+        self.assertEqual(diagnostics["safety_fallback_gp_count"], 3)
+
     def test_round_response_must_pass_calibrated_decision_set(self) -> None:
         menu = [
             {

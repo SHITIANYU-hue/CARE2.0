@@ -170,6 +170,8 @@ def compact_source_tables(
         campaign_rows.append(
             [
                 source_id,
+                descriptor.get("domain"),
+                descriptor.get("representation"),
                 descriptor.get("substrate"),
                 descriptor.get("precatalyst"),
                 summary["outcome_summary"]["q75"],
@@ -226,6 +228,8 @@ def compact_source_tables(
     return {
         "campaign_columns": [
             "dataset_id",
+            "domain",
+            "representation",
             "substrate",
             "precatalyst",
             "q75",
@@ -599,7 +603,14 @@ def build_candidate_menu(
     consensus_count: int,
     decision_consensus_limit: int,
     diversity_count: int,
+    eligibility_mode: str = "transfer_consensus",
+    max_transfer_gp_rank: int | None = None,
+    safety_fallback_gp_count: int = 1,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    if eligibility_mode not in {"transfer_consensus", "target_gp"}:
+        raise ValueError(f"Unknown eligibility mode: {eligibility_mode}")
+    if safety_fallback_gp_count < 1:
+        raise ValueError("safety_fallback_gp_count must be positive")
     observed_set = set(observed_indices)
     posterior_mean, posterior_std, ucb = posterior_state(
         target, observed_indices, kernel
@@ -637,7 +648,7 @@ def build_candidate_menu(
         candidate = target.candidates[index]
         rows.append(
             {
-                **initial_design.public_candidate(candidate),
+                **initial_design.public_candidate(candidate, target),
                 "model_evidence": {
                     "gp_rank": gp_ranks[index],
                     "gp_posterior_mean": round(float(posterior_mean[index]), 4),
@@ -649,7 +660,14 @@ def build_candidate_menu(
                     "rank_sum": gp_ranks[index] + source_ranks[index],
                     "decision_eligible": (
                         consensus_ranks[index] <= decision_consensus_limit
+                        and (
+                            max_transfer_gp_rank is None
+                            or gp_ranks[index] <= max_transfer_gp_rank
+                        )
+                        if eligibility_mode == "transfer_consensus"
+                        else gp_ranks[index] <= decision_consensus_limit
                     ),
+                    "eligibility_mode": eligibility_mode,
                     "distance_to_observed": round(float(distances[index]), 6),
                     "menu_reasons": [
                         reason
@@ -667,6 +685,16 @@ def build_candidate_menu(
                 },
             }
         )
+    effective_eligibility_mode = eligibility_mode
+    if not any(row["model_evidence"]["decision_eligible"] for row in rows):
+        effective_eligibility_mode = "target_gp_safety_fallback"
+        for row in rows:
+            row["model_evidence"]["decision_eligible"] = (
+                row["model_evidence"]["gp_rank"] <= safety_fallback_gp_count
+            )
+            row["model_evidence"]["eligibility_mode"] = (
+                effective_eligibility_mode
+            )
     diagnostics = {
         "gp_incumbent_candidate": target.candidates[
             min(gp_ranks, key=gp_ranks.get)
@@ -676,6 +704,10 @@ def build_candidate_menu(
         "source_count": source_count,
         "consensus_count": consensus_count,
         "decision_consensus_limit": decision_consensus_limit,
+        "eligibility_mode": effective_eligibility_mode,
+        "requested_eligibility_mode": eligibility_mode,
+        "max_transfer_gp_rank": max_transfer_gp_rank,
+        "safety_fallback_gp_count": safety_fallback_gp_count,
         "diversity_count": diversity_count,
         "consensus_candidate": target.candidates[consensus_order[0]].candidate_id,
     }
@@ -692,7 +724,7 @@ def build_round_prompt(
     previous_decision: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
     public_candidates = {
-        index: initial_design.public_candidate(target.candidates[index])
+        index: initial_design.public_candidate(target.candidates[index], target)
         for index in range(len(target.candidates))
     }
     condition_fields = list(target.decision_columns)
@@ -1022,6 +1054,7 @@ def run_online(args: argparse.Namespace) -> None:
     best_trace: list[float] = []
     previous_decision: dict[str, Any] | None = None
     llm_selected_rounds = 0
+    llm_choice_rounds = 0
     gp_rank_one_choices = 0
     consensus_rank_one_choices = 0
     source_active_rounds = 0
@@ -1033,7 +1066,10 @@ def run_online(args: argparse.Namespace) -> None:
             "event": "initial_design_revealed",
             "candidate_ids": executed_initial_ids,
             "public_conditions": [
-                warmstart.public_conditions(target.candidates[index])
+                initial_design.public_candidate(
+                    target.candidates[index],
+                    target,
+                )["conditions"]
                 for index in initial_indices
             ],
             "revealed_values": [
@@ -1047,8 +1083,17 @@ def run_online(args: argparse.Namespace) -> None:
     )
 
     for round_index in range(rounds):
+        eligibility_mode = (
+            "target_gp"
+            if previous_decision is not None
+            and not bool(previous_decision.get("continue_source_transfer", True))
+            else "transfer_consensus"
+        )
         decision_consensus_limit = (
-            1 if round_index == 0 and args.force_first_consensus else args.menu_consensus_count
+            1
+            if eligibility_mode == "target_gp"
+            or (round_index == 0 and args.force_first_consensus)
+            else args.menu_consensus_count
         )
         menu, menu_diagnostics = build_candidate_menu(
             target,
@@ -1060,7 +1105,15 @@ def run_online(args: argparse.Namespace) -> None:
             args.menu_consensus_count,
             decision_consensus_limit,
             args.menu_diversity_count,
+            eligibility_mode,
+            getattr(args, "max_transfer_gp_rank", None),
+            getattr(args, "safety_fallback_gp_count", 1),
         )
+        if sum(
+            bool(row["model_evidence"]["decision_eligible"])
+            for row in menu
+        ) > 1:
+            llm_choice_rounds += 1
         prompt = build_round_prompt(
             target,
             initial_policy,
@@ -1203,9 +1256,10 @@ def run_online(args: argparse.Namespace) -> None:
                     selected_menu_row["model_evidence"]["source_prior_rank"]
                 ),
                 "consensus_rank_at_selection": consensus_rank,
-                "public_conditions": warmstart.public_conditions(
-                    target.candidates[selected_index]
-                ),
+                "public_conditions": initial_design.public_candidate(
+                    target.candidates[selected_index],
+                    target,
+                )["conditions"],
                 "revealed_value": revealed,
                 "best_so_far": best_so_far,
                 "prediction_error": round(
@@ -1230,6 +1284,8 @@ def run_online(args: argparse.Namespace) -> None:
         "simple_regret": round(oracle - max(best_trace), 6),
         "llm_selected_rounds": llm_selected_rounds,
         "llm_participation_rate": round(llm_selected_rounds / rounds, 6),
+        "llm_choice_rounds": llm_choice_rounds,
+        "llm_decision_authority_rate": round(llm_choice_rounds / rounds, 6),
         "gp_rank_one_choice_rate": round(gp_rank_one_choices / rounds, 6),
         "consensus_rank_one_choice_rate": round(
             consensus_rank_one_choices / rounds, 6
@@ -1281,6 +1337,18 @@ def run_online(args: argparse.Namespace) -> None:
             "consensus_count": args.menu_consensus_count,
             "force_first_consensus": args.force_first_consensus,
             "diversity_count": args.menu_diversity_count,
+            "adaptive_routing_from_llm_continue_source_transfer": True,
+            "target_gp_fallback_eligible_count": 1,
+            "max_transfer_gp_rank": getattr(
+                args,
+                "max_transfer_gp_rank",
+                None,
+            ),
+            "safety_fallback_gp_count": getattr(
+                args,
+                "safety_fallback_gp_count",
+                1,
+            ),
         },
         "metrics": {
             MODE: online_metrics,
@@ -1360,6 +1428,8 @@ def main() -> None:
     run_parser.add_argument("--menu-gp-count", type=int, default=5)
     run_parser.add_argument("--menu-source-count", type=int, default=2)
     run_parser.add_argument("--menu-consensus-count", type=int, default=2)
+    run_parser.add_argument("--max-transfer-gp-rank", type=int, default=5)
+    run_parser.add_argument("--safety-fallback-gp-count", type=int, default=1)
     run_parser.add_argument(
         "--force-first-consensus",
         action=argparse.BooleanOptionalAction,

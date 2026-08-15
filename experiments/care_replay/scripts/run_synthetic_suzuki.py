@@ -42,11 +42,18 @@ PUBLIC_DATA_URLS = {
     "moleculenet_esol_delaney.csv": "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/delaney-processed.csv",
     "moleculenet_freesolv_sampl.csv": "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/SAMPL.csv",
     "moleculenet_lipophilicity.csv": "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/Lipophilicity.csv",
+    "moleculenet_bace.csv": "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/bace.csv",
     "chemlex_acidamine_wetlab_v3.xlsx": "https://zenodo.org/records/17596563/files/Chemlex_Acidamine_Wetlab_Data.xlsx?download=1",
     "matbench_expt_gap.json.gz": "https://ml.materialsproject.org/projects/matbench_expt_gap.json.gz",
     "matbench_dielectric.json.gz": "https://ml.materialsproject.org/projects/matbench_dielectric.json.gz",
     "matbench_phonons.json.gz": "https://ml.materialsproject.org/projects/matbench_phonons.json.gz",
     "matbench_log_kvrh.json.gz": "https://ml.materialsproject.org/projects/matbench_log_kvrh.json.gz",
+    "matbench_log_gvrh.json.gz": "https://ml.materialsproject.org/projects/matbench_log_gvrh.json.gz",
+    "matbench_jdft2d.json.gz": "https://ml.materialsproject.org/projects/matbench_jdft2d.json.gz",
+    "matbench_perovskites.json.gz": "https://ml.materialsproject.org/projects/matbench_perovskites.json.gz",
+    "matbench_steels.json.gz": "https://ml.materialsproject.org/projects/matbench_steels.json.gz",
+    "matbench_mp_gap.json.gz": "https://ml.materialsproject.org/projects/matbench_mp_gap.json.gz",
+    "matbench_mp_e_form.json.gz": "https://ml.materialsproject.org/projects/matbench_mp_e_form.json.gz",
 }
 
 REACTION_DESCRIPTOR_METADATA_FIELDS = {
@@ -1448,6 +1455,58 @@ def real_moleculenet_esol_adapter() -> DatasetAdapter:
     )
 
 
+def real_moleculenet_esol_common_adapter() -> DatasetAdapter:
+    """ESOL replay expressed in the shared SMILES descriptor contract."""
+    path = ensure_public_data_file("moleculenet_esol_delaney.csv")
+    records = read_csv_dicts(path)
+    pool: list[Candidate] = []
+    for idx, row in enumerate(records):
+        smiles = row["smiles"].strip()
+        measured_log_s = float(row["measured log solubility in mols per litre"])
+        descriptor_bins, (x1, x2, x3) = smiles_public_descriptors(smiles)
+        normalized_solubility = clamp_score((measured_log_s + 12.0) / 14.0 * 100.0)
+        pool.append(
+            Candidate(
+                candidate_id=f"esol_common_{idx:04d}",
+                group=descriptor_bins["hetero_atom_bin"],
+                x1=x1,
+                x2=x2,
+                x3=x3,
+                objective_value=normalized_solubility,
+                metadata={
+                    "compound_id": row["Compound ID"],
+                    "smiles": smiles,
+                    **descriptor_bins,
+                    "measured_log_solubility": round(measured_log_s, 4),
+                    "normalized_solubility_score": normalized_solubility,
+                    "source_row": idx + 2,
+                },
+            )
+        )
+    return DatasetAdapter(
+        dataset_id="real_moleculenet_esol_common",
+        title="MoleculeNet ESOL shared-descriptor solubility replay",
+        objective="maximize_normalized_solubility",
+        decision_columns=(
+            "smiles_length_bin",
+            "hetero_atom_bin",
+            "halogen_bin",
+            "aromatic_bin",
+            "ring_token_bin",
+            "branch_bin",
+            "double_bond_bin",
+        ),
+        hidden_target="normalized_solubility_score",
+        group_column="hetero_atom_bin",
+        preferred_groups=(),
+        failure_note=(
+            "This adapter uses the real ESOL measurements with the same public "
+            "SMILES descriptor contract as FreeSolv and Lipophilicity."
+        ),
+        candidates=tuple(pool),
+    )
+
+
 def real_moleculenet_freesolv_adapter() -> DatasetAdapter:
     path = ensure_public_data_file("moleculenet_freesolv_sampl.csv")
     records = read_csv_dicts(path)
@@ -1574,6 +1633,58 @@ def real_moleculenet_lipophilicity_adapter() -> DatasetAdapter:
         group_column="smiles_length_bin",
         preferred_groups=(),
         failure_note="This is molecular property replay over SMILES-derived public descriptors; no fixed preferred lipophilicity prior is encoded.",
+        candidates=tuple(pool),
+    )
+
+
+def real_moleculenet_bace_common_adapter() -> DatasetAdapter:
+    path = ensure_public_data_file("moleculenet_bace.csv")
+    records = read_csv_dicts(path)
+    pool: list[Candidate] = []
+    for idx, row in enumerate(records):
+        smiles = row["mol"].strip()
+        pic50 = float(row["pIC50"])
+        descriptor_bins, (x1, x2, x3) = smiles_public_descriptors(smiles)
+        normalized_activity = clamp_score(pic50 / 12.0 * 100.0)
+        pool.append(
+            Candidate(
+                candidate_id=f"bace_common_{idx:04d}",
+                group=descriptor_bins["hetero_atom_bin"],
+                x1=x1,
+                x2=x2,
+                x3=x3,
+                objective_value=normalized_activity,
+                metadata={
+                    "compound_id": row["CID"],
+                    "smiles": smiles,
+                    **descriptor_bins,
+                    "bace_class": int(float(row["Class"])),
+                    "experimental_pic50": round(pic50, 6),
+                    "normalized_bace_activity_score": normalized_activity,
+                    "source_row": idx + 2,
+                },
+            )
+        )
+    return DatasetAdapter(
+        dataset_id="real_moleculenet_bace_common",
+        title="MoleculeNet BACE potency replay",
+        objective="maximize_normalized_experimental_pic50",
+        decision_columns=(
+            "smiles_length_bin",
+            "hetero_atom_bin",
+            "halogen_bin",
+            "aromatic_bin",
+            "ring_token_bin",
+            "branch_bin",
+            "double_bond_bin",
+        ),
+        hidden_target="normalized_bace_activity_score",
+        group_column="hetero_atom_bin",
+        preferred_groups=(),
+        failure_note=(
+            "This adapter uses experimental BACE pIC50 with the shared public "
+            "SMILES descriptor contract."
+        ),
         candidates=tuple(pool),
     )
 
@@ -1716,6 +1827,51 @@ def material_public_features(composition: dict[str, float]) -> tuple[dict[str, A
     return metadata, numeric
 
 
+def real_matbench_steels_adapter() -> DatasetAdapter:
+    path = ensure_public_data_file("matbench_steels.json.gz")
+    records = read_matbench_json_gz(path)
+    pool: list[Candidate] = []
+    for idx, row in enumerate(records):
+        formula = str(row["composition"]).strip()
+        composition = parse_composition(formula)
+        if not composition:
+            continue
+        metadata, (x1, x2, x3) = material_public_features(composition)
+        yield_strength = float(row["yield strength"])
+        normalized_strength = clamp_score(yield_strength / 3000.0 * 100.0)
+        pool.append(
+            Candidate(
+                candidate_id=f"real_matbench_steels_{idx:04d}",
+                group=str(metadata["anion_family"]),
+                x1=x1,
+                x2=x2,
+                x3=x3,
+                objective_value=normalized_strength,
+                metadata={
+                    "composition": formula,
+                    **metadata,
+                    "yield_strength_mpa": round(yield_strength, 6),
+                    "normalized_yield_strength_score": normalized_strength,
+                    "source_row": idx,
+                },
+            )
+        )
+    return DatasetAdapter(
+        dataset_id="real_matbench_steels",
+        title="Matbench steel yield-strength replay",
+        objective="maximize_normalized_yield_strength",
+        decision_columns=MATERIAL_DECISION_COLUMNS,
+        hidden_target="normalized_yield_strength_score",
+        group_column="anion_family",
+        preferred_groups=(),
+        failure_note=(
+            "This real Matbench replay uses composition-derived public features "
+            "and a fixed 0-3000 MPa target scale."
+        ),
+        candidates=tuple(pool),
+    )
+
+
 def real_matbench_structure_property_adapter(
     *,
     filename: str,
@@ -1810,6 +1966,66 @@ def real_matbench_log_kvrh_adapter() -> DatasetAdapter:
     )
 
 
+def real_matbench_log_gvrh_adapter() -> DatasetAdapter:
+    return real_matbench_structure_property_adapter(
+        filename="matbench_log_gvrh.json.gz",
+        dataset_id="real_matbench_log_gvrh",
+        title="Matbench shear-modulus replay",
+        objective="maximize_log10_shear_modulus",
+        target_column="log10(G_VRH)",
+        target_metadata_field="log10_shear_modulus_gpa",
+        normalize_target=lambda value: value / 3.0 * 100.0,
+    )
+
+
+def real_matbench_jdft2d_adapter() -> DatasetAdapter:
+    return real_matbench_structure_property_adapter(
+        filename="matbench_jdft2d.json.gz",
+        dataset_id="real_matbench_jdft2d",
+        title="Matbench 2D exfoliation replay",
+        objective="maximize_low_exfoliation_energy_score",
+        target_column="exfoliation_en",
+        target_metadata_field="exfoliation_energy_mev_per_atom",
+        normalize_target=lambda value: (1000.0 - max(value, 0.0)) / 10.0,
+    )
+
+
+def real_matbench_perovskites_adapter() -> DatasetAdapter:
+    return real_matbench_structure_property_adapter(
+        filename="matbench_perovskites.json.gz",
+        dataset_id="real_matbench_perovskites",
+        title="Matbench perovskite formation-energy replay",
+        objective="maximize_low_formation_energy_score",
+        target_column="e_form",
+        target_metadata_field="formation_energy_ev_per_cell",
+        normalize_target=lambda value: 100.0 / (1.0 + math.exp(value)),
+    )
+
+
+def real_matbench_mp_gap_adapter() -> DatasetAdapter:
+    return real_matbench_structure_property_adapter(
+        filename="matbench_mp_gap.json.gz",
+        dataset_id="real_matbench_mp_gap",
+        title="Matbench Materials Project band-gap replay",
+        objective="maximize_normalized_pbe_band_gap",
+        target_column="gap pbe",
+        target_metadata_field="pbe_band_gap_ev",
+        normalize_target=lambda value: value / 8.0 * 100.0,
+    )
+
+
+def real_matbench_mp_e_form_adapter() -> DatasetAdapter:
+    return real_matbench_structure_property_adapter(
+        filename="matbench_mp_e_form.json.gz",
+        dataset_id="real_matbench_mp_e_form",
+        title="Matbench Materials Project formation-energy replay",
+        objective="maximize_low_formation_energy_score",
+        target_column="e_form",
+        target_metadata_field="formation_energy_ev_per_atom",
+        normalize_target=lambda value: 100.0 / (1.0 + math.exp(value)),
+    )
+
+
 DATASET_BUILDERS: dict[str, Callable[[], DatasetAdapter]] = {
     "synthetic_suzuki_i": synthetic_suzuki_adapter,
     "synthetic_chemlex_i": synthetic_chemlex_adapter,
@@ -1836,13 +2052,21 @@ DATASET_BUILDERS: dict[str, Callable[[], DatasetAdapter]] = {
     },
     "real_chemlex_acidamine": real_chemlex_acidamine_adapter,
     "real_moleculenet_esol": real_moleculenet_esol_adapter,
+    "real_moleculenet_esol_common": real_moleculenet_esol_common_adapter,
     "real_moleculenet_freesolv": real_moleculenet_freesolv_adapter,
     "real_moleculenet_freesolv_continuous": real_moleculenet_freesolv_continuous_adapter,
     "real_moleculenet_lipophilicity": real_moleculenet_lipophilicity_adapter,
+    "real_moleculenet_bace_common": real_moleculenet_bace_common_adapter,
     "real_matbench_expt_gap": real_matbench_expt_gap_adapter,
     "real_matbench_dielectric": real_matbench_dielectric_adapter,
     "real_matbench_phonons": real_matbench_phonons_adapter,
     "real_matbench_log_kvrh": real_matbench_log_kvrh_adapter,
+    "real_matbench_log_gvrh": real_matbench_log_gvrh_adapter,
+    "real_matbench_jdft2d": real_matbench_jdft2d_adapter,
+    "real_matbench_perovskites": real_matbench_perovskites_adapter,
+    "real_matbench_steels": real_matbench_steels_adapter,
+    "real_matbench_mp_gap": real_matbench_mp_gap_adapter,
+    "real_matbench_mp_e_form": real_matbench_mp_e_form_adapter,
 }
 
 

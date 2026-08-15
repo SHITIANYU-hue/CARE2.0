@@ -38,6 +38,13 @@ PUBLIC_FIELDS = (
     "campaign_name",
 )
 
+PUBLIC_IDENTITY_FIELDS = (
+    "compound_id",
+    "iupac",
+    "smiles",
+    "composition",
+)
+
 
 def canonical_json(payload: Mapping[str, Any]) -> bytes:
     return json.dumps(
@@ -52,13 +59,21 @@ def sha256_payload(payload: Mapping[str, Any]) -> str:
     return hashlib.sha256(canonical_json(payload)).hexdigest()
 
 
-def public_candidate(candidate: replay.Candidate) -> dict[str, Any]:
+def public_candidate(
+    candidate: replay.Candidate,
+    adapter: replay.DatasetAdapter | None = None,
+) -> dict[str, Any]:
+    condition_fields = list(PUBLIC_FIELDS)
+    if adapter is not None:
+        condition_fields.extend(adapter.decision_columns)
+    condition_fields.extend(PUBLIC_IDENTITY_FIELDS)
+    condition_fields = list(dict.fromkeys(condition_fields))
     return {
         "candidate_id": candidate.candidate_id,
         "group": candidate.group,
         "conditions": {
             key: candidate.metadata.get(key)
-            for key in PUBLIC_FIELDS
+            for key in condition_fields
             if candidate.metadata.get(key) is not None
         },
         "normalized_numeric_features": [
@@ -125,7 +140,7 @@ def source_summary(adapter: replay.DatasetAdapter) -> dict[str, Any]:
         "group_outcome_summary": group_means,
         "top_source_observations": [
             {
-                **public_candidate(candidate),
+                **public_candidate(candidate, adapter),
                 "source_outcome": round(float(candidate.objective_value), 6),
             }
             for candidate in top
@@ -188,7 +203,7 @@ def candidate_shortlist(
     )
     rows = []
     for index in sorted(shortlist_indices):
-        item = public_candidate(target.candidates[index])
+        item = public_candidate(target.candidates[index], target)
         item["source_evidence"] = {
             name: {
                 "score": round(float(prior[index]), 6),
@@ -417,7 +432,7 @@ def build_reflection_prompt(
         candidate = target.candidates[index_by_id[candidate_id]]
         initial_results.append(
             {
-                **public_candidate(candidate),
+                **public_candidate(candidate, target),
                 "revealed_target_outcome": round(
                     float(candidate.objective_value), 6
                 ),

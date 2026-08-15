@@ -971,3 +971,32 @@ confirmatory evidence of cross-domain generalization.
 Native Anthropic Messages API calls are supported with `--llm-api-mode
 anthropic`. Supply credentials only through the named environment variable; no
 credential is written to the output artifacts.
+
+## Cross-domain online-LLM generalization extension
+
+`results/2026-08-15-opus5-generalization-study/` extends the frozen online
+scientist to 12 previously untested real molecular-property and
+materials-property targets. The archive contains all 120 Claude Opus 5 online
+decisions, outcome-blind initial-design records, target reveals, matched-budget
+comparators, aggregate metrics, and integrity hashes.
+
+The extension separates LLM participation from decision authority. The model
+was called in 100% of rounds, but safety routing reduced its mean authority to
+65%. Across all routes, the online reranking step was `-0.3223` AUC points
+relative to same-initial target-only GP-UCB (5 wins, 2 ties, 5 losses), while
+the full system was `+0.3518` points relative to the frozen source-diverse
+control (6 wins, 1 tie, 5 losses). Molecular routes were consistently positive
+against the frozen control; materials routes were mixed. These results support
+route-specific transfer, not a universal cross-domain gain claim.
+
+Rebuild the aggregate report and figure with:
+
+```bash
+python3 scripts/build_online_llm_generalization_report.py \
+  --root results/2026-08-15-opus5-generalization-study \
+  --output-dir results/2026-08-15-opus5-generalization-study/aggregate
+
+python3 scripts/build_online_llm_generalization_figures.py \
+  --metrics results/2026-08-15-opus5-generalization-study/aggregate/generalization_metrics.csv \
+  --output-dir results/2026-08-15-opus5-generalization-study/figures
+```

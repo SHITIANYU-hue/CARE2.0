@@ -61,9 +61,24 @@ def validate_protocol(config: Mapping[str, Any]) -> None:
 
 def task_descriptor(adapter: replay.DatasetAdapter) -> dict[str, str]:
     metadata = adapter.candidates[0].metadata
+    if adapter.dataset_id.startswith("real_moleculenet_"):
+        domain = "molecular_property"
+    elif adapter.dataset_id.startswith("real_matbench_"):
+        domain = "materials_property"
+    elif "suzuki" in adapter.dataset_id or "buchwald" in adapter.dataset_id:
+        domain = "reaction_optimization"
+    elif "chemlex" in adapter.dataset_id:
+        domain = "reaction_optimization"
+    else:
+        domain = "scientific_optimization"
+    representation = "decision_schema:" + "|".join(adapter.decision_columns)
     return {
-        "substrate": str(metadata["substrate"]),
-        "precatalyst": str(metadata["precatalyst"]),
+        "domain": domain,
+        "representation": representation,
+        # Keep the legacy keys for frozen reaction-task routing. Generic tasks
+        # fall back to domain and representation compatibility.
+        "substrate": str(metadata.get("substrate", domain)),
+        "precatalyst": str(metadata.get("precatalyst", representation)),
     }
 
 

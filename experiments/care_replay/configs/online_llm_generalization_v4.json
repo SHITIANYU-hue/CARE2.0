@@ -1,0 +1,43 @@
+{
+  "protocol": {
+    "version": "care2_online_llm_generalization_v4",
+    "status": "frozen_before_execution",
+    "evidence_class": "independent_target_extension_after_rank_gate_calibration",
+    "initial_observations": 3,
+    "reveal_rounds": 10,
+    "source_inducing_limit": 64,
+    "selection_metric": "best_so_far_auc",
+    "primary_comparator": "same_llm_initial_design_plus_target_only_gp_ucb",
+    "router_update": "transfer_requires_consensus_rank_lte_2_and_target_gp_rank_lte_5",
+    "target_score_transforms": {
+      "real_moleculenet_bace_common": "clip(experimental_pIC50 / 12 * 100)",
+      "real_matbench_steels": "clip(yield_strength_MPa / 3000 * 100)"
+    },
+    "kernel": {
+      "gp_beta": 1.5,
+      "numeric_length_scale": 0.35,
+      "categorical_length_scale": 3.0,
+      "gp_noise": 0.05
+    },
+    "constraints": {
+      "matched_target_reveal_budget": true,
+      "target_outcomes_hidden_until_selection": true,
+      "initial_design_outcome_blind": true,
+      "no_target_task_parameter_tuning": true,
+      "transfer_candidate_max_target_gp_rank": 5,
+      "prior_targets_not_reused_for_v4_evaluation": true
+    },
+    "evaluation_cases": [
+      {
+        "pair_id": "molecular_freesolv_to_bace",
+        "source_task_ids": ["real_moleculenet_freesolv_continuous"],
+        "target_task_id": "real_moleculenet_bace_common"
+      },
+      {
+        "pair_id": "materials_expt_gap_to_steels",
+        "source_task_ids": ["real_matbench_expt_gap"],
+        "target_task_id": "real_matbench_steels"
+      }
+    ]
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "protocol": {
+    "version": "care2_online_llm_generalization_v3",
+    "status": "frozen_before_execution",
+    "evidence_class": "independent_target_extension_after_v2_fallback_diagnosis",
+    "initial_observations": 3,
+    "reveal_rounds": 10,
+    "source_inducing_limit": 64,
+    "selection_metric": "best_so_far_auc",
+    "primary_comparator": "same_llm_initial_design_plus_target_only_gp_ucb",
+    "router_update": "llm_transfer_stop_delegates_execution_to_gp_rank_one",
+    "target_score_transforms": {
+      "real_matbench_jdft2d": "clip((1000_meV_per_atom - exfoliation_energy) / 1000 * 100)",
+      "real_matbench_perovskites": "100 / (1 + exp(formation_energy_eV_per_cell))"
+    },
+    "kernel": {
+      "gp_beta": 1.5,
+      "numeric_length_scale": 0.35,
+      "categorical_length_scale": 3.0,
+      "gp_noise": 0.05
+    },
+    "constraints": {
+      "matched_target_reveal_budget": true,
+      "target_outcomes_hidden_until_selection": true,
+      "initial_design_outcome_blind": true,
+      "no_target_task_parameter_tuning": true,
+      "v1_and_v2_targets_not_reused_for_v3_evaluation": true
+    },
+    "evaluation_cases": [
+      {
+        "pair_id": "materials_dielectric_to_jdft2d",
+        "source_task_ids": ["real_matbench_dielectric"],
+        "target_task_id": "real_matbench_jdft2d"
+      },
+      {
+        "pair_id": "materials_phonons_to_perovskites",
+        "source_task_ids": ["real_matbench_phonons"],
+        "target_task_id": "real_matbench_perovskites"
+      }
+    ]
+  }
+}

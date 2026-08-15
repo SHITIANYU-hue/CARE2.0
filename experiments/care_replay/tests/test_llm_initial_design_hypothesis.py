@@ -21,6 +21,13 @@ def shortlist() -> list[dict[str, object]]:
 
 
 class LLMInitialDesignHypothesisTest(unittest.TestCase):
+    def test_public_candidate_exposes_generic_descriptors_without_target(self) -> None:
+        adapter = llm_design.replay.real_moleculenet_freesolv_continuous_adapter()
+        public = llm_design.public_candidate(adapter.candidates[0], adapter)
+        self.assertIn("smiles", public["conditions"])
+        self.assertIn("hetero_atom_bin", public["conditions"])
+        self.assertNotIn(adapter.hidden_target, public["conditions"])
+
     def test_normalize_hypothesis_accepts_three_catalog_candidates(self) -> None:
         result = llm_design.normalize_hypothesis(
             {
