@@ -1,5 +1,34 @@
 # Overview
 
+## 2026-08-16：Opus 高权限在线控制与冻结化学扩展
+
+这一轮把 LLM 从受限打分器改成了逐轮决策者。每一轮先由 Opus 4.8 提出下一项
+实验，再由独立的 Opus critic 审核；最终可以在 target-only GP-UCB 前五名中选择，
+不再由 Python 代码替 LLM 固定方向。候选菜单同时给出 GP posterior、UCB、
+probability of improvement、expected improvement、source prior 和 rank-fusion
+证据。LLM 的参与率和决策权都是 100%，平均每轮有 4.99 个可执行候选，实际覆盖
+GP 默认选择的比例为 45.5%。每次 proposal、critique、最终选择和目标结果 reveal
+都保存在 trace 中。
+
+开发集覆盖 MoleculeNet 和 Matbench 的 6 条真实路线，在线 Opus 相对“相同 LLM
+初始点 + target-only GP-UCB”为 3 胜、1 平、2 负，平均 best-so-far AUC
+提升 `+1.8403`。控制器冻结后又跑了 5 条真实化学路线，包括 4 条 Baumgartner
+C-N 和 1 条 Reizman 多源 Suzuki；这部分为 3 胜、1 平、1 负，平均 AUC
+提升 `+0.0212`。两部分合计 11 条路线，结果为 6 胜、2 平、3 负，平均 AUC
+提升 `+1.0135`。因此目前可以说在线控制器在多数已测路线中有正向增量，而且信号
+跨越分子性质、材料性质、C-N 和 Suzuki；不能说所有迁移都有效。
+
+完整系统相对固定 source-diverse 初始方案的平均 AUC 只提升 `+0.3867`，并且只有
+5 胜、2 平、4 负。主要问题是 outcome-blind LLM 初始设计还不稳定。冻结实验之后
+补做了 compiled initial-design 诊断，它修复了最差的一条 C-N 初始路线，但整体在线
+结果只有 1 胜、3 平、1 负，因此没有被选为新默认方案。这个诊断明确标为
+post-holdout，不能回写成冻结实验结果。
+
+代码、逐轮 trace、汇总表和结论边界见
+`experiments/care_replay/results/2026-08-16-opus48-generalization-evidence-v1/`。
+开发集、冻结扩展和事后诊断分别保存在对应的三个 `2026-08-16-opus48-*` 目录中，
+所有关键 JSON、CSV 和 Markdown 文件都带 SHA-256 校验。
+
 ## 2026-07-28：baseline、逐轮效率与 LLM 规则公式补全
 
 按 7/28 评审意见补了一套统一的评估说明。新的汇总不再只列某个方法相对

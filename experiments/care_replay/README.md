@@ -48,6 +48,11 @@ Current status:
 - Adds a v2 source-quality floor and a separate Baumgartner Suzuki external
   confirmation target. See
   [`BAUMGARTNER_WARMSTART_V2_PROTOCOL.md`](BAUMGARTNER_WARMSTART_V2_PROTOCOL.md).
+- Adds an Opus 4.8 proposer/critic controller with full round participation,
+  bounded authority over the target-GP top five, expected-improvement evidence,
+  outcome-blind initial hypotheses, and complete model-call traces. The combined
+  evidence report is in
+  [`results/2026-08-16-opus48-generalization-evidence-v1/REPORT.md`](results/2026-08-16-opus48-generalization-evidence-v1/REPORT.md).
 
 Run:
 
@@ -154,6 +159,32 @@ For a native Anthropic-compatible endpoint, use `--llm-api-mode anthropic`, set
 `--llm-base-url` to the endpoint root, and point `--llm-api-key-env` to the
 environment variable holding the token. No API key is written to a trace or
 result artifact.
+
+Run the Opus high-authority suites:
+
+```bash
+export COMMONSTACK_API_KEY="..."
+
+python3 experiments/care_replay/scripts/run_online_llm_suite.py \
+  --suite-config experiments/care_replay/configs/opus48_high_authority_development_v1.json \
+  --output-root experiments/care_replay/results/2026-08-16-opus48-bounded-ei-development-v2 \
+  --skip-existing
+
+python3 experiments/care_replay/scripts/run_online_llm_suite.py \
+  --suite-config experiments/care_replay/configs/opus48_high_authority_chemistry_holdout_v1.json \
+  --output-root experiments/care_replay/results/2026-08-16-opus48-high-authority-chemistry-holdout-v1 \
+  --skip-existing
+```
+
+The primary comparison keeps the LLM-selected initial observations fixed and
+then compares online Opus decisions with target-only GP-UCB under the same target
+budget. Across eleven real routes, the online controller records six wins, two
+ties, and three losses, with mean best-so-far AUC delta `+1.0135`. The five-route
+frozen chemistry extension records three wins, one tie, and one loss. LLM
+participation and decision authority are both 100%; Opus overrides the GP default
+in 45.5% of rounds on average. These results support majority-positive online
+generalization across the evaluated task families, not universal positive
+transfer. The full system remains sensitive to outcome-blind initial design.
 
 Run the frozen seven-pair source-outcome suite through the canonical entry point:
 

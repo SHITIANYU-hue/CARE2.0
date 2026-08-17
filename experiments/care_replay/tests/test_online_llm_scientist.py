@@ -80,6 +80,39 @@ class OnlineLlmScientistTests(unittest.TestCase):
             2,
         )
 
+    def test_menu_gp_default_matches_target_gp_tie_break(self) -> None:
+        target = replay.DATASET_BUILDERS["real_moleculenet_esol_common"]()
+        observed = [1026, 282, 86]
+        source_prior, _ = warmstart.build_source_consensus(
+            target,
+            ["real_moleculenet_freesolv_continuous"],
+            self.config["protocol"],
+        )
+        _menu, diagnostics = online.build_candidate_menu(
+            target,
+            observed,
+            source_prior,
+            self.config["protocol"]["kernel"],
+            5,
+            3,
+            3,
+            3,
+            1,
+            "full_menu",
+        )
+        _metrics, audit = warmstart.run_target_gp(
+            target,
+            observed,
+            1,
+            "test_gp",
+            -1,
+            self.config["protocol"]["kernel"],
+        )
+        self.assertEqual(
+            diagnostics["gp_incumbent_candidate"],
+            audit[-1]["selected_candidate"],
+        )
+
     def test_candidate_menu_routes_to_target_gp_after_transfer_stop(self) -> None:
         observed = [0, 1, 2]
         source_prior, _ = warmstart.build_source_consensus(
@@ -107,6 +140,77 @@ class OnlineLlmScientistTests(unittest.TestCase):
             [1, 2],
         )
         self.assertEqual(diagnostics["eligibility_mode"], "target_gp")
+
+    def test_high_authority_menu_exposes_every_selected_candidate(self) -> None:
+        observed = [0, 1, 2]
+        source_prior, _ = warmstart.build_source_consensus(
+            self.target,
+            [SOURCE_ID],
+            self.config["protocol"],
+        )
+        menu, diagnostics = online.build_candidate_menu(
+            self.target,
+            observed,
+            source_prior,
+            self.config["protocol"]["kernel"],
+            5,
+            3,
+            3,
+            3,
+            1,
+            "full_menu",
+        )
+        self.assertGreater(len(menu), 1)
+        self.assertTrue(
+            all(row["model_evidence"]["decision_eligible"] for row in menu)
+        )
+        self.assertEqual(diagnostics["eligibility_mode"], "full_menu")
+
+    def test_critic_prompt_preserves_replay_evidence_boundary(self) -> None:
+        observed = [0, 1, 2]
+        source_prior, _ = warmstart.build_source_consensus(
+            self.target,
+            [SOURCE_ID],
+            self.config["protocol"],
+        )
+        menu, diagnostics = online.build_candidate_menu(
+            self.target,
+            observed,
+            source_prior,
+            self.config["protocol"]["kernel"],
+            5,
+            3,
+            3,
+            3,
+            1,
+            "full_menu",
+        )
+        round_prompt = online.build_round_prompt(
+            self.target,
+            {
+                "hypothesis": "test",
+                "selected_source_view": "all_sources",
+                "selected_candidate_ids": [],
+            },
+            observed,
+            menu,
+            0,
+            10,
+            None,
+            diagnostics,
+        )
+        proposal = {
+            "selected_candidate_id": menu[0]["candidate_id"],
+            "hypothesis_status": "mixed",
+            "continue_source_transfer": True,
+        }
+        critic_prompt = online.build_critic_prompt(round_prompt, proposal)
+        online.assert_no_unrevealed_outcomes(critic_prompt)
+        self.assertEqual(
+            critic_prompt["decision_context"]["eligibility_mode"],
+            "full_menu",
+        )
+        self.assertIn("observed_condition_performance", critic_prompt)
 
     def test_transfer_rank_gate_falls_back_to_gp_rank_one(self) -> None:
         observed = [0, 1, 2]
@@ -206,6 +310,18 @@ class OnlineLlmScientistTests(unittest.TestCase):
                     "selected_candidate_id": "candidate-a",
                     "hypothesis_status": "mixed",
                     "continue_source_transfer": "false",
+                },
+                [{"candidate_id": "candidate-a"}],
+            )
+
+    def test_round_response_rejects_unknown_verdict(self) -> None:
+        with self.assertRaisesRegex(ValueError, "Unknown decision verdict"):
+            online.normalize_round_response(
+                {
+                    "selected_candidate_id": "candidate-a",
+                    "hypothesis_status": "mixed",
+                    "continue_source_transfer": True,
+                    "decision_verdict": "invented_verdict",
                 },
                 [{"candidate_id": "candidate-a"}],
             )

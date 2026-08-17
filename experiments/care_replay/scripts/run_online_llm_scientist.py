@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
@@ -585,11 +586,13 @@ def candidate_distance_to_observed(
 
 
 def rank_map(values: np.ndarray, observed_set: set[int]) -> dict[int, int]:
-    ordered = [
-        int(index)
-        for index in np.argsort(-values)
-        if int(index) not in observed_set
-    ]
+    # Match classical.top_unobserved: np.argmax resolves exact ties to the
+    # lowest pool index. An unstable argsort made the online "GP rank one"
+    # disagree with the matched target-only GP baseline on tied candidates.
+    ordered = sorted(
+        (index for index in range(len(values)) if index not in observed_set),
+        key=lambda index: (-float(values[index]), index),
+    )
     return {index: rank + 1 for rank, index in enumerate(ordered)}
 
 
@@ -607,13 +610,17 @@ def build_candidate_menu(
     max_transfer_gp_rank: int | None = None,
     safety_fallback_gp_count: int = 1,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    if eligibility_mode not in {"transfer_consensus", "target_gp"}:
+    if eligibility_mode not in {"transfer_consensus", "target_gp", "full_menu"}:
         raise ValueError(f"Unknown eligibility mode: {eligibility_mode}")
     if safety_fallback_gp_count < 1:
         raise ValueError("safety_fallback_gp_count must be positive")
     observed_set = set(observed_indices)
     posterior_mean, posterior_std, ucb = posterior_state(
         target, observed_indices, kernel
+    )
+    current_best = max(
+        float(target.candidates[index].objective_value)
+        for index in observed_indices
     )
     distances = candidate_distance_to_observed(target, observed_indices)
     gp_ranks = rank_map(ucb, observed_set)
@@ -646,6 +653,18 @@ def build_candidate_menu(
     rows = []
     for index in sorted(selected_indices, key=lambda item: (gp_ranks[item], item)):
         candidate = target.candidates[index]
+        sigma = max(float(posterior_std[index]), 1e-9)
+        improvement_z = (float(posterior_mean[index]) - current_best) / sigma
+        probability_improvement = 0.5 * (
+            1.0 + math.erf(improvement_z / math.sqrt(2.0))
+        )
+        expected_improvement = (
+            (float(posterior_mean[index]) - current_best)
+            * probability_improvement
+            + sigma
+            * math.exp(-0.5 * improvement_z * improvement_z)
+            / math.sqrt(2.0 * math.pi)
+        )
         rows.append(
             {
                 **initial_design.public_candidate(candidate, target),
@@ -654,18 +673,31 @@ def build_candidate_menu(
                     "gp_posterior_mean": round(float(posterior_mean[index]), 4),
                     "gp_posterior_std": round(float(posterior_std[index]), 4),
                     "gp_ucb": round(float(ucb[index]), 4),
+                    "gp_probability_improvement": round(
+                        probability_improvement, 6
+                    ),
+                    "gp_expected_improvement": round(
+                        max(0.0, expected_improvement), 6
+                    ),
                     "source_prior_rank": source_ranks[index],
                     "source_prior_score": round(float(source_prior[index]), 6),
                     "consensus_rank": consensus_ranks[index],
                     "rank_sum": gp_ranks[index] + source_ranks[index],
                     "decision_eligible": (
-                        consensus_ranks[index] <= decision_consensus_limit
-                        and (
+                        (
                             max_transfer_gp_rank is None
                             or gp_ranks[index] <= max_transfer_gp_rank
                         )
-                        if eligibility_mode == "transfer_consensus"
-                        else gp_ranks[index] <= decision_consensus_limit
+                        if eligibility_mode == "full_menu"
+                        else (
+                            consensus_ranks[index] <= decision_consensus_limit
+                            and (
+                                max_transfer_gp_rank is None
+                                or gp_ranks[index] <= max_transfer_gp_rank
+                            )
+                            if eligibility_mode == "transfer_consensus"
+                            else gp_ranks[index] <= decision_consensus_limit
+                        )
                     ),
                     "eligibility_mode": eligibility_mode,
                     "distance_to_observed": round(float(distances[index]), 6),
@@ -722,6 +754,7 @@ def build_round_prompt(
     round_index: int,
     total_rounds: int,
     previous_decision: Mapping[str, Any] | None,
+    menu_diagnostics: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     public_candidates = {
         index: initial_design.public_candidate(target.candidates[index], target)
@@ -764,6 +797,8 @@ def build_round_prompt(
                 evidence["gp_posterior_mean"],
                 evidence["gp_posterior_std"],
                 evidence["gp_ucb"],
+                evidence["gp_probability_improvement"],
+                evidence["gp_expected_improvement"],
                 evidence["source_prior_rank"],
                 evidence["source_prior_score"],
                 evidence["consensus_rank"],
@@ -784,6 +819,32 @@ def build_round_prompt(
             "selected_source_evidence", {}
         ),
     }
+    observed_condition_performance: dict[str, list[dict[str, Any]]] = {}
+    for field in condition_fields:
+        grouped: dict[str, list[float]] = {}
+        for index in observed_indices:
+            value = public_candidates[index]["conditions"].get(field)
+            if value is None:
+                continue
+            grouped.setdefault(str(value), []).append(
+                float(target.candidates[index].objective_value)
+            )
+        ranked = sorted(
+            (
+                {
+                    "value": value,
+                    "count": len(values),
+                    "mean_revealed": round(float(np.mean(values)), 4),
+                    "best_revealed": round(float(max(values)), 4),
+                }
+                for value, values in grouped.items()
+            ),
+            key=lambda item: (-item["best_revealed"], -item["count"], item["value"]),
+        )
+        if ranked:
+            observed_condition_performance[field] = ranked[:4]
+
+    diagnostics = dict(menu_diagnostics or {})
     return {
         "task": (
             "Choose exactly one next experiment. Optimize best-so-far AUC, so an "
@@ -799,6 +860,22 @@ def build_round_prompt(
         "frozen_initial_policy": compact_initial,
         "observed_target_history": observed,
         "current_best": max(row[-1] for row in observed["rows"]),
+        "observed_condition_performance": observed_condition_performance,
+        "decision_context": {
+            "gp_default_candidate": diagnostics.get("gp_incumbent_candidate"),
+            "consensus_default_candidate": diagnostics.get("consensus_candidate"),
+            "eligibility_mode": diagnostics.get("eligibility_mode"),
+            "eligible_candidate_count": sum(
+                bool(item["model_evidence"]["decision_eligible"])
+                for item in menu
+            ),
+            "policy_note": (
+                "You have final authority over every eligible candidate. GP rank one "
+                "is a strong target-only default, not a mandatory choice. Deviate only "
+                "when observed target evidence or a source-grounded mechanism predicts "
+                "a better immediate best-so-far outcome."
+            ),
+        },
         "candidate_menu": {
             "columns": [
                 "candidate_id",
@@ -808,6 +885,8 @@ def build_round_prompt(
                 "gp_posterior_mean",
                 "gp_posterior_std",
                 "gp_ucb",
+                "gp_probability_improvement",
+                "gp_expected_improvement",
                 "source_prior_rank",
                 "source_prior_score",
                 "consensus_rank",
@@ -831,6 +910,8 @@ def build_round_prompt(
             "evidence_against": ["short contradiction or uncertainty"],
             "reasoning_summary": "concise reason this candidate best serves the reward",
             "continue_source_transfer": True,
+            "decision_verdict": "accept_proposal, revise_to_gp, or revise_to_alternative",
+            "gp_default_comparison": "why the final choice should beat or defer to GP rank one",
         },
         "decision_rules": [
             "Return one JSON object only.",
@@ -840,6 +921,8 @@ def build_round_prompt(
             "Return at most two evidence_for items and two evidence_against items; keep each under 25 words.",
             "GP quantities are target-only predictions, not observed outcomes.",
             "Prefer a high probability of improving current_best when such a candidate exists.",
+            "Use gp_expected_improvement as the default reward-aligned comparator; it accounts for both predicted value and uncertainty.",
+            "Do not select a low-mean source candidate merely because its variance is small; that protects prediction error, not best-so-far AUC.",
             "Choose an informative probe only when its expected outcome is competitive enough for the AUC objective.",
             "Do not spend consecutive rounds confirming the same mechanism unless the prior reveal improved current_best.",
             "Treat consensus_rank=1 as the risk-calibrated default because it combines independent GP and source evidence.",
@@ -853,6 +936,44 @@ def build_round_prompt(
             "Only observed_target_history contains target outcomes. Candidate-menu "
             "numbers are predictions derived from those observations or source data."
         ),
+    }
+
+
+def build_critic_prompt(
+    round_prompt: Mapping[str, Any],
+    proposal: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "task": (
+            "Act as the final scientific decision critic. Audit the proposer against "
+            "the target-only GP default, observed target evidence, source evidence, and "
+            "the best-so-far AUC reward. Return the final executable decision."
+        ),
+        "round": round_prompt["round"],
+        "target": round_prompt["target"],
+        "current_best": round_prompt["current_best"],
+        "frozen_initial_policy": round_prompt["frozen_initial_policy"],
+        "observed_target_history": round_prompt["observed_target_history"],
+        "observed_condition_performance": round_prompt[
+            "observed_condition_performance"
+        ],
+        "candidate_menu": round_prompt["candidate_menu"],
+        "decision_context": round_prompt["decision_context"],
+        "proposer_decision": dict(proposal),
+        "required_output": round_prompt["required_output"],
+        "critic_rules": [
+            "Return one JSON object only and select one decision_eligible candidate.",
+            "You may accept the proposal, revise to GP rank one, or choose another eligible candidate.",
+            "Set decision_verdict to accept_proposal, revise_to_gp, or revise_to_alternative.",
+            "Prefer the candidate most likely to improve current_best in this round; early gains dominate the AUC reward.",
+            "Do not reward novelty by itself. A mechanism probe must retain competitive expected outcome.",
+            "Treat GP rank one as the default under weak, contradictory, or non-target evidence.",
+            "A non-GP choice should have competitive gp_expected_improvement and a target-observed or source-grounded reason to outperform the default.",
+            "A source-prior override needs both a plausible mechanism and support from revealed target observations.",
+            "If the source hypothesis is falsified, set continue_source_transfer=false.",
+            "Never use or infer unobserved target outcomes.",
+        ],
+        "evidence_boundary": round_prompt["evidence_boundary"],
     }
 
 
@@ -884,6 +1005,15 @@ def normalize_round_response(
     continue_source_transfer = response.get("continue_source_transfer", True)
     if not isinstance(continue_source_transfer, bool):
         raise ValueError("continue_source_transfer must be a JSON boolean.")
+    decision_verdict = str(
+        response.get("decision_verdict", "accept_proposal")
+    ).strip()
+    if decision_verdict not in {
+        "accept_proposal",
+        "revise_to_gp",
+        "revise_to_alternative",
+    }:
+        raise ValueError(f"Unknown decision verdict: {decision_verdict}")
     return {
         "hypothesis_status": status,
         "updated_hypothesis": str(response.get("updated_hypothesis", "")).strip(),
@@ -900,6 +1030,10 @@ def normalize_round_response(
         ],
         "reasoning_summary": str(response.get("reasoning_summary", "")).strip(),
         "continue_source_transfer": continue_source_transfer,
+        "decision_verdict": decision_verdict,
+        "gp_default_comparison": str(
+            response.get("gp_default_comparison", "")
+        ).strip(),
     }
 
 
@@ -1055,6 +1189,9 @@ def run_online(args: argparse.Namespace) -> None:
     previous_decision: dict[str, Any] | None = None
     llm_selected_rounds = 0
     llm_choice_rounds = 0
+    eligible_candidate_total = 0
+    critic_revision_rounds = 0
+    gp_override_rounds = 0
     gp_rank_one_choices = 0
     consensus_rank_one_choices = 0
     source_active_rounds = 0
@@ -1083,18 +1220,27 @@ def run_online(args: argparse.Namespace) -> None:
     )
 
     for round_index in range(rounds):
-        eligibility_mode = (
-            "target_gp"
-            if previous_decision is not None
-            and not bool(previous_decision.get("continue_source_transfer", True))
-            else "transfer_consensus"
+        source_transfer_stopped = previous_decision is not None and not bool(
+            previous_decision.get("continue_source_transfer", True)
         )
-        decision_consensus_limit = (
-            1
-            if eligibility_mode == "target_gp"
-            or (round_index == 0 and args.force_first_consensus)
-            else args.menu_consensus_count
+        high_authority = (
+            getattr(args, "decision_policy", "calibrated") == "high_authority"
         )
+        if source_transfer_stopped:
+            eligibility_mode = "target_gp"
+        elif high_authority:
+            eligibility_mode = "full_menu"
+        else:
+            eligibility_mode = "transfer_consensus"
+        if high_authority and eligibility_mode == "target_gp":
+            decision_consensus_limit = args.menu_gp_count
+        else:
+            decision_consensus_limit = (
+                1
+                if eligibility_mode == "target_gp"
+                or (round_index == 0 and args.force_first_consensus)
+                else args.menu_consensus_count
+            )
         menu, menu_diagnostics = build_candidate_menu(
             target,
             observed_indices,
@@ -1109,10 +1255,12 @@ def run_online(args: argparse.Namespace) -> None:
             getattr(args, "max_transfer_gp_rank", None),
             getattr(args, "safety_fallback_gp_count", 1),
         )
-        if sum(
+        eligible_candidate_count = sum(
             bool(row["model_evidence"]["decision_eligible"])
             for row in menu
-        ) > 1:
+        )
+        eligible_candidate_total += eligible_candidate_count
+        if eligible_candidate_count > 1:
             llm_choice_rounds += 1
         prompt = build_round_prompt(
             target,
@@ -1122,6 +1270,7 @@ def run_online(args: argparse.Namespace) -> None:
             round_index,
             rounds,
             previous_decision,
+            menu_diagnostics,
         )
         assert_no_unrevealed_outcomes(prompt)
         request_event: dict[str, Any] = {
@@ -1146,7 +1295,7 @@ def run_online(args: argparse.Namespace) -> None:
                 },
                 {"role": "user", "content": json.dumps(prompt, ensure_ascii=False)},
             ]
-            decision, content, metadata, parsed, attempts = validated_llm_json(
+            proposal, content, metadata, parsed, attempts = validated_llm_json(
                 llm_config(args),
                 [
                     *messages,
@@ -1172,26 +1321,118 @@ def run_online(args: argparse.Namespace) -> None:
                 },
                 args.llm_repair_attempts,
             )
-            selected_id = decision["selected_candidate_id"]
-            selected_by = "llm"
-            llm_selected_rounds += 1
             usage = aggregate_attempt_usage(attempts)
             for key in usage_totals:
                 usage_totals[key] += int(usage.get(key, 0) or 0)
+            append_trace(
+                trace_path,
+                {
+                    "event": "llm_round_proposal_response",
+                    "round_index": round_index,
+                    "model": metadata.get("model", args.llm_model),
+                    "usage": usage,
+                    "raw_response": content,
+                    "parsed_response": parsed,
+                    "normalized_decision": proposal,
+                    "api_attempts": attempts,
+                },
+            )
+
+            decision = proposal
+            selected_by = "llm_proposer"
+            if getattr(args, "deliberation_mode", "single") == "proposal_critic":
+                critic_prompt = build_critic_prompt(prompt, proposal)
+                assert_no_unrevealed_outcomes(critic_prompt)
+                append_trace(
+                    trace_path,
+                    {
+                        "event": "llm_round_critic_request",
+                        "round_index": round_index,
+                        "model": args.llm_model,
+                        "prompt_sha256": payload_hash(critic_prompt),
+                        "prompt": critic_prompt,
+                    },
+                )
+                critic_messages = [
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are the final decision critic for an online scientific "
+                            "experiment. Independently audit the proposal, protect the "
+                            "best-so-far AUC reward, and return one valid JSON object only."
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        "content": json.dumps(critic_prompt, ensure_ascii=False),
+                    },
+                ]
+                critic, critic_content, critic_metadata, critic_parsed, critic_attempts = (
+                    validated_llm_json(
+                        llm_config(args),
+                        critic_messages,
+                        lambda response, current_menu=menu: normalize_round_response(
+                            response,
+                            current_menu,
+                        ),
+                        {
+                            "allowed_candidate_ids": [
+                                row["candidate_id"]
+                                for row in menu
+                                if row["model_evidence"]["decision_eligible"]
+                            ],
+                            "selected_candidate_count": 1,
+                            "required_output_schema": critic_prompt["required_output"],
+                        },
+                        args.llm_repair_attempts,
+                    )
+                )
+                critic_usage = aggregate_attempt_usage(critic_attempts)
+                for key in usage_totals:
+                    usage_totals[key] += int(critic_usage.get(key, 0) or 0)
+                if critic["selected_candidate_id"] != proposal["selected_candidate_id"]:
+                    critic_revision_rounds += 1
+                decision = critic
+                selected_by = "llm_critic"
+                append_trace(
+                    trace_path,
+                    {
+                        "event": "llm_round_critic_response",
+                        "round_index": round_index,
+                        "model": critic_metadata.get("model", args.llm_model),
+                        "usage": critic_usage,
+                        "raw_response": critic_content,
+                        "parsed_response": critic_parsed,
+                        "normalized_decision": critic,
+                        "proposal_candidate": proposal["selected_candidate_id"],
+                        "api_attempts": critic_attempts,
+                    },
+                )
+            selected_id = decision["selected_candidate_id"]
+            llm_selected_rounds += 1
             response_event = {
                 "event": "llm_round_response",
                 "round_index": round_index,
-                "model": metadata.get("model", args.llm_model),
-                "usage": usage,
-                "raw_response": content,
-                "parsed_response": parsed,
+                "model": args.llm_model,
+                "selected_by": selected_by,
+                "proposal_candidate": proposal["selected_candidate_id"],
                 "normalized_decision": decision,
-                "api_attempts": attempts,
             }
             append_trace(trace_path, response_event)
         except Exception as exc:
-            selected_id = str(menu_diagnostics["consensus_candidate"])
-            selected_by = "consensus_fallback_after_llm_error"
+            eligible_ids = {
+                str(row["candidate_id"])
+                for row in menu
+                if row["model_evidence"]["decision_eligible"]
+            }
+            consensus_id = str(menu_diagnostics["consensus_candidate"])
+            gp_id = str(menu_diagnostics["gp_incumbent_candidate"])
+            if consensus_id in eligible_ids:
+                selected_id = consensus_id
+                selected_by = "consensus_fallback_after_llm_error"
+            else:
+                selected_id = gp_id
+                selected_by = "gp_fallback_after_llm_error"
             decision = {
                 "hypothesis_status": "insufficient",
                 "updated_hypothesis": str(
@@ -1207,6 +1448,8 @@ def run_online(args: argparse.Namespace) -> None:
                 "evidence_against": [f"LLM call failed: {type(exc).__name__}"],
                 "reasoning_summary": "Calibrated rank-fusion fallback.",
                 "continue_source_transfer": False,
+                "decision_verdict": "revise_to_gp",
+                "gp_default_comparison": "LLM call failed; use the eligible fallback.",
             }
             append_trace(
                 trace_path,
@@ -1229,6 +1472,8 @@ def run_online(args: argparse.Namespace) -> None:
             row for row in menu if row["candidate_id"] == selected_id
         )
         gp_rank = int(selected_menu_row["model_evidence"]["gp_rank"])
+        if selected_id != str(menu_diagnostics["gp_incumbent_candidate"]):
+            gp_override_rounds += 1
         if gp_rank == 1:
             gp_rank_one_choices += 1
         consensus_rank = int(selected_menu_row["model_evidence"]["consensus_rank"])
@@ -1286,6 +1531,11 @@ def run_online(args: argparse.Namespace) -> None:
         "llm_participation_rate": round(llm_selected_rounds / rounds, 6),
         "llm_choice_rounds": llm_choice_rounds,
         "llm_decision_authority_rate": round(llm_choice_rounds / rounds, 6),
+        "llm_mean_eligible_candidate_count": round(
+            eligible_candidate_total / rounds, 6
+        ),
+        "llm_gp_override_rate": round(gp_override_rounds / rounds, 6),
+        "llm_critic_revision_rate": round(critic_revision_rounds / rounds, 6),
         "gp_rank_one_choice_rate": round(gp_rank_one_choices / rounds, 6),
         "consensus_rank_one_choice_rate": round(
             consensus_rank_one_choices / rounds, 6
@@ -1338,7 +1588,14 @@ def run_online(args: argparse.Namespace) -> None:
             "force_first_consensus": args.force_first_consensus,
             "diversity_count": args.menu_diversity_count,
             "adaptive_routing_from_llm_continue_source_transfer": True,
-            "target_gp_fallback_eligible_count": 1,
+            "decision_policy": getattr(args, "decision_policy", "calibrated"),
+            "deliberation_mode": getattr(args, "deliberation_mode", "single"),
+            "target_gp_fallback_eligible_count": (
+                args.menu_gp_count
+                if getattr(args, "decision_policy", "calibrated")
+                == "high_authority"
+                else 1
+            ),
             "max_transfer_gp_rank": getattr(
                 args,
                 "max_transfer_gp_rank",
@@ -1436,6 +1693,16 @@ def main() -> None:
         default=True,
     )
     run_parser.add_argument("--menu-diversity-count", type=int, default=1)
+    run_parser.add_argument(
+        "--decision-policy",
+        choices=("calibrated", "high_authority"),
+        default="calibrated",
+    )
+    run_parser.add_argument(
+        "--deliberation-mode",
+        choices=("single", "proposal_critic"),
+        default="single",
+    )
     run_parser.add_argument("--fail-on-llm-error", action="store_true")
     add_llm_arguments(run_parser, 1400)
 
