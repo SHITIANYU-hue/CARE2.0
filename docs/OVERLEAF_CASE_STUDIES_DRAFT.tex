@@ -1,67 +1,114 @@
-% Manuscript-ready draft. Values are copied from frozen CARE 2.0 trace and
-% summary artifacts; no values in this section are illustrative.
+% Manuscript-ready case-study draft for direct integration into Overleaf.
+% All numerical values below are copied from frozen trace and summary artifacts.
+% The cases are post hoc mechanism audits, not independent confirmatory evidence.
 
-\subsection{How source evidence changes sequential decisions}
+\subsection{How transferred evidence changes experimental decisions}
+\label{sec:case_studies}
 
-Aggregate performance alone does not show how transferred knowledge altered an
-experimental trajectory. We therefore inspected three representative routes: a
-successful molecular-property override, a successful materials consensus
-decision, and a negative-transfer case. In each example, all unqueried target
-outcomes remained hidden from the language model and the controller until the
-corresponding candidate was executed.
+Aggregate metrics do not reveal how source knowledge changes a sequential
+experimental trajectory. We therefore audited three representative decisions
+from the frozen online runs: one molecular-property task, one materials task,
+and one wet-lab reaction-optimization task. These cases were selected after the
+runs to illustrate decision mechanisms, and are not used for statistical
+inference. At every decision, the language model could inspect source evidence,
+the revealed target history, and target-only Gaussian-process (GP) predictions.
+The outcome of every unexecuted target candidate remained hidden until that
+candidate was selected.
 
-\paragraph{A source-grounded override produced an early molecular-property gain.}
+\begin{table*}[t]
+\centering
+\small
+\caption{Audited online transfer cases. $\Delta$AUC and $\Delta$Final compare
+CARE 2.0 with a target-only GP initialized with the same target observations.
+Positive $\Delta$AUC indicates earlier discovery of high-value candidates.}
+\label{tab:audited_cases}
+\begin{tabular}{p{3.2cm}p{3.0cm}p{4.4cm}rr}
+\toprule
+Source $\rightarrow$ target & Domain & Audited decision & $\Delta$AUC & $\Delta$Final \\
+\midrule
+FreeSolv $\rightarrow$ Lipophilicity & Molecular property & GP rank 4 selected in round 1 & $+6.325$ & $+4.875$ \\
+Experimental gap $\rightarrow$ dielectric response & Materials property & GP rank 5 selected in round 1 & $+6.745$ & $0.000$ \\
+Suzuki cases 1--3 $\rightarrow$ case 4 & Reaction optimization & Source--target consensus retained across rounds & $+1.380$ & $+5.700$ \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\paragraph{Molecular property: source evidence justified an early GP override.}
 For FreeSolv $\rightarrow$ Lipophilicity, the three initial target observations
-gave a best value of 67.25. In the first online round, the target-only Gaussian
-process ranked \texttt{lipo\_2256} first. The proposer and critic instead selected
-\texttt{lipo\_0635}, which was ranked fourth by the GP and had an expected
-improvement of 3.90. The recorded rationale connected the candidate's
-halogen-rich, low-polarity structure to the target observations rather than
-copying the source outcome directly. The candidate was then executed and
-revealed a target value of 86.875, increasing the best observed value by 19.625
-in one round. Across the ten-round trajectory, the best-so-far AUC was 89.575,
-compared with 83.250 for the same-initial target-only GP comparator
-($\Delta$AUC=+6.325). This example shows the intended role of the language
-model: it can overrule the default acquisition ranking when source evidence and
-target observations support a specific, testable alternative.
+gave a best value of 67.25. The target-only GP ranked
+\texttt{lipo\_2256} first in the first online round. The LLM proposer and critic
+instead selected \texttt{lipo\_0635}, which was fourth in the GP ranking but had
+nearly identical expected improvement to the GP default. The decision cited a
+specific transfer hypothesis: relative to hydration free energy, lipophilicity
+should favour a more halogenated and less polar aromatic structure. Executing
+the candidate revealed 86.875, improving the best observed value by 19.625 in
+the first round. The online trajectory finished with a best-so-far AUC of
+89.575 and a final best of 89.875, compared with 83.250 and 85.000 for the
+same-initial target-only GP. The gain is therefore traceable to an executable
+override rather than to a different initial target set.
 
-\paragraph{Independent target and source signals converged on a high-value material.}
+\paragraph{Materials: the LLM translated a physical relation into an earlier hit.}
 For experimental band gap $\rightarrow$ dielectric response, the initial target
-best was 24.2902. In round zero, the five GP-eligible candidates had very similar
-posterior means and expected improvements. The proposer and critic chose the
-tellurium candidate \texttt{real\_matbench\_dielectric\_04424}. It was only fifth
-in the target GP ranking, but first in the combined consensus ranking because
-the source-derived polarizability hypothesis and the target posterior both
-supported it. Its target value, hidden at decision time, was 59.5114. The online
-trajectory consequently attained a best-so-far AUC of 59.5114, compared with
-52.7663 for the same-initial target-only GP ($\Delta$AUC=+6.7452). The final best
-was identical between the two methods; the gain came from finding the same
-high-value region earlier, which is precisely what the AUC reward measures.
+best was 24.2902. The transferred hypothesis used the inverse relation between
+band gap and polarizability to favour heavy, polarizable chalcogenides over the
+wide-gap oxides and halides prominent in the source task. In round one, the LLM
+selected the tellurium candidate
+\texttt{real\_matbench\_dielectric\_04424}. It was fifth in the target-only GP
+ranking, but consistent with both the source-derived physical hypothesis and
+the limited target observations. Its hidden target value was 59.5114. CARE 2.0
+therefore reached the trajectory maximum immediately, whereas the comparator
+reached the same final value later. The final-best difference was zero, but the
+best-so-far AUC increased from 52.7663 to 59.5114
+($\Delta$AUC=$+6.7452$). This distinction matters experimentally: transfer did
+not change the best condition available in the pool; it reduced the number of
+rounds required to find it.
 
-\paragraph{Persistent transfer can also delay discovery.}
-The experimental band gap $\rightarrow$ Materials Project band-gap route is a
-negative control. Its initial best was already 75.5362. None of the ten online
-LLM selections improved that value, whereas the same-initial target-only GP
-eventually reached 100.0. The corresponding AUC difference was $-2.4464$ and
-the final-best difference was $-24.4638$. The trace shows that the controller
-continued source transfer in every round, even after repeated lanthanide-halide
-candidates failed to improve the target best. This failure is informative: a
-plausible source-grounded mechanism is not sufficient evidence for continued
-transfer. The result motivates a stricter sequential stopping rule based on
-accumulated target contradictions rather than on the coherence of the initial
-hypothesis alone.
+\paragraph{Wet-lab chemistry: transferred catalyst--temperature structure improved the final yield.}
+For Reizman Suzuki cases 1--3 $\rightarrow$ case 4, the source campaigns
+supported a high-temperature catalyst hypothesis, with temperature showing the
+largest recorded source correlation (0.647). The initial target set already
+contained a 94.1-yield condition using P1--L1 at 110\,$^\circ$C. The LLM used
+this agreement between source and target evidence to keep high-temperature
+catalyst variants in the candidate menu while still comparing each proposal
+against the target-only GP. In round three it selected
+\texttt{reizman\_suzuki\_case4\_086} (GP rank 3), improving the best yield to
+94.5. In round nine it selected
+\texttt{reizman\_suzuki\_case4\_059}, which revealed 99.8. The same-initial
+target-only GP finished at 94.1. CARE 2.0 consequently achieved
+$\Delta$AUC=$+1.380$ and $\Delta$Final=$+5.700$. This case is weaker as an
+early-discovery example than the first two, but it shows that source evidence
+can remain useful after several target observations and can change the final
+condition found.
 
-Together, these cases support a narrower claim than universal cross-domain
-transfer. CARE 2.0 can convert source evidence into actionable deviations from
-a target-only acquisition policy, and those deviations can substantially
-improve early discovery on some routes. The same mechanism can also preserve a
-misleading prior for too long. Reporting both outcomes makes the calibration
-problem explicit and separates the contribution of hypothesis generation from
-the still-unresolved problem of reliable transfer rejection.
+\paragraph{Repeated calls expose trajectory-level uncertainty.}
+The frozen development run for experimental band gap $\rightarrow$ Materials
+Project band gap produced $\Delta$AUC=$-2.4464$: the LLM-guided trajectory did
+not improve its initial best, while the target-only GP eventually found the
+100.0-valued candidate. The first trajectory under the subsequently frozen
+repetition protocol produced $\Delta$AUC=$+2.4464$ and also reached 100.0 in
+round nine. A second route changed from a small positive effect to a small
+negative effect. These sign reversals show that a single stochastic LLM
+trajectory is not sufficient to label a source--target pair as transferable or
+non-transferable. We therefore treat the current route-level effects as
+descriptive and pre-specified a 30-trajectory-per-route confirmation protocol.
+At the time of writing, 11 of 330 trajectories have completed; the equal-route
+mean $\Delta$AUC is $+1.7532$, with six positive, two tied, and three negative
+routes. No confidence interval or confirmatory claim is reported until the
+frozen protocol is complete.
+
+Together, the audited cases support a specific and limited conclusion. CARE
+2.0 can turn source evidence into an explicit, falsifiable hypothesis and use
+that hypothesis to deviate from a target-only acquisition policy. Such
+deviations can improve either discovery speed or the final condition found.
+The repeated-call audit also shows why calibration and stopping rules are part
+of the scientific problem: plausible reasoning does not guarantee a stable
+trajectory-level benefit.
 
 % Frozen evidence sources:
 % experiments/care_replay/results/2026-08-16-opus48-bounded-ei-development-v2/
-%   molecular_freesolv_to_lipophilicity/{summary.json,llm_trace.jsonl}
-%   materials_expt_gap_to_dielectric/{summary.json,llm_trace.jsonl}
-%   materials_expt_gap_to_mp_gap/{summary.json,llm_trace.jsonl}
-
+% experiments/care_replay/results/2026-08-23-online-llm-repeated-confirmation-v1/
+%   molecular_freesolv_to_lipophilicity/trajectory_1000/{summary.json,llm_trace.jsonl}
+%   materials_expt_gap_to_dielectric/trajectory_1000/{summary.json,llm_trace.jsonl}
+%   materials_expt_gap_to_mp_gap/trajectory_1000/{summary.json,llm_trace.jsonl}
+%   reizman_cases_123_to_case4/trajectory_1000/{summary.json,llm_trace.jsonl}
+%   aggregate/repeated_confirmation.json

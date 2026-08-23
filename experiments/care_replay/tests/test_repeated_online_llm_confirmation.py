@@ -1,16 +1,19 @@
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 import run_repeated_online_llm_confirmation as repeated  # noqa: E402
+import run_repeated_online_llm_confirmation_v2 as repeated_v2  # noqa: E402
 
 
 class RepeatedOnlineConfirmationTests(unittest.TestCase):
@@ -35,6 +38,19 @@ class RepeatedOnlineConfirmationTests(unittest.TestCase):
                 "rounds": 2,
                 "decision_policy": "high_authority",
                 "deliberation_mode": "proposal_critic",
+                "initial_design_mode": "auto",
+                "max_tokens": 100,
+                "repair_attempts": 0,
+                "fail_on_llm_error": True,
+            },
+            "menu": {
+                "gp_count": 5,
+                "source_count": 3,
+                "consensus_count": 3,
+                "diversity_count": 1,
+                "max_transfer_gp_rank": 5,
+                "safety_fallback_gp_count": 5,
+                "force_first_consensus": False,
             },
             "cases": [
                 {
@@ -114,6 +130,93 @@ class RepeatedOnlineConfirmationTests(unittest.TestCase):
                 report["claim_decision"],
                 "not_evaluated_incomplete_protocol",
             )
+
+
+class RetryResilientConfirmationTests(unittest.TestCase):
+    def suite(self) -> dict:
+        suite = RepeatedOnlineConfirmationTests().frozen_suite()
+        suite["suite"] = "retry-test"
+        suite["retry_policy"] = {
+            "max_infrastructure_attempts": 3,
+            "model_validation_failure": "terminal",
+            "scientific_outcome_failure": "not_retryable",
+        }
+        return suite
+
+    def test_classifies_cost_cap_as_retryable_infrastructure(self) -> None:
+        error = RuntimeError("HTTP 429: Access key max cost limit exceeded")
+        self.assertTrue(repeated_v2.retryable_infrastructure_error(error))
+
+    def test_does_not_retry_schema_validation_failure(self) -> None:
+        error = ValueError("LLM response omitted selected_candidate_id")
+        self.assertFalse(repeated_v2.retryable_infrastructure_error(error))
+
+    def test_infrastructure_failure_is_preserved_before_success(self) -> None:
+        suite = self.suite()
+        case = suite["cases"][0]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            repeated.write_json(root / "protocol_lock.json", {"test": True})
+            trajectory = repeated.trajectory_dir(root, "route_a", 10)
+            calls = 0
+
+            def fake_online(args: argparse.Namespace) -> None:
+                nonlocal calls
+                calls += 1
+                if calls == 1:
+                    raise RuntimeError("HTTP 429 rate limit")
+                repeated.write_json(
+                    args.output_dir / "summary.json",
+                    {"metrics": {}, "deltas": {}, "usage": {}},
+                )
+                (args.output_dir / "llm_trace.jsonl").write_text(
+                    "{}\n", encoding="utf-8"
+                )
+
+            with mock.patch.object(repeated_v2.online, "run_online", fake_online):
+                repeated_v2.run_trajectory(
+                    case,
+                    suite,
+                    trajectory,
+                    10,
+                    {"git_commit": "test"},
+                )
+
+            self.assertEqual(calls, 2)
+            self.assertTrue(
+                (trajectory / "attempts" / "attempt_01" / "error.json").is_file()
+            )
+            self.assertTrue(
+                (trajectory / "attempts" / "attempt_02" / "summary.json").is_file()
+            )
+            self.assertTrue((trajectory / "summary.json").is_file())
+            metadata = repeated.load_json(
+                trajectory / "trajectory_metadata.json"
+            )
+            self.assertEqual(metadata["successful_attempt"], 2)
+
+    def test_model_validation_failure_is_terminal(self) -> None:
+        suite = self.suite()
+        case = suite["cases"][0]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            repeated.write_json(root / "protocol_lock.json", {"test": True})
+            trajectory = repeated.trajectory_dir(root, "route_a", 10)
+            with mock.patch.object(
+                repeated_v2.online,
+                "run_online",
+                side_effect=ValueError("invalid LLM response schema"),
+            ) as patched:
+                with self.assertRaisesRegex(ValueError, "invalid LLM"):
+                    repeated_v2.run_trajectory(
+                        case,
+                        suite,
+                        trajectory,
+                        10,
+                        {"git_commit": "test"},
+                    )
+            self.assertEqual(patched.call_count, 1)
+            self.assertTrue((trajectory / "error.json").is_file())
 
 
 if __name__ == "__main__":

@@ -98,8 +98,31 @@ script, route configs, and initial records before the first model call.
 
 This protocol addresses stochastic repeatability, but it does not turn the six
 development routes into independent confirmation and it does not replace a new
-task family or prospective experiment. Execution remains pending; partial runs
-must be reported only as operational progress.
+task family or prospective experiment.
+
+### Repetition pilot and operational amendment
+
+One independent trajectory has completed for each of the 11 routes under the
+v1 lock (11/330 total). The equal-route mean AUC delta is +1.7532, with six
+positive, two tied, and three negative routes. This is an incomplete pilot, so
+no confidence interval or confirmatory decision is reported. More importantly,
+two route signs changed relative to the original one-trajectory audit. The
+experimental-gap to Materials-Project-gap route changed from -2.4464 to
++2.4464 AUC, while the aniline to phenethylamine/AlPhos route changed from a
+small positive effect to -0.7101. The repeated execution therefore confirms the
+methodological concern that a single stochastic LLM trajectory cannot establish
+route-level transferability.
+
+The next API batch stopped at an account-level HTTP 429 cost cap. To separate
+such infrastructure events from model or scientific failures, v2 freezes the
+same controller, route panel, target budget, comparator, and analysis, while
+adding an auditable retry policy. Rate limits, cost caps, timeouts, and network
+failures may be retried up to three times; every failed attempt is retained.
+Malformed model outputs are terminal, and a poor scientific outcome never
+triggers a retry. Confirmatory inference remains disabled unless all 330
+declared trajectories finish successfully. This operational amendment is in
+`online_llm_repeated_confirmation_v2.json` and does not alter the scientific
+decision policy.
 
 ## What a reviewer is likely to challenge
 
