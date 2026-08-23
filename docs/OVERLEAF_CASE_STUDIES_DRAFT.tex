@@ -1,0 +1,67 @@
+% Manuscript-ready draft. Values are copied from frozen CARE 2.0 trace and
+% summary artifacts; no values in this section are illustrative.
+
+\subsection{How source evidence changes sequential decisions}
+
+Aggregate performance alone does not show how transferred knowledge altered an
+experimental trajectory. We therefore inspected three representative routes: a
+successful molecular-property override, a successful materials consensus
+decision, and a negative-transfer case. In each example, all unqueried target
+outcomes remained hidden from the language model and the controller until the
+corresponding candidate was executed.
+
+\paragraph{A source-grounded override produced an early molecular-property gain.}
+For FreeSolv $\rightarrow$ Lipophilicity, the three initial target observations
+gave a best value of 67.25. In the first online round, the target-only Gaussian
+process ranked \texttt{lipo\_2256} first. The proposer and critic instead selected
+\texttt{lipo\_0635}, which was ranked fourth by the GP and had an expected
+improvement of 3.90. The recorded rationale connected the candidate's
+halogen-rich, low-polarity structure to the target observations rather than
+copying the source outcome directly. The candidate was then executed and
+revealed a target value of 86.875, increasing the best observed value by 19.625
+in one round. Across the ten-round trajectory, the best-so-far AUC was 89.575,
+compared with 83.250 for the same-initial target-only GP comparator
+($\Delta$AUC=+6.325). This example shows the intended role of the language
+model: it can overrule the default acquisition ranking when source evidence and
+target observations support a specific, testable alternative.
+
+\paragraph{Independent target and source signals converged on a high-value material.}
+For experimental band gap $\rightarrow$ dielectric response, the initial target
+best was 24.2902. In round zero, the five GP-eligible candidates had very similar
+posterior means and expected improvements. The proposer and critic chose the
+tellurium candidate \texttt{real\_matbench\_dielectric\_04424}. It was only fifth
+in the target GP ranking, but first in the combined consensus ranking because
+the source-derived polarizability hypothesis and the target posterior both
+supported it. Its target value, hidden at decision time, was 59.5114. The online
+trajectory consequently attained a best-so-far AUC of 59.5114, compared with
+52.7663 for the same-initial target-only GP ($\Delta$AUC=+6.7452). The final best
+was identical between the two methods; the gain came from finding the same
+high-value region earlier, which is precisely what the AUC reward measures.
+
+\paragraph{Persistent transfer can also delay discovery.}
+The experimental band gap $\rightarrow$ Materials Project band-gap route is a
+negative control. Its initial best was already 75.5362. None of the ten online
+LLM selections improved that value, whereas the same-initial target-only GP
+eventually reached 100.0. The corresponding AUC difference was $-2.4464$ and
+the final-best difference was $-24.4638$. The trace shows that the controller
+continued source transfer in every round, even after repeated lanthanide-halide
+candidates failed to improve the target best. This failure is informative: a
+plausible source-grounded mechanism is not sufficient evidence for continued
+transfer. The result motivates a stricter sequential stopping rule based on
+accumulated target contradictions rather than on the coherence of the initial
+hypothesis alone.
+
+Together, these cases support a narrower claim than universal cross-domain
+transfer. CARE 2.0 can convert source evidence into actionable deviations from
+a target-only acquisition policy, and those deviations can substantially
+improve early discovery on some routes. The same mechanism can also preserve a
+misleading prior for too long. Reporting both outcomes makes the calibration
+problem explicit and separates the contribution of hypothesis generation from
+the still-unresolved problem of reliable transfer rejection.
+
+% Frozen evidence sources:
+% experiments/care_replay/results/2026-08-16-opus48-bounded-ei-development-v2/
+%   molecular_freesolv_to_lipophilicity/{summary.json,llm_trace.jsonl}
+%   materials_expt_gap_to_dielectric/{summary.json,llm_trace.jsonl}
+%   materials_expt_gap_to_mp_gap/{summary.json,llm_trace.jsonl}
+

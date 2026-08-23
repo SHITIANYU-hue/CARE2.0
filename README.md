@@ -16,6 +16,12 @@ Current contents:
   datasets, results, and next steps.
 - `docs/NATURE_SUBMISSION_READINESS.md`: the current journal-positioning,
   claim boundary, reviewer-risk, and evidence-completion plan.
+- `CARE2.0_Nature_evidence_update_2026-08-23.pptx`: a 13-slide reviewer-facing
+  update built from the frozen online-LLM traces and route-level audit.
+- `CARE2.0_Nature_evidence_update_2026-08-23_speaker_notes_CN.md`: detailed
+  Chinese notes matched page by page to the evidence update.
+- `docs/OVERLEAF_CASE_STUDIES_DRAFT.tex`: manuscript-ready analyses of one
+  molecular-property success, one materials success, and one negative route.
 - `experiments/care_replay/rule_provenance.md`: provenance notes for the
   current incumbent, transfer rules, LLM roles, and incumbent ablation.
 - `experiments/care_replay/skill_transfer_layers.md`: layered CARE 2.0 skill
