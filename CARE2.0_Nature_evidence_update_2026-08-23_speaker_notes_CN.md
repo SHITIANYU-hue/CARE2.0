@@ -42,17 +42,17 @@ Replay harness 用完整历史数据模拟真实的逐轮实验。虽然磁盘�
 
 图中的每个点都是一条真实 source-target 路线，横轴是在线 LLM 相对同开局 target-only GP 的 best-so-far AUC 差值。正值表示更早找到高值条件，负值表示迁移拖慢搜索。11 条路线中，材料 `expt gap→dielectric` 为 +6.75，`FreeSolv→Lipophilicity` 为 +6.33；材料 `expt gap→mp gap` 为 -2.45。结果说明迁移效果有明显异质性，负迁移不能被平均值掩盖。
 
-## 第 11 页：统计证据强度
+## 第 11 页：第一次重复调用
 
-所有路线平均增益为 1.01，但 95% bootstrap 区间跨过 0。开发路线平均为 1.84，冻结后化学扩展的 5 条路线平均只有 0.02。这里的区间通过对 source-target 路线重采样获得，它不能替代同一路线多次独立 LLM trajectory，也不能替代前瞻湿实验。因此论文当前应使用“descriptive, route-specific positive signal”，不应使用“universal cross-domain transfer”或“statistically confirmed improvement”。
+v1 冻结协议已经为 11 条路线各完成 1 条独立轨迹，equal-route mean AUC 为 1.7532，仍是 6 正、2 平、3 负。但路线方向不是稳定常数：材料 `expt gap→mp gap` 从原来的 -2.4464 翻为 +2.4464，`aniline→phenethylamine/AlPhos` 从 +0.6286 翻为 -0.7101。独立 v2 的首条 Suzuki 轨迹仍为正，但 AUC 从上一条 +1.38 变为 +0.32，final delta 从 +5.7 变为 +0.4。图中的每个点仍只有 `n=1`，因此不能估计可信区间，更不能把某一条路线定义成稳定正迁移或负迁移。论文应把这页写成 stochasticity audit，而不是确认性结果。
 
 ## 第 12 页：结论边界
 
-已经完成的是无泄漏 replay、同预算主对照、三个任务家族、逐轮真实 LLM 决策和完整 trace。尚未完成的是每条关键路线的多次独立 LLM 重复、完全冻结的新任务家族以及 prospective wet-lab 验证。系统目前会更新单次运行中的状态和 GP，但不会训练 LLM 权重，也没有把 trace 自动蒸馏为永久 skill。这个边界需要在论文和答辩中保持一致。
+已经完成的是无泄漏 replay、同预算主对照、三个任务家族、逐轮真实 LLM 决策、完整 trace，以及重复协议的首轮运行。尚未完成的是每条关键路线足量的独立重复、窄且不跨 0 的确认区间、完全冻结的新任务家族和 prospective wet-lab 验证。系统目前会更新单次运行中的状态和 GP，但不会训练 LLM 权重，也没有把 trace 自动蒸馏为永久 skill。这个边界需要在论文和答辩中保持一致。
 
 ## 第 13 页：下一轮实验
 
-下一轮只做会改变论文结论的实验。第一，冻结 prompt、模型、预算和主要指标，对关键路线运行 30 至 50 条独立 LLM trajectory。第二，预留一批未参与调参的新 source-target pair，并在运行前登记主要指标和分析口径。第三，完成至少一条真实前瞻实验，直接比较单位实验成本下的发现速度。第四，通过消融分别移除 source evidence、critic、gate 和 LLM authority，确认增益来自哪个模块。最后公开代码、数据版本、完整 trace、模型版本、文件哈希、统计口径和负结果。
+重复实验已经启动：v1 完成 11/330，独立 v2 完成 1/330。v2 明确区分 API 限额、超时、模型格式错误和科学结果差；只有基础设施故障允许按冻结规则重试，所有尝试都保存，模型验证失败直接终止，结果差绝不会触发重跑。接下来要在稳定端点上完成全部轨迹，同时预留未参与调参的新 source-target pair，并完成至少一条真实前瞻实验。消融仍需分别移除 source evidence、critic、gate 和 LLM authority，确认增益来自哪个模块。
 
 ## 数据来源
 
@@ -60,4 +60,7 @@ Replay harness 用完整历史数据模拟真实的逐轮实验。虽然磁盘�
 - `experiments/care_replay/results/2026-08-22-submission-evidence-audit/phase_statistics.csv`
 - `experiments/care_replay/results/2026-08-16-opus48-bounded-ei-development-v2/molecular_freesolv_to_lipophilicity/llm_trace.jsonl`
 - `experiments/care_replay/results/2026-08-16-opus48-bounded-ei-development-v2/molecular_freesolv_to_lipophilicity/summary.json`
-
+- `experiments/care_replay/results/2026-08-23-online-llm-repeated-confirmation-v1/aggregate/repeated_confirmation.json`
+- `experiments/care_replay/results/2026-08-23-online-llm-repeated-confirmation-v1/aggregate/repeated_route_effects.svg`
+- `experiments/care_replay/results/2026-08-23-online-llm-repeated-confirmation-v2/reizman_cases_123_to_case4/trajectory_2000/summary.json`
+- `experiments/care_replay/configs/online_llm_repeated_confirmation_v2.json`

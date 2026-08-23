@@ -3,7 +3,7 @@
 - Protocol complete: `false`
 - Claim decision: `not_evaluated_incomplete_protocol`
 - Completed trajectories: `11` / `330`
-- Failed trajectories: `0`
+- Failed trajectories: `10`
 
 Partial execution is operational evidence only. No confirmatory claim is evaluated until all declared trajectories are complete.
 
