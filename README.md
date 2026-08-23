@@ -14,17 +14,23 @@ Current contents:
 - `task_tracker/`: current project tasks, owners, blockers, and next actions.
 - `overview.md`: a narrative overview of the current replay experiments,
   datasets, results, and next steps.
+- `docs/NATURE_SUBMISSION_READINESS.md`: the current journal-positioning,
+  claim boundary, reviewer-risk, and evidence-completion plan.
 - `experiments/care_replay/rule_provenance.md`: provenance notes for the
   current incumbent, transfer rules, LLM roles, and incumbent ablation.
 - `experiments/care_replay/skill_transfer_layers.md`: layered CARE 2.0 skill
   transfer design, covering representation, mechanism, model, acquisition,
   gate/risk, and workflow transfer.
 
-The repository includes both interface smoke tests and held-out confirmation
-studies on public measured data. Synthetic adapters validate the audit flow;
-MoleculeNet, Matbench, ChemLex, and reaction HTE adapters support matched
-finite-pool evaluation. Reproducing CARE paper numbers still requires the
-original benchmark candidate tables and matched evaluation setup.
+The repository contains several evidence tiers that must not be conflated.
+Synthetic adapters validate interfaces and audit flow; public MoleculeNet,
+Matbench, ChemLex, and reaction HTE datasets support matched finite-pool
+evaluation; frozen multi-seed selector studies test deterministic transfer
+components; and the latest online Opus suite tests an LLM that revises a
+hypothesis and selects every next experiment. The latest online-LLM result is
+descriptive rather than statistically confirmatory. Reproducing CARE paper
+numbers still requires the original benchmark candidate tables and matched
+evaluation setup.
 
 ## Branches
 
@@ -56,6 +62,10 @@ The latest project sync focuses on three workstreams:
 
 The latest tracked replay output is in:
 
+- `experiments/care_replay/results/2026-08-22-submission-evidence-audit/`
+- `experiments/care_replay/results/2026-08-16-opus48-generalization-evidence-v1/`
+- `experiments/care_replay/results/2026-08-15-opus5-generalization-study/`
+- `experiments/care_replay/results/2026-08-14-llm-reflective-scientist/`
 - `experiments/care_replay/results/2026-07-28-evaluation-completion/`
 - `experiments/care_replay/results/2026-07-27-materials-replication/`
 - `experiments/care_replay/results/2026-07-27-bh-replication-smoke/`
@@ -97,6 +107,30 @@ categorical kernel, producing a small positive acquisition-level result over
 GP-UCB on Suzuki-to-Buchwald-Hartwig and FreeSolv-to-Lipophilicity replay.
 Raw public data files, per-mode metrics, audit logs, and knowledge snapshots
 are kept under `experiments/care_replay/`.
+
+### Latest online-LLM evidence
+
+The 2026-08-16 suite isolates the online controller by comparing it with the
+same LLM-generated initial observations followed by target-only GP-UCB under
+the same reveal budget. Opus has an executable choice on every online round.
+Across 11 real source-target routes, the controller records six wins, two ties,
+and three losses with mean best-so-far AUC delta `+1.0135`. The route-level
+bootstrap 95% interval is `[-0.4433, +2.7821]`, and the exact two-sided sign-test
+`p` value excluding ties is `0.5078`.
+
+Five chemistry routes were added after the high-authority controller was
+frozen. This extension records three wins, one tie, and one loss, but the mean
+delta is only `+0.0212`, with bootstrap 95% interval
+`[-0.5171, +0.4194]` and sign-test `p=0.6250`. The correct current conclusion is
+therefore route-specific, majority-positive transfer evidence, not a universal
+or statistically confirmatory cross-domain claim. The complete audit, vector
+figures, SHA-256 files, and next-evidence requirements are in
+`experiments/care_replay/results/2026-08-22-submission-evidence-audit/`.
+
+This online result is separate from the July frozen-selector studies below.
+Those studies use many paired seeds to test deterministic compiled transfer
+policies; they do not establish the stochastic generalization of the online
+LLM controller.
 
 The 2026-07-28 evaluation-completion package consolidates the frozen seven-pair
 suite into a strongest-BO comparison, a matched target-only LLM comparison,
