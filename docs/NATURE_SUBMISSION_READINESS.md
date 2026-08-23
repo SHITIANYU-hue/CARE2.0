@@ -78,6 +78,29 @@ families, and each route currently contains one online Opus trajectory, so the
 analysis is a sensitivity check rather than a population-level hierarchical
 estimate.
 
+## Frozen repeated-trajectory protocol
+
+The first confirmatory gap now has an executable frozen protocol in
+`experiments/care_replay/configs/online_llm_repeated_confirmation_v1.json`.
+It includes all 11 routes from the evidence audit rather than selecting routes
+by their observed sign, declares 30 independent API trajectories per route,
+fixes the model, temperature, prompt/controller path, target budget, menu, and
+same-initial GP-UCB comparator, and disables confirmatory inference until all
+330 trajectories are complete.
+
+The primary estimand is the equal-route-weighted mean of the within-route mean
+best-so-far AUC deltas. The predeclared success rule requires the two-sided
+hierarchical-bootstrap 95% interval to lie entirely above zero. Route-level
+sign tests are secondary and use Benjamini-Hochberg correction. API failures,
+negative routes, token use, GP overrides, critic revisions, and source-active
+rates are retained. The runner writes a hash lock over the protocol, analysis
+script, route configs, and initial records before the first model call.
+
+This protocol addresses stochastic repeatability, but it does not turn the six
+development routes into independent confirmation and it does not replace a new
+task family or prospective experiment. Execution remains pending; partial runs
+must be reported only as operational progress.
+
 ## What a reviewer is likely to challenge
 
 ### 1. The strongest gains are development results

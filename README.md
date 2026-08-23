@@ -22,6 +22,9 @@ Current contents:
   Chinese notes matched page by page to the evidence update.
 - `docs/OVERLEAF_CASE_STUDIES_DRAFT.tex`: manuscript-ready analyses of one
   molecular-property success, one materials success, and one negative route.
+- `experiments/care_replay/configs/online_llm_repeated_confirmation_v1.json`:
+  the frozen 11-route, 30-trajectory-per-route confirmation protocol and its
+  predeclared hierarchical analysis rule.
 - `experiments/care_replay/rule_provenance.md`: provenance notes for the
   current incumbent, transfer rules, LLM roles, and incumbent ablation.
 - `experiments/care_replay/skill_transfer_layers.md`: layered CARE 2.0 skill

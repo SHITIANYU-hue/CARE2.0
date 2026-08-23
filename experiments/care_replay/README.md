@@ -53,6 +53,10 @@ Current status:
   outcome-blind initial hypotheses, and complete model-call traces. The combined
   evidence report is in
   [`results/2026-08-16-opus48-generalization-evidence-v1/REPORT.md`](results/2026-08-16-opus48-generalization-evidence-v1/REPORT.md).
+- Freezes a repeated-trajectory confirmation protocol across all 11 audited
+  routes. It requires 30 independent online trajectories per route and suppresses
+  confirmatory inference until the full 330-trajectory panel is complete. See
+  [`configs/online_llm_repeated_confirmation_v1.json`](configs/online_llm_repeated_confirmation_v1.json).
 
 Run:
 
@@ -118,6 +122,22 @@ python3 experiments/care_replay/scripts/run_llm_initial_design_hypothesis.py eva
   --reflection-record /tmp/care2/reflection.json \
   --output-dir /tmp/care2/evaluation
 ```
+
+Run or resume the frozen repeated-trajectory confirmation:
+
+```bash
+export COMMONSTACK_API_KEY="..."
+
+python3 experiments/care_replay/scripts/run_repeated_online_llm_confirmation.py \
+  --suite-config experiments/care_replay/configs/online_llm_repeated_confirmation_v1.json \
+  --output-root experiments/care_replay/results/2026-08-23-online-llm-repeated-confirmation-v1 \
+  --continue-on-error
+```
+
+`--max-new-runs N` may be used to execute the frozen queue incrementally. It
+does not change the declared sample size. Until every route has all 30
+trajectories, the generated report is marked incomplete and its confirmatory
+decision is disabled.
 
 The initial LLM sees completed source outcomes and public target conditions but
 no target outcomes. After the initial design is executed, the reflection LLM
