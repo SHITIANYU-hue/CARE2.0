@@ -1,0 +1,69 @@
+{
+  "schema_version": "care.source_outcome_falsification_config/v1",
+  "protocol": {
+    "source_seed": 0,
+    "target_seed_start": 73000,
+    "target_seed_count": 100,
+    "permutation_seeds": [101, 211, 307, 401, 503, 601, 701, 809, 907, 1009, 1103, 1201, 1301, 1409, 1511, 1601, 1709, 1801, 1901],
+    "initial_observations": 5,
+    "reveal_rounds": 10,
+    "source_initial_strategy": "source_extremes",
+    "discount": 0.65,
+    "min_source_support": 3,
+    "fixed_ensemble_scales": "0.5,1,1.5,2,3,4",
+    "gp_beta": 1.5,
+    "gp_xi": 0.01,
+    "numeric_length_scale": 0.35,
+    "categorical_length_scale": 3.0,
+    "gp_noise": 0.05,
+    "router_min_observations": 5,
+    "router_min_quality": 0.2,
+    "sequential_transfer_mass": 0.0,
+    "primary_metric": "best_so_far_auc",
+    "claim_boundary": "Retrospective outcome-assignment falsification; not a fresh-task or prospective confirmation."
+  },
+  "pairs": [
+    {
+      "pair_id": "reaction_chemlex_to_buchwald_hartwig",
+      "source_dataset": "real_chemlex_acidamine",
+      "target_dataset": "real_buchwald_hartwig",
+      "source_observations": 4096,
+      "llm_record": "configs/source_outcome_llm/generalized_to_bh.json",
+      "target_llm_record": "results/2026-07-23-source-evidence-extension/model_calls/reaction_chemlex_to_buchwald_hartwig_target_only.json",
+      "target_llm_mode": "gp_ucb",
+      "frozen_policy": {
+        "initial_observations": 2,
+        "reveal_rounds": 13,
+        "source_initial_strategy": "source_positive"
+      }
+    },
+    {
+      "pair_id": "materials_dielectric_to_expt_gap",
+      "source_dataset": "real_matbench_dielectric",
+      "target_dataset": "real_matbench_expt_gap",
+      "source_observations": 2048,
+      "llm_record": "configs/source_outcome_llm/dielectric_to_expt_gap.json",
+      "target_llm_record": "results/2026-07-21-llm-evidence-causality/model_calls/materials_target_only.json",
+      "target_llm_mode": "llm_semantic_high_element_count",
+      "frozen_policy": {
+        "initial_observations": 2,
+        "reveal_rounds": 13,
+        "source_initial_strategy": "source_negative"
+      }
+    },
+    {
+      "pair_id": "molecular_lipophilicity_to_freesolv",
+      "source_dataset": "real_moleculenet_lipophilicity",
+      "target_dataset": "real_moleculenet_freesolv",
+      "source_observations": 2048,
+      "llm_record": "configs/source_outcome_llm/generalized_to_freesolv.json",
+      "target_llm_record": "results/2026-07-23-source-evidence-extension/model_calls/molecular_lipophilicity_to_freesolv_target_only.json",
+      "target_llm_mode": "llambo_warmstart_balanced_feature_interaction_noprior",
+      "frozen_policy": {
+        "initial_observations": 5,
+        "reveal_rounds": 10,
+        "source_initial_strategy": "source_extremes"
+      }
+    }
+  ]
+}
