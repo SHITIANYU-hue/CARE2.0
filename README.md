@@ -91,6 +91,7 @@ The latest tracked replay output is in:
 - `experiments/care_replay/results/2026-08-24-online-llm-route-disjoint-fixed-threshold5-gate-audit-v1/`
 - `experiments/care_replay/results/2026-08-24-online-llm-route-disjoint-bounded-authority-v1/`
 - `experiments/care_replay/results/2026-08-24-online-llm-route-split-gate-selection-v1/`
+- `experiments/care_replay/results/2026-08-24-online-llm-bounded-authority-route-disjoint-confirmation-v1/`
 - `experiments/care_replay/results/2026-08-16-opus48-generalization-evidence-v1/`
 - `experiments/care_replay/results/2026-08-15-opus5-generalization-study/`
 - `experiments/care_replay/results/2026-08-14-llm-reflective-scientist/`
@@ -180,15 +181,34 @@ GP-UCB. On the six route-disjoint retrospective trajectories this changes the
 mean to `+0.6124` (95% interval `[-0.4422,+1.7934]`; two wins, three ties, one
 loss), an improvement of `+1.6681` over the full online LLM. The interval still
 crosses zero and one negative route remains, so this is a robustness signal,
-not a confirmatory superiority result. A separate 6-route x 30-trajectory
-protocol is frozen but unexecuted; the older threshold-5 protocol is preserved
-as a documented historical protocol rather than treated as the primary next
-confirmation. Code, traces, source-data plots, and hashes are under
+not a confirmatory superiority result.
+
+The first live bounded-authority pilot has now completed one successful
+trajectory on each of the six routes. All six proposer/critic decisions selected
+the same GP-UCB rank-one candidate as the matched target-only comparator, so the
+online increment was exactly `0.0000` AUC with `0/6` GP overrides. The calls used
+`99,243` tokens in total; the one-round authority limit avoided 108 nominal later
+proposer/critic calls. The complete system, which also includes the stochastic
+LLM initial design, averaged `-0.0087` AUC versus the fixed initial-design
+system (three wins, one tie, two losses). One credential failure is retained in
+the audit tree. These are operational pilot results, not the declared
+180-trajectory confirmation. They show that structured LLM participation is
+not itself evidence of decision impact.
+
+This pilot changes the evidence hierarchy. The strongest current evidence for
+LLM contribution remains the frozen semantic-skill compiler, where an LLM turns
+source evidence and a public target schema into an executable representation
+and acquisition policy before held-out replay. The online candidate picker is
+now a secondary exploratory module until it demonstrates a nonzero, beneficial
+action-change rate without target-outcome leakage. Code, traces, source-data
+plots, and hashes are under
 `experiments/care_replay/results/2026-08-24-online-llm-predeclared-baseline-portfolio-v1/`,
 `experiments/care_replay/results/2026-08-24-online-llm-predeclared-baseline-portfolio-v2/`,
 `experiments/care_replay/results/2026-08-24-online-llm-calibration-gate-audit-v1/`,
 `experiments/care_replay/results/2026-08-24-online-llm-fixed-threshold5-gate-replay-v1/`,
-and `experiments/care_replay/results/2026-08-24-online-llm-route-split-gate-selection-v1/`.
+`experiments/care_replay/results/2026-08-24-online-llm-route-split-gate-selection-v1/`,
+and
+`experiments/care_replay/results/2026-08-24-online-llm-bounded-authority-route-disjoint-confirmation-v1/`.
 
 This online result is separate from the July frozen-selector studies below.
 Those studies use many paired seeds to test deterministic compiled transfer

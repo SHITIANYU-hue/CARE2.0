@@ -269,6 +269,30 @@ averages `+0.6124` versus target GP (95% route-bootstrap interval
 full online LLM. This remains retrospective and uncertain; it motivates the
 frozen 180-trajectory confirmation rather than replacing it.
 
+The first live pilot exposed a stricter issue. Across one successful Opus 4.8
+trajectory on each of the six routes, every proposer/critic decision selected
+the target GP-UCB rank-one candidate. The online increment was therefore
+exactly zero on all six routes, with zero GP overrides and no critic choice
+revision. The calls used 99,243 tokens; bounded authority then avoided 108
+nominal later calls. The complete system, including the LLM-generated initial
+design, averaged -0.0087 AUC versus the fixed initial-design system. One
+pre-response credential failure remains in the audit tree. These partial
+results are operational evidence only and cannot trigger the frozen protocol's
+confirmatory decision.
+
+Build the trace-level diagnostic with:
+
+```bash
+python3 experiments/care_replay/scripts/build_online_llm_decision_impact_audit.py \
+  --input-root experiments/care_replay/results/2026-08-24-online-llm-bounded-authority-route-disjoint-confirmation-v1
+```
+
+The diagnostic explicitly separates LLM participation from causal action
+change. Until an online policy produces a nonzero, beneficial override rate on
+development routes and is then frozen before a disjoint evaluation, the online
+candidate picker is treated as exploratory. The frozen semantic-skill compiler
+remains the stronger evidence-backed LLM contribution.
+
 The older threshold-5 protocol remains frozen as an audit artifact. The current
 primary confirmation protocol tests the route-split selected bounded-authority
 controller:

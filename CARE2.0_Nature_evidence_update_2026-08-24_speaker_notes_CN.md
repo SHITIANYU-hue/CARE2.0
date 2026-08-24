@@ -4,7 +4,7 @@
 
 ## 第 1 页：项目定位
 
-CARE 2.0 研究的是旧实验经验能否帮助新任务更快找到好条件。它不是让大模型一次性猜答案，而是把大模型放进一个连续实验循环：模型先读取 source 任务的证据，提出一个可以被实验推翻的假设；target 每得到一个新结果后，模型重新判断这个假设是否还成立，并决定下一次做哪个实验。我们的核心贡献是把知识迁移变成了一个可执行、可审计、可拒绝的在线决策过程。
+CARE 2.0 研究的是旧实验经验能否帮助新任务更快找到好条件。当前最清楚的主线不是让大模型长期接管数值优化，而是让它把 source evidence 和 target 的公开 schema 编译成可检查、可执行、可拒绝的迁移 skill。Strict compiler 检查字段和值，calibration split 决定 skill 是否部署；冻结后由 target optimizer 在真实预算内执行。这样，LLM 提供语义和假设，GP 提供稳定的数值优化，失败 skill 也会留下完整审计记录。在线 proposer/critic 仍然存在，但首批真实 pilot 没有改变 GP rank 1，因此目前是探索模块，不是论文主贡献。
 
 ## 第 2 页：目前最准确的结果
 
@@ -16,7 +16,7 @@ CARE 2.0 研究的是旧实验经验能否帮助新任务更快找到好条件�
 
 ## 第 4 页：系统每轮做什么
 
-每轮先用 target GP、source prior 和覆盖策略建立一个受约束的候选菜单。Proposer 读取现有证据，更新可证伪假设并选择一个候选；Critic 检查支持证据、反对证据和负迁移风险，可以接受提案，也可以退回 GP rank 1，或改选菜单中的其他候选。随后系统只执行一个实验，揭示结果，更新 GP 后验、当前 best、假设状态和下一轮菜单。LLM 在 10 个轮次都拥有实际选择权，不是只写开场说明。
+这页展示的是在线 proposer/critic 控制器。每轮先用 target GP、source prior 和覆盖策略建立受约束的候选菜单；Proposer 更新可证伪假设并选择候选，Critic 可以接受、退回 GP rank 1 或改选。历史完整在线版本允许 LLM 在 10 轮都有最终选择权，但分离路线表现不稳。最新 bounded pilot 只保留第一轮 LLM 决策，后九轮交回 target GP；首批六条真实调用中，LLM 六次都选择 GP rank 1。它输出了结构化判断，却没有产生 action change，因此本模块仍需重新开发。
 
 ## 第 5 页：Replay harness
 
@@ -52,17 +52,15 @@ Replay harness 用完整历史数据模拟真实的逐轮实验。虽然磁盘�
 
 ## 第 13 页：结论边界
 
-已经完成的是无泄漏 replay、同预算主对照、三个任务家族、逐轮真实 LLM 决策和完整 trace。冻结 11 路线中，在线 LLM 相对同开局 target GP 的平均 AUC 增益为 +1.753；把所有 17 条历史路线纳入后，均值降到 +0.762，区间跨 0。更严格的六条分离路线完全不参与控制器选择：完整 LLM 均值为 -1.056，第三轮阈值 5 Gate 为 -1.968，说明原 Gate 在开发路线上的改善不能直接外推。仅用另外 11 条训练路线比较 115 个控制器后，固定规则选出“LLM 在线决策一轮，随后交回 GP”；它在六条分离路线中的均值为 +0.612，2 胜、3 平、1 负，但区间仍跨 0。当前能说的是发现了一个更合理的 LLM 介入边界，不能说已经普遍跨领域提升。系统会更新运行状态、GP 和假设，但不会训练 LLM 权重，也没有把 trace 自动蒸馏为永久 skill。
+这页重新排列证据层级。当前最扎实的 LLM 证据不是在线选点，而是 frozen semantic-skill compiler：LLM 读取 source evidence 和 target 的公开 schema，生成规则特征、先验方向和 acquisition schedule；strict compiler 检查字段和值，calibration split 决定是否部署，held-out replay 阶段不再调用 LLM。相对 strongest target-only anchor，FreeSolv、Buchwald-Hartwig 和 Matbench experimental band gap 的 AUC 分别提高 +1.384、+2.859 和 +5.930。schedule-only 与 no-prior 的同 seed 消融说明 semantic representation 和 prior direction 都有独立贡献；ChemLex 的负结果被完整保留。相反，首批六条真实在线轨迹全部选择 GP rank 1，在线增量为 0。因此论文主线应聚焦“LLM 把经验编译成可执行 skill，再由校准和 GP 安全执行”；在线 proposer/critic 暂时只能作为待验证的 hypothesis revision 和 abstention 模块。
 
 ## 第 14 页：下一轮实验
 
-单轮 LLM 的运行时交接已经接入在线控制器，新的确认协议也已冻结。协议覆盖 6 条没有参与控制器选择的 source-target 路线，每条 30 次，共 180 条新随机轨迹；每条轨迹使用相同初始观测、10 轮预算和 Opus 4.8 proposer + critic。LLM 只控制第一次在线 reveal；从第二轮开始不再调用 LLM，而由 target-only GP-UCB 从初始观测和第一轮结果继续。协议禁止根据中间结果删路线、改控制器或提前停止，只有 180 条轨迹全部完成后才计算主要层级 bootstrap 结论。路线名称和每条路线的一条旧轨迹此前已知，因此完成后仍属于内部重复确认，不是外部新任务或 wet-lab 证明。后续还需要真正未参与开发的新任务家族、source/critic/handoff 消融和至少一条 prospective wet-lab campaign。
+在线 pilot 的六个成功调用共消耗 99,243 tokens，但六次都选择 GP rank 1。继续直接扩成 180 次，只会高成本重复一个尚无决策影响的策略。该启动还保留了一次 inactive-key 的 pre-response 失败，按冻结 retry semantics 已经无法满足原来的完整确认条件，因此这批只能作为 operational pilot。下一步先在 development routes 上开发 challenger 或 semantic skill policy，要求产生非零且有益的 action change；随后在真正未参与开发的新任务上冻结 skill、compiler、数据 split、baseline 和统计口径，再开始 disjoint evaluation。与此同时补齐 RGPE、multitask GP 等同预算强 baseline，完成 source evidence、semantic rule、prior 和 critic 的同 seed 消融，并设计至少一条 prospective wet-lab campaign。
 
-## 第 15 页：从失败 Gate 到单轮 LLM
+## 第 15 页：在线 LLM 首批真实调用
 
-图中的六条路线完全不参与控制器选择。灰色圆点是完整 10 轮在线 LLM，均值相对 target GP 为 -1.056；橙色方块是开发路线中表现不错的第三轮阈值 5 Gate，但在这六条路线中降到 -1.968，说明预测误差阈值并不稳健。最大的失败是 phonons 到 perovskites：第三轮才交回 GP 时，前期 AUC 损失已经无法挽回。
-
-随后我们只用另外 11 条训练路线比较 115 个候选策略。选择规则先最小化负向路线，再最大化平均 AUC 和最差路线，完全相同时偏好参数更少的策略。最终选中的是单轮 LLM 控制器：LLM 做一次在线语义判断和候选选择，随后由 GP 完成剩余数值优化。绿色菱形是冻结后在六条分离路线上的回放结果，均值为 +0.612，2 胜、3 平、1 负；相对完整 LLM 改善 +1.668。它的 95% 区间仍跨 0，而且仍输给部分更强的事后 baseline，所以本页支持的是一个机制假设：LLM 更适合前期定方向，而不是长期接管优化。真正的统计结论必须等待 6×30 新轨迹完成。
+左图的橙色刻线表示在线 LLM 相对同开局 target-only GP 的 best-so-far AUC 差值，六条路线全部为 0；蓝色条表示包含 LLM initial design 的 complete system 相对固定 initial design，三条正向、一条持平、两条负向，平均 -0.0087。右图直接检查行为：六次都选择 GP rank 1，非 GP override 为 0，critic 改选为 0；其中三次在文字上保留 source transfer，但没有改变候选。六条成功轨迹共使用 99,243 tokens；单轮 authority limit 在后续九轮交回 GP，合计避免 108 次名义 proposer/critic 调用。这个结果证明 bounded authority 能节省调用并避免长期 LLM 控制，但不能证明在线 LLM 提高性能。当前需要优化的是 decision mechanism，而不是继续增加相同调用次数。
 
 ## 数据来源
 
@@ -102,4 +100,7 @@ Replay harness 用完整历史数据模拟真实的逐轮实验。虽然磁盘�
 - `experiments/care_replay/results/2026-08-24-online-llm-route-split-gate-selection-v1/selected_policy.json`
 - `experiments/care_replay/results/2026-08-24-online-llm-route-split-gate-selection-v1/selected_policy_evaluation_routes.jsonl`
 - `experiments/care_replay/configs/online_llm_bounded_authority_route_disjoint_confirmation_v1.json`
+- `experiments/care_replay/results/2026-08-24-online-llm-bounded-authority-route-disjoint-confirmation-v1/pilot_audit/decision_impact_audit.json`
+- `experiments/care_replay/results/2026-08-24-online-llm-bounded-authority-route-disjoint-confirmation-v1/pilot_audit/route_decision_metrics.csv`
+- `experiments/care_replay/results/2026-07-21-cross-domain-semantic-skills/README.md`
 - `docs/GLM53_CROSS_MODEL_PROTOCOL.md`

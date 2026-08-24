@@ -1,0 +1,141 @@
+{
+  "schema_version": "care.online_llm_scientist/v1",
+  "experiment": "care_online_llm_scientist",
+  "target_task": "real_moleculenet_freesolv_continuous",
+  "source_tasks": [
+    "real_moleculenet_lipophilicity"
+  ],
+  "initial_model": "claude-opus-5",
+  "online_model": "anthropic/claude-opus-4-8",
+  "initial_design_mode": "compiled",
+  "initial_compiler_record": {
+    "compiler": "llm_semantic_anchor_plus_quality_bounded_maximin/v1",
+    "selected_source_view": "all_sources",
+    "source_quantile": 0.5,
+    "source_anchor": "freesolv_0486",
+    "llm_semantic_anchor": "freesolv_0154",
+    "geometry_probe": "freesolv_0067",
+    "llm_hypothesis": "The lipophilicity source ranking transfers only weakly to hydration affinity: polar H-bond-capable heteroatom-rich cores (chlorouracil) will score at least as high as the top lipophilicity-ranked polychlorinated dioxin, while tiny apolar-surface molecules stay mid-range.",
+    "failure_conditions": [
+      "Chlorouracil scores below the dioxin anchor, refuting the H-bond-dominance claim.",
+      "Ammonia outranks both larger candidates, indicating size/dispersion terms are irrelevant.",
+      "All three land within a narrow score band, showing these bins are uninformative."
+    ]
+  },
+  "evidence_boundary": "Each LLM decision sees completed source evidence, public target conditions, and only target outcomes revealed before that round.",
+  "matched_target_budget": true,
+  "requested_reveal_rounds": 10,
+  "actual_reveal_rounds": 10,
+  "calibration_gate_policy": {
+    "enabled": true,
+    "evaluation_after_llm_guided_reveals": 1,
+    "mean_absolute_prediction_error_threshold": null,
+    "hard_abstention_enabled": false,
+    "force_fallback_after_evaluation": true,
+    "hard_abstention_conditions": [
+      "hypothesis_status=falsified",
+      "continue_source_transfer=false"
+    ],
+    "prediction_scoring_rule": "Score absolute error only when the LLM asserts an expected outcome; exclude decision_verdict=revise_to_gp.",
+    "fallback": "Stop all later LLM requests and execute target-only GP-UCB rank one from every observation accumulated before the gate.",
+    "triggered": true,
+    "trigger_reasons": [
+      "bounded_authority_round_limit"
+    ]
+  },
+  "menu_policy": {
+    "gp_count": 5,
+    "source_count": 3,
+    "consensus_count": 3,
+    "force_first_consensus": false,
+    "diversity_count": 1,
+    "adaptive_routing_from_llm_continue_source_transfer": true,
+    "decision_policy": "high_authority",
+    "deliberation_mode": "proposal_critic",
+    "target_gp_fallback_eligible_count": 5,
+    "max_transfer_gp_rank": 5,
+    "safety_fallback_gp_count": 5
+  },
+  "metrics": {
+    "online_llm_scientist": {
+      "target_dataset": "real_moleculenet_freesolv_continuous",
+      "mode": "online_llm_scientist",
+      "initial_observations": 3,
+      "reveal_rounds": 10,
+      "initial_candidate_ids": "freesolv_0486;freesolv_0154;freesolv_0061",
+      "executed_initial_candidate_ids": "freesolv_0486;freesolv_0154;freesolv_0067",
+      "initial_design_mode": "compiled",
+      "source_datasets": "real_moleculenet_lipophilicity",
+      "final_best": 89.715448,
+      "best_so_far_auc": 89.715448,
+      "simple_regret": 8.644652,
+      "llm_selected_rounds": 1,
+      "llm_participation_rate": 0.1,
+      "llm_choice_rounds": 1,
+      "llm_decision_authority_rate": 0.1,
+      "llm_mean_eligible_candidate_count": 0.5,
+      "llm_mean_eligible_candidate_count_when_called": 5.0,
+      "llm_gp_override_rate": 0.0,
+      "llm_critic_revision_rate": 0.0,
+      "gp_rank_one_choice_rate": 1.0,
+      "consensus_rank_one_choice_rate": 0.2,
+      "source_transfer_active_rate": 0.1,
+      "calibration_gate_enabled": true,
+      "calibration_gate_round": 1,
+      "calibration_gate_mae_threshold": null,
+      "calibration_gate_hard_abstention_enabled": false,
+      "calibration_gate_force_fallback_enabled": true,
+      "calibration_gate_triggered": true,
+      "calibration_gate_trigger_reasons": [
+        "bounded_authority_round_limit"
+      ],
+      "calibration_gate_scored_prediction_count": 1,
+      "calibration_gate_prediction_mae": 4.028997,
+      "calibration_gate_fallback_rounds": 9,
+      "calibration_gate_llm_rounds_saved": 9,
+      "calibration_gate_nominal_llm_calls_avoided": 18
+    },
+    "llm_initial_target_gp": {
+      "target_dataset": "real_moleculenet_freesolv_continuous",
+      "mode": "llm_initial_target_gp",
+      "seed": -1,
+      "initial_observations": 3,
+      "reveal_rounds": 10,
+      "initial_candidate_ids": "freesolv_0486;freesolv_0154;freesolv_0067",
+      "source_datasets": "real_moleculenet_lipophilicity",
+      "final_best": 89.715448,
+      "best_so_far_auc": 89.715448,
+      "simple_regret": 8.644652,
+      "top10_hit": 1
+    },
+    "fixed_v2_initial_design": {
+      "target_dataset": "real_moleculenet_freesolv_continuous",
+      "mode": "fixed_v2_initial_design",
+      "seed": -1,
+      "initial_observations": 3,
+      "reveal_rounds": 10,
+      "initial_candidate_ids": "freesolv_0486;freesolv_0067;freesolv_0058",
+      "source_datasets": "real_moleculenet_lipophilicity",
+      "final_best": 90.771091,
+      "best_so_far_auc": 88.245678,
+      "simple_regret": 7.589009,
+      "top10_hit": 1
+    }
+  },
+  "deltas": {
+    "online_llm_increment_over_same_initial_gp": {
+      "best_so_far_auc": 0.0,
+      "final_best": 0.0
+    },
+    "full_llm_scientist_vs_fixed_v2": {
+      "best_so_far_auc": 1.46977,
+      "final_best": -1.055643
+    }
+  },
+  "usage": {
+    "prompt_tokens": 16495,
+    "completion_tokens": 2640,
+    "total_tokens": 19135
+  },
+  "trace_file": "experiments/care_replay/results/2026-08-24-online-llm-bounded-authority-route-disjoint-confirmation-v1/molecular_lipophilicity_to_freesolv/trajectory_3001/attempts/attempt_01/llm_trace.jsonl"
+}

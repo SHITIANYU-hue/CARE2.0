@@ -387,6 +387,47 @@ whereas repeated stochastic policy control can erase that benefit. The
 intervals cross zero and one loss remains, so the claim is improved observed
 robustness, not general superiority.
 
+## Live bounded-authority pilot: participation did not change the action
+
+The first live launch completed one successful Opus 4.8 trajectory on each of
+the six route-disjoint tasks. Every proposer/critic response was structurally
+valid, but all six selected the same target GP-UCB rank-one candidate as the
+matched comparator. Consequently, the online LLM increment was exactly 0.0000
+AUC on every route: 0 wins, 6 ties, 0 losses, with an override rate of 0/6. The
+six calls consumed 99,243 tokens. The one-round authority limit then handed all
+remaining optimization to GP-UCB, avoiding 108 nominal later proposer/critic
+calls. The complete system, which additionally includes the stochastic LLM
+initial design, averaged -0.0087 AUC versus the fixed initial-design system
+(3 wins, 1 tie, 2 losses).
+
+One pre-response 401 credential failure is retained in the attempt tree. Under
+the frozen retry semantics it is terminal, so this launch cannot satisfy the
+declared 180-trajectory completion rule. The six successful trajectories are
+reported as an operational pilot, not as confirmatory inference. Their main
+value is diagnostic: a model can participate, emit a hypothesis, and pass a
+critic while having zero causal effect on the chosen experiments.
+
+This result changes the paper's contribution hierarchy. The strongest current
+LLM evidence is the earlier frozen semantic-skill compiler: source evidence and
+the public target schema are converted into executable rule features, priors,
+and an acquisition schedule, then evaluated without further LLM calls. On
+paired held-out replay it improved best-so-far AUC over the strongest target-only
+anchor by +1.384 for FreeSolv, +2.859 for Buchwald-Hartwig, and +5.930 for
+Matbench experimental band gap. Same-seed schedule-only and no-prior ablations
+showed that both the semantic representation and proposed direction contributed
+on the reaction and materials tasks. ChemLex remained negative and was not
+promoted to confirmation. These results do not yet isolate source evidence from
+the LLM's pretrained knowledge, so a source-evidence causality ablation and a
+fresh task family remain mandatory.
+
+The defensible architecture is therefore:
+
+`source evidence + target schema -> LLM-compiled skill -> strict compiler -> calibration -> frozen skill -> target optimizer`
+
+The online proposer/critic is a secondary hypothesis-revision and abstention
+module until it demonstrates nonzero beneficial decision impact on a development
+panel and then repeats that result under a newly frozen disjoint protocol.
+
 ## What a reviewer is likely to challenge
 
 ### 1. The strongest gains are development results
@@ -416,6 +457,11 @@ is unstable.
 Required response: treat initial design and online control as separate modules;
 either improve the initial design prospectively or present the online controller
 as the paper's primary intervention.
+
+Current evidence update: the live pilot strengthens this concern. The online
+controller itself made no action change, while the complete system's initial
+design effect was mixed. The manuscript should not use the retrospective
+bounded-authority result as its headline LLM contribution.
 
 ### 4. Replay is not a new discovery
 
@@ -458,10 +504,12 @@ library" for a separately implemented and evaluated module.
 6. **Matched transfer-BO baselines.** Compare the online LLM controller with
    calibration-selected RGPE and multitask GP under the same initial target
    observations, candidate pool, reveal budget, and held-out routes.
-7. **Prospective bounded-authority confirmation.** The one-round LLM authority
-   limit, fallback semantics, six-route panel, and 180-trajectory analysis rule
-   are frozen. Execute the protocol and compare it with ungated LLM, target GP,
-   and rule-fixed transfer BO without retuning or optional stopping.
+7. **Decision-impact gate before a new confirmation.** The first live pilot
+   produced zero GP overrides, and one terminal credential failure prevents the
+   original launch from satisfying its completion rule. Treat it as a failed
+   operational pilot. Develop a challenger or compiled-skill policy only on the
+   declared development routes; require nonzero beneficial action change there;
+   then freeze a new disjoint repeated protocol before any evaluation calls.
 
 ### P1: needed to make the paper distinctive
 
