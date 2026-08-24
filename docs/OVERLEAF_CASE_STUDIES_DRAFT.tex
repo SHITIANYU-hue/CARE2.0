@@ -239,6 +239,54 @@ secondary hypothesis-revision and abstention module until a development-only
 policy produces nonzero beneficial action changes and is then frozen before a
 new disjoint evaluation.
 
+\paragraph{Why gains appear only on some tasks.}
+The controlled ablations point to three conditions rather than a generic
+``LLM advantage.'' First, the model must propose a compact semantic partition
+that is aligned with the target property. On Matbench experimental band gap,
+the target-only \texttt{high\_element\_count} skill improved best-so-far AUC by
+$+6.167$ (95\% paired interval $[+4.361,+7.972]$) relative to the target
+portfolio. On Lipophilicity, \texttt{high\_aromatic\_content} improved AUC by
+$+1.261$ ($[+0.891,+1.630]$) relative to GP-UCB. Neither run exposed source
+outcomes to the LLM, and both performed best without an LLM-specified numeric
+coefficient prior. These controls suggest that the useful contribution was the
+choice of representation---element-count and aromaticity partitions---while
+the target observations and GP estimated the direction and magnitude.
+
+Second, source evidence can help when it changes which regions are measured
+early. In the mechanism controls, ChemLex $\rightarrow$ Buchwald--Hartwig and
+dielectric response $\rightarrow$ experimental band gap retained large gains
+when only the source-informed initial design was kept: the composite metric
+increased by $+22.460$ ($[+18.196,+26.723]$) and $+85.616$
+($[+75.374,+95.859]$), respectively. Holding that initial design fixed removed
+the incremental gain from the continuous source-outcome term and from the LLM
+patch. The defensible mechanism is therefore improved early coverage of a
+scientifically relevant region, not superior free-form reranking at every
+round.
+
+Third, a plausible explanation matters only if it changes the executed
+experiment. The first live bounded-authority pilot produced detailed source
+hypotheses on all six routes, but every selected candidate was also GP-UCB rank
+one; the causal online increment was exactly zero. Conversely, the positive
+single-trajectory case studies above contain observable GP overrides or an
+earlier hit. We therefore report the action-change rate, GP rank of the chosen
+candidate, and proposer--critic revision alongside reward. This separates
+reasoning quality from decision impact.
+
+The negative cases are equally diagnostic. Source-outcome summaries never
+outperformed source-schema-only skills in the four evidence-causality pairs,
+indicating that the current prompt does not reliably transport empirical
+effect sizes. Lipophilicity $\rightarrow$ FreeSolv produced
+$\Delta$AUC=$-29.902$ ($[-31.373,-28.432]$) relative to its matched target-only
+semantic skill: hydrophobic partition and hydration free energy share molecular
+descriptors but not an interchangeable objective direction. Thus gains are
+most likely when a shared descriptor has the same scientific role, the
+transferred skill changes early sampling, and subsequent target evidence is
+allowed to recalibrate its weight. Representation mismatch, objective-sign
+mismatch, or decision redundancy predicts no gain or negative transfer. These
+mechanistic interpretations are supported by retrospective ablations; the
+source-outcome permutation test and the frozen disjoint protocols are required
+before treating them as confirmatory causal claims.
+
 \paragraph{Repeated calls expose trajectory-level uncertainty.}
 The frozen development run for experimental band gap $\rightarrow$ Materials
 Project band gap produced $\Delta$AUC=$-2.4464$: the LLM-guided trajectory did
