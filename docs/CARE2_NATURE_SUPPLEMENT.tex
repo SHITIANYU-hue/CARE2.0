@@ -310,6 +310,65 @@ patch is harmful. The defensible mechanism is improved early experimental
 coverage on two routes and rejection of unstable transfer on five routes, not
 a general post-initialization source-outcome advantage.
 
+\subsection{Source-outcome assignment falsification}
+\label{sec:outcome_falsification}
+
+We next asked whether the measured source outcomes carry information through
+their association with specific source candidates, rather than merely supplying
+an outcome marginal from which an initial design can be selected. For each of
+three frozen routes, we held the source features, target initialization, target
+seeds, LLM-compiled role map, executable patches, target optimizer, and budget
+fixed. We compared the true feature--outcome assignment with 19 assignments
+obtained by permuting measured outcomes across the same source candidates. The
+audit used 100 held-out target seeds per route and zero sequential transfer mass,
+thereby isolating source-informed initial design.
+
+\begin{table}[t]
+\centering
+\caption{Frozen source-outcome assignment falsification. Differences are paired
+best-so-far AUC means with normal 95\% confidence intervals over 100 target
+seeds. $p$ is a one-sided empirical randomization test over 19 matched outcome
+permutations.}
+\label{tab:outcome_falsification}
+\small
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}X r r r}
+\toprule
+Source $\rightarrow$ target & True vs target-only & True vs mean permutation & $p$ \\
+\midrule
+ChemLex $\rightarrow$ Buchwald--Hartwig
+  & $+9.672\;[+7.405,+11.939]$
+  & $+20.347\;[+20.347,+20.347]$ & $0.15$ \\
+Dielectric $\rightarrow$ experimental gap
+  & $+48.954\;[+44.050,+53.857]$
+  & $+47.766\;[+47.766,+47.766]$ & $0.10$ \\
+Lipophilicity $\rightarrow$ FreeSolv
+  & $-1.027\;[-1.228,-0.826]$
+  & $+0.451\;[+0.356,+0.545]$ & $0.20$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.98\textwidth]{source_outcome_falsification.png}
+\caption{Source-outcome assignment falsification generated directly from the
+archived 300 target-seed jobs. Panel A compares the true source assignment with
+the matched target-only optimizer. Panel B compares it with the mean of 19
+outcome permutations; labels report one-sided empirical randomization $p$
+values.}
+\label{fig:outcome_falsification}
+\end{figure*}
+
+The true source assignment improves over target-only on the reaction and
+materials routes, confirming that their source-informed starts improve finite
+budget search. However, none of the three correct assignments is extreme under
+the matched permutation null ($p=0.10$--$0.20$). The molecular route remains
+worse than target-only despite outperforming the mean permutation. The primary
+falsification therefore does not establish that the correct source
+feature--outcome association contributes information beyond schema and the
+initialization mechanism. The positive warm-start results must not be presented
+as verified source-outcome learning.
+
 \section{Online LLM controller and strong baselines}
 \label{sec:online}
 
@@ -587,15 +646,15 @@ failure, batch effects, synthesis feasibility, or human intervention in a new
 laboratory campaign. Most online routes currently have one successful model
 trajectory. Several routes share task families, and controller policies were
 developed with knowledge of earlier trajectories. The live bounded-authority
-pilot had zero decision impact, and the source-outcome permutation test is
-still required to isolate whether measured source labels add value beyond
-schema and initialization. No result should be described as universal
+pilot had zero decision impact. The completed 100-seed source-outcome
+falsification did not reject matched outcome-assignment nulls on any of three
+frozen routes. No result should therefore be described as universal
 cross-domain transfer or prospective wet-lab discovery.
 
 The next decisive evidence is: (i) completion of the frozen repeated-call
 protocol, (ii) a new task family not used in controller development, (iii) a
-matched source-outcome falsification, and (iv) at least one prospective
-wet-lab campaign. Until then, the principal contribution is an auditable
+prospectively frozen source-outcome confirmation on new routes, and (iv) at
+least one prospective wet-lab campaign. Until then, the principal contribution is an auditable
 method for compiling, testing, and rejecting scientific transfer skills.
 
 \end{appendices}

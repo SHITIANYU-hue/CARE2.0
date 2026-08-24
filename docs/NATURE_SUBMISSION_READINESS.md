@@ -59,6 +59,10 @@ The current Opus suite supports the following statements:
    of +0.762 versus target GP, preventing selective route reporting.
 6. Every proposal, critic response, selected candidate, reveal, prediction
    error, hypothesis status, and fallback is retained in the trace.
+7. A frozen source-outcome assignment falsification was completed on three
+   routes with 100 target seeds and 19 matched outcome permutations per route.
+   Reaction and materials warm starts beat target-only, but none of the true
+   source-outcome assignments rejected the permutation null at 0.05.
 
 The current evidence does not support these statements:
 
@@ -68,6 +72,8 @@ The current evidence does not support these statements:
 4. The LLM updates its model parameters or has already implemented automatic
    persistent skill evolution.
 5. The system has accelerated a new physical wet-lab discovery.
+6. The correct source feature-outcome association has been shown to carry more
+   transferable information than randomized source-outcome assignments.
 
 ## Current statistical result
 
@@ -416,9 +422,16 @@ anchor by +1.384 for FreeSolv, +2.859 for Buchwald-Hartwig, and +5.930 for
 Matbench experimental band gap. Same-seed schedule-only and no-prior ablations
 showed that both the semantic representation and proposed direction contributed
 on the reaction and materials tasks. ChemLex remained negative and was not
-promoted to confirmation. These results do not yet isolate source evidence from
-the LLM's pretrained knowledge, so a source-evidence causality ablation and a
-fresh task family remain mandatory.
+promoted to confirmation.
+
+A stricter source-outcome assignment falsification has now been completed.
+Across 100 target seeds and 19 matched outcome permutations per route, the true
+reaction and materials assignments beat target-only, while the molecular route
+did not. However, the empirical randomization p-values were 0.15, 0.10, and
+0.20. Thus the audit does not establish that the correct source feature-outcome
+binding is more informative than randomized assignments. A prospectively frozen
+new task family remains mandatory; retrospective warm-start gains cannot carry
+the causal source-outcome claim.
 
 The defensible architecture is therefore:
 

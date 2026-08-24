@@ -54,9 +54,13 @@ Replay harness 用完整历史数据模拟真实的逐轮实验。虽然磁盘�
 
 这页重新排列证据层级。当前最扎实的 LLM 证据不是在线选点，而是 frozen semantic-skill compiler：LLM 读取 source evidence 和 target 的公开 schema，生成规则特征、先验方向和 acquisition schedule；strict compiler 检查字段和值，calibration split 决定是否部署，held-out replay 阶段不再调用 LLM。相对 strongest target-only anchor，FreeSolv、Buchwald-Hartwig 和 Matbench experimental band gap 的 AUC 分别提高 +1.384、+2.859 和 +5.930。schedule-only 与 no-prior 的同 seed 消融说明 semantic representation 和 prior direction 都有独立贡献；ChemLex 的负结果被完整保留。相反，首批六条真实在线轨迹全部选择 GP rank 1，在线增量为 0。因此论文主线应聚焦“LLM 把经验编译成可执行 skill，再由校准和 GP 安全执行”；在线 proposer/critic 暂时只能作为待验证的 hypothesis revision 和 abstention 模块。
 
-## 第 14 页：下一轮实验
+## 第 14 页：Source-outcome 因果检验
 
-在线 pilot 的六个成功调用共消耗 99,243 tokens，但六次都选择 GP rank 1。继续直接扩成 180 次，只会高成本重复一个尚无决策影响的策略。该启动还保留了一次 inactive-key 的 pre-response 失败，按冻结 retry semantics 已经无法满足原来的完整确认条件，因此这批只能作为 operational pilot。下一步先在 development routes 上开发 challenger 或 semantic skill policy，要求产生非零且有益的 action change；随后在真正未参与开发的新任务上冻结 skill、compiler、数据 split、baseline 和统计口径，再开始 disjoint evaluation。与此同时补齐 RGPE、multitask GP 等同预算强 baseline，完成 source evidence、semantic rule、prior 和 critic 的同 seed 消融，并设计至少一条 prospective wet-lab campaign。
+这一页专门回答一个更严格的问题：迁移收益究竟来自 source 中真实的“特征—实验结果”对应关系，还是仅仅来自 target schema、候选覆盖或初始化策略。我们冻结 LLM 编译出的 role map、target anchor、候选空间、预算和全部 target seeds，只在 source 内随机打乱 measured outcomes 与 source candidates 的对应关系。每条路线使用 100 个 target seeds 和 19 个 outcome permutations，共执行 300 个路线级任务；并且把 sequential transfer mass 设为 0，使检验只针对 source-informed initial design。
+
+ChemLex 到 Buchwald-Hartwig 的真实绑定相对 target-only AUC 提高 9.672，95% 配对 target-seed 区间为 7.405 到 11.939；相对置换均值提高 20.347，但随机化检验 p=0.15。材料 dielectric 到 experimental band gap 相对 target-only 提高 48.954，区间为 44.050 到 53.857；相对置换均值提高 47.766，p=0.10。Lipophilicity 到 FreeSolv 相对 target-only反而下降 1.027，区间为 -1.228 到 -0.826；相对置换均值提高 0.451，p=0.20。
+
+这里必须区分两类不确定性：图中的区间是在既定置换集合下、跨 target seeds 计算的配对区间，回答“同一组 outcome assignment 在不同 target 初始种子下是否稳定”；随机化 p 值则在 source outcome assignments 之间比较真实绑定的排名，回答“真实绑定是否优于随机绑定”。因此，即使某个配对区间很窄，也不等于通过了 source-outcome 因果检验。三条路线的 p 值都大于 0.05，所以当前只能说反应和材料 warm start 相对 target-only 有稳定收益，不能声称系统已经证明学到了正确的 source feature-outcome association。分子路线对 target-only 仍为负。这是一个有价值的 falsification 结果：它排除了过度归因，并把下一步证据目标明确为预注册的新路线、更多独立 outcome assignments，以及 prospective wet-lab confirmation。
 
 ## 第 15 页：在线 LLM 首批真实调用
 
@@ -88,6 +92,10 @@ Replay harness 用完整历史数据模拟真实的逐轮实验。虽然磁盘�
 - `experiments/care_replay/configs/online_llm_matched_classical_audit_v1.json`
 - `experiments/care_replay/results/2026-08-24-online-llm-matched-classical-audit-v1/aggregate.json`
 - `experiments/care_replay/results/2026-08-24-online-llm-matched-classical-audit-v1/comparisons.csv`
+- `experiments/care_replay/configs/source_outcome_falsification_v1.json`
+- `experiments/care_replay/results/2026-08-24-source-outcome-falsification-v1/falsification_report.json`
+- `experiments/care_replay/results/2026-08-24-source-outcome-falsification-v1/trajectory_metrics.csv`
+- `experiments/care_replay/scripts/plot_source_outcome_falsification.py`
 - `experiments/care_replay/results/2026-08-24-online-llm-predeclared-baseline-portfolio-v1/aggregate.json`
 - `experiments/care_replay/results/2026-08-24-online-llm-predeclared-baseline-portfolio-v2/aggregate.json`
 - `experiments/care_replay/results/2026-08-24-online-llm-calibration-gate-audit-v1/aggregate.json`
