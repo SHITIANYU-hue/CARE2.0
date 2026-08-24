@@ -1,6 +1,6 @@
 # CARE 2.0: Nature Submission Readiness
 
-Updated 2026-08-23.
+Updated 2026-08-24.
 
 ## Editorial position
 
@@ -106,12 +106,15 @@ One independent trajectory has completed for each of the 11 routes under the
 v1 lock (11/330 total). The equal-route mean AUC delta is +1.7532, with six
 positive, two tied, and three negative routes. This is an incomplete pilot, so
 no confidence interval or confirmatory decision is reported. More importantly,
-two route signs changed relative to the original one-trajectory audit. The
-experimental-gap to Materials-Project-gap route changed from -2.4464 to
-+2.4464 AUC, while the aniline to phenethylamine/AlPhos route changed from a
-small positive effect to -0.7101. The repeated execution therefore confirms the
-methodological concern that a single stochastic LLM trajectory cannot establish
-route-level transferability.
+four of the eleven paired routes strictly reversed sign relative to the early
+one-trajectory audit: experimental gap to Materials Project gap, aniline to
+phenethylamine/AlPhos, aniline to benzamide/tBuXPhos, and aniline to
+phenethylamine/tBuBrettPhos. Both batches still have the same aggregate count
+of six wins, two ties, and three losses, showing that an unchanged portfolio
+count can hide route-level instability. The mean absolute paired AUC change is
+1.0479. Because the early calls predate the confirmation lock, this is a
+descriptive stochasticity audit rather than a confirmatory repeated-measures
+test.
 
 The next API batch stopped at an account-level HTTP 429 cost cap. To separate
 such infrastructure events from model or scientific failures, v2 freezes the
@@ -132,6 +135,139 @@ additional v2 trajectories reached an account-level insufficient-balance error;
 each retained all three predeclared infrastructure attempts and produced no
 scientific result. They are reported as infrastructure failures, not negative
 transfer or model failures.
+
+### Cross-model robustness protocol
+
+A separate GLM-5.3 protocol now freezes the same eleven routes, initial target
+observations, reveal budget, candidate-menu policy, and same-initial GP-UCB
+comparator. It declares 30 trajectories per route and retains the same retry
+and incomplete-protocol rules. GLM-5.3 is analyzed independently rather than
+pooled with Opus after outcomes are observed. The primary analysis again asks
+whether the equal-route mean AUC interval lies above zero; agreement with Opus
+route directions is secondary. This experiment addresses model dependence, but
+does not replace a new task family or prospective campaign.
+
+The first GLM-5.3 pilot did not produce a complete scientific trajectory. The
+standard client initially returned valid structured decisions, but account
+rate limits exhausted the predeclared infrastructure retries. A second frozen
+version added provider-aware request pacing, `reasoning_effort=low`, and
+in-place retry of the identical failed HTTP request. It passed the rate limit
+that interrupted the first pilot, but a later critic returned an otherwise
+valid decision inside a persistent top-level `answer` object. The strict schema
+validator terminated that trajectory as a model-format failure.
+
+A third version adds one transparent transport adapter: when and only when
+`answer` is the sole top-level key and its value is an object, the envelope is
+removed before the unchanged scientific validator runs. The adapter cannot
+rename fields, substitute candidates, coerce values, fill missing fields, or
+repair scientific content. Its first execution exhausted eight in-place HTTP
+retries over approximately twelve minutes without receiving one usable
+response, and the interrupted outer retry is retained as a second
+infrastructure attempt. The earlier infrastructure and model-format failures
+remain in their original audit trees and are not reclassified. No GLM
+trajectory is complete, so no GLM effect estimate or cross-model agreement
+claim is reported. The version history and precise invariants are recorded in
+`docs/GLM53_CROSS_MODEL_PROTOCOL.md`.
+
+This design follows two relevant evaluation precedents. A recent
+[Communications Materials agent study](https://www.nature.com/articles/s43246-025-00994-x)
+repeated identical scientific-agent prompts five to ten times to assess
+reliability, while the
+[AILA study in Nature Communications](https://www.nature.com/articles/s41467-025-64105-7)
+compared four foundation models on the same scientific automation benchmark.
+More generally, Blackwell, Barry, and Cohn's
+[LLM uncertainty analysis](https://arxiv.org/abs/2410.03492) shows why repeated
+calls and uncertainty estimates are needed even under nominally fixed model
+settings. CARE 2.0 combines both controls: within-model repetition and a
+separately frozen cross-model replication.
+
+### Context-preserving online decisions and outcome-scale contract
+
+The transport-robust development protocol has now completed one trajectory in
+each of three task families. Relative to the same-initial target-only GP-UCB,
+FreeSolv to Lipophilicity improved best-so-far AUC by 6.325 and final best by
+4.875; phonon peak to bulk modulus improved AUC by 3.240 and final best by
+4.324; Reizman Suzuki cases 1--3 to case 4 improved AUC by 0.320 and final best
+by 0.400. LLM decision authority was 100% in all three trajectories, and the
+controller overrode the GP rank-one candidate in 40%, 40%, and 70% of online
+rounds, respectively. These are single development trajectories, not
+confirmatory estimates.
+
+The mechanisms differ. In the molecular route, source transfer remained active
+in five of ten rounds, providing a positive source-outcome transfer example. In
+the materials route, the controller disabled direct phonon-to-modulus transfer
+in every round after judging the source relation unsupported, but still used
+the revealed target history to reroute four GP choices. That result is evidence
+for negative-transfer abstention and semantic target adaptation, not evidence
+that phonon outcomes directly predict bulk modulus. The Suzuki trajectory kept
+source transfer active in five rounds and produced only a small increment over
+the matched GP; it remained 4.810 AUC points below the earlier fixed-v2 CARE
+trajectory. This distinction prevents a positive online increment from being
+misreported as superiority over every baseline.
+
+The context-preserving repair audit also exposed an interpretation error: the
+LLM labelled a normalized bulk-modulus score as GPa because the prompt named
+the objective but did not state its transformation. A new frozen development
+amendment now supplies, for every source and target dataset, the raw quantity,
+raw unit, replay-score definition, optimization direction, and the instruction
+never to attach a raw unit to a transformed score. It does not reveal hidden
+candidate values or change the candidate menu, budget, comparator, or validator.
+
+The first trajectory under this amendment improved AUC by 3.0825 and final best
+by 2.7458 relative to the same-initial target-only GP-UCB. More importantly for
+the stated repair, a deterministic audit over parsed proposer and critic
+responses found five numeric score--GPa couplings in the pre-amendment trace
+and zero among 20 response events after the contract was added. Both trace
+hashes and every matched pre-amendment sentence are retained in
+`audit/outcome_semantics_audit.json`. Because these are different stochastic
+development trajectories, the performance values are not a causal comparison
+of prompt versions. The valid conclusion is narrower: the declared response-
+level unit failure disappeared in this post-amendment material trajectory.
+
+### Direct classical transfer-BO comparison
+
+CARE should be compared with transfer Bayesian optimization, not only with a
+target-only GP. The repository already contains a calibration-only model
+selection benchmark over target GP-UCB, RGPE, and multitask GP-ICM, followed by
+100 disjoint held-out seeds. The older fixed CARE source-outcome router beats
+the calibration-selected classical method on three routes with intervals above
+zero, loses decisively on dielectric to experimental band gap, and is
+indistinguishable on phonons to dielectric AUC:
+
+| Route | Calibration-selected baseline | CARE mean AUC delta [95% interval] |
+|---|---|---:|
+| FreeSolv to Lipophilicity | target GP-UCB | +1.578 [0.621, 2.534] |
+| Lipophilicity to FreeSolv | target GP-UCB | +42.995 [40.287, 45.703] |
+| Experimental gap to dielectric | multitask GP-ICM | +2.884 [0.321, 5.447] |
+| Dielectric to experimental gap | RGPE | -44.838 [-49.274, -40.403] |
+| Phonons to dielectric | multitask GP-ICM | +0.045 [-1.911, 2.002] |
+
+This benchmark is consistent with the design principle in
+[networked autonomous materials exploration](https://www.nature.com/articles/s41524-025-01851-8):
+when external knowledge is irrelevant, model selection should fall back to a
+non-transfer model. CARE's distinctive claim is not that an LLM universally
+beats transfer GP methods; it is that an LLM can express a falsifiable
+source-target hypothesis, revise or abstain online, and leave an auditable
+scientific trace. A Nature-level comparison still requires the online LLM
+controller, RGPE, multitask GP, and target-only GP to be run under one newly
+frozen repeated protocol.
+
+As a bridge to that protocol, the three context-preserving online trajectories
+have now been replayed against target-only GP-UCB, RGPE, and multitask GP from
+the exact LLM initial candidate IDs and the same ten-reveal budget. The rebuilt
+target-only GP metrics match the values stored by the online runner, providing
+an executable equality check on the starting state and budget. Relative to the
+strongest realized baseline by AUC, the online LLM gains were +6.325 for
+FreeSolv to Lipophilicity, +1.922 for phonons to bulk modulus, and -1.960 for
+Reizman cases 1--3 to case 4. The corresponding equal-route mean was +2.0956,
+and the LLM beat every named realized baseline on two of three routes. In the
+failed route, multisource ICM-BMA reached 99.8 final yield and 96.38 AUC, versus
+94.5 and 94.42 for the online LLM. This is a post-hoc, single-trajectory stress
+test: the strongest baseline is identified after observing each route, no
+confidence interval is estimable, and the result does not replace calibration-
+selected repeated confirmation. Its value is to show that the method survives
+stronger comparators on the molecular and material examples while exposing a
+specific classical method that remains better on Suzuki.
 
 ## What a reviewer is likely to challenge
 
@@ -201,6 +337,9 @@ library" for a separately implemented and evaluated module.
 5. **Complete-system accounting.** Report the online increment, initial-design
    effect, and complete system separately. Do not let a strong online result hide
    a weak initial design.
+6. **Matched transfer-BO baselines.** Compare the online LLM controller with
+   calibration-selected RGPE and multitask GP under the same initial target
+   observations, candidate pool, reveal budget, and held-out routes.
 
 ### P1: needed to make the paper distinctive
 

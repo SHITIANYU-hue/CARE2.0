@@ -28,11 +28,11 @@ Replay harness 用完整历史数据模拟真实的逐轮实验。虽然磁盘�
 
 ## 第 7 页：主对照为什么公平
 
-最重要的主对照是 same-initial target-only GP-UCB。它与在线 LLM 使用相同的三个初始观测、候选空间和 10 轮预算，也看不到未执行的 target 标签。唯一差别是后续决策是否使用 source evidence 和 LLM proposer/critic。这样比较的是迁移信息和 LLM 决策本身，而不是额外实验次数。固定 v2 仍作为辅助对照保留，用来分解初始设计与在线决策的贡献。
+最重要的主对照是 same-initial target-only GP-UCB。它与在线 LLM 使用相同的三个初始观测、候选空间和 10 轮预算，也看不到未执行的 target 标签。唯一差别是后续决策是否使用 source evidence 和 LLM proposer/critic，因此可以隔离在线 LLM 增量。我们又从完全相同的 candidate IDs 重放了 RGPE 和 multitask GP：FreeSolv→Lipophilicity 的在线 LLM 比三种 baseline 中最强的 target GP 高 +6.325 AUC；phonons→bulk modulus 比最强的 RGPE 高 +1.922；Suzuki 则比 multisource ICM-BMA 低 1.960。三条路线相对事后最强 baseline 的等权平均为 +2.096，2/3 路线获胜。这里的“最强”是看完轨迹后选出的压力测试，不是预先 calibration 的主结果；每条路线也只有一次 LLM 调用，所以不能报显著性。下一步仍需在新冻结重复协议里预先规定 baseline 选择规则。
 
 ## 第 8 页：LLM 的真实输入和输出
 
-每轮输入包括已揭示的 target 历史、当前 best、source 证据、初始假设、GP 的均值和不确定性、expected improvement 以及合格候选菜单。模型必须结构化输出假设状态、更新后的假设、一个候选 ID、预期结果、改善概率、支持和反对证据、是否继续迁移，以及它与 GP rank 1 的比较。Critic 再做一次独立检查。prompt、原始回答、模型版本、token 用量、候选选择和揭示结果都完整保存，API 密钥不会进入实验文件。
+每轮输入包括已揭示的 target 历史、当前 best、source 证据、初始假设、GP 的均值和不确定性、expected improvement 以及合格候选菜单。数据集还显式提供原始物理量、单位、replay score 的变换公式和优化方向，但不会提供未执行候选的数值。模型必须结构化输出假设状态、更新后的假设、一个候选 ID、预期结果、改善概率、支持和反对证据、是否继续迁移，以及它与 GP rank 1 的比较。Critic 再做一次独立检查。prompt、原始回答、模型版本、token 用量、候选选择和揭示结果都完整保存，API 密钥不会进入实验文件。
 
 ## 第 9 页：FreeSolv 到 Lipophilicity 案例
 
@@ -42,17 +42,21 @@ Replay harness 用完整历史数据模拟真实的逐轮实验。虽然磁盘�
 
 图中的每个点都是一条真实 source-target 路线，横轴是在线 LLM 相对同开局 target-only GP 的 best-so-far AUC 差值。正值表示更早找到高值条件，负值表示迁移拖慢搜索。11 条路线中，材料 `expt gap→dielectric` 为 +6.75，`FreeSolv→Lipophilicity` 为 +6.33；材料 `expt gap→mp gap` 为 -2.45。结果说明迁移效果有明显异质性，负迁移不能被平均值掩盖。
 
-## 第 11 页：第一次重复调用
+## 第 11 页：配对稳定性审计
 
-v1 冻结协议已经为 11 条路线各完成 1 条独立轨迹，equal-route mean AUC 为 1.7532，仍是 6 正、2 平、3 负。但路线方向不是稳定常数：材料 `expt gap→mp gap` 从原来的 -2.4464 翻为 +2.4464，`aniline→phenethylamine/AlPhos` 从 +0.6286 翻为 -0.7101。独立 v2 的首条 Suzuki 轨迹仍为正，但 AUC 从上一条 +1.38 变为 +0.32，final delta 从 +5.7 变为 +0.4。图中的每个点仍只有 `n=1`，因此不能估计可信区间，更不能把某一条路线定义成稳定正迁移或负迁移。论文应把这页写成 stochasticity audit，而不是确认性结果。
+早期审计调用和第一次冻结重复的总体胜平负都为 6 / 2 / 3，但 11 条配对路线中有 4 条严格翻转正负号：材料 `expt gap→mp gap`、`aniline→phenethylamine/AlPhos`、`aniline→benzamide/tBuXPhos` 和 `aniline→phenethylamine/tBuBrettPhos`。Suzuki 三次观察为 +0.28、+1.38 和 +0.32，方向一致但幅度仍有波动。早期调用发生在确认协议冻结前，因此这不是正式重复检验，而是说明单次随机 LLM trajectory 不能定义一条路线是否稳定可迁移。论文应把本页写成 stochasticity audit，不应把它包装成显著性结果。
 
-## 第 12 页：结论边界
+## 第 12 页：材料迁移案例
 
-已经完成的是无泄漏 replay、同预算主对照、三个任务家族、逐轮真实 LLM 决策、完整 trace，以及重复协议的首轮运行。尚未完成的是每条关键路线足量的独立重复、窄且不跨 0 的确认区间、完全冻结的新任务家族和 prospective wet-lab 验证。系统目前会更新单次运行中的状态和 GP，但不会训练 LLM 权重，也没有把 trace 自动蒸馏为永久 skill。这个边界需要在论文和答辩中保持一致。
+这页展示的是冻结 JSON/JSONL 生成的真实轨迹。`phonons→bulk modulus` 中，LLM 十轮都把 `continue_source_transfer` 设为 false，因为 target 证据不支持把声子峰的结果排序直接搬到体模量。它仍然利用材料组成语义和已揭示的 target 历史，在 4/10 轮选择非 GP rank 1 候选。CARE 最终找到 normalized score 为 77.6127 的 `O8Pt6`，同开局 GP 最终为 73.2886；AUC 增益为 3.240，final 增益为 4.324。这个结果应解释成“负迁移识别后进行 target 自适应”，不能说成 phonon outcome 对 bulk modulus 的正向直接迁移。图中的分数为 `100×log10(K_VRH[GPa])/3`，本身是无量纲归一化分数，不是 GPa。早期 trace 曾有 5 次把这类 replay score 直接写成 GPa；加入 raw quantity、raw unit、score transformation 和 optimization direction 后，新轨迹的 20 个 proposer/critic 响应中该错误为 0。新轨迹相对同开局 GP 的 AUC 增益为 +3.083、final 增益为 +2.746，但两次调用并非配对实验，所以这里能证明的是语义错误被修复，不能用来证明 prompt 修复提高了性能。
 
-## 第 13 页：下一轮实验
+## 第 13 页：结论边界
 
-重复实验已经启动：v1 完成 11/330，独立 v2 完成 1/330。v2 明确区分 API 限额、超时、模型格式错误和科学结果差；只有基础设施故障允许按冻结规则重试，所有尝试都保存，模型验证失败直接终止，结果差绝不会触发重跑。接下来要在稳定端点上完成全部轨迹，同时预留未参与调参的新 source-target pair，并完成至少一条真实前瞻实验。消融仍需分别移除 source evidence、critic、gate 和 LLM authority，确认增益来自哪个模块。
+已经完成的是无泄漏 replay、同预算主对照、三个任务家族、逐轮真实 LLM 决策和完整 trace。context-preserving 协议下的分子、材料和 Suzuki 三条单轨迹相对同开局 GP 均为正，但它们仍是 `n=1` development evidence；其中材料 case 还是拒绝 source transfer 后的 target 自适应。尚未完成的是每条路线足量的独立重复、窄且不跨 0 的确认区间、稳定超过 fixed CARE 与 transfer GP，以及 prospective wet-lab 验证。系统会更新运行状态、GP 和假设，但不会训练 LLM 权重，也没有把 trace 自动蒸馏为永久 skill。
+
+## 第 14 页：下一轮实验
+
+重复实验已经启动：Opus 冻结 v1 完成 11/330，另有三条 context-preserving development 轨迹。GLM 仍没有完整轨迹，因此不能报告跨模型效果。同开局 classical stress test 已完成三条路线：分子和材料路线超过 RGPE/ICM，Suzuki 则由 multisource ICM-BMA 领先。下一步要在看结果前固定 baseline 选择规则，再把在线 LLM、RGPE、multitask GP-ICM 和 target-only GP 放进同一个重复协议。除此之外还需要未参与开发的新任务家族、source/critic/gate 消融，以及至少一条 prospective wet-lab campaign。
 
 ## 数据来源
 
@@ -64,3 +68,20 @@ v1 冻结协议已经为 11 条路线各完成 1 条独立轨迹，equal-route m
 - `experiments/care_replay/results/2026-08-23-online-llm-repeated-confirmation-v1/aggregate/repeated_route_effects.svg`
 - `experiments/care_replay/results/2026-08-23-online-llm-repeated-confirmation-v2/reizman_cases_123_to_case4/trajectory_2000/summary.json`
 - `experiments/care_replay/configs/online_llm_repeated_confirmation_v2.json`
+- `experiments/care_replay/results/2026-08-23-llm-trajectory-stability-audit/paired_route_stability.csv`
+- `experiments/care_replay/results/2026-08-23-llm-trajectory-stability-audit/paired_route_stability.svg`
+- `experiments/care_replay/configs/online_llm_glm53_robustness_v1.json`
+- `experiments/care_replay/configs/online_llm_glm53_robustness_v3.json`
+- `experiments/care_replay/configs/classical_transfer_benchmark_v1.json`
+- `experiments/care_replay/results/2026-08-08-classical-transfer-confirmation/comparison/care_vs_classical.json`
+- `experiments/care_replay/results/2026-08-24-online-llm-transport-context-robustness-v3/aggregate/repeated_confirmation.json`
+- `experiments/care_replay/results/2026-08-24-online-llm-transport-context-robustness-v3/materials_phonons_to_bulk_modulus/trajectory_5000/summary.json`
+- `experiments/care_replay/results/2026-08-24-online-llm-transport-context-robustness-v3/materials_phonons_to_bulk_modulus/trajectory_5000/llm_trace.jsonl`
+- `experiments/care_replay/results/2026-08-24-online-llm-transport-context-robustness-v3/materials_phonons_to_bulk_modulus/trajectory_5000/audit/materials_online_trace_audit.json`
+- `experiments/care_replay/configs/online_llm_outcome_semantics_robustness_v1.json`
+- `experiments/care_replay/results/2026-08-24-online-llm-outcome-semantics-robustness-v1/materials_phonons_to_bulk_modulus/trajectory_6000/summary.json`
+- `experiments/care_replay/results/2026-08-24-online-llm-outcome-semantics-robustness-v1/materials_phonons_to_bulk_modulus/trajectory_6000/audit/outcome_semantics_audit.json`
+- `experiments/care_replay/configs/online_llm_matched_classical_audit_v1.json`
+- `experiments/care_replay/results/2026-08-24-online-llm-matched-classical-audit-v1/aggregate.json`
+- `experiments/care_replay/results/2026-08-24-online-llm-matched-classical-audit-v1/comparisons.csv`
+- `docs/GLM53_CROSS_MODEL_PROTOCOL.md`

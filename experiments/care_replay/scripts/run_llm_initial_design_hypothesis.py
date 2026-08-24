@@ -46,6 +46,91 @@ PUBLIC_IDENTITY_FIELDS = (
 )
 
 
+OUTCOME_SEMANTICS: dict[str, dict[str, str]] = {
+    "real_moleculenet_esol": {
+        "observed_value_type": "dimensionless_replay_score",
+        "score_definition": "clip((measured_logS + 12) / 14 * 100, 0, 100)",
+        "raw_quantity": "measured aqueous log solubility (logS)",
+        "raw_unit": "log10(mol/L)",
+    },
+    "real_moleculenet_esol_common": {
+        "observed_value_type": "dimensionless_replay_score",
+        "score_definition": "clip((measured_logS + 12) / 14 * 100, 0, 100)",
+        "raw_quantity": "measured aqueous log solubility (logS)",
+        "raw_unit": "log10(mol/L)",
+    },
+    "real_moleculenet_freesolv_continuous": {
+        "observed_value_type": "dimensionless_replay_score",
+        "score_definition": "100 / (1 + exp((hydration_free_energy + 5) / 5))",
+        "raw_quantity": "experimental hydration free energy",
+        "raw_unit": "kcal/mol",
+    },
+    "real_moleculenet_lipophilicity": {
+        "observed_value_type": "dimensionless_replay_score",
+        "score_definition": "clip((experimental_logD + 3) / 8 * 100, 0, 100)",
+        "raw_quantity": "experimental lipophilicity (logD)",
+        "raw_unit": "dimensionless logD",
+    },
+    "real_matbench_dielectric": {
+        "observed_value_type": "dimensionless_replay_score",
+        "score_definition": "log(1 + refractive_index) / log(64) * 100",
+        "raw_quantity": "refractive index",
+        "raw_unit": "dimensionless",
+    },
+    "real_matbench_phonons": {
+        "observed_value_type": "dimensionless_replay_score",
+        "score_definition": "last_phonon_DOS_peak / 4000 * 100",
+        "raw_quantity": "last phonon density-of-states peak",
+        "raw_unit": "cm^-1",
+    },
+    "real_matbench_log_kvrh": {
+        "observed_value_type": "dimensionless_replay_score",
+        "score_definition": "log10(K_VRH in GPa) / 3 * 100",
+        "raw_quantity": "bulk modulus K_VRH; the Matbench target is log10(K_VRH)",
+        "raw_unit": "GPa before the log10 transform",
+    },
+    "real_matbench_log_gvrh": {
+        "observed_value_type": "dimensionless_replay_score",
+        "score_definition": "log10(G_VRH in GPa) / 3 * 100",
+        "raw_quantity": "shear modulus G_VRH; the Matbench target is log10(G_VRH)",
+        "raw_unit": "GPa before the log10 transform",
+    },
+}
+
+
+def outcome_semantics(adapter: replay.DatasetAdapter) -> dict[str, str]:
+    semantics = OUTCOME_SEMANTICS.get(adapter.dataset_id)
+    if semantics is None and adapter.objective == "maximize_yield":
+        semantics = {
+            "observed_value_type": "raw_measurement",
+            "score_definition": "reported reaction yield on a 0-100 scale",
+            "raw_quantity": "reaction yield",
+            "raw_unit": "percent",
+        }
+    elif semantics is None and adapter.objective == "maximize_conversion":
+        semantics = {
+            "observed_value_type": "raw_measurement",
+            "score_definition": "reported conversion on a 0-100 scale",
+            "raw_quantity": "reaction conversion",
+            "raw_unit": "percent",
+        }
+    elif semantics is None:
+        semantics = {
+            "observed_value_type": "replay_objective_score",
+            "score_definition": adapter.objective,
+            "raw_quantity": "dataset-specific objective; consult the adapter metadata",
+            "raw_unit": "dataset-specific",
+        }
+    return {
+        **semantics,
+        "optimization_direction": "higher_is_better",
+        "interpretation_rule": (
+            "Interpret revealed numbers using score_definition. Never attach raw_unit to "
+            "a transformed or normalized replay score."
+        ),
+    }
+
+
 def canonical_json(payload: Mapping[str, Any]) -> bytes:
     return json.dumps(
         payload,
@@ -128,6 +213,7 @@ def source_summary(adapter: replay.DatasetAdapter) -> dict[str, Any]:
         "dataset_id": adapter.dataset_id,
         "title": adapter.title,
         "objective": adapter.objective,
+        "outcome_semantics": outcome_semantics(adapter),
         "descriptor": warmstart.task_descriptor(adapter),
         "candidate_count": len(adapter.candidates),
         "outcome_summary": {
@@ -230,6 +316,7 @@ def target_public_spec(adapter: replay.DatasetAdapter) -> dict[str, Any]:
         "dataset_id": adapter.dataset_id,
         "title": adapter.title,
         "objective": adapter.objective,
+        "outcome_semantics": outcome_semantics(adapter),
         "decision_columns": list(adapter.decision_columns),
         "descriptor": warmstart.task_descriptor(adapter),
         "candidate_count": len(adapter.candidates),
@@ -320,6 +407,10 @@ def build_prompt(
                 "Complementary probes must remain strongly source-supported while adding "
                 "coverage across catalyst identity and numeric operating conditions."
             ),
+            (
+                "Use each dataset's outcome_semantics when interpreting numbers. Never "
+                "attach a raw physical unit to a transformed or normalized replay score."
+            ),
         ],
     }
 
@@ -390,6 +481,7 @@ def compact_source_summary(summary: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "dataset_id": summary.get("dataset_id"),
         "descriptor": summary.get("descriptor", {}),
+        "outcome_semantics": summary.get("outcome_semantics", {}),
         "outcome_summary": summary.get("outcome_summary", {}),
         "numeric_feature_outcome_correlations": summary.get(
             "numeric_feature_outcome_correlations", []

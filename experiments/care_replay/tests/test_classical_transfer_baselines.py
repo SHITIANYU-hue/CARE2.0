@@ -136,6 +136,40 @@ def test_all_modes_share_identical_initial_observations() -> None:
     assert initial_ids[0] == initial_ids[1] == initial_ids[2]
 
 
+def test_fixed_initial_indices_override_random_seed() -> None:
+    source = adapter("source", ("factor",))
+    target = adapter("target", ("factor",))
+    source_posterior = classical.build_source_posterior(
+        source,
+        target,
+        list(source.candidates),
+        6,
+        0.35,
+        3.0,
+        0.05,
+    )
+    initial_ids = []
+    for seed in (1, 99):
+        _metrics, audit = classical.run_seed(
+            source,
+            target,
+            source_posterior,
+            seed=seed,
+            initial=2,
+            rounds=1,
+            mode="target_gp_ucb",
+            gp_beta=1.5,
+            numeric_length_scale=0.35,
+            categorical_length_scale=3.0,
+            gp_noise=0.05,
+            rgpe_draws=8,
+            rho_grid=(0.0,),
+            fixed_initial_indices=[2, 7],
+        )
+        initial_ids.append(audit[0]["initial_candidate_ids"])
+    assert initial_ids == [["c2", "c7"], ["c2", "c7"]]
+
+
 def test_classical_and_care_confirmation_configs_are_matched() -> None:
     root = Path(__file__).resolve().parents[1]
     classical_config = json.loads(

@@ -233,8 +233,9 @@ def write_stability_svg(audit: Mapping[str, Any], output: Path) -> None:
             lines.append(f'<polygon points="{points}" fill="#D68A2F" stroke="#FFFFFF" stroke-width="2"/>')
         if row["strict_sign_flip"]:
             lines.append(
-                f'<text x="1435" y="{y + 6:.1f}" font-family="Arial, sans-serif" '
-                f'font-size="15" font-weight="700" fill="#C53030">SIGN FLIP</text>'
+                f'<text x="1450" y="{y + 6:.1f}" text-anchor="end" '
+                f'font-family="Arial, sans-serif" font-size="15" font-weight="700" '
+                f'fill="#C53030">SIGN FLIP</text>'
             )
 
     lines.extend(

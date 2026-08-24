@@ -108,6 +108,52 @@ class MultiSourceTransferTests(unittest.TestCase):
         self.assertEqual(set(summary["aggregate"]), set(multisource.MODES))
         self.assertEqual(summary["comparisons"]["multisource_rgpe"]["seed_count"], 1)
 
+    def test_fixed_initial_indices_are_used_verbatim(self) -> None:
+        sources = [
+            replay.real_reizman_suzuki_case_1_adapter(),
+            replay.real_reizman_suzuki_case_2_adapter(),
+        ]
+        target = replay.real_reizman_suzuki_case_4_adapter()
+        posteriors = []
+        for source in sources:
+            observed = transfer.source_observations(source, 0, 20)
+            posteriors.append(
+                classical.build_source_posterior(
+                    source,
+                    target,
+                    observed,
+                    20,
+                    0.35,
+                    3.0,
+                    0.05,
+                )
+            )
+        _metrics, audit = multisource.run_seed(
+            sources,
+            target,
+            posteriors,
+            seed=91,
+            initial=3,
+            rounds=1,
+            mode="target_gp_ucb",
+            gp_beta=1.5,
+            numeric_length_scale=0.35,
+            categorical_length_scale=3.0,
+            gp_noise=0.05,
+            rgpe_draws=8,
+            rho_grid=(0.0,),
+            bma_temperature=1.0,
+            fixed_initial_indices=[1, 5, 8],
+        )
+        self.assertEqual(
+            audit[0]["initial_candidate_ids"],
+            [
+                "reizman_suzuki_case4_001",
+                "reizman_suzuki_case4_005",
+                "reizman_suzuki_case4_008",
+            ],
+        )
+
     def test_skill_prior_is_selected_on_development_tasks_only(self) -> None:
         config = json.loads(
             (ROOT / "configs" / "multisource_new_task_benchmark_v1.json").read_text(

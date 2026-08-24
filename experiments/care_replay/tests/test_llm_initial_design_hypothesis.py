@@ -3,12 +3,14 @@ from __future__ import annotations
 import sys
 import unittest
 import json
+import tempfile
 from pathlib import Path
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 import run_llm_initial_design_hypothesis as llm_design
+import build_outcome_semantics_trace_audit as semantics_audit
 
 
 def shortlist() -> list[dict[str, object]]:
@@ -21,6 +23,65 @@ def shortlist() -> list[dict[str, object]]:
 
 
 class LLMInitialDesignHypothesisTest(unittest.TestCase):
+    def test_outcome_semantics_audit_scans_responses_not_prompts(self) -> None:
+        events = [
+            {
+                "event": "llm_round_request",
+                "round_index": 0,
+                "prompt": "Raw bulk modulus is measured in GPa.",
+            },
+            {
+                "event": "llm_round_proposal_response",
+                "round_index": 0,
+                "parsed_response": {
+                    "reasoning_summary": "The normalized score was 70.24 GPa."
+                },
+            },
+            {
+                "event": "llm_round_critic_response",
+                "round_index": 0,
+                "parsed_response": {
+                    "reasoning_summary": "The dimensionless replay score was 70.24."
+                },
+            },
+        ]
+        with tempfile.TemporaryDirectory() as temporary:
+            trace = Path(temporary) / "trace.jsonl"
+            trace.write_text(
+                "".join(json.dumps(event) + "\n" for event in events),
+                encoding="utf-8",
+            )
+            report = semantics_audit.audit_trace(trace, "GPa")
+        self.assertEqual(report["response_events"], 2)
+        self.assertEqual(report["invalid_score_unit_couplings"], 1)
+        self.assertEqual(report["violations"][0]["matched_value_unit"], "70.24 GPa")
+
+    def test_outcome_semantics_distinguish_scores_from_raw_units(self) -> None:
+        materials = llm_design.replay.real_matbench_log_kvrh_adapter()
+        material_semantics = llm_design.outcome_semantics(materials)
+        self.assertEqual(
+            material_semantics["observed_value_type"],
+            "dimensionless_replay_score",
+        )
+        self.assertIn("log10(K_VRH", material_semantics["score_definition"])
+        self.assertIn("Never attach", material_semantics["interpretation_rule"])
+
+        reaction = llm_design.replay.real_reizman_suzuki_case_4_adapter()
+        reaction_semantics = llm_design.outcome_semantics(reaction)
+        self.assertEqual(reaction_semantics["observed_value_type"], "raw_measurement")
+        self.assertEqual(reaction_semantics["raw_unit"], "percent")
+
+    def test_public_specs_carry_outcome_semantics_without_hidden_values(self) -> None:
+        adapter = llm_design.replay.real_matbench_phonons_adapter()
+        target_spec = llm_design.target_public_spec(adapter)
+        source = llm_design.source_summary(adapter)
+        self.assertEqual(
+            target_spec["outcome_semantics"],
+            source["outcome_semantics"],
+        )
+        self.assertFalse(target_spec["target_outcomes_available_to_llm"])
+        llm_design.assert_outcome_blind_prompt({"target": target_spec})
+
     def test_public_candidate_exposes_generic_descriptors_without_target(self) -> None:
         adapter = llm_design.replay.real_moleculenet_freesolv_continuous_adapter()
         public = llm_design.public_candidate(adapter.candidates[0], adapter)

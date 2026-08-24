@@ -1,0 +1,144 @@
+{
+  "suite": "online_llm_glm53_robustness_v2",
+  "protocol": {
+    "status": "frozen_before_execution",
+    "frozen_on": "2026-08-24",
+    "purpose": "Independent cross-model robustness test of the frozen CARE 2.0 controller using GLM-5.3 under a provider-aware low-frequency execution protocol. The v1 pilot remains an immutable infrastructure-failure audit; v2 results are analyzed separately from Opus and are never pooled post hoc.",
+    "primary_estimand": "Equal-route-weighted mean of within-route mean best-so-far AUC deltas versus the same-initial target-only GP-UCB comparator.",
+    "primary_success_rule": "The two-sided hierarchical bootstrap 95% confidence interval for the primary estimand must lie entirely above zero.",
+    "secondary_endpoints": [
+      "route-level mean final-best delta",
+      "route-level win, tie, and loss counts",
+      "negative-transfer route rate",
+      "agreement in route-level effect direction with the separately frozen Opus protocol",
+      "LLM participation, GP override, critic revision, source-active, and token-use rates"
+    ],
+    "multiplicity": "Route-level two-sided sign-test p-values are adjusted with Benjamini-Hochberg. These are secondary analyses.",
+    "replicate_start": 3000,
+    "replicates_per_route": 30,
+    "bootstrap_samples": 100000,
+    "bootstrap_seed": 20260824,
+    "partial_result_policy": "Partial execution is operational evidence only. Confirmatory inference is disabled until every declared route has every declared trajectory.",
+    "stopping_rule": "No optional stopping, route removal, or model replacement based on interim outcomes. Infrastructure failures are retained and may be retried only under the predeclared policy.",
+    "route_selection_note": "The same six development routes and five post-freeze chemistry-extension routes used by the Opus confirmation are included. No route is selected by observed GLM-5.3 performance.",
+    "cross_model_analysis_note": "GLM-5.3 and Opus results remain separate primary analyses. Any cross-model comparison is paired by route and labeled secondary."
+  },
+  "retry_policy": {
+    "max_infrastructure_attempts": 3,
+    "retryable_failures": "HTTP 408/409/425/429/5xx, rate or cost caps, timeouts, DNS failures, and connection interruptions.",
+    "model_validation_failure": "terminal",
+    "scientific_outcome_failure": "not_retryable",
+    "claim_policy": "A confirmatory decision is disabled unless all 330 declared GLM-5.3 trajectories complete successfully. Every failed attempt remains in the audit tree."
+  },
+  "rate_control": {
+    "min_request_interval_seconds": 15.0,
+    "max_call_attempts": 8,
+    "rate_limit_wait_seconds": 90.0,
+    "transient_wait_seconds": 15.0,
+    "request_timeout_seconds": 180.0,
+    "reasoning_effort": "low",
+    "scientific_invariance_note": "Rate control may delay or repeat the same failed HTTP request only. It cannot change the candidate menu, prompt, target observations, model output, reveal budget, or scientific outcome, and it never restarts a trajectory because its outcome is poor."
+  },
+  "runner": {
+    "model": "glm-5.3",
+    "base_url": "https://open.bigmodel.cn/api/paas/v4",
+    "api_key_env": "GLM_API_KEY",
+    "api_mode": "chat",
+    "temperature": 0.2,
+    "max_tokens": 1800,
+    "repair_attempts": 1,
+    "rounds": 10,
+    "initial_design_mode": "auto",
+    "decision_policy": "high_authority",
+    "deliberation_mode": "proposal_critic",
+    "fail_on_llm_error": true
+  },
+  "menu": {
+    "gp_count": 5,
+    "source_count": 3,
+    "consensus_count": 3,
+    "diversity_count": 1,
+    "max_transfer_gp_rank": 5,
+    "safety_fallback_gp_count": 5,
+    "force_first_consensus": false
+  },
+  "cases": [
+    {
+      "case_id": "molecular_freesolv_to_esol",
+      "domain": "molecular_property",
+      "evidence_tier": "retrospective_development",
+      "config": "configs/online_llm_generalization_v2.json",
+      "initial_record": "results/2026-08-15-opus5-generalization-study/v2/molecular_freesolv_to_esol/initial_record.json"
+    },
+    {
+      "case_id": "molecular_freesolv_to_lipophilicity",
+      "domain": "molecular_property",
+      "evidence_tier": "retrospective_development",
+      "config": "configs/online_llm_generalization_v1.json",
+      "initial_record": "results/2026-08-15-opus5-generalization-study/v1/molecular_freesolv_to_lipophilicity/initial_record.json"
+    },
+    {
+      "case_id": "materials_expt_gap_to_dielectric",
+      "domain": "materials_property",
+      "evidence_tier": "retrospective_development",
+      "config": "configs/online_llm_generalization_v1.json",
+      "initial_record": "results/2026-08-15-opus5-generalization-study/v1/materials_expt_gap_to_dielectric/initial_record.json"
+    },
+    {
+      "case_id": "materials_phonons_to_bulk_modulus",
+      "domain": "materials_property",
+      "evidence_tier": "retrospective_development",
+      "config": "configs/online_llm_generalization_v1.json",
+      "initial_record": "results/2026-08-15-opus5-generalization-study/v1/materials_phonons_to_bulk_modulus/initial_record.json"
+    },
+    {
+      "case_id": "materials_dielectric_to_jdft2d",
+      "domain": "materials_property",
+      "evidence_tier": "retrospective_development",
+      "config": "configs/online_llm_generalization_v3.json",
+      "initial_record": "results/2026-08-15-opus5-generalization-study/v3/materials_dielectric_to_jdft2d/initial_record.json"
+    },
+    {
+      "case_id": "materials_expt_gap_to_mp_gap",
+      "domain": "materials_property",
+      "evidence_tier": "retrospective_development",
+      "config": "configs/online_llm_generalization_v5.json",
+      "initial_record": "results/2026-08-15-opus5-generalization-study/v5/materials_expt_gap_to_mp_gap/initial_record.json"
+    },
+    {
+      "case_id": "baumgartner_aniline_to_phenethylamine_alphos",
+      "domain": "reaction_optimization_cn",
+      "evidence_tier": "post_freeze_extension",
+      "config": "configs/online_llm_high_authority_chemistry_holdout_v1.json",
+      "initial_record": "results/2026-08-16-opus48-high-authority-chemistry-holdout-v1/baumgartner_aniline_to_phenethylamine_alphos/initial_record.json"
+    },
+    {
+      "case_id": "baumgartner_aniline_to_benzamide_tbuxphos",
+      "domain": "reaction_optimization_cn",
+      "evidence_tier": "post_freeze_extension",
+      "config": "configs/online_llm_high_authority_chemistry_holdout_v1.json",
+      "initial_record": "results/2026-08-16-opus48-high-authority-chemistry-holdout-v1/baumgartner_aniline_to_benzamide_tbuxphos/initial_record.json"
+    },
+    {
+      "case_id": "baumgartner_aniline_to_phenethylamine_tbubrettphos",
+      "domain": "reaction_optimization_cn",
+      "evidence_tier": "post_freeze_extension",
+      "config": "configs/online_llm_high_authority_chemistry_holdout_v1.json",
+      "initial_record": "results/2026-08-16-opus48-high-authority-chemistry-holdout-v1/baumgartner_aniline_to_phenethylamine_tbubrettphos/initial_record.json"
+    },
+    {
+      "case_id": "baumgartner_benzamide_tbubrettphos_to_alphos",
+      "domain": "reaction_optimization_cn",
+      "evidence_tier": "post_freeze_extension",
+      "config": "configs/online_llm_high_authority_chemistry_holdout_v1.json",
+      "initial_record": "results/2026-08-16-opus48-high-authority-chemistry-holdout-v1/baumgartner_benzamide_tbubrettphos_to_alphos/initial_record.json"
+    },
+    {
+      "case_id": "reizman_cases_123_to_case4",
+      "domain": "reaction_optimization_suzuki",
+      "evidence_tier": "post_freeze_extension",
+      "config": "configs/online_llm_high_authority_chemistry_holdout_v1.json",
+      "initial_record": "results/2026-08-16-opus48-high-authority-chemistry-holdout-v1/reizman_cases_123_to_case4/initial_record.json"
+    }
+  ]
+}

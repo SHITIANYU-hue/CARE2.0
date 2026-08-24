@@ -11,7 +11,7 @@ import random
 from dataclasses import dataclass
 from pathlib import Path
 from statistics import mean, pstdev
-from typing import Any, Iterable
+from typing import Any, Iterable, Sequence
 
 import numpy as np
 
@@ -395,14 +395,29 @@ def run_seed(
     gp_noise: float,
     rgpe_draws: int,
     rho_grid: tuple[float, ...],
+    fixed_initial_indices: Sequence[int] | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     if mode not in MODES:
         raise ValueError(f"Unknown classical baseline mode: {mode}")
     pool = target_adapter.candidates
     target_features = feature_arrays(target_adapter, pool)
-    shuffled_indices = list(range(len(pool)))
-    random.Random(seed).shuffle(shuffled_indices)
-    observed_indices = shuffled_indices[:initial]
+    if fixed_initial_indices is None:
+        shuffled_indices = list(range(len(pool)))
+        random.Random(seed).shuffle(shuffled_indices)
+        observed_indices = shuffled_indices[:initial]
+    else:
+        observed_indices = [int(index) for index in fixed_initial_indices]
+        if len(observed_indices) != initial:
+            raise ValueError("fixed_initial_indices must match initial observations.")
+        if len(set(observed_indices)) != len(observed_indices):
+            raise ValueError("fixed_initial_indices must be unique.")
+        if any(index < 0 or index >= len(pool) for index in observed_indices):
+            raise ValueError("fixed_initial_indices contains an out-of-range index.")
+        observed_set_for_order = set(observed_indices)
+        shuffled_indices = [
+            *observed_indices,
+            *(index for index in range(len(pool)) if index not in observed_set_for_order),
+        ]
     observed_set = set(observed_indices)
     top10 = {
         index

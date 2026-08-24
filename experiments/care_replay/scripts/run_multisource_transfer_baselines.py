@@ -280,14 +280,29 @@ def run_seed(
     bma_temperature: float,
     skill_prior_mass_start: float = 0.0,
     skill_prior_mass_end: float = 0.0,
+    fixed_initial_indices: Sequence[int] | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     if mode not in POLICY_MODES:
         raise ValueError(f"Unknown multi-source mode: {mode}")
     pool = target_adapter.candidates
     target_features = classical.feature_arrays(target_adapter, pool)
-    shuffled_indices = list(range(len(pool)))
-    random.Random(seed).shuffle(shuffled_indices)
-    observed_indices = shuffled_indices[:initial]
+    if fixed_initial_indices is None:
+        shuffled_indices = list(range(len(pool)))
+        random.Random(seed).shuffle(shuffled_indices)
+        observed_indices = shuffled_indices[:initial]
+    else:
+        observed_indices = [int(index) for index in fixed_initial_indices]
+        if len(observed_indices) != initial:
+            raise ValueError("fixed_initial_indices must match initial observations.")
+        if len(set(observed_indices)) != len(observed_indices):
+            raise ValueError("fixed_initial_indices must be unique.")
+        if any(index < 0 or index >= len(pool) for index in observed_indices):
+            raise ValueError("fixed_initial_indices contains an out-of-range index.")
+        observed_set_for_order = set(observed_indices)
+        shuffled_indices = [
+            *observed_indices,
+            *(index for index in range(len(pool)) if index not in observed_set_for_order),
+        ]
     observed_set = set(observed_indices)
     best_trace: list[float] = []
     audit: list[dict[str, Any]] = []

@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
+import urllib.error
 
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
@@ -14,6 +17,10 @@ sys.path.insert(0, str(SCRIPTS))
 
 import run_repeated_online_llm_confirmation as repeated  # noqa: E402
 import run_repeated_online_llm_confirmation_v2 as repeated_v2  # noqa: E402
+import run_repeated_online_llm_confirmation_v3 as repeated_v3  # noqa: E402
+import run_repeated_online_llm_confirmation_v4 as repeated_v4  # noqa: E402
+import run_repeated_online_llm_confirmation_v5 as repeated_v5  # noqa: E402
+import run_repeated_online_llm_confirmation_v6 as repeated_v6  # noqa: E402
 
 
 class RepeatedOnlineConfirmationTests(unittest.TestCase):
@@ -217,6 +224,224 @@ class RetryResilientConfirmationTests(unittest.TestCase):
                     )
             self.assertEqual(patched.call_count, 1)
             self.assertTrue((trajectory / "error.json").is_file())
+
+
+class ProviderAwareConfirmationTests(unittest.TestCase):
+    def rate_control(self) -> dict:
+        return {
+            "min_request_interval_seconds": 0.0,
+            "max_call_attempts": 2,
+            "rate_limit_wait_seconds": 0.0,
+            "transient_wait_seconds": 0.0,
+            "request_timeout_seconds": 1.0,
+            "reasoning_effort": "low",
+        }
+
+    def test_rate_control_is_required(self) -> None:
+        suite = RetryResilientConfirmationTests().suite()
+        with self.assertRaisesRegex(ValueError, "rate_control"):
+            repeated_v3.validate_suite(suite, check_paths=False)
+
+    def test_invalid_reasoning_effort_is_rejected(self) -> None:
+        suite = RetryResilientConfirmationTests().suite()
+        suite["rate_control"] = self.rate_control()
+        suite["rate_control"]["reasoning_effort"] = "disabled"
+        with self.assertRaisesRegex(ValueError, "reasoning_effort"):
+            repeated_v3.validate_suite(suite, check_paths=False)
+
+    def test_http_429_retries_same_call_and_preserves_payload(self) -> None:
+        client = repeated_v3.ProviderAwareChatClient(self.rate_control())
+        config = SimpleNamespace(
+            api_mode="chat",
+            structured_mode="json",
+            model="glm-5.3",
+            base_url="https://example.test/v1",
+            api_key="test-only",
+            temperature=0.2,
+            max_tokens=100,
+        )
+        rate_error = urllib.error.HTTPError(
+            "https://example.test/v1/chat/completions",
+            429,
+            "rate limited",
+            {"Retry-After": "0"},
+            io.BytesIO(b'{"error":{"message":"rate limited"}}'),
+        )
+
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+            def read(self) -> bytes:
+                return json.dumps(
+                    {
+                        "model": "glm-5.3",
+                        "choices": [
+                            {
+                                "message": {"content": '{"selected":"a"}'},
+                                "finish_reason": "stop",
+                            }
+                        ],
+                        "usage": {"total_tokens": 42},
+                    }
+                ).encode("utf-8")
+
+        captured_payloads = []
+
+        def fake_urlopen(request, timeout):
+            captured_payloads.append(json.loads(request.data.decode("utf-8")))
+            if len(captured_payloads) == 1:
+                raise rate_error
+            return FakeResponse()
+
+        with mock.patch.object(
+            repeated_v3.urllib.request,
+            "urlopen",
+            side_effect=fake_urlopen,
+        ), mock.patch.object(repeated_v3.online.replay, "trace_llm_event"):
+            content, metadata = client(
+                config,
+                [{"role": "user", "content": "choose"}],
+            )
+
+        self.assertEqual(content, '{"selected":"a"}')
+        self.assertEqual(metadata["usage"]["total_tokens"], 42)
+        self.assertEqual(len(captured_payloads), 2)
+        self.assertEqual(captured_payloads[0], captured_payloads[1])
+        self.assertEqual(captured_payloads[0]["reasoning_effort"], "low")
+
+    def test_single_answer_envelope_is_removed_without_semantic_edits(self) -> None:
+        payload = {
+            "answer": {
+                "selected_candidate_id": "candidate_a",
+                "confidence": 0.6,
+            }
+        }
+        with mock.patch.object(
+            repeated_v4,
+            "_ORIGINAL_EXTRACT_JSON_OBJECT",
+            return_value=payload,
+        ):
+            parsed = repeated_v4.extract_provider_json_object("ignored")
+        self.assertEqual(parsed, payload["answer"])
+
+    def test_non_envelope_response_is_unchanged(self) -> None:
+        payload = {
+            "answer": {"selected_candidate_id": "candidate_a"},
+            "metadata": {"provider": "test"},
+        }
+        with mock.patch.object(
+            repeated_v4,
+            "_ORIGINAL_EXTRACT_JSON_OBJECT",
+            return_value=payload,
+        ):
+            parsed = repeated_v4.extract_provider_json_object("ignored")
+        self.assertIs(parsed, payload)
+
+    def test_file_content_transport_envelope_is_unwrapped(self) -> None:
+        payload = {
+            "file_path": "ignored.json",
+            "content": '{"selected_candidate_id":"candidate_a","confidence":0.6}',
+        }
+        nested = {
+            "selected_candidate_id": "candidate_a",
+            "confidence": 0.6,
+        }
+        with mock.patch.object(
+            repeated_v5,
+            "_ORIGINAL_EXTRACT_JSON_OBJECT",
+            side_effect=[payload, nested],
+        ):
+            parsed = repeated_v5.extract_provider_transport_object("ignored")
+        self.assertEqual(parsed, nested)
+
+    def test_transport_envelope_with_extra_key_is_not_unwrapped(self) -> None:
+        payload = {
+            "file_path": "ignored.json",
+            "content": '{"selected_candidate_id":"candidate_a"}',
+            "comment": "extra",
+        }
+        with mock.patch.object(
+            repeated_v5,
+            "_ORIGINAL_EXTRACT_JSON_OBJECT",
+            return_value=payload,
+        ):
+            parsed = repeated_v5.extract_provider_transport_object("ignored")
+        self.assertIs(parsed, payload)
+
+    def test_schema_repair_retains_original_scientific_context(self) -> None:
+        responses = [
+            (None, {"usage": {"total_tokens": 100}}),
+            (
+                '{"selected_candidate_id":"candidate_a"}',
+                {"usage": {"total_tokens": 50}},
+            ),
+        ]
+        messages = [
+            {"role": "system", "content": "science system"},
+            {"role": "user", "content": "ORIGINAL SCIENCE AND CANDIDATE MENU"},
+        ]
+        with mock.patch.object(
+            repeated_v6.online.replay,
+            "chat_completion_text",
+            side_effect=responses,
+        ) as chat:
+            normalized, _content, _metadata, _parsed, attempts = (
+                repeated_v6.context_preserving_validated_llm_json(
+                    SimpleNamespace(),
+                    messages,
+                    lambda parsed: dict(parsed),
+                    {"candidate_ids": ["candidate_a"]},
+                    1,
+                )
+            )
+        repaired_messages = chat.call_args_list[1].args[1]
+        self.assertEqual(normalized["selected_candidate_id"], "candidate_a")
+        self.assertFalse(attempts[0]["valid"])
+        self.assertTrue(attempts[1]["valid"])
+        self.assertNotIn(
+            {"role": "assistant", "content": ""},
+            repaired_messages,
+        )
+        self.assertIn(
+            "ORIGINAL SCIENCE AND CANDIDATE MENU",
+            [message["content"] for message in repaired_messages],
+        )
+        self.assertIn("validation_error", repaired_messages[-1]["content"])
+
+    def test_schema_repair_keeps_nonempty_previous_response(self) -> None:
+        responses = [
+            ("not valid json", {"usage": {"total_tokens": 100}}),
+            (
+                '{"selected_candidate_id":"candidate_a"}',
+                {"usage": {"total_tokens": 50}},
+            ),
+        ]
+        messages = [
+            {"role": "system", "content": "science system"},
+            {"role": "user", "content": "ORIGINAL SCIENCE AND CANDIDATE MENU"},
+        ]
+        with mock.patch.object(
+            repeated_v6.online.replay,
+            "chat_completion_text",
+            side_effect=responses,
+        ) as chat:
+            repeated_v6.context_preserving_validated_llm_json(
+                SimpleNamespace(),
+                messages,
+                lambda parsed: dict(parsed),
+                {"candidate_ids": ["candidate_a"]},
+                1,
+            )
+        repaired_messages = chat.call_args_list[1].args[1]
+        self.assertEqual(
+            repaired_messages[-2],
+            {"role": "assistant", "content": "not valid json"},
+        )
+        self.assertEqual(repaired_messages[-1]["role"], "user")
 
 
 if __name__ == "__main__":

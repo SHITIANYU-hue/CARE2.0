@@ -6,8 +6,8 @@
 \label{sec:case_studies}
 
 Aggregate metrics do not reveal how source knowledge changes a sequential
-experimental trajectory. We therefore audited three representative decisions
-from the frozen online runs: one molecular-property task, one materials task,
+experimental trajectory. We therefore audited four representative decisions
+from the frozen online runs: one molecular-property task, two materials tasks,
 and one wet-lab reaction-optimization task. These cases were selected after the
 runs to illustrate decision mechanisms, and are not used for statistical
 inference. At every decision, the language model could inspect source evidence,
@@ -29,6 +29,7 @@ Source $\rightarrow$ target & Domain & Audited decision & $\Delta$AUC & $\Delta$
 FreeSolv $\rightarrow$ Lipophilicity & Molecular property & GP rank 4 selected in round 1 & $+6.325$ & $+4.875$ \\
 Experimental gap $\rightarrow$ dielectric response & Materials property & GP rank 5 selected in round 1 & $+6.745$ & $0.000$ \\
 Suzuki cases 1--3 $\rightarrow$ case 4 & Reaction optimization & Source--target consensus retained across rounds & $+1.380$ & $+5.700$ \\
+Phonon peak $\rightarrow$ bulk modulus & Materials property & Direct source transfer rejected; target search rerouted & $+3.240$ & $+4.324$ \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -80,17 +81,68 @@ early-discovery example than the first two, but it shows that source evidence
 can remain useful after several target observations and can change the final
 condition found.
 
+\paragraph{Materials abstention: rejecting a source relation can itself be useful.}
+For phonon peak $\rightarrow$ bulk modulus, the controller did not treat two
+different material properties as directly interchangeable. It set
+\texttt{continue\_source\_transfer=false} in all ten online rounds after finding
+that the source evidence did not support a reliable phonon-to-modulus ranking.
+The LLM nevertheless used composition semantics and the revealed target history
+to override the GP rank-one candidate in four rounds. It selected
+\texttt{Lu4S6} in round nine and \texttt{O8Pt6} in round ten, reaching a final
+normalized score of 77.6127. The same-initial target GP finished at 73.2886.
+The resulting $\Delta$AUC=$+3.2404$ and $\Delta$Final=$+4.3241$ therefore support
+a narrower mechanism: evidence-based abstention prevented unsupported direct
+transfer, while semantic target adaptation still changed the search. They do
+not show that phonon outcomes directly transfer to bulk-modulus outcomes.
+
+\paragraph{Outcome-scale audit.}
+The same materials trace revealed that the model sometimes described the
+normalized bulk-modulus score as GPa. In fact, the replay score is
+$100\log_{10}(K_{\mathrm{VRH}}\,[\mathrm{GPa}])/3$ and is dimensionless. This
+error did not alter the hidden data or selected candidate, but it weakens the
+scientific explanation. The subsequent frozen development protocol therefore
+adds an explicit outcome contract containing the raw quantity, raw unit, score
+transformation, and optimization direction. It does not expose any unrevealed
+target value or change the experiment budget.
+In the pre-amendment trace, a deterministic audit found five instances in
+which a numeric replay score was coupled to the raw unit GPa. The post-amendment
+trajectory contained zero such couplings across 20 parsed proposer and critic
+responses. Its online trajectory remained positive relative to the same-initial
+target-only GP ($\Delta$AUC=$+3.0825$, $\Delta$Final=$+2.7458$). Because the two
+traces are independent stochastic calls, their performance difference is not
+used to estimate the effect of the prompt repair; the audit supports only the
+narrow claim that this declared unit-error mode was absent after the contract.
+
+\paragraph{Matched classical-baseline stress test.}
+We replayed target-only GP-UCB, RGPE, and multitask GP from the exact initial
+candidate IDs used by three context-preserving LLM trajectories, with the same
+candidate pools and ten target reveals. The rebuilt target-only GP reproduced
+the stored online-runner metrics exactly. Relative to the strongest realized
+baseline by AUC, the LLM gained $+6.325$ on FreeSolv $\rightarrow$
+Lipophilicity and $+1.922$ on phonon peak $\rightarrow$ bulk modulus, but lost
+$1.960$ on Reizman cases 1--3 $\rightarrow$ case 4. In that failed route,
+multisource ICM-BMA reached a final yield of 99.8 and AUC of 96.38, compared
+with 94.5 and 94.42 for the online LLM. The equal-route mean against the
+strongest realized baseline was $+2.0956$, with two wins in three routes. This
+is a post-hoc single-trajectory stress test, not a calibration-selected or
+confirmatory comparison; it identifies both where the LLM survives stronger
+transfer-BO baselines and where a classical model remains superior.
+
 \paragraph{Repeated calls expose trajectory-level uncertainty.}
 The frozen development run for experimental band gap $\rightarrow$ Materials
 Project band gap produced $\Delta$AUC=$-2.4464$: the LLM-guided trajectory did
 not improve its initial best, while the target-only GP eventually found the
 100.0-valued candidate. The first trajectory under the subsequently frozen
 repetition protocol produced $\Delta$AUC=$+2.4464$ and also reached 100.0 in
-round nine. A second route changed from a small positive effect to a small
-negative effect. These sign reversals show that a single stochastic LLM
-trajectory is not sufficient to label a source--target pair as transferable or
-non-transferable. We therefore treat the current route-level effects as
-descriptive and pre-specified a 30-trajectory-per-route confirmation protocol.
+round nine. Across all eleven paired routes, four strictly reversed sign, even
+though both batches retained the same aggregate count of six positive, two
+tied, and three negative routes. The mean absolute paired AUC change was
+1.0479. Because the early calls predate the confirmation lock, this comparison
+is a descriptive stochasticity audit rather than a repeated-measures test. It
+nevertheless shows that a single stochastic LLM trajectory is not sufficient
+to label a source--target pair as transferable or non-transferable. We
+therefore treat the current route-level effects as descriptive and
+pre-specified a 30-trajectory-per-route confirmation protocol.
 At the time of writing, 11 of 330 trajectories have completed; the equal-route
 mean $\Delta$AUC is $+1.7532$, with six positive, two tied, and three negative
 routes. The first trajectory under an independent v2 lock repeated the Reizman
@@ -99,6 +151,22 @@ Suzuki route and remained positive, but with a smaller effect
 confirmatory claim is reported until the frozen protocol is complete. API
 account-limit failures are retained separately and are not counted as
 scientific outcomes.
+
+To test whether the controller depends on a particular foundation model, we
+also froze an independent GLM-5.3 robustness protocol over the same eleven
+routes, initial observations, reveal budget, and target-only GP comparator. It
+declares 30 trajectories per route and is analyzed separately from Opus; route
+direction agreement is a secondary endpoint rather than a criterion chosen
+after observing the results. The first GLM pilot was stopped by provider rate
+limits before a complete trajectory formed. A frozen low-frequency amendment
+then reached valid scientific decisions but exposed a provider-specific JSON
+envelope in a critic response, which the strict validator recorded as a
+terminal model-format failure. A subsequent compatibility protocol removes
+only a sole top-level \texttt{answer} object before applying the unchanged
+scientific schema. Its first execution then exhausted eight in-place HTTP
+retries over approximately twelve minutes without a usable response. Earlier
+failures remain unchanged, no GLM trajectory is complete, and no GLM effect
+estimate is reported.
 
 Together, the audited cases support a specific and limited conclusion. CARE
 2.0 can turn source evidence into an explicit, falsifiable hypothesis and use
@@ -118,3 +186,19 @@ trajectory-level benefit.
 %   aggregate/repeated_confirmation.json
 % experiments/care_replay/results/2026-08-23-online-llm-repeated-confirmation-v2/
 %   reizman_cases_123_to_case4/trajectory_2000/{summary.json,llm_trace.jsonl}
+% experiments/care_replay/results/2026-08-23-llm-trajectory-stability-audit/
+%   {paired_route_stability.csv,paired_route_stability.svg,stability_audit.json}
+% experiments/care_replay/configs/online_llm_glm53_robustness_v1.json
+% experiments/care_replay/configs/online_llm_glm53_robustness_v2.json
+% experiments/care_replay/configs/online_llm_glm53_robustness_v3.json
+% docs/GLM53_CROSS_MODEL_PROTOCOL.md
+% experiments/care_replay/results/2026-08-24-online-llm-transport-context-robustness-v3/
+%   molecular_freesolv_to_lipophilicity/trajectory_5000/{summary.json,llm_trace.jsonl}
+%   materials_phonons_to_bulk_modulus/trajectory_5000/{summary.json,llm_trace.jsonl,audit/}
+%   reizman_cases_123_to_case4/trajectory_5000/{summary.json,llm_trace.jsonl}
+% experiments/care_replay/configs/online_llm_outcome_semantics_robustness_v1.json
+% experiments/care_replay/results/2026-08-24-online-llm-outcome-semantics-robustness-v1/
+%   materials_phonons_to_bulk_modulus/trajectory_6000/
+%   {summary.json,llm_trace.jsonl,audit/outcome_semantics_audit.json}
+% experiments/care_replay/results/2026-08-24-online-llm-matched-classical-audit-v1/
+%   {aggregate.json,comparisons.csv}
