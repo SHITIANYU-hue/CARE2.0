@@ -18,7 +18,7 @@ import run_synthetic_suzuki as replay
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SCHEMA_VERSION = "care.online_llm_calibration_gate_audit/v1"
+SCHEMA_VERSION = "care.online_llm_calibration_gate_audit/v2"
 ROUTE_LABELS = portfolio.ROUTE_LABELS
 
 
@@ -33,6 +33,11 @@ def trace_rounds(summary_path: Path) -> tuple[dict[str, Any], list[dict[str, Any
         for event in events
         if event["event"] == "llm_round_response"
     }
+    gate_decisions = {
+        int(event["round_index"]): event
+        for event in events
+        if event["event"] == "calibration_gate_target_gp_decision"
+    }
     reveals = {
         int(event["round_index"]): event
         for event in events
@@ -40,7 +45,9 @@ def trace_rounds(summary_path: Path) -> tuple[dict[str, Any], list[dict[str, Any
     }
     rounds = []
     for round_index in sorted(reveals):
-        response = responses[round_index]
+        response = responses.get(round_index) or gate_decisions.get(round_index)
+        if response is None:
+            raise ValueError(f"Missing decision event for reveal round {round_index}")
         reveal = reveals[round_index]
         decision = response.get("normalized_decision", {})
         expected = decision.get("expected_outcome")
@@ -183,7 +190,11 @@ def write_csv(path: Path, rows: Sequence[Mapping[str, Any]]) -> None:
     )
 
 
-def plot(rows: Sequence[Mapping[str, Any]], output_root: Path) -> list[Path]:
+def plot(
+    rows: Sequence[Mapping[str, Any]],
+    output_root: Path,
+    threshold_selection: str,
+) -> list[Path]:
     import matplotlib
 
     matplotlib.use("Agg")
@@ -207,12 +218,22 @@ def plot(rows: Sequence[Mapping[str, Any]], output_root: Path) -> list[Path]:
     axis.spines[["top", "right", "left"]].set_visible(False)
     axis.tick_params(axis="y", length=0)
     axis.scatter([], [], s=58, color="#7A8790", label="Original online LLM")
-    axis.scatter([], [], s=70, marker="D", color="#1E7D62", label="Cross-validated calibration gate")
+    gate_label = (
+        "Fixed global calibration gate"
+        if threshold_selection == "fixed"
+        else "Leave-one-route-out calibration gate"
+    )
+    axis.scatter([], [], s=70, marker="D", color="#1E7D62", label=gate_label)
     axis.legend(loc="lower right", frameon=False, ncol=2)
     figure.text(
         0.01,
         0.01,
-        "Gate evaluated after three LLM-guided reveals. Threshold for each route is selected on the other ten routes only; a triggered gate continues with target-only GP from the accumulated observations. Retrospective leave-one-route-out audit.",
+        (
+            "Gate evaluated after three LLM-guided reveals. One fixed global threshold is applied to every route; "
+            "a triggered gate continues with target-only GP from the accumulated observations. Retrospective replay."
+            if threshold_selection == "fixed"
+            else "Gate evaluated after three LLM-guided reveals. Threshold for each route is selected on the other ten routes only; a triggered gate continues with target-only GP from the accumulated observations. Retrospective leave-one-route-out audit."
+        ),
         fontsize=8.1,
         color="#5D6870",
     )
@@ -249,7 +270,14 @@ def main() -> None:
         nargs="+",
         default=[5, 10, 15, 20, 25, 30, 40, 60, 9999],
     )
+    parser.add_argument(
+        "--threshold-selection",
+        choices=("leave_one_route_out", "fixed"),
+        default="leave_one_route_out",
+    )
     args = parser.parse_args()
+    if args.threshold_selection == "fixed" and len(args.thresholds) != 1:
+        parser.error("Fixed threshold selection requires exactly one threshold.")
     config = portfolio.load_portfolio_config(args.portfolio_config)
     baseline_audit = matched.load_json(args.portfolio_aggregate)
     baseline_reports = {row["case_id"]: row for row in baseline_audit["route_reports"]}
@@ -283,14 +311,34 @@ def main() -> None:
             "fallback_auc": fallback_auc,
             "fallback_final": fallback_final,
             "fallback_audit": fallback_audit,
+            "source_trace": str(
+                (summary_path.parent / "llm_trace.jsonl").relative_to(ROOT)
+            ),
+            "deliberation_mode": str(
+                summary.get("menu_policy", {}).get(
+                    "deliberation_mode", "single"
+                )
+            ),
         }
 
     rows = []
     selected_thresholds = []
     for case_id, record in records.items():
-        threshold = select_threshold(case_id, args.thresholds, records)
+        threshold = (
+            float(args.thresholds[0])
+            if args.threshold_selection == "fixed"
+            else select_threshold(case_id, args.thresholds, records)
+        )
         selected_thresholds.append(threshold)
         switched = gate_switches(record["calibration"], threshold)
+        fallback_rounds = (
+            len(record["fallback_audit"]) - args.gate_round
+            if switched
+            else 0
+        )
+        logical_calls_per_round = (
+            2 if record["deliberation_mode"] == "proposal_critic" else 1
+        )
         gated_auc = float(record["fallback_auc"] if switched else record["online_llm_auc"])
         gated_final = float(record["fallback_final"] if switched else record["online_llm_final"])
         row = {
@@ -300,6 +348,10 @@ def main() -> None:
             "mean_absolute_prediction_error": record["calibration"]["mean_absolute_prediction_error"],
             "hard_abstention": record["calibration"]["hard_abstention"],
             "gate_switched_to_target_gp": switched,
+            "fallback_rounds": fallback_rounds,
+            "nominal_llm_calls_avoided": (
+                fallback_rounds * logical_calls_per_round
+            ),
             "online_llm_auc": record["online_llm_auc"],
             "gated_auc": round(gated_auc, 6),
             "target_gp_auc": record["target_gp_auc"],
@@ -316,7 +368,12 @@ def main() -> None:
             (
                 record["fallback_audit"]
                 if switched
-                else [{"selected_by": "online_llm_full_trajectory", "source_trace": str((ROOT / str(next(case["summary"] for case in config["cases"] if case["case_id"] == case_id))).parent / "llm_trace.jsonl")}]
+                else [
+                    {
+                        "selected_by": "online_llm_full_trajectory",
+                        "source_trace": record["source_trace"],
+                    }
+                ]
             ),
         )
 
@@ -325,18 +382,54 @@ def main() -> None:
     gate_gain_values = [float(row["gated_minus_online_llm_auc"]) for row in rows]
     strongest_values = [float(row["gated_minus_strongest_realized_baseline_auc"]) for row in rows]
     write_csv(args.output_root / "route_results.csv", rows)
-    figures = plot(rows, args.output_root)
+    figures = plot(rows, args.output_root, args.threshold_selection)
+    if args.threshold_selection == "fixed":
+        threshold_phrase = "the fixed global threshold"
+        gate_method_label = "Fixed global calibration gate"
+        evaluation_phrase = "retrospective route replays"
+        selection_description = (
+            "One global threshold was supplied before this replay and applied to "
+            "every route without route-specific selection."
+        )
+        claim_boundary = (
+            "This is a retrospective replay of one previously observed trajectory per "
+            "route under a single fixed threshold. It validates executable semantics and "
+            "motivates the frozen repeated protocol, but it is not prospective or external validation."
+        )
+    else:
+        threshold_phrase = "a leave-one-route-out threshold"
+        gate_method_label = "Leave-one-route-out calibration gate"
+        evaluation_phrase = "held-out route evaluations"
+        selection_description = (
+            "Leave one route out; maximize mean AUC delta versus target-only GP on the "
+            "other routes, then maximize non-loss rate and prefer the less aggressive "
+            "larger threshold on ties."
+        )
+        claim_boundary = (
+            "This is a retrospective leave-one-route-out audit on one trajectory per route. "
+            "The held-out route never contributes to its threshold selection, and the fallback "
+            "uses only observations available by the gate round, but prospective repeated "
+            "confirmation is still required."
+        )
     aggregate = {
         "schema_version": SCHEMA_VERSION,
         "method": {
             "gate_round": args.gate_round,
             "threshold_grid": args.thresholds,
-            "selection": "Leave one route out; maximize mean AUC delta versus target-only GP on the other routes, then maximize non-loss rate and prefer the less aggressive larger threshold on ties.",
+            "threshold_selection": args.threshold_selection,
+            "selection": selection_description,
             "prediction_error": "Mean absolute error of scored LLM expected outcomes over the first three online reveals. revise_to_gp responses are excluded because their expected_outcome field is not an asserted prediction.",
             "fallback": "Continue target-only GP-UCB from all initial and first-three LLM observations; do not restart or splice a separate GP trajectory.",
         },
         "route_count": len(rows),
         "switch_count": sum(bool(row["gate_switched_to_target_gp"]) for row in rows),
+        "total_fallback_rounds": sum(int(row["fallback_rounds"]) for row in rows),
+        "total_nominal_llm_calls_avoided": sum(
+            int(row["nominal_llm_calls_avoided"]) for row in rows
+        ),
+        "mean_nominal_llm_calls_avoided_per_route": round(
+            mean(float(row["nominal_llm_calls_avoided"]) for row in rows), 6
+        ),
         "selected_threshold_counts": {str(key): value for key, value in Counter(selected_thresholds).items()},
         "original_online_llm_vs_target_gp": portfolio.summarize(original_values, config["protocol"], 20),
         "calibration_gate_vs_target_gp": portfolio.summarize(gated_values, config["protocol"], 21),
@@ -344,7 +437,7 @@ def main() -> None:
         "calibration_gate_vs_strongest_realized_baseline_posthoc": portfolio.summarize(strongest_values, config["protocol"], 23),
         "route_results": rows,
         "figure_files": [{"path": str(path), "sha256": matched.sha256(path), "source_data": str(args.output_root / "route_results.csv")} for path in figures],
-        "claim_boundary": "This is a retrospective leave-one-route-out audit on one trajectory per route. The held-out route never contributes to its threshold selection, and the fallback uses only observations available by the gate round, but prospective repeated confirmation is still required.",
+        "claim_boundary": claim_boundary,
     }
     matched.write_json(args.output_root / "aggregate.json", aggregate)
     original_summary = aggregate["original_online_llm_vs_target_gp"]
@@ -356,7 +449,7 @@ def main() -> None:
             [
                 "# Prediction-error calibration gate audit",
                 "",
-                "The gate is evaluated after three LLM-guided target reveals. If the first-three mean absolute prediction error exceeds a leave-one-route-out threshold, or the LLM explicitly falsifies or abandons the transfer hypothesis, target-only GP-UCB continues from the accumulated observations.",
+                f"The gate is evaluated after three LLM-guided target reveals. If the first-three mean absolute prediction error exceeds {threshold_phrase}, or the LLM explicitly falsifies or abandons the transfer hypothesis, target-only GP-UCB continues from the accumulated observations.",
                 "",
                 "| Method | Mean AUC delta vs target GP | Route-bootstrap 95% CI | Win / tie / loss |",
                 "|---|---:|---:|---:|",
@@ -366,12 +459,14 @@ def main() -> None:
                     f"{original_summary['route_wins']} / {original_summary['route_ties']} / {original_summary['route_losses']} |"
                 ),
                 (
-                    f"| Cross-validated calibration gate | {gated_summary['equal_route_mean_auc_delta']:+.3f} | "
+                    f"| {gate_method_label} | {gated_summary['equal_route_mean_auc_delta']:+.3f} | "
                     f"[{gated_summary['route_bootstrap_95ci_low']:+.3f}, {gated_summary['route_bootstrap_95ci_high']:+.3f}] | "
                     f"{gated_summary['route_wins']} / {gated_summary['route_ties']} / {gated_summary['route_losses']} |"
                 ),
                 "",
-                f"The gate switched on {aggregate['switch_count']} of {aggregate['route_count']} held-out route evaluations. It reduced the negative-transfer count against target GP from {original_summary['route_losses']} to {gated_summary['route_losses']} and changed the equal-route mean by {aggregate['calibration_gate_minus_online_llm']['equal_route_mean_auc_delta']:+.3f} AUC.",
+                f"The gate switched on {aggregate['switch_count']} of {aggregate['route_count']} {evaluation_phrase}. It reduced the negative-transfer count against target GP from {original_summary['route_losses']} to {gated_summary['route_losses']} and changed the equal-route mean by {aggregate['calibration_gate_minus_online_llm']['equal_route_mean_auc_delta']:+.3f} AUC.",
+                "",
+                f"In this counterfactual replay, switching removed {aggregate['total_fallback_rounds']} later LLM-guided rounds, corresponding to {aggregate['total_nominal_llm_calls_avoided']} nominal proposer/critic calls. These are calls that the executable gate would avoid; they are not claimed as already realized API savings.",
                 "",
                 f"Against the strongest realized baseline selected post hoc, the gated controller remained {strongest_summary['equal_route_mean_auc_delta']:+.3f} AUC on average with {strongest_summary['route_wins']} wins, {strongest_summary['route_ties']} ties and {strongest_summary['route_losses']} losses. The gate is therefore a negative-transfer control, not evidence of universal baseline superiority.",
                 "",

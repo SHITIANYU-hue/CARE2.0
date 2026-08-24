@@ -48,9 +48,10 @@ The current Opus suite supports the following statements:
    against the same LLM initial observations followed by target-only GP-UCB.
 3. In the frozen 11-route first-trajectory portfolio, six routes improve
    best-so-far AUC, two tie, and three lose relative to same-start target GP.
-4. A leave-one-route-out prediction-error gate evaluated after three LLM-guided
-   reveals reduces the target-GP loss count from three routes to two and raises
-   the equal-route mean AUC delta from +1.753 to +2.036.
+4. An executable prediction-error gate evaluated after three LLM-guided reveals
+   can stop later LLM calls and continue with target-only GP-UCB. A single global
+   threshold of five reduces the retrospective target-GP loss count from three
+   routes to two and raises the equal-route mean AUC delta from +1.753 to +2.135.
 5. The complete 17-route retrospective inventory, including six earlier
    negative or null development routes, has a smaller and uncertain mean effect
    of +0.762 versus target GP, preventing selective route reporting.
@@ -75,14 +76,15 @@ target-only GP-UCB, under an identical target-reveal budget.
 |---|---:|---:|---:|---:|---:|
 | Frozen 11-route online LLM versus target GP | 11 | +1.7532 | [+0.4147, +3.3149] | 6 / 2 / 3 | p=0.5078 |
 | Frozen 11-route cross-validated calibration gate versus target GP | 11 | +2.0357 | [+0.4245, +3.9006] | 5 / 4 / 2 | p=0.4531 |
+| Frozen 11-route fixed-threshold-5 gate replay versus target GP | 11 | +2.1346 | [+0.5146, +4.0010] | 6 / 3 / 2 | p=0.2891 |
 | Complete 17-route retrospective inventory versus target GP | 17 | +0.7618 | [-0.5008, +2.0907] | 8 / 4 / 5 | p=0.5811 |
 
 These intervals resample source-target routes, not independent LLM calls.
 Several routes share task families, and each route currently contains one
 online Opus trajectory, so they quantify benchmark-route variation rather than
-within-route stochastic uncertainty. The leave-one-route-out gate never uses
-the held-out route to choose its threshold, but it remains retrospective and is
-not a substitute for the frozen repeated-trajectory protocol.
+within-route stochastic uncertainty. Both gate rows are retrospective replays.
+The fixed-threshold row is the exact rule now frozen for future trajectories,
+but it is not a substitute for completing the repeated-trajectory protocol.
 
 ## Frozen repeated-trajectory protocol
 
@@ -105,6 +107,15 @@ script, route configs, and initial records before the first model call.
 This protocol addresses stochastic repeatability, but it does not turn the six
 development routes into independent confirmation and it does not replace a new
 task family or prospective experiment.
+
+The executable-gate protocol is separately frozen in
+`experiments/care_replay/configs/online_llm_gated_repeated_confirmation_v1.json`.
+It keeps the same 11 routes and 30 trajectories per route, fixes evaluation
+after reveal three and one global MAE threshold of five, and predeclares that a
+triggered trajectory makes no later LLM request. Target-only GP-UCB continues
+from all accumulated observations, so the target budget is unchanged while LLM
+rounds and token use can fall. This 330-trajectory protocol has not completed;
+no prospective gate claim is currently evaluated.
 
 ### Repetition pilot and operational amendment
 
@@ -325,6 +336,19 @@ The defensible conclusion is that prediction-error calibration improves risk
 control in this retrospective portfolio, not that it establishes universal
 superiority. Prospective repeated confirmation remains required.
 
+The second audit applies one global threshold of five to every route, matching
+the rule frozen in the executable protocol. It switches on ten of eleven
+retrospective trajectories and changes the mean AUC delta versus target GP from
++1.753 to +2.135 (route-bootstrap interval +0.515 to +4.001; 6 wins, 3 ties,
+2 losses). Relative to the ungated LLM, the mean change is +0.381 with an
+interval from -0.371 to +1.432. Relative to the strongest realized baseline
+selected post hoc, it remains -0.168 with 3 wins, 1 tie, and 7 losses. This
+fixed-rule replay validates the intended runtime semantics and provides a
+rationale for prospective testing; it is not itself prospective evidence. In
+counterfactual execution it replaces 70 later LLM-guided rounds, equivalent to
+140 nominal proposer/critic calls. These numbers describe calls the executable
+Gate would avoid on the saved trajectories, not API savings already realized.
+
 ## What a reviewer is likely to challenge
 
 ### 1. The strongest gains are development results
@@ -396,9 +420,10 @@ library" for a separately implemented and evaluated module.
 6. **Matched transfer-BO baselines.** Compare the online LLM controller with
    calibration-selected RGPE and multitask GP under the same initial target
    observations, candidate pool, reveal budget, and held-out routes.
-7. **Prospective calibration-gate confirmation.** Freeze one gate round and one
-   threshold-selection procedure before new LLM trajectories, then compare the
-   gated controller with ungated LLM, target GP, and rule-fixed transfer BO.
+7. **Prospective calibration-gate confirmation.** The gate round, global
+   threshold, fallback semantics, route list, and 330-trajectory analysis rule
+   are now frozen. Execute the protocol and compare gated LLM with ungated LLM,
+   target GP, and rule-fixed transfer BO without retuning or optional stopping.
 
 ### P1: needed to make the paper distinctive
 
@@ -457,10 +482,15 @@ analysis, and completed sample count must accompany the figure. Failed API
 calls and interrupted trajectories remain in the audit record but are never
 plotted as scientific outcomes. Conceptual framework diagrams are allowed, but
 must be labeled as schematics rather than experimental evidence. In the current
-deck, the repeated-route forest plot is generated from
-`2026-08-23-online-llm-repeated-confirmation-v1/aggregate/route_statistics.csv`;
-each displayed route has one completed trajectory and therefore no estimable
-within-route confidence interval.
+deck, the route comparison is generated from
+`2026-08-24-online-llm-predeclared-baseline-portfolio-v1/route_comparisons.csv`,
+the paired stochasticity plot from
+`2026-08-23-llm-trajectory-stability-audit/paired_route_stability.csv`, and the
+fixed-gate plot from
+`2026-08-24-online-llm-fixed-threshold5-gate-replay-v1/route_results.csv`.
+Each route still has one completed online trajectory in these retrospective
+figures; within-route uncertainty remains unestimated until the frozen repeated
+protocol completes.
 
 ## Recommended paper structure
 

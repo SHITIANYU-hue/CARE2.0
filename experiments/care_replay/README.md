@@ -62,6 +62,12 @@ Current status:
   infrastructure failures. Failed attempts remain in the audit tree; malformed
   model outputs are terminal and scientific outcomes are never retried. See
   [`configs/online_llm_repeated_confirmation_v2.json`](configs/online_llm_repeated_confirmation_v2.json).
+- Adds an executable prediction-error gate to the online loop and freezes a
+  separate gated confirmation protocol before future calls: 11 routes x 30
+  trajectories, evaluation after reveal three, one global MAE threshold of
+  five, hard abstention on falsification, and target-only GP-UCB continuation
+  without restarting the trajectory. See
+  [`configs/online_llm_gated_repeated_confirmation_v1.json`](configs/online_llm_gated_repeated_confirmation_v1.json).
 
 Run:
 
@@ -233,13 +239,29 @@ and records three wins, one tie, and seven losses. LLM participation and
 decision authority remain 100%; the evidence does not establish that the
 controller is the strongest optimizer on most routes.
 
-The retrospective calibration-gate audit checks asserted LLM prediction error
-after three online reveals. The threshold for each held-out route is chosen on
-the other ten routes only; a triggered gate continues target-only GP from all
-observations accumulated so far. This raises the mean delta versus target GP
-from `+1.7532` to `+2.0357` and reduces the loss count from three to two. The
-increment versus the ungated LLM is not statistically confirmed, so the gate is
-treated as a negative-transfer control pending prospective repeated runs.
+The executable calibration gate checks asserted LLM prediction error after
+three online reveals. A triggered gate stops all later LLM requests and
+continues target-only GP-UCB from every observation accumulated so far. A
+retrospective replay with one global threshold of five raises the 11-route mean
+delta versus target GP from `+1.7532` to `+2.1346` (route-bootstrap 95% interval
+`[+0.5146,+4.0010]`) and reduces the loss count from three to two. The increment
+versus the ungated LLM is not statistically confirmed, and the gated controller
+still trails the post-hoc strongest route-wise baseline. It is therefore a
+negative-transfer control pending completion of the frozen 330-trajectory run.
+Across the saved trajectories, the fixed replay replaces 70 later LLM-guided
+rounds, or 140 nominal proposer/critic calls. This is an auditable
+counterfactual from the replay, not a claim about API cost already saved.
+
+Run or resume the frozen gated protocol:
+
+```bash
+python3 experiments/care_replay/scripts/run_repeated_online_llm_confirmation_v2.py \
+  --suite-config experiments/care_replay/configs/online_llm_gated_repeated_confirmation_v1.json \
+  --output-root experiments/care_replay/results/2026-08-24-online-llm-gated-repeated-confirmation-v1 \
+  --continue-on-error
+```
+
+No confirmatory decision is emitted until all 330 declared trajectories are complete.
 
 Run the frozen seven-pair source-outcome suite through the canonical entry point:
 

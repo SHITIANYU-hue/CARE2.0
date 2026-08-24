@@ -1043,6 +1043,46 @@ def append_trace(path: Path, event: Mapping[str, Any]) -> None:
         handle.write(json.dumps(event, ensure_ascii=False) + "\n")
 
 
+def calibration_prediction_error(
+    decision: Mapping[str, Any], revealed_value: float
+) -> float | None:
+    """Score only predictions the LLM chose to assert rather than defer to GP."""
+    if decision.get("decision_verdict") == "revise_to_gp":
+        return None
+    expected = decision.get("expected_outcome")
+    if expected is None:
+        return None
+    return abs(float(expected) - float(revealed_value))
+
+
+def calibration_gate_snapshot(
+    prediction_errors: Sequence[float],
+    *,
+    hard_abstention: bool,
+    threshold: float,
+) -> dict[str, Any]:
+    mean_error = (
+        float(np.mean(np.asarray(prediction_errors, dtype=np.float64)))
+        if prediction_errors
+        else None
+    )
+    reasons = []
+    if hard_abstention:
+        reasons.append("hard_abstention")
+    if mean_error is not None and mean_error > threshold:
+        reasons.append("prediction_mae_above_threshold")
+    return {
+        "scored_prediction_count": len(prediction_errors),
+        "mean_absolute_prediction_error": (
+            round(mean_error, 6) if mean_error is not None else None
+        ),
+        "hard_abstention": hard_abstention,
+        "threshold": float(threshold),
+        "switch_to_target_gp": bool(reasons),
+        "trigger_reasons": reasons,
+    }
+
+
 def initial_policy_from_record(record: Mapping[str, Any]) -> dict[str, Any]:
     schema = str(record.get("schema_version", ""))
     if schema == INITIAL_SCHEMA_VERSION:
@@ -1177,6 +1217,27 @@ def run_online(args: argparse.Namespace) -> None:
     rounds = min(requested_rounds, len(target.candidates) - len(observed_indices))
     if rounds <= 0:
         raise ValueError("The initial design exhausts the target candidate pool.")
+    calibration_gate_round = getattr(args, "calibration_gate_round", None)
+    calibration_gate_threshold = getattr(
+        args, "calibration_gate_mae_threshold", None
+    )
+    calibration_gate_hard_abstention = bool(
+        getattr(args, "calibration_gate_hard_abstention", True)
+    )
+    calibration_gate_enabled = calibration_gate_round is not None
+    if calibration_gate_enabled:
+        calibration_gate_round = int(calibration_gate_round)
+        if calibration_gate_threshold is None:
+            raise ValueError(
+                "Calibration gate requires --calibration-gate-mae-threshold."
+            )
+        calibration_gate_threshold = float(calibration_gate_threshold)
+        if not 1 <= calibration_gate_round <= rounds:
+            raise ValueError(
+                "Calibration gate round must be within the executed reveal budget."
+            )
+        if calibration_gate_threshold < 0.0:
+            raise ValueError("Calibration gate threshold must be non-negative.")
     by_id = {
         candidate.candidate_id: index
         for index, candidate in enumerate(target.candidates)
@@ -1195,6 +1256,15 @@ def run_online(args: argparse.Namespace) -> None:
     gp_rank_one_choices = 0
     consensus_rank_one_choices = 0
     source_active_rounds = 0
+    calibration_prediction_errors: list[float] = []
+    calibration_hard_abstention_seen = False
+    calibration_gate_triggered = False
+    calibration_gate_trigger_reason: list[str] = []
+    calibration_gate_snapshot_record: dict[str, Any] | None = None
+    calibration_gate_fallback_rounds = 0
+    logical_llm_calls_per_round = (
+        2 if getattr(args, "deliberation_mode", "single") == "proposal_critic" else 1
+    )
     usage_totals = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
 
     append_trace(
@@ -1220,6 +1290,108 @@ def run_online(args: argparse.Namespace) -> None:
     )
 
     for round_index in range(rounds):
+        if calibration_gate_triggered:
+            menu, menu_diagnostics = build_candidate_menu(
+                target,
+                observed_indices,
+                source_prior,
+                protocol["kernel"],
+                args.menu_gp_count,
+                args.menu_source_count,
+                args.menu_consensus_count,
+                1,
+                args.menu_diversity_count,
+                "target_gp",
+                getattr(args, "max_transfer_gp_rank", None),
+                getattr(args, "safety_fallback_gp_count", 1),
+            )
+            selected_id = str(menu_diagnostics["gp_incumbent_candidate"])
+            selected_by = "calibration_gate_target_gp"
+            decision = {
+                "hypothesis_status": "insufficient",
+                "updated_hypothesis": str(
+                    (previous_decision or initial_policy).get(
+                        "updated_hypothesis",
+                        initial_policy.get("hypothesis", ""),
+                    )
+                ),
+                "selected_candidate_id": selected_id,
+                "decision_type": "calibration_gate_fallback",
+                "expected_outcome": None,
+                "probability_of_improving_current_best": None,
+                "confidence": None,
+                "evidence_for": [],
+                "evidence_against": list(calibration_gate_trigger_reason),
+                "reasoning_summary": (
+                    "The frozen calibration gate transferred control to target-only "
+                    "GP-UCB; no LLM request was made this round."
+                ),
+                "continue_source_transfer": False,
+                "decision_verdict": "revise_to_gp",
+                "gp_default_comparison": "Deterministic target-only GP-UCB rank one.",
+            }
+            append_trace(
+                trace_path,
+                {
+                    "event": "calibration_gate_target_gp_decision",
+                    "round_index": round_index,
+                    "selected_candidate": selected_id,
+                    "selected_by": selected_by,
+                    "gate_trigger_reasons": calibration_gate_trigger_reason,
+                    "menu_diagnostics": menu_diagnostics,
+                    "normalized_decision": decision,
+                },
+            )
+
+            selected_index = by_id[selected_id]
+            if selected_index in observed_set:
+                raise RuntimeError("The calibration gate selected an observed candidate.")
+            selected_menu_row = next(
+                row for row in menu if row["candidate_id"] == selected_id
+            )
+            gp_rank = int(selected_menu_row["model_evidence"]["gp_rank"])
+            consensus_rank = int(
+                selected_menu_row["model_evidence"]["consensus_rank"]
+            )
+            if gp_rank == 1:
+                gp_rank_one_choices += 1
+            if consensus_rank == 1:
+                consensus_rank_one_choices += 1
+            observed_indices.append(selected_index)
+            observed_set.add(selected_index)
+            revealed = float(target.candidates[selected_index].objective_value)
+            best_so_far = max(
+                float(target.candidates[index].objective_value)
+                for index in observed_indices
+            )
+            best_trace.append(best_so_far)
+            calibration_gate_fallback_rounds += 1
+            append_trace(
+                trace_path,
+                {
+                    "event": "target_reveal",
+                    "round_index": round_index,
+                    "selected_candidate": selected_id,
+                    "selected_by": selected_by,
+                    "gp_rank_at_selection": gp_rank,
+                    "source_prior_rank_at_selection": int(
+                        selected_menu_row["model_evidence"]["source_prior_rank"]
+                    ),
+                    "consensus_rank_at_selection": consensus_rank,
+                    "public_conditions": initial_design.public_candidate(
+                        target.candidates[selected_index],
+                        target,
+                    )["conditions"],
+                    "revealed_value": revealed,
+                    "best_so_far": best_so_far,
+                    "prediction_error": None,
+                    "calibration_prediction_scored": False,
+                    "calibration_gate_active": True,
+                },
+            )
+            previous_decision = decision
+            continue
+
         source_transfer_stopped = previous_decision is not None and not bool(
             previous_decision.get("continue_source_transfer", True)
         )
@@ -1489,6 +1661,7 @@ def run_online(args: argparse.Namespace) -> None:
             for index in observed_indices
         )
         best_trace.append(best_so_far)
+        round_calibration_error = calibration_prediction_error(decision, revealed)
         append_trace(
             trace_path,
             {
@@ -1510,8 +1683,53 @@ def run_online(args: argparse.Namespace) -> None:
                 "prediction_error": round(
                     abs(float(decision["expected_outcome"]) - revealed), 6
                 ),
+                "calibration_prediction_error": (
+                    round(round_calibration_error, 6)
+                    if round_calibration_error is not None
+                    else None
+                ),
+                "calibration_prediction_scored": (
+                    round_calibration_error is not None
+                ),
+                "calibration_gate_active": False,
             },
         )
+        if round_calibration_error is not None:
+            calibration_prediction_errors.append(round_calibration_error)
+        if calibration_gate_hard_abstention and (
+            decision.get("hypothesis_status") == "falsified"
+            or decision.get("continue_source_transfer") is False
+        ):
+            calibration_hard_abstention_seen = True
+        if (
+            calibration_gate_enabled
+            and round_index + 1 == calibration_gate_round
+        ):
+            calibration_gate_snapshot_record = calibration_gate_snapshot(
+                calibration_prediction_errors,
+                hard_abstention=calibration_hard_abstention_seen,
+                threshold=float(calibration_gate_threshold),
+            )
+            calibration_gate_triggered = bool(
+                calibration_gate_snapshot_record["switch_to_target_gp"]
+            )
+            calibration_gate_trigger_reason = list(
+                calibration_gate_snapshot_record["trigger_reasons"]
+            )
+            append_trace(
+                trace_path,
+                {
+                    "event": "calibration_gate_evaluation",
+                    "round_index": round_index,
+                    "gate_round": calibration_gate_round,
+                    **calibration_gate_snapshot_record,
+                    "next_round_policy": (
+                        "target_only_gp_ucb"
+                        if calibration_gate_triggered
+                        else "continue_online_llm"
+                    ),
+                },
+            )
         previous_decision = decision
 
     oracle = max(candidate.objective_value for candidate in target.candidates)
@@ -1534,6 +1752,9 @@ def run_online(args: argparse.Namespace) -> None:
         "llm_mean_eligible_candidate_count": round(
             eligible_candidate_total / rounds, 6
         ),
+        "llm_mean_eligible_candidate_count_when_called": round(
+            eligible_candidate_total / max(1, llm_selected_rounds), 6
+        ),
         "llm_gp_override_rate": round(gp_override_rounds / rounds, 6),
         "llm_critic_revision_rate": round(critic_revision_rounds / rounds, 6),
         "gp_rank_one_choice_rate": round(gp_rank_one_choices / rounds, 6),
@@ -1541,6 +1762,31 @@ def run_online(args: argparse.Namespace) -> None:
             consensus_rank_one_choices / rounds, 6
         ),
         "source_transfer_active_rate": round(source_active_rounds / rounds, 6),
+        "calibration_gate_enabled": calibration_gate_enabled,
+        "calibration_gate_round": calibration_gate_round,
+        "calibration_gate_mae_threshold": calibration_gate_threshold,
+        "calibration_gate_hard_abstention_enabled": (
+            calibration_gate_hard_abstention
+        ),
+        "calibration_gate_triggered": calibration_gate_triggered,
+        "calibration_gate_trigger_reasons": calibration_gate_trigger_reason,
+        "calibration_gate_scored_prediction_count": (
+            calibration_gate_snapshot_record["scored_prediction_count"]
+            if calibration_gate_snapshot_record is not None
+            else None
+        ),
+        "calibration_gate_prediction_mae": (
+            calibration_gate_snapshot_record[
+                "mean_absolute_prediction_error"
+            ]
+            if calibration_gate_snapshot_record is not None
+            else None
+        ),
+        "calibration_gate_fallback_rounds": calibration_gate_fallback_rounds,
+        "calibration_gate_llm_rounds_saved": calibration_gate_fallback_rounds,
+        "calibration_gate_nominal_llm_calls_avoided": (
+            calibration_gate_fallback_rounds * logical_llm_calls_per_round
+        ),
     }
     same_initial_metrics, _same_initial_audit = warmstart.run_target_gp(
         target,
@@ -1581,6 +1827,28 @@ def run_online(args: argparse.Namespace) -> None:
         "matched_target_budget": True,
         "requested_reveal_rounds": requested_rounds,
         "actual_reveal_rounds": rounds,
+        "calibration_gate_policy": {
+            "enabled": calibration_gate_enabled,
+            "evaluation_after_llm_guided_reveals": calibration_gate_round,
+            "mean_absolute_prediction_error_threshold": (
+                calibration_gate_threshold
+            ),
+            "hard_abstention_enabled": calibration_gate_hard_abstention,
+            "hard_abstention_conditions": [
+                "hypothesis_status=falsified",
+                "continue_source_transfer=false",
+            ],
+            "prediction_scoring_rule": (
+                "Score absolute error only when the LLM asserts an expected outcome; "
+                "exclude decision_verdict=revise_to_gp."
+            ),
+            "fallback": (
+                "Stop all later LLM requests and execute target-only GP-UCB rank one "
+                "from every observation accumulated before the gate."
+            ),
+            "triggered": calibration_gate_triggered,
+            "trigger_reasons": calibration_gate_trigger_reason,
+        },
         "menu_policy": {
             "gp_count": args.menu_gp_count,
             "source_count": args.menu_source_count,
@@ -1702,6 +1970,28 @@ def main() -> None:
         "--deliberation-mode",
         choices=("single", "proposal_critic"),
         default="single",
+    )
+    run_parser.add_argument(
+        "--calibration-gate-round",
+        type=int,
+        help=(
+            "Evaluate the frozen prediction-error gate after this many "
+            "LLM-guided reveals. Omit to disable the gate."
+        ),
+    )
+    run_parser.add_argument(
+        "--calibration-gate-mae-threshold",
+        type=float,
+        help="Switch to target-only GP-UCB when prefix prediction MAE exceeds this value.",
+    )
+    run_parser.add_argument(
+        "--calibration-gate-hard-abstention",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help=(
+            "Also switch when the prefix contains a falsified hypothesis or an "
+            "explicit request to stop source transfer."
+        ),
     )
     run_parser.add_argument("--fail-on-llm-error", action="store_true")
     add_llm_arguments(run_parser, 1400)

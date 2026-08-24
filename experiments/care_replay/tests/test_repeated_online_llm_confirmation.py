@@ -83,6 +83,26 @@ class RepeatedOnlineConfirmationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "frozen"):
             repeated.validate_suite(suite, check_paths=False)
 
+    def test_frozen_calibration_gate_is_validated_and_forwarded(self) -> None:
+        suite = self.frozen_suite()
+        suite["calibration_gate"] = {
+            "enabled": True,
+            "evaluation_after_reveals": 1,
+            "prediction_mae_threshold": 5.0,
+            "hard_abstention": True,
+        }
+        repeated.validate_suite(suite, check_paths=False)
+        args = repeated.run_args(
+            suite["cases"][0], suite, Path("/tmp/test-gated-trajectory")
+        )
+        self.assertEqual(args.calibration_gate_round, 1)
+        self.assertEqual(args.calibration_gate_mae_threshold, 5.0)
+        self.assertTrue(args.calibration_gate_hard_abstention)
+
+        suite["calibration_gate"]["evaluation_after_reveals"] = 3
+        with self.assertRaisesRegex(ValueError, "within runner rounds"):
+            repeated.validate_suite(suite, check_paths=False)
+
     def test_replicate_ids_are_declared_by_protocol(self) -> None:
         self.assertEqual(repeated.replicate_ids(self.frozen_suite()), [10, 11, 12])
 
@@ -117,6 +137,10 @@ class RepeatedOnlineConfirmationTests(unittest.TestCase):
                                 "llm_gp_override_rate": 0.5,
                                 "llm_critic_revision_rate": 0.1,
                                 "source_transfer_active_rate": 0.8,
+                                "calibration_gate_triggered": True,
+                                "calibration_gate_fallback_rounds": 1,
+                                "calibration_gate_llm_rounds_saved": 1,
+                                "calibration_gate_nominal_llm_calls_avoided": 2,
                             }
                         },
                         "deltas": {
@@ -136,6 +160,11 @@ class RepeatedOnlineConfirmationTests(unittest.TestCase):
             self.assertEqual(
                 report["claim_decision"],
                 "not_evaluated_incomplete_protocol",
+            )
+            route = report["routes"][0]
+            self.assertEqual(route["mean_llm_rounds_saved_by_gate"], 1.0)
+            self.assertEqual(
+                route["mean_nominal_llm_calls_avoided_by_gate"], 2.0
             )
 
 

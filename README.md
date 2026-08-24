@@ -16,9 +16,9 @@ Current contents:
   datasets, results, and next steps.
 - `docs/NATURE_SUBMISSION_READINESS.md`: the current journal-positioning,
   claim boundary, reviewer-risk, and evidence-completion plan.
-- `CARE2.0_Nature_evidence_update_2026-08-23.pptx`: a 13-slide reviewer-facing
-  update built from the frozen online-LLM traces and route-level audit.
-- `CARE2.0_Nature_evidence_update_2026-08-23_speaker_notes_CN.md`: detailed
+- `CARE2.0_Nature_evidence_update_2026-08-24.pptx`: a 15-slide reviewer-facing
+  update built from the frozen online-LLM traces, strong baselines, and fixed-gate audit.
+- `CARE2.0_Nature_evidence_update_2026-08-24_speaker_notes_CN.md`: detailed
   Chinese notes matched page by page to the evidence update.
 - `docs/OVERLEAF_CASE_STUDIES_DRAFT.tex`: manuscript-ready analyses of
   molecular, materials, and wet-lab chemistry decisions, plus a repeated-call
@@ -28,6 +28,9 @@ Current contents:
 - `experiments/care_replay/configs/online_llm_repeated_confirmation_v2.json`:
   an independent frozen confirmation with the same scientific controller and
   predeclared, auditable infrastructure-retry handling.
+- `experiments/care_replay/configs/online_llm_gated_repeated_confirmation_v1.json`:
+  the frozen executable-gate protocol: 11 routes x 30 future trajectories,
+  gate after reveal three, one global MAE threshold of five, and no optional stopping.
 - `experiments/care_replay/rule_provenance.md`: provenance notes for the
   current incumbent, transfer rules, LLM roles, and incumbent ablation.
 - `experiments/care_replay/skill_transfer_layers.md`: layered CARE 2.0 skill
@@ -75,6 +78,10 @@ The latest project sync focuses on three workstreams:
 The latest tracked replay output is in:
 
 - `experiments/care_replay/results/2026-08-22-submission-evidence-audit/`
+- `experiments/care_replay/results/2026-08-24-online-llm-fixed-threshold5-gate-replay-v1/`
+- `experiments/care_replay/results/2026-08-24-online-llm-calibration-gate-audit-v1/`
+- `experiments/care_replay/results/2026-08-24-online-llm-predeclared-baseline-portfolio-v1/`
+- `experiments/care_replay/results/2026-08-24-online-llm-predeclared-baseline-portfolio-v2/`
 - `experiments/care_replay/results/2026-08-16-opus48-generalization-evidence-v1/`
 - `experiments/care_replay/results/2026-08-15-opus5-generalization-study/`
 - `experiments/care_replay/results/2026-08-14-llm-reflective-scientist/`
@@ -139,16 +146,24 @@ of the frozen 11 routes, the online LLM averages `-0.5496` and records only
 three wins, one tie, and seven losses. The defensible claim is therefore a
 route-specific positive signal, not universal superiority over transfer BO.
 
-A leave-one-route-out prediction-error gate checks LLM calibration after three
-online reveals and hands control to target-only GP when the hypothesis is
-poorly calibrated or explicitly abandoned. In the 11-route retrospective
-audit, the gate raises the mean delta from `+1.7532` to `+2.0357` and reduces
-losses from three routes to two. Its incremental gain over the ungated LLM is
-uncertain, so this is evidence for risk control rather than a confirmatory
-performance claim. Code, traces, source-data plots, and hashes are under
+A fixed prediction-error gate now executes inside the online controller. After
+three LLM-guided reveals it either continues the LLM or stops all later LLM
+requests and lets target-only GP-UCB continue from every accumulated
+observation. A retrospective replay with one global MAE threshold of `5`
+raises the 11-route mean delta from `+1.7532` to `+2.1346` (route-bootstrap 95%
+interval `[+0.5146,+4.0010]`) and reduces losses from three routes to two. The
+increment over the ungated LLM is `+0.3814` with an interval crossing zero, and
+the gated controller still does not beat each route's post-hoc strongest
+baseline. This supports executable risk control, not a confirmatory superiority
+claim. On the saved trajectories the fixed replay replaces 70 later LLM-guided
+rounds, equivalent to 140 nominal proposer/critic calls; this is a replay
+counterfactual rather than already realized API savings. A separate
+330-trajectory protocol was frozen before future gated runs;
+it is not complete. Code, traces, source-data plots, and hashes are under
 `experiments/care_replay/results/2026-08-24-online-llm-predeclared-baseline-portfolio-v1/`,
 `experiments/care_replay/results/2026-08-24-online-llm-predeclared-baseline-portfolio-v2/`,
-and `experiments/care_replay/results/2026-08-24-online-llm-calibration-gate-audit-v1/`.
+`experiments/care_replay/results/2026-08-24-online-llm-calibration-gate-audit-v1/`,
+and `experiments/care_replay/results/2026-08-24-online-llm-fixed-threshold5-gate-replay-v1/`.
 
 This online result is separate from the July frozen-selector studies below.
 Those studies use many paired seeds to test deterministic compiled transfer

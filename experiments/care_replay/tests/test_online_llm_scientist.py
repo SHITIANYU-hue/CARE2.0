@@ -326,6 +326,29 @@ class OnlineLlmScientistTests(unittest.TestCase):
                 [{"candidate_id": "candidate-a"}],
             )
 
+    def test_calibration_gate_excludes_gp_deferral_and_uses_hard_abstention(self) -> None:
+        self.assertIsNone(
+            online.calibration_prediction_error(
+                {"decision_verdict": "revise_to_gp", "expected_outcome": 90.0},
+                10.0,
+            )
+        )
+        self.assertEqual(
+            online.calibration_prediction_error(
+                {"decision_verdict": "accept_proposal", "expected_outcome": 30.0},
+                10.0,
+            ),
+            20.0,
+        )
+        snapshot = online.calibration_gate_snapshot(
+            [20.0, 10.0],
+            hard_abstention=True,
+            threshold=30.0,
+        )
+        self.assertTrue(snapshot["switch_to_target_gp"])
+        self.assertEqual(snapshot["mean_absolute_prediction_error"], 15.0)
+        self.assertEqual(snapshot["trigger_reasons"], ["hard_abstention"])
+
     def test_invalid_json_shape_is_repaired_once(self) -> None:
         responses = iter(
             [
@@ -542,6 +565,118 @@ class OnlineLlmScientistTests(unittest.TestCase):
             ]
             self.assertEqual(
                 sum(event["event"] == "target_reveal" for event in events), 2
+            )
+
+    def test_runtime_calibration_gate_stops_later_llm_calls(self) -> None:
+        selected_ids = [str(row["candidate_id"]) for row in self.shortlist[:3]]
+        record = {
+            "schema_version": online.INITIAL_SCHEMA_VERSION,
+            "model": "test-initial-model",
+            "config_fingerprint": warmstart.config_fingerprint(self.config),
+            "target_task": TARGET_ID,
+            "source_tasks": [SOURCE_ID],
+            "frozen_initial_policy": {
+                "hypothesis": "A falsifiable test hypothesis.",
+                "mechanism": "Source conditions may transfer.",
+                "selected_source_view": "all_sources",
+                "selected_candidate_ids": selected_ids,
+                "candidate_assessments": [],
+                "failure_conditions": ["low observed outcome"],
+                "confidence": 0.5,
+            },
+        }
+
+        def fake_completion(_config, messages):
+            prompt = json.loads(messages[-1]["content"])
+            candidate_id = prompt["candidate_menu"]["rows"][0][0]
+            return json.dumps(
+                {
+                    "hypothesis_status": "falsified",
+                    "updated_hypothesis": "Source transfer is not supported.",
+                    "selected_candidate_id": candidate_id,
+                    "decision_type": "probe",
+                    "expected_outcome": 50.0,
+                    "confidence": 0.4,
+                    "evidence_for": [],
+                    "evidence_against": ["Falsification evidence"],
+                    "reasoning_summary": "Hand control back to target GP.",
+                    "continue_source_transfer": False,
+                    "decision_verdict": "revise_to_gp",
+                }
+            ), {
+                "model": "test-online-model",
+                "usage": {
+                    "prompt_tokens": 10,
+                    "completion_tokens": 5,
+                    "total_tokens": 15,
+                },
+            }
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            initial_path = tmp_path / "initial.json"
+            online.write_json(initial_path, record)
+            args = argparse.Namespace(
+                config=CONFIG,
+                initial_record=initial_path,
+                output_dir=tmp_path / "output",
+                rounds=3,
+                initial_design_mode="direct",
+                menu_gp_count=4,
+                menu_source_count=2,
+                menu_consensus_count=2,
+                max_transfer_gp_rank=5,
+                safety_fallback_gp_count=4,
+                force_first_consensus=True,
+                menu_diversity_count=1,
+                decision_policy="high_authority",
+                deliberation_mode="single",
+                calibration_gate_round=1,
+                calibration_gate_mae_threshold=5.0,
+                calibration_gate_hard_abstention=True,
+                fail_on_llm_error=True,
+                llm_base_url="https://example.invalid/v1",
+                llm_model="test-online-model",
+                llm_api_key_env="TEST_LLM_API_KEY",
+                llm_api_mode="chat",
+                llm_temperature=0.0,
+                llm_max_tokens=200,
+                llm_repair_attempts=1,
+            )
+            with mock.patch.dict(
+                os.environ, {"TEST_LLM_API_KEY": "test-key"}
+            ), mock.patch.object(
+                replay, "chat_completion_text", side_effect=fake_completion
+            ) as completion, mock.patch("builtins.print"):
+                online.run_online(args)
+            self.assertEqual(completion.call_count, 1)
+            summary = json.loads(
+                (args.output_dir / "summary.json").read_text(encoding="utf-8")
+            )
+            metrics = summary["metrics"][online.MODE]
+            self.assertTrue(metrics["calibration_gate_triggered"])
+            self.assertEqual(metrics["calibration_gate_fallback_rounds"], 2)
+            self.assertEqual(metrics["calibration_gate_llm_rounds_saved"], 2)
+            self.assertEqual(
+                metrics["calibration_gate_nominal_llm_calls_avoided"], 2
+            )
+            self.assertEqual(metrics["llm_participation_rate"], 0.333333)
+            events = [
+                json.loads(line)
+                for line in (args.output_dir / "llm_trace.jsonl")
+                .read_text(encoding="utf-8")
+                .splitlines()
+            ]
+            self.assertEqual(
+                sum(
+                    event["event"] == "calibration_gate_target_gp_decision"
+                    for event in events
+                ),
+                2,
+            )
+            self.assertEqual(
+                sum(event["event"] == "target_reveal" for event in events),
+                3,
             )
 
     def test_online_loop_caps_rounds_to_remaining_pool(self) -> None:

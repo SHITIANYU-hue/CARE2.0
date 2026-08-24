@@ -162,6 +162,31 @@ $+0.283$ and its interval crossed zero. This is retrospective evidence that
 calibration can reduce negative-transfer risk, not prospective evidence of
 universal superiority.
 
+We then applied one global threshold of 5 to every route, matching the rule
+frozen for future execution rather than selecting a route-specific threshold.
+This fixed rule switched to target-only GP on ten of eleven retrospective
+trajectories. The mean AUC difference versus target GP was $+2.135$
+(route-bootstrap 95\% interval $[+0.515,+4.001]$; six wins, three ties, and two
+losses). The mean change relative to the ungated LLM was $+0.381$ with an
+interval crossing zero ($[-0.371,+1.432]$), and the gated controller remained
+$-0.168$ below the strongest realized route-wise baseline on average. Thus the
+fixed replay supports an executable negative-transfer control but not general
+baseline superiority.
+
+The gate is now implemented inside the online controller. Once triggered, it
+issues no later LLM requests and lets target-only GP-UCB select the remaining
+candidates from all observations accumulated through reveal three. Before new
+calls, we froze an 11-route by 30-trajectory protocol with the same gate round,
+global threshold, hard-abstention conditions, route list, target budget, and
+analysis rule. Confirmatory inference is disabled until all 330 trajectories
+complete. Because the routes and threshold were informed by the earlier audit,
+this protocol estimates prospective trajectory repeatability of the fixed
+controller but does not constitute independent external-route validation.
+On the saved trajectories, the fixed gate counterfactually replaces 70 later
+LLM-guided rounds, equivalent to 140 nominal proposer/critic calls. We report
+this as an auditable replay quantity rather than as already realized API
+savings.
+
 \paragraph{Repeated calls expose trajectory-level uncertainty.}
 The frozen development run for experimental band gap $\rightarrow$ Materials
 Project band gap produced $\Delta$AUC=$-2.4464$: the LLM-guided trajectory did
@@ -241,4 +266,7 @@ trajectory-level benefit.
 % experiments/care_replay/results/2026-08-24-online-llm-predeclared-baseline-portfolio-v2/
 %   {aggregate.json,route_comparisons.csv,predeclared_baseline_portfolio.svg}
 % experiments/care_replay/results/2026-08-24-online-llm-calibration-gate-audit-v1/
+%   {aggregate.json,route_results.csv,calibration_gate_route_effects.svg}
+% experiments/care_replay/configs/online_llm_gated_repeated_confirmation_v1.json
+% experiments/care_replay/results/2026-08-24-online-llm-fixed-threshold5-gate-replay-v1/
 %   {aggregate.json,route_results.csv,calibration_gate_route_effects.svg}

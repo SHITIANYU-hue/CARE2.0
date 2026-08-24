@@ -105,6 +105,14 @@ def validate_suite(
     missing_runner = required_runner - set(suite.get("runner", {}))
     if missing_runner:
         raise ValueError(f"Missing runner fields: {sorted(missing_runner)}")
+    gate = suite.get("calibration_gate", {})
+    if gate.get("enabled"):
+        gate_round = int(gate.get("evaluation_after_reveals", 0))
+        threshold = float(gate.get("prediction_mae_threshold", -1.0))
+        if not 1 <= gate_round <= int(suite["runner"]["rounds"]):
+            raise ValueError("Calibration gate round must be within runner rounds.")
+        if threshold < 0.0:
+            raise ValueError("Calibration gate threshold must be non-negative.")
     if check_paths:
         for case in cases:
             for key in ("config", "initial_record"):
@@ -125,6 +133,10 @@ def protocol_lock(
         "runner_script": {
             "path": str(Path(__file__).resolve()),
             "sha256": file_sha256(Path(__file__).resolve()),
+        },
+        "online_runner_script": {
+            "path": str(Path(online.__file__).resolve()),
+            "sha256": file_sha256(Path(online.__file__).resolve()),
         },
     }
     for case in suite["cases"]:
@@ -319,6 +331,8 @@ def trajectory_dir(output_root: Path, case_id: str, replicate_id: int) -> Path:
 def run_args(case: Mapping[str, Any], suite: Mapping[str, Any], output: Path) -> argparse.Namespace:
     runner = suite["runner"]
     menu = suite["menu"]
+    gate = suite.get("calibration_gate", {})
+    gate_enabled = bool(gate.get("enabled", False))
     return argparse.Namespace(
         config=resolve(str(case["config"])),
         initial_record=resolve(str(case["initial_record"])),
@@ -342,6 +356,15 @@ def run_args(case: Mapping[str, Any], suite: Mapping[str, Any], output: Path) ->
         llm_temperature=float(runner["temperature"]),
         llm_max_tokens=int(runner["max_tokens"]),
         llm_repair_attempts=int(runner["repair_attempts"]),
+        calibration_gate_round=(
+            int(gate["evaluation_after_reveals"]) if gate_enabled else None
+        ),
+        calibration_gate_mae_threshold=(
+            float(gate["prediction_mae_threshold"]) if gate_enabled else None
+        ),
+        calibration_gate_hard_abstention=bool(
+            gate.get("hard_abstention", True)
+        ),
     )
 
 
@@ -437,6 +460,23 @@ def collect_rows(
                         ),
                         "source_transfer_active_rate": float(
                             metrics["source_transfer_active_rate"]
+                        ),
+                        "calibration_gate_triggered": bool(
+                            metrics.get("calibration_gate_triggered", False)
+                        ),
+                        "calibration_gate_prediction_mae": metrics.get(
+                            "calibration_gate_prediction_mae"
+                        ),
+                        "calibration_gate_fallback_rounds": int(
+                            metrics.get("calibration_gate_fallback_rounds", 0)
+                        ),
+                        "calibration_gate_llm_rounds_saved": int(
+                            metrics.get("calibration_gate_llm_rounds_saved", 0)
+                        ),
+                        "calibration_gate_nominal_llm_calls_avoided": int(
+                            metrics.get(
+                                "calibration_gate_nominal_llm_calls_avoided", 0
+                            )
                         ),
                         "total_tokens": int(summary["usage"]["total_tokens"]),
                         "summary_sha256": file_sha256(summary_path),
@@ -562,6 +602,50 @@ def aggregate(output_root: Path, suite: Mapping[str, Any]) -> dict[str, Any]:
                 "final_bootstrap_95ci_high": final_summary["bootstrap_95ci_high"],
                 "mean_total_tokens": (
                     round(mean(int(row["total_tokens"]) for row in case_rows), 2)
+                    if case_rows
+                    else None
+                ),
+                "calibration_gate_trigger_rate": (
+                    round(
+                        mean(
+                            float(bool(row["calibration_gate_triggered"]))
+                            for row in case_rows
+                        ),
+                        6,
+                    )
+                    if case_rows
+                    else None
+                ),
+                "mean_calibration_gate_fallback_rounds": (
+                    round(
+                        mean(
+                            int(row["calibration_gate_fallback_rounds"])
+                            for row in case_rows
+                        ),
+                        6,
+                    )
+                    if case_rows
+                    else None
+                ),
+                "mean_llm_rounds_saved_by_gate": (
+                    round(
+                        mean(
+                            int(row["calibration_gate_llm_rounds_saved"])
+                            for row in case_rows
+                        ),
+                        6,
+                    )
+                    if case_rows
+                    else None
+                ),
+                "mean_nominal_llm_calls_avoided_by_gate": (
+                    round(
+                        mean(
+                            int(row["calibration_gate_nominal_llm_calls_avoided"])
+                            for row in case_rows
+                        ),
+                        6,
+                    )
                     if case_rows
                     else None
                 ),

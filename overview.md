@@ -16,18 +16,31 @@
 `-0.5496`，只有 3 胜、1 平、7 负。这一结果被保留在主报告中，用来明确当前
 LLM 还不是多数路线上的最强优化器。
 
-新增的 prediction-error Gate 在第三轮之后检查 LLM 明确给出的 expected outcome
-与真实揭示值之间的误差。每条路线的阈值只用另外 10 条路线选择；触发后不重启，
-而是让 target-only GP 接着使用已经积累的观测完成剩余预算。回放中 Gate 在 8/11
-条路线触发，把平均增益从 `+1.7532` 提到 `+2.0357`，负向路线从 3 条降到 2 条。
-但它相对原 LLM 的增量区间仍跨 0，所以当前定位是“可校准的决策权限与负迁移
-控制”，下一步必须在新调用前冻结 Gate 和 baseline 规则，再做独立重复。
+prediction-error Gate 现在已经进入在线执行循环。它在第三轮后检查 LLM 明确给出
+的 expected outcome 与真实揭示值之间的误差；触发后不重启，也不再调用 LLM，
+而是让 target-only GP-UCB 接着使用已经积累的观测完成剩余预算。使用所有路线共用
+的固定阈值 5 回放时，Gate 在 10/11 条路线触发，把平均增益从 `+1.7532` 提到
+`+2.1346`，route-bootstrap 区间为 `[+0.5146,+4.0010]`，负向路线从 3 条降到
+2 条。它相对原 LLM 的 `+0.3814` 增量区间仍跨 0，而且相对事后最强 baseline
+仍为负。因此当前定位是“固定、可执行的 LLM 权限校准与负迁移控制”，不是普遍
+baseline superiority。
+
+在保存的 11 条轨迹上，这个固定 Gate 反事实地替换了 70 个后续 LLM 决策轮次，
+对应 140 次 proposer/critic 逻辑调用。这里说的是如果当时运行可执行 Gate 本可避免
+的调用数，不是已经发生的线上费用节省。
+
+对应的前瞻重复协议已经在新调用前冻结：11 条路线 × 30 次，共 330 条未来轨迹；
+Gate 固定在第 3 轮、MAE 阈值固定为 5，并禁止根据中间结果改阈值、删路线或提前
+停止。当前代码和协议已经就绪，但 330 条新轨迹尚未完成，所以固定阈值结果仍属于
+retrospective replay，不能写成 prospective confirmation。
 
 对应配置、逐路线 baseline trace、Gate trace、CSV、PNG/PDF/SVG 与 SHA-256 在：
 
 - `experiments/care_replay/results/2026-08-24-online-llm-predeclared-baseline-portfolio-v1/`
 - `experiments/care_replay/results/2026-08-24-online-llm-predeclared-baseline-portfolio-v2/`
 - `experiments/care_replay/results/2026-08-24-online-llm-calibration-gate-audit-v1/`
+- `experiments/care_replay/results/2026-08-24-online-llm-fixed-threshold5-gate-replay-v1/`
+- `experiments/care_replay/configs/online_llm_gated_repeated_confirmation_v1.json`
 
 ## 2026-08-16：Opus 高权限在线控制与冻结化学扩展
 
