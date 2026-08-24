@@ -1,0 +1,602 @@
+% CARE 2.0 supplementary-information source for the Springer Nature template.
+% Numerical values are copied from frozen result artifacts in the CARE2.0 repo.
+\documentclass[pdflatex,sn-nature]{sn-jnl}
+
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{xcolor}
+\usepackage{url}
+\usepackage{listings}
+\usepackage{float}
+
+\newcommand{\care}{CARE 2.0}
+\newcommand{\dauc}{\Delta\mathrm{AUC}}
+\newcommand{\dfinal}{\Delta\mathrm{Final}}
+\newcommand{\source}{\mathcal{D}_{s}}
+\newcommand{\target}{\mathcal{D}_{t}}
+\newcommand{\code}[1]{\texttt{#1}}
+
+\lstdefinestyle{carecode}{
+  basicstyle=\footnotesize\ttfamily,
+  breaklines=true,
+  columns=fullflexible,
+  frame=single,
+  framerule=0.3pt,
+  showstringspaces=false
+}
+
+\title[CARE 2.0 Supplementary Information]{Supplementary Information for CARE 2.0: Evidence-Bounded LLM Skill Transfer for Sequential Scientific Experiments}
+
+\author*[1]{\fnm{Anonymous} \sur{Authors}}
+\affil*[1]{\orgdiv{Anonymous submission}}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This Supplementary Information reports the experimental protocol, full result
+tables, matched baselines, ablations, decision traces, and claim boundaries for
+\care. The system uses a large language model (LLM) in two distinct roles. An
+offline semantic-skill compiler converts source-task evidence and a public
+target schema into executable features, priors, and acquisition schedules. A
+separate online proposer--critic controller may update a falsifiable transfer
+hypothesis and select an experiment from a bounded candidate menu. We report
+these roles separately because a model call, a plausible explanation, and a
+causal improvement in the executed experiment are not equivalent. Frozen
+held-out replay provides positive examples in molecular-property, reaction-HTE,
+and materials-property tasks. Matched mechanism controls show that some of the
+largest source-conditioned gains are explained by the initial experimental
+design rather than continuous online transfer. A route-disjoint audit and a
+six-route live pilot further show that online LLM participation does not yet
+provide a stable general advantage. All negative and null results are retained.
+\end{abstract}
+
+\begin{appendices}
+
+\section{Supplementary evidence map}
+\label{sec:evidence_map}
+
+The appendix follows the same evidence-first organization used for CARE 1.0:
+headline claims are linked to complete result tables, mechanism controls,
+representative traces, and executable reproduction artifacts. Table
+\ref{tab:evidence_tiers} prevents results from different experimental stages
+from being pooled into one headline number.
+
+\begin{table}[t]
+\centering
+\caption{Evidence tiers used throughout the supplement. ``Frozen'' means that
+the skill or controller and the comparison rule were fixed before the reported
+evaluation seeds.}
+\label{tab:evidence_tiers}
+\begin{tabularx}{\textwidth}{p{2.5cm}p{3.6cm}X p{3.2cm}}
+\toprule
+Tier & Main question & Evidence & Permitted interpretation \\
+\midrule
+Frozen semantic skill & Can an LLM-compiled representation improve a strong target-only optimizer? & 300--500 paired held-out seeds per target after development and calibration & Positive task-specific evidence for compiled skills \\
+Mechanism audit & Which component produces the observed gain? & Same-seed schedule-only, no-prior, warm-start-only, and data-only controls & Retrospective component attribution \\
+Online controller audit & Does the LLM change decisions after a matched initial design? & Same-start target GP, RGPE, multitask GP, route inventory, and controller handoff replays & Development and robustness evidence, not external confirmation \\
+Live bounded-authority pilot & Does one real LLM decision add value on disjoint routes? & Six successful Opus trajectories plus one preserved infrastructure failure & Operational pilot only; no confirmatory inference \\
+Frozen repeated protocol & Are effects stable across stochastic model calls? & Declared 30 trajectories per route, hash-locked analysis, no optional stopping & Pending until all declared trajectories complete \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The strongest current claim is deliberately narrower than ``a general AI
+scientist improves every domain.'' The supported claim is that an LLM can
+compile scientific descriptions into explicit skills that are executable,
+calibrated, rejectable, and auditable; some of these skills improve finite-pool
+search on held-out real datasets. The present evidence does not establish
+universal cross-domain transfer, elimination of negative transfer, or a new
+physical discovery.
+
+\section{Problem setting and evaluation protocol}
+\label{sec:protocol}
+
+\subsection{Budgeted source-to-target transfer}
+
+Let $\source=\{(x_i,y_i)\}$ denote a completed source experiment and let
+$\target=\{x_j\}$ denote a finite target candidate pool. At target round $t$,
+the system observes outcomes only for the selected set $O_t$ and chooses one
+unmeasured candidate $x_t$. The target budget $B$ is fixed across CARE and all
+comparators. The primary trajectory metric is the mean best-so-far value,
+
+\begin{equation}
+  \mathrm{AUC}(\pi)=\frac{1}{B}\sum_{t=1}^{B}
+  \max_{x\in O_t} y(x),
+\end{equation}
+
+where larger values indicate that a policy finds strong candidates earlier.
+We also report the final best value and whether a globally top-10 candidate was
+observed. For transformed materials objectives, optimization is performed on
+the declared dimensionless replay score; the raw property, physical unit,
+transformation, and direction are retained in the outcome contract.
+
+\subsection{LLM roles}
+\label{sec:llm_roles}
+
+The offline compiler receives source evidence and the public target schema. It
+returns a small library of semantic features, optional coefficient directions,
+and an acquisition schedule. A strict compiler rejects unknown fields, unknown
+categorical values, invalid operators, and malformed output. Calibration uses
+development seeds only. After selection, the skill is frozen and held-out
+replay makes no model call.
+
+The online controller is evaluated separately. At every permitted round it
+receives: (i) the current transfer hypothesis, (ii) revealed target outcomes,
+(iii) target-only GP predictions, and (iv) a bounded menu containing target-GP,
+source-prior, consensus, and coverage candidates. A proposer recommends one
+candidate and a critic may accept, revise, or return to GP rank one. The trace
+stores both responses, the executed candidate, the hidden value revealed after
+execution, prediction error, token use, and fallback state.
+
+\subsection{Leakage boundary}
+
+During skill generation, the LLM may see source summaries and public target
+field names, value vocabularies, and counts. It does not see unrevealed target
+outcomes, held-out candidate identifiers, answer keys, or comparator results.
+At online round $t$, only outcomes revealed in rounds $<t$ are included. The
+target-only comparator starts from the same target observations when isolating
+the online-controller increment. Calibration, held-out replay, and online
+trajectory evidence are stored in separate directories with immutable hashes.
+
+\subsection{Baselines and why they are included}
+
+\begin{table}[t]
+\centering
+\caption{Comparator portfolio. Each baseline tests a different alternative
+explanation for an apparent CARE gain.}
+\label{tab:baselines}
+\begin{tabularx}{\textwidth}{p{3.2cm}X X}
+\toprule
+Comparator & What it does & Why it is necessary \\
+\midrule
+Random / no-transfer & Samples without source evidence or follows the frozen target-only initialization & Establishes a weak lower bound and detects gains due only to added computation \\
+Target GP-UCB & Fits a GP to revealed target outcomes and maximizes posterior mean plus exploration bonus & Strong matched target-only sequential optimizer \\
+Mixed-kernel GP-EI & Uses numeric and categorical kernels with expected improvement & Strong target-only baseline for heterogeneous reaction and materials spaces \\
+Target acquisition portfolio & Selects the strongest frozen target-only acquisition policy & Conservative target-only anchor for semantic-skill evaluation \\
+RGPE / multisource RGPE & Ranks candidates with source and target surrogate ensembles & Classical transfer-BO comparator for one or multiple source tasks \\
+Multitask GP / ICM-BMA & Learns source--target covariance and averages compatible multitask models & Tests whether a numerical transfer model outperforms language-guided transfer \\
+Warm-start-only & Keeps source-informed initial target points, then sets sequential transfer mass to zero & Isolates early experimental-design effects \\
+Fixed data-only transfer & Uses measured source outcomes with a deterministic role map and no LLM patch & Tests whether the LLM adds value beyond source data and fixed rules \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Frozen semantic-skill results}
+\label{sec:semantic_results}
+
+One offline model call generates each skill library. Five successful generation
+calls in the frozen study used 13,324 prompt tokens and 9,136 completion tokens.
+Replay makes zero model calls. Development used 30 calibration seeds and 50
+held-out development seeds. Selected skills were then frozen and evaluated on
+300 or 500 fresh paired seeds.
+
+\begin{table}[t]
+\centering
+\caption{Frozen LLM semantic skills versus the strongest target-only anchor.
+Intervals are paired normal 95\% confidence intervals over seeds.}
+\label{tab:semantic_headline}
+\small
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X c >{\raggedright\arraybackslash}X c c c}
+\toprule
+Domain / target & Frozen skill & Seeds & Target-only anchor & $\dfinal$ & $\dauc$ & $\Delta$ top-10 \\
+\midrule
+Molecular / FreeSolv & Exploration-first kernel skill & 500 & Target portfolio & $+1.433$ & $+1.384$ & $+0.058$ \\
+Molecular / Lipophilicity & Shared acquisition schedule & 300 & Target portfolio & $+0.485$ & $+0.607$ & $+0.040$ \\
+Reaction / Buchwald--Hartwig & High-molecular-weight ligand prior & 500 & Mixed-kernel GP-EI & $+3.121$ & $+2.859$ & $+0.176$ \\
+Materials / experimental band gap & Transition-metal counter prior & 500 & Mixed-kernel GP-EI & $+7.224$ & $+5.930$ & $+0.164$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The 95\% intervals for AUC were $[0.579,2.189]$ for FreeSolv,
+$[0.130,1.084]$ for Lipophilicity, $[1.960,3.757]$ for
+Buchwald--Hartwig, and $[4.159,7.701]$ for experimental band gap. These
+results establish positive task-specific examples across three scientific
+task families. They do not establish that a single skill transfers everywhere.
+The ChemLex calibration and held-out check remained negative and was not
+promoted to a confirmatory run.
+
+\subsection{Semantic-rule and prior ablations}
+
+Schedule-only keeps the LLM-selected acquisition schedule but removes semantic
+rule features. No-prior keeps the rule features but initializes their
+coefficient directions at zero. Both controls use the same 500 target seeds as
+the full skill.
+
+\begin{table}[t]
+\centering
+\caption{Component attribution for the two strongest semantic-skill targets.
+Rows report full skill minus ablation.}
+\label{tab:semantic_ablation}
+\begin{tabular}{lrrr}
+\toprule
+Target / ablation & $\dfinal$ & $\dauc$ & $\Delta$ top-10 \\
+\midrule
+Buchwald--Hartwig / schedule-only & $+2.745$ & $+2.824$ & $+0.188$ \\
+Band gap / schedule-only & $+6.678$ & $+5.065$ & $+0.148$ \\
+Buchwald--Hartwig / no-prior & $+1.655$ & $+1.993$ & $+0.094$ \\
+Band gap / no-prior & $+2.054$ & $+1.378$ & $+0.034$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The semantic partition and the proposed direction each contribute on these two
+targets. A separate causality audit shows a complementary pattern: on Matbench
+band gap, the target-only \code{high\_element\_count} feature without an LLM
+coefficient prior improved AUC by $+6.167$ ($[4.361,7.972]$); on
+Lipophilicity, \code{high\_aromatic\_content} improved AUC by $+1.261$
+($[0.891,1.630]$). These controls imply that the most reliable LLM contribution
+is often representation choice, while target evidence should estimate the
+numeric weight.
+
+\section{Source evidence and transfer mechanism}
+\label{sec:mechanism}
+
+\subsection{Source-schema transfer across five routes}
+
+Five frozen routes were evaluated on 300 disjoint target seeds. The
+source-schema condition contains source identity, objective, and field
+alignment but no source labels or target outcomes.
+
+\begin{table}[t]
+\centering
+\caption{Source-schema router minus matched target-only semantic router.}
+\label{tab:source_schema}
+\begin{tabularx}{\textwidth}{X r r r p{2.2cm}}
+\toprule
+Source $\rightarrow$ target & $\dfinal$ & $\dauc$ & $\Delta$ top-10 & Result \\
+\midrule
+ESOL $\rightarrow$ Lipophilicity & $+0.602$ & $+1.376$ & $-0.050$ & Positive AUC \\
+Lipophilicity $\rightarrow$ FreeSolv & $-17.099$ & $-29.902$ & $-0.187$ & Negative transfer \\
+Experimental gap $\rightarrow$ dielectric & $+15.265$ & $+13.085$ & $+0.203$ & Positive transfer \\
+Phonon peak $\rightarrow$ dielectric & $+6.789$ & $+4.416$ & $-0.213$ & AUC gain, top-10 cost \\
+ChemLex $\rightarrow$ Buchwald--Hartwig & $+3.971$ & $+4.398$ & $+0.193$ & Positive transfer \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.92\textwidth]{source_evidence_forest.png}
+\caption{Paired source-schema effects on five real source--target routes. The
+figure is generated from the archived per-seed metrics; it is not an illustrative
+or model-generated graphic.}
+\label{fig:source_evidence}
+\end{figure*}
+
+Shared descriptors are not sufficient. Lipophilicity and hydration free energy
+use related molecular representations but have non-interchangeable objective
+directions, producing a large negative route. Likewise, the phonon-to-dielectric
+route improves mean search reward while reducing extreme top-10 hits. We
+therefore treat transferability as metric- and objective-specific.
+
+\subsection{Warm-start and continuous-transfer controls}
+
+Seven source-outcome routes were rerun with two matched controls. Only
+ChemLex $\rightarrow$ Buchwald--Hartwig and dielectric $\rightarrow$
+experimental band gap passed the new calibration selector. Their large gains
+were fully explained by source-informed initial target points.
+
+\begin{table}[t]
+\centering
+\caption{Mechanism controls. Composite effects are paired held-out differences.
+``Post-init.'' compares full transfer with warm-start-only.}
+\label{tab:mechanism_controls}
+\small
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}X c c c c}
+\toprule
+Source $\rightarrow$ target & Final vs BO & Warm-start & Post-init. & LLM vs fixed \\
+\midrule
+ChemLex $\rightarrow$ Buchwald--Hartwig & $+11.452$ & $+22.460$ & $0$ & $0$ \\
+Dielectric $\rightarrow$ experimental gap & $+42.461$ & $+85.616$ & $0$ & $0$ \\
+Experimental gap $\rightarrow$ dielectric & $+10.017$ & $-0.912$ & $0$ & $+29.424$ \\
+Phonons $\rightarrow$ dielectric & $+3.369$ & $+3.361$ & $-1.296$ & $-2.642$ \\
+ESOL $\rightarrow$ Lipophilicity & $+1.089$ & $+0.789$ & $-0.145$ & $-0.223$ \\
+FreeSolv $\rightarrow$ Lipophilicity & $+2.126$ & $+0.937$ & $0$ & $0$ \\
+Lipophilicity $\rightarrow$ FreeSolv & $+31.760$ & $-1.173$ & $0$ & $0$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The positive $+29.424$ value for experimental gap $\rightarrow$ dielectric
+does not indicate improvement beyond warm-start. The full and warm-start-only
+trajectories are identical; the number is positive because the fixed data-only
+patch is harmful. The defensible mechanism is improved early experimental
+coverage on two routes and rejection of unstable transfer on five routes, not
+a general post-initialization source-outcome advantage.
+
+\section{Online LLM controller and strong baselines}
+\label{sec:online}
+
+\subsection{Frozen route portfolio}
+
+The primary online comparison is the LLM controller versus the same LLM initial
+target observations followed by target-only GP-UCB. In the frozen 11-route
+first-trajectory portfolio, six routes improve AUC, two tie, and three lose.
+The equal-route mean is $+1.753$ with a route-bootstrap 95\% interval
+$[0.415,3.315]$. Because each route contains one stochastic LLM trajectory and
+some routes share task families, this interval describes route variation, not
+within-route model-call uncertainty.
+
+\begin{table}[t]
+\centering
+\caption{Aggregate online-controller and handoff audits relative to same-start
+target GP-UCB. Controller rows are retrospective replays.}
+\label{tab:controller_results}
+\begin{tabularx}{\textwidth}{X r r p{2.6cm} r}
+\toprule
+Evidence tier / method & Routes & Mean $\dauc$ & 95\% route-bootstrap interval & Win/tie/loss \\
+\midrule
+Frozen online LLM portfolio & 11 & $+1.753$ & $[+0.415,+3.315]$ & $6/2/3$ \\
+Cross-validated round-three gate & 11 & $+2.036$ & $[+0.425,+3.901]$ & $5/4/2$ \\
+Fixed threshold-5 gate replay & 11 & $+2.135$ & $[+0.515,+4.001]$ & $6/3/2$ \\
+Complete retrospective inventory & 17 & $+0.762$ & $[-0.501,+2.091]$ & $8/4/5$ \\
+Route-disjoint full online LLM & 6 & $-1.056$ & $[-3.010,+0.154]$ & $2/2/2$ \\
+Route-disjoint threshold-5 gate & 6 & $-1.968$ & $[-6.438,+0.873]$ & $2/2/2$ \\
+Route-disjoint one-round authority & 6 & $+0.612$ & $[-0.442,+1.793]$ & $2/3/1$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The 17-route inventory includes earlier null and negative development routes
+and is reported to prevent route selection by outcome. The round-three gate
+improves the original development panel but fails on six route-disjoint routes.
+A training-only comparison of 115 handoff policies selects one-round bounded
+authority; its disjoint interval still crosses zero.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.96\textwidth]{predeclared_baseline_portfolio.png}
+\caption{Frozen route portfolio relative to predeclared target GP-UCB and
+classical transfer-BO comparators. Baseline rules were fixed at analysis time;
+the strongest-realized comparator is shown only as a post-hoc stress test.}
+\label{fig:baseline_portfolio}
+\end{figure*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.92\textwidth]{calibration_gate_route_effects.png}
+\caption{Route-disjoint controller audit. One-round bounded authority reduces
+losses relative to full online control, but the interval includes zero and the
+evaluation trajectories were previously known.}
+\label{fig:bounded_authority}
+\end{figure*}
+
+\subsection{Live bounded-authority pilot}
+
+One real Opus 4.8 proposer--critic decision completed on each of six disjoint
+routes. All six selected the same candidate as GP-UCB rank one. The online AUC
+increment was therefore exactly zero for every route, with no GP override and
+no critic revision. Three traces retained the source-transfer hypothesis in
+text, but none changed the executed action. The six calls consumed 99,243
+tokens. Returning control after one reveal avoided 108 nominal later
+proposer--critic calls. One pre-response credential failure is preserved and is
+terminal under the frozen retry rule; therefore the launch cannot satisfy the
+declared 180-trajectory confirmation criterion.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.95\textwidth]{decision_impact.png}
+\caption{Decision-impact audit for the live bounded-authority pilot. Structured
+LLM reasoning was produced, but all executed candidates matched GP rank one.
+The distinction between participation and causal action change is central to
+the evaluation.}
+\label{fig:decision_impact}
+\end{figure*}
+
+\section{Representative audited trajectories}
+\label{sec:cases}
+
+The following cases are post-hoc mechanism audits, not independent statistical
+evidence. At every round the target value of an unexecuted candidate remained
+hidden until selection.
+
+\begin{table}[t]
+\centering
+\caption{Representative online decisions relative to the same-start target GP.}
+\label{tab:cases}
+\begin{tabularx}{\textwidth}{p{3.4cm}p{2.4cm}X r r}
+\toprule
+Source $\rightarrow$ target & Domain & Audited decision & $\dauc$ & $\dfinal$ \\
+\midrule
+FreeSolv $\rightarrow$ Lipophilicity & Molecular & GP rank 4 selected in round 1 & $+6.325$ & $+4.875$ \\
+Experimental gap $\rightarrow$ dielectric & Materials & GP rank 5 tellurium candidate selected in round 1 & $+6.745$ & $0.000$ \\
+Suzuki cases 1--3 $\rightarrow$ case 4 & Reaction & High-temperature catalyst hypothesis retained & $+1.380$ & $+5.700$ \\
+Phonon peak $\rightarrow$ bulk modulus & Materials & Direct source relation rejected; target search rerouted & $+3.240$ & $+4.324$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent\textbf{FreeSolv to Lipophilicity.}
+The initial target best was 67.25. Target GP ranked \code{lipo\_2256} first;
+the LLM instead selected \code{lipo\_0635}, GP rank 4 with nearly identical
+expected improvement. It cited a more halogenated, less polar aromatic
+hypothesis. The reveal was 86.875, raising the best value by 19.625 in round
+one. CARE finished with AUC 89.575 and final best 89.875, versus 83.250 and
+85.000 for the matched GP.
+
+\noindent\textbf{Experimental band gap to dielectric response.}
+The transferred hypothesis used the inverse relation between band gap and
+polarizability to favour heavy chalcogenides. In round one, the controller
+selected \code{real\_matbench\_dielectric\_04424}, GP rank 5. Its hidden value
+was 59.5114, the trajectory maximum. Both policies eventually reached the same
+final value, but CARE reached it earlier, producing $\dauc=+6.745$.
+
+\noindent\textbf{Suzuki cases 1--3 to case 4.}
+Source campaigns supported a high-temperature catalyst hypothesis; temperature
+had the largest recorded source correlation (0.647). The initial target set
+contained a 94.1-yield P1--L1 condition at 110\,$^\circ$C. The controller
+retained high-temperature catalyst variants and later revealed a 99.8-yield
+condition, while the same-start GP finished at 94.1.
+
+\noindent\textbf{Phonon peak to bulk modulus.}
+The controller set \code{continue\_source\_transfer=false} in every online
+round after finding no reliable phonon-to-modulus ranking. It nevertheless
+used composition semantics and target history to change four GP choices,
+finishing at 77.6127 versus 73.2886. This is evidence for abstention and target
+adaptation, not direct transfer of phonon outcomes.
+
+\section{Why some LLM skills help and others fail}
+\label{sec:why}
+
+The ablations support three necessary conditions rather than a generic LLM
+advantage. First, the semantic partition must align with the target property.
+Element-count and aromaticity partitions are positive examples. Second, the
+skill must change early sampling or a later executed action. The largest
+source-conditioned mechanism-control effects come from initial design; the
+six-route live pilot has zero online increment because no action changes.
+Third, target evidence must recalibrate the magnitude. No-prior controls often
+retain or improve performance, showing that the LLM is more reliable at
+proposing a representation than a numeric effect size.
+
+Failure modes follow the same logic. Lipophilicity $\rightarrow$ FreeSolv
+shares molecular descriptors but not an interchangeable objective direction,
+producing $\dauc=-29.902$. Source outcome summaries never improve over
+source-schema-only skills in the four causality pairs. The current prompt is
+therefore not a validated mechanism for transporting empirical effect sizes.
+The operational decision rule is: deploy only when semantic alignment,
+action change, and target recalibration are all observable; otherwise hold,
+freeze, or return to the matched target-only optimizer.
+
+\section{Statistical analysis and confirmation protocol}
+\label{sec:statistics}
+
+Semantic-skill tables report paired seed differences and normal 95\%
+confidence intervals. Online portfolio intervals resample routes with equal
+route weight. Two-sided sign tests are secondary. These route intervals do not
+replace repeated stochastic LLM calls, and the older semantic-study intervals
+are not adjusted for multiple comparisons.
+
+The frozen repeated protocol declares 30 independent trajectories per route,
+the model, temperature, prompt, candidate menu, target budget, retry semantics,
+same-start GP comparator, and primary hierarchical-bootstrap analysis. No
+confirmatory interval is reported until all declared trajectories complete.
+API cost-cap, rate-limit, timeout, and transport failures are retained as
+infrastructure events and do not count as negative scientific outcomes. A poor
+reward never triggers a retry. Route-level secondary tests use
+Benjamini--Hochberg correction.
+
+The first repeated trajectory on each of 11 routes reproduced the aggregate
+count of six wins, two ties, and three losses, but four individual routes
+reversed sign relative to the earlier first trajectories. The mean absolute
+paired AUC change was 1.048. This descriptive stability audit motivates the
+30-trajectory protocol and prevents a single stochastic run from defining a
+route as transferable.
+
+\section{Datasets, metrics, and reproducibility}
+\label{sec:repro}
+
+Experiments use public measured finite pools from Dreher--Doyle
+Buchwald--Hartwig HTE, ChemLex Acid--Amine wet-lab data, Reizman Suzuki cases,
+MoleculeNet ESOL, FreeSolv, Lipophilicity and BACE, Matbench experimental band
+gap, dielectric, phonons, bulk modulus, shear modulus, perovskites and steels,
+and Materials Project-derived property pools. Synthetic Suzuki and synthetic
+ChemLex adapters are retained only as smoke tests and are not used for the
+headline real-data claims.
+
+Every reported run stores the config, config hash, seed ranges, target budget,
+candidate IDs, selected outcomes, per-round best-so-far trace, model request
+and response, validation decision, fallback, token usage, and SHA-256 sidecars.
+The code and frozen artifacts are available at
+\url{https://github.com/SHITIANYU-hue/CARE2.0/tree/exploration-aware-llm}.
+Credentials are never stored in the repository.
+
+\subsection{Primary artifact map}
+
+\begin{table}[!h]
+\centering
+\caption{Repository artifacts supporting the supplement. Paths are relative to
+\code{experiments/care\_replay/results}.}
+\label{tab:artifact_map}
+\small
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{6.2cm}X}
+\toprule
+Artifact & Contents \\
+\midrule
+2026-07-21: cross-domain semantic skills & Frozen 300/500-seed semantic-skill results, ablations, calls, and traces \\
+2026-07-21: LLM evidence causality & Full, source-schema-only, target-only, schedule-only, and no-prior conditions \\
+2026-07-23: source-evidence extension & Five 300-seed source-schema transfer routes and round-efficiency analysis \\
+2026-08-07: mechanism controls & Warm-start-only and fixed-data-only controls on seven routes \\
+2026-08-15: Opus generalization study & Frozen online LLM route portfolio and complete call traces \\
+2026-08-24: predeclared baseline portfolio v2 & Target GP, RGPE, and multitask-GP matched baselines \\
+2026-08-24: route-disjoint bounded authority & Training/evaluation route split and 115-policy handoff audit \\
+2026-08-24: bounded-authority confirmation & Live pilot, decision-impact audit, tokens, failures, and confirmation lock \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Prompt and trace transparency}
+\label{sec:prompts}
+
+\subsection{Offline semantic-skill compiler}
+
+\begin{lstlisting}[style=carecode]
+INPUT
+  source task description and permitted source evidence
+  public target fields, categorical values, and counts
+  permitted rule operators and acquisition policies
+
+OUTPUT
+  skill_id and falsifiable rationale
+  executable semantic feature rules
+  optional coefficient direction and strength
+  exploration/acquisition schedule
+  explicit assumptions and failure conditions
+
+VALIDATION
+  reject unknown fields, values, operators, or malformed schema
+  calibrate on development seeds only
+  freeze before held-out replay
+\end{lstlisting}
+
+\subsection{Online proposer--critic record}
+
+\begin{lstlisting}[style=carecode]
+{
+  "round": 1,
+  "hypothesis": "falsifiable source-to-target relation",
+  "continue_source_transfer": true,
+  "candidate_menu": ["target_gp", "source_prior", "consensus", "coverage"],
+  "proposer_choice": "candidate_id",
+  "critic_choice": "candidate_id",
+  "selected_candidate": "candidate_id",
+  "selected_gp_rank": 4,
+  "revealed_target_value": 86.875,
+  "fallback_reason": null,
+  "token_usage": {"input": 0, "output": 0}
+}
+\end{lstlisting}
+
+The actual traces store model-specific token values and the complete prompts;
+the zeros above are schema placeholders rather than experimental measurements.
+An explanation is counted as decision-relevant only when it changes the
+executed candidate, transfer state, or handoff policy. This rule prevents a
+verbose trace from being mistaken for causal contribution.
+
+\section{Limitations and claim boundary}
+\label{sec:limitations}
+
+The evaluation is finite-pool replay on public measured datasets. It preserves
+experimental budgets and hides unrevealed outcomes, but it cannot model assay
+failure, batch effects, synthesis feasibility, or human intervention in a new
+laboratory campaign. Most online routes currently have one successful model
+trajectory. Several routes share task families, and controller policies were
+developed with knowledge of earlier trajectories. The live bounded-authority
+pilot had zero decision impact, and the source-outcome permutation test is
+still required to isolate whether measured source labels add value beyond
+schema and initialization. No result should be described as universal
+cross-domain transfer or prospective wet-lab discovery.
+
+The next decisive evidence is: (i) completion of the frozen repeated-call
+protocol, (ii) a new task family not used in controller development, (iii) a
+matched source-outcome falsification, and (iv) at least one prospective
+wet-lab campaign. Until then, the principal contribution is an auditable
+method for compiling, testing, and rejecting scientific transfer skills.
+
+\end{appendices}
+\end{document}
