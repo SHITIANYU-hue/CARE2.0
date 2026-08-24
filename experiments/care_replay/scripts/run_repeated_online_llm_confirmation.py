@@ -108,10 +108,16 @@ def validate_suite(
     gate = suite.get("calibration_gate", {})
     if gate.get("enabled"):
         gate_round = int(gate.get("evaluation_after_reveals", 0))
-        threshold = float(gate.get("prediction_mae_threshold", -1.0))
+        force_fallback = bool(gate.get("force_fallback_after_evaluation", False))
+        raw_threshold = gate.get("prediction_mae_threshold")
         if not 1 <= gate_round <= int(suite["runner"]["rounds"]):
             raise ValueError("Calibration gate round must be within runner rounds.")
-        if threshold < 0.0:
+        if raw_threshold is None and not force_fallback:
+            raise ValueError(
+                "Calibration gate requires a prediction MAE threshold unless "
+                "bounded-authority fallback is forced."
+            )
+        if raw_threshold is not None and float(raw_threshold) < 0.0:
             raise ValueError("Calibration gate threshold must be non-negative.")
     if check_paths:
         for case in cases:
@@ -360,10 +366,15 @@ def run_args(case: Mapping[str, Any], suite: Mapping[str, Any], output: Path) ->
             int(gate["evaluation_after_reveals"]) if gate_enabled else None
         ),
         calibration_gate_mae_threshold=(
-            float(gate["prediction_mae_threshold"]) if gate_enabled else None
+            float(gate["prediction_mae_threshold"])
+            if gate_enabled and gate.get("prediction_mae_threshold") is not None
+            else None
         ),
         calibration_gate_hard_abstention=bool(
             gate.get("hard_abstention", True)
+        ),
+        calibration_gate_force_fallback=bool(
+            gate.get("force_fallback_after_evaluation", False)
         ),
     )
 

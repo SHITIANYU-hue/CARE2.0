@@ -93,6 +93,46 @@ def gate_switches(features: Mapping[str, Any], threshold: float) -> bool:
     )
 
 
+def policy_switches(
+    features: Mapping[str, Any],
+    threshold: float,
+    *,
+    hard_abstention: bool,
+    force_fallback: bool,
+) -> bool:
+    if force_fallback:
+        return True
+    effective = dict(features)
+    if not hard_abstention:
+        effective["hard_abstention"] = False
+    return gate_switches(effective, threshold)
+
+
+def validate_route_disjointness(
+    config: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    source = config.get("protocol", {}).get("threshold_training_config")
+    if not source:
+        return None
+    source_path = ROOT / str(source)
+    source_config = portfolio.load_portfolio_config(source_path)
+    evaluation_ids = {str(case["case_id"]) for case in config["cases"]}
+    training_ids = {str(case["case_id"]) for case in source_config["cases"]}
+    overlap = sorted(evaluation_ids & training_ids)
+    if overlap:
+        raise ValueError(
+            "Gate evaluation routes overlap threshold-training routes: "
+            + ", ".join(overlap)
+        )
+    return {
+        "threshold_training_config": str(source),
+        "threshold_training_route_count": len(training_ids),
+        "evaluation_route_count": len(evaluation_ids),
+        "overlap_count": 0,
+        "overlap_case_ids": [],
+    }
+
+
 def continue_with_target_gp(
     summary: Mapping[str, Any],
     initial: Mapping[str, Any],
@@ -194,6 +234,8 @@ def plot(
     rows: Sequence[Mapping[str, Any]],
     output_root: Path,
     threshold_selection: str,
+    panel_label: str,
+    force_fallback: bool,
 ) -> list[Path]:
     import matplotlib
 
@@ -213,27 +255,43 @@ def plot(
     axis.set_yticklabels([ROUTE_LABELS.get(str(row["case_id"]), str(row["case_id"])) for row in rows])
     axis.invert_yaxis()
     axis.set_xlabel("Δ best-so-far AUC versus same-start target-only GP-UCB")
-    axis.set_title("Prediction-error gate reduces negative transfer in the frozen 11-route portfolio", loc="left", fontsize=13)
+    axis.set_title(
+        (
+            f"Bounded LLM authority on the {panel_label}"
+            if force_fallback
+            else f"Prediction-error gate on the {panel_label}"
+        ),
+        loc="left",
+        fontsize=13,
+    )
     axis.grid(axis="x", color="#E1E5E8", linewidth=0.8)
     axis.spines[["top", "right", "left"]].set_visible(False)
     axis.tick_params(axis="y", length=0)
     axis.scatter([], [], s=58, color="#7A8790", label="Original online LLM")
     gate_label = (
-        "Fixed global calibration gate"
+        "Bounded-authority controller"
+        if force_fallback
+        else "Fixed global calibration gate"
         if threshold_selection == "fixed"
         else "Leave-one-route-out calibration gate"
     )
     axis.scatter([], [], s=70, marker="D", color="#1E7D62", label=gate_label)
     axis.legend(loc="lower right", frameon=False, ncol=2)
+    gate_round_label = rows[0]["gate_round"] if rows else "N/A"
+    policy_description = (
+        f"Bounded LLM authority through reveal {gate_round_label}; target-only GP-UCB then continues from all accumulated observations. Retrospective replay."
+        if force_fallback
+        else (
+            f"Gate evaluated after {gate_round_label} LLM-guided reveals. One fixed global threshold is applied to every route; "
+            "a triggered gate continues with target-only GP from the accumulated observations. Retrospective replay."
+            if threshold_selection == "fixed"
+            else f"Gate evaluated after {gate_round_label} LLM-guided reveals. Threshold for each route is selected on the remaining routes only; a triggered gate continues with target-only GP from the accumulated observations. Retrospective leave-one-route-out audit."
+        )
+    )
     figure.text(
         0.01,
         0.01,
-        (
-            "Gate evaluated after three LLM-guided reveals. One fixed global threshold is applied to every route; "
-            "a triggered gate continues with target-only GP from the accumulated observations. Retrospective replay."
-            if threshold_selection == "fixed"
-            else "Gate evaluated after three LLM-guided reveals. Threshold for each route is selected on the other ten routes only; a triggered gate continues with target-only GP from the accumulated observations. Retrospective leave-one-route-out audit."
-        ),
+        policy_description,
         fontsize=8.1,
         color="#5D6870",
     )
@@ -275,10 +333,23 @@ def main() -> None:
         choices=("leave_one_route_out", "fixed"),
         default="leave_one_route_out",
     )
+    parser.add_argument(
+        "--hard-abstention",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Treat hypothesis falsification or source-transfer abstention as a switch.",
+    )
+    parser.add_argument(
+        "--force-fallback",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Always hand control to target-only GP after the gate round.",
+    )
     args = parser.parse_args()
     if args.threshold_selection == "fixed" and len(args.thresholds) != 1:
         parser.error("Fixed threshold selection requires exactly one threshold.")
     config = portfolio.load_portfolio_config(args.portfolio_config)
+    route_disjointness = validate_route_disjointness(config)
     baseline_audit = matched.load_json(args.portfolio_aggregate)
     baseline_reports = {row["case_id"]: row for row in baseline_audit["route_reports"]}
     args.output_root.mkdir(parents=True, exist_ok=True)
@@ -330,7 +401,12 @@ def main() -> None:
             else select_threshold(case_id, args.thresholds, records)
         )
         selected_thresholds.append(threshold)
-        switched = gate_switches(record["calibration"], threshold)
+        switched = policy_switches(
+            record["calibration"],
+            threshold,
+            hard_abstention=args.hard_abstention,
+            force_fallback=args.force_fallback,
+        )
         fallback_rounds = (
             len(record["fallback_audit"]) - args.gate_round
             if switched
@@ -344,9 +420,12 @@ def main() -> None:
         row = {
             "case_id": case_id,
             "domain": record["domain"],
+            "gate_round": args.gate_round,
             "selected_threshold": threshold,
             "mean_absolute_prediction_error": record["calibration"]["mean_absolute_prediction_error"],
             "hard_abstention": record["calibration"]["hard_abstention"],
+            "hard_abstention_enabled": args.hard_abstention,
+            "force_fallback_after_gate_round": args.force_fallback,
             "gate_switched_to_target_gp": switched,
             "fallback_rounds": fallback_rounds,
             "nominal_llm_calls_avoided": (
@@ -382,7 +461,18 @@ def main() -> None:
     gate_gain_values = [float(row["gated_minus_online_llm_auc"]) for row in rows]
     strongest_values = [float(row["gated_minus_strongest_realized_baseline_auc"]) for row in rows]
     write_csv(args.output_root / "route_results.csv", rows)
-    figures = plot(rows, args.output_root, args.threshold_selection)
+    panel_label = str(
+        config.get("protocol", {}).get(
+            "figure_panel_label", f"frozen {len(rows)}-route portfolio"
+        )
+    )
+    figures = plot(
+        rows,
+        args.output_root,
+        args.threshold_selection,
+        panel_label,
+        args.force_fallback,
+    )
     if args.threshold_selection == "fixed":
         threshold_phrase = "the fixed global threshold"
         gate_method_label = "Fixed global calibration gate"
@@ -396,6 +486,33 @@ def main() -> None:
             "route under a single fixed threshold. It validates executable semantics and "
             "motivates the frozen repeated protocol, but it is not prospective or external validation."
         )
+        if args.force_fallback:
+            threshold_phrase = "the fixed LLM-authority round limit"
+            gate_method_label = "Bounded-authority controller"
+            selection_description = (
+                "Transfer control to target-only GP after the declared LLM-authority "
+                "round, independently of prediction error."
+            )
+        if route_disjointness is not None and not args.force_fallback:
+            selection_description = (
+                "One global threshold was imported from a disjoint training-route "
+                "panel and applied to every evaluation route without retuning."
+            )
+        if route_disjointness is not None:
+            evaluation_phrase = "route-disjoint retrospective replays"
+            claim_boundary = (
+                "The evaluation routes do not overlap the routes used to select the "
+                "fixed one-round authority limit. However, these are previously completed "
+                "development trajectories with known replay outcomes, so this is "
+                "route-disjoint retrospective evidence rather than prospective external validation."
+                if args.force_fallback
+                else (
+                    "The evaluation routes do not overlap the routes used to select the "
+                    "fixed threshold. However, these are previously completed development "
+                    "trajectories with known replay outcomes, so this is route-disjoint "
+                    "retrospective evidence rather than prospective external validation."
+                )
+            )
     else:
         threshold_phrase = "a leave-one-route-out threshold"
         gate_method_label = "Leave-one-route-out calibration gate"
@@ -417,9 +534,11 @@ def main() -> None:
             "gate_round": args.gate_round,
             "threshold_grid": args.thresholds,
             "threshold_selection": args.threshold_selection,
+            "hard_abstention_enabled": args.hard_abstention,
+            "force_fallback_after_gate_round": args.force_fallback,
             "selection": selection_description,
-            "prediction_error": "Mean absolute error of scored LLM expected outcomes over the first three online reveals. revise_to_gp responses are excluded because their expected_outcome field is not an asserted prediction.",
-            "fallback": "Continue target-only GP-UCB from all initial and first-three LLM observations; do not restart or splice a separate GP trajectory.",
+            "prediction_error": f"Mean absolute error of scored LLM expected outcomes over the first {args.gate_round} online reveals. revise_to_gp responses are excluded because their expected_outcome field is not an asserted prediction.",
+            "fallback": f"Continue target-only GP-UCB from all initial and first-{args.gate_round} LLM observations; do not restart or splice a separate GP trajectory.",
         },
         "route_count": len(rows),
         "switch_count": sum(bool(row["gate_switched_to_target_gp"]) for row in rows),
@@ -431,6 +550,7 @@ def main() -> None:
             mean(float(row["nominal_llm_calls_avoided"]) for row in rows), 6
         ),
         "selected_threshold_counts": {str(key): value for key, value in Counter(selected_thresholds).items()},
+        "route_disjointness": route_disjointness,
         "original_online_llm_vs_target_gp": portfolio.summarize(original_values, config["protocol"], 20),
         "calibration_gate_vs_target_gp": portfolio.summarize(gated_values, config["protocol"], 21),
         "calibration_gate_minus_online_llm": portfolio.summarize(gate_gain_values, config["protocol"], 22),
@@ -447,9 +567,17 @@ def main() -> None:
     results_path.write_text(
         "\n".join(
             [
-                "# Prediction-error calibration gate audit",
+                (
+                    "# Bounded online-LLM authority audit"
+                    if args.force_fallback
+                    else "# Prediction-error calibration gate audit"
+                ),
                 "",
-                f"The gate is evaluated after three LLM-guided target reveals. If the first-three mean absolute prediction error exceeds {threshold_phrase}, or the LLM explicitly falsifies or abandons the transfer hypothesis, target-only GP-UCB continues from the accumulated observations.",
+                (
+                    f"The controller hands execution to target-only GP-UCB after {args.gate_round} LLM-guided target reveal while preserving all observations accumulated so far."
+                    if args.force_fallback
+                    else f"The gate is evaluated after {args.gate_round} LLM-guided target reveals. If their mean absolute prediction error exceeds {threshold_phrase}, or the LLM explicitly falsifies or abandons the transfer hypothesis, target-only GP-UCB continues from the accumulated observations."
+                ),
                 "",
                 "| Method | Mean AUC delta vs target GP | Route-bootstrap 95% CI | Win / tie / loss |",
                 "|---|---:|---:|---:|",

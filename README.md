@@ -29,8 +29,14 @@ Current contents:
   an independent frozen confirmation with the same scientific controller and
   predeclared, auditable infrastructure-retry handling.
 - `experiments/care_replay/configs/online_llm_gated_repeated_confirmation_v1.json`:
-  the frozen executable-gate protocol: 11 routes x 30 future trajectories,
-  gate after reveal three, one global MAE threshold of five, and no optional stopping.
+  the preserved first executable-gate protocol: 11 routes x 30 future
+  trajectories, gate after reveal three, and one global MAE threshold of five.
+- `experiments/care_replay/configs/online_llm_gate_selection_audit_v1.json`:
+  the route-split controller-selection audit: 11 routes select one policy and
+  six disjoint routes evaluate it without entering the selection score.
+- `experiments/care_replay/configs/online_llm_bounded_authority_route_disjoint_confirmation_v1.json`:
+  the current frozen 6-route x 30-trajectory confirmation protocol for a
+  one-round online-LLM handoff followed by target-only GP-UCB.
 - `experiments/care_replay/rule_provenance.md`: provenance notes for the
   current incumbent, transfer rules, LLM roles, and incumbent ablation.
 - `experiments/care_replay/skill_transfer_layers.md`: layered CARE 2.0 skill
@@ -82,6 +88,9 @@ The latest tracked replay output is in:
 - `experiments/care_replay/results/2026-08-24-online-llm-calibration-gate-audit-v1/`
 - `experiments/care_replay/results/2026-08-24-online-llm-predeclared-baseline-portfolio-v1/`
 - `experiments/care_replay/results/2026-08-24-online-llm-predeclared-baseline-portfolio-v2/`
+- `experiments/care_replay/results/2026-08-24-online-llm-route-disjoint-fixed-threshold5-gate-audit-v1/`
+- `experiments/care_replay/results/2026-08-24-online-llm-route-disjoint-bounded-authority-v1/`
+- `experiments/care_replay/results/2026-08-24-online-llm-route-split-gate-selection-v1/`
 - `experiments/care_replay/results/2026-08-16-opus48-generalization-evidence-v1/`
 - `experiments/care_replay/results/2026-08-15-opus5-generalization-study/`
 - `experiments/care_replay/results/2026-08-14-llm-reflective-scientist/`
@@ -158,12 +167,28 @@ baseline. This supports executable risk control, not a confirmatory superiority
 claim. On the saved trajectories the fixed replay replaces 70 later LLM-guided
 rounds, equivalent to 140 nominal proposer/critic calls; this is a replay
 counterfactual rather than already realized API savings. A separate
-330-trajectory protocol was frozen before future gated runs;
-it is not complete. Code, traces, source-data plots, and hashes are under
+330-trajectory protocol was frozen before future gated runs. A later
+route-disjoint stress test showed that this late round-three rule does not
+generalize: on six routes excluded from threshold selection it changes the
+mean from `-1.0558` for the full online LLM to `-1.9677` versus target GP.
+This negative result is retained rather than hidden.
+
+A route-split audit then compared 115 controller candidates using only the 11
+training routes. It selected a simpler bounded-authority policy: permit one
+online LLM-guided reveal, then hand the accumulated observations to target-only
+GP-UCB. On the six route-disjoint retrospective trajectories this changes the
+mean to `+0.6124` (95% interval `[-0.4422,+1.7934]`; two wins, three ties, one
+loss), an improvement of `+1.6681` over the full online LLM. The interval still
+crosses zero and one negative route remains, so this is a robustness signal,
+not a confirmatory superiority result. A separate 6-route x 30-trajectory
+protocol is frozen but unexecuted; the older threshold-5 protocol is preserved
+as a documented historical protocol rather than treated as the primary next
+confirmation. Code, traces, source-data plots, and hashes are under
 `experiments/care_replay/results/2026-08-24-online-llm-predeclared-baseline-portfolio-v1/`,
 `experiments/care_replay/results/2026-08-24-online-llm-predeclared-baseline-portfolio-v2/`,
 `experiments/care_replay/results/2026-08-24-online-llm-calibration-gate-audit-v1/`,
-and `experiments/care_replay/results/2026-08-24-online-llm-fixed-threshold5-gate-replay-v1/`.
+`experiments/care_replay/results/2026-08-24-online-llm-fixed-threshold5-gate-replay-v1/`,
+and `experiments/care_replay/results/2026-08-24-online-llm-route-split-gate-selection-v1/`.
 
 This online result is separate from the July frozen-selector studies below.
 Those studies use many paired seeds to test deterministic compiled transfer

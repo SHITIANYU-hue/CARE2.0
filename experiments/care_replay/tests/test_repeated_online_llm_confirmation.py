@@ -98,10 +98,27 @@ class RepeatedOnlineConfirmationTests(unittest.TestCase):
         self.assertEqual(args.calibration_gate_round, 1)
         self.assertEqual(args.calibration_gate_mae_threshold, 5.0)
         self.assertTrue(args.calibration_gate_hard_abstention)
+        self.assertFalse(args.calibration_gate_force_fallback)
 
         suite["calibration_gate"]["evaluation_after_reveals"] = 3
         with self.assertRaisesRegex(ValueError, "within runner rounds"):
             repeated.validate_suite(suite, check_paths=False)
+
+    def test_bounded_authority_gate_does_not_require_error_threshold(self) -> None:
+        suite = self.frozen_suite()
+        suite["calibration_gate"] = {
+            "enabled": True,
+            "evaluation_after_reveals": 1,
+            "force_fallback_after_evaluation": True,
+            "hard_abstention": False,
+        }
+        repeated.validate_suite(suite, check_paths=False)
+        args = repeated.run_args(
+            suite["cases"][0], suite, Path("/tmp/test-bounded-authority")
+        )
+        self.assertIsNone(args.calibration_gate_mae_threshold)
+        self.assertTrue(args.calibration_gate_force_fallback)
+        self.assertFalse(args.calibration_gate_hard_abstention)
 
     def test_replicate_ids_are_declared_by_protocol(self) -> None:
         self.assertEqual(repeated.replicate_ids(self.frozen_suite()), [10, 11, 12])

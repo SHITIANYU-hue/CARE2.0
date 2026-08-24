@@ -1,0 +1,118 @@
+{
+  "schema_version": "care.online_llm_gate_selection_audit/v1",
+  "config_path": "configs/online_llm_gate_selection_audit_v1.json",
+  "config_sha256": "d571e839d96e4287c67b15277b5bf4af5693b6101e0ef9f000971bd945ecc854",
+  "training_config_sha256": "2d30d827e70e48b4e471756aabe1889ca9b34fbe8ad3f9fd4a28a5456be9ba44",
+  "evaluation_config_sha256": "ee9254bd1d5ec937acecb3922336a06730e4fb6a88c3e1bb5ff3193838c7df9d",
+  "baseline_aggregate_sha256": "ce142215a7dc05a01d830eff1de2113beb76aa80cf6241d070bfe4fe450ca00e",
+  "route_split": {
+    "training_route_count": 11,
+    "evaluation_route_count": 6,
+    "overlap_count": 0,
+    "overlap_case_ids": []
+  },
+  "selection_rule": [
+    "minimize training-route losses versus matched same-start target-only GP-UCB",
+    "maximize training equal-route mean AUC delta",
+    "maximize the worst training-route AUC delta",
+    "minimize the number of training routes switched to target-only GP",
+    "prefer the lower-parameter controller when behavior is tied",
+    "prefer the earlier handoff when all prior criteria are tied"
+  ],
+  "selection_uses_evaluation_metrics": false,
+  "candidate_count": 115,
+  "selected_policy": {
+    "policy_id": "bounded_authority_r1",
+    "kind": "bounded_authority",
+    "gate_round": 1,
+    "threshold": null,
+    "hard_abstention": false,
+    "force_fallback": true,
+    "parameter_count": 1
+  },
+  "selected_policy_training": {
+    "route_count": 11,
+    "equal_route_mean_auc_delta": 1.188195,
+    "route_bootstrap_95ci_low": 0.0,
+    "route_bootstrap_95ci_high": 2.951391,
+    "route_wins": 2,
+    "route_ties": 9,
+    "route_losses": 0,
+    "negative_transfer_route_rate": 0.0,
+    "two_sided_route_sign_test_p": 0.5
+  },
+  "selected_policy_route_disjoint_evaluation": {
+    "route_count": 6,
+    "equal_route_mean_auc_delta": 0.612371,
+    "route_bootstrap_95ci_low": -0.442157,
+    "route_bootstrap_95ci_high": 1.793363,
+    "route_wins": 2,
+    "route_ties": 3,
+    "route_losses": 1,
+    "negative_transfer_route_rate": 0.166667,
+    "two_sided_route_sign_test_p": 1.0
+  },
+  "route_disjoint_full_online_llm": {
+    "route_count": 6,
+    "equal_route_mean_auc_delta": -1.055769,
+    "route_bootstrap_95ci_low": -3.01029,
+    "route_bootstrap_95ci_high": 0.153889,
+    "route_wins": 2,
+    "route_ties": 2,
+    "route_losses": 2,
+    "negative_transfer_route_rate": 0.333333,
+    "two_sided_route_sign_test_p": 1.0
+  },
+  "route_disjoint_fixed_round3_threshold5_gate": {
+    "route_count": 6,
+    "equal_route_mean_auc_delta": -1.967696,
+    "route_bootstrap_95ci_low": -6.438226,
+    "route_bootstrap_95ci_high": 0.873121,
+    "route_wins": 2,
+    "route_ties": 2,
+    "route_losses": 2,
+    "negative_transfer_route_rate": 0.333333,
+    "two_sided_route_sign_test_p": 1.0
+  },
+  "selected_policy_minus_full_online_llm_on_evaluation": {
+    "route_count": 6,
+    "equal_route_mean_auc_delta": 1.66814,
+    "route_bootstrap_95ci_low": -0.08058,
+    "route_bootstrap_95ci_high": 4.552488,
+    "route_wins": 2,
+    "route_ties": 2,
+    "route_losses": 2,
+    "negative_transfer_route_rate": 0.333333,
+    "two_sided_route_sign_test_p": 1.0
+  },
+  "figure_files": [
+    {
+      "path": "route_disjoint_controller_comparison.png",
+      "sha256": "98c48bed603a298ba21e550448c4cc735506445e5e4e98a222b9ff2d6e4604ea",
+      "source_data": [
+        "full_online_llm_evaluation_routes.jsonl",
+        "fixed_threshold5_evaluation_routes.jsonl",
+        "selected_policy_evaluation_routes.jsonl"
+      ]
+    },
+    {
+      "path": "route_disjoint_controller_comparison.pdf",
+      "sha256": "a0afa5789aad7ef2b1be30ca0c92434bae1253c4b4004ae139dd1cd9387ebf88",
+      "source_data": [
+        "full_online_llm_evaluation_routes.jsonl",
+        "fixed_threshold5_evaluation_routes.jsonl",
+        "selected_policy_evaluation_routes.jsonl"
+      ]
+    },
+    {
+      "path": "route_disjoint_controller_comparison.svg",
+      "sha256": "ad0fc0853c8c798d25e77c044c6b4c01613b11fb3fc71bc93590a2fe8d08a19c",
+      "source_data": [
+        "full_online_llm_evaluation_routes.jsonl",
+        "fixed_threshold5_evaluation_routes.jsonl",
+        "selected_policy_evaluation_routes.jsonl"
+      ]
+    }
+  ],
+  "claim_boundary": "The controller is selected using only the 11 training routes and then evaluated on six route-disjoint trajectories. All trajectories are previously completed retrospective replays, so this is a leakage-controlled development audit rather than prospective or external validation."
+}

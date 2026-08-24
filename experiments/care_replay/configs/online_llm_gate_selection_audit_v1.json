@@ -1,0 +1,31 @@
+{
+  "protocol": {
+    "version": "care2_online_llm_gate_selection_audit_v1",
+    "status": "retrospective_route_split_policy_selection_audit",
+    "frozen_on": "2026-08-24",
+    "training_config": "configs/online_llm_predeclared_baseline_portfolio_v1.json",
+    "evaluation_config": "configs/online_llm_gate_route_disjoint_panel_v1.json",
+    "baseline_aggregate": "results/2026-08-24-online-llm-predeclared-baseline-portfolio-v2/aggregate.json",
+    "gate_rounds": [1, 2, 3, 4, 5],
+    "prediction_error_thresholds": [0.0, 2.5, 5.0, 7.5, 10.0, 15.0, 20.0, 30.0, 40.0, 60.0, 9999.0],
+    "hard_abstention_options": [false, true],
+    "include_bounded_authority_candidates": true,
+    "selection_rule": [
+      "minimize training-route losses versus matched same-start target-only GP-UCB",
+      "maximize training equal-route mean AUC delta",
+      "maximize the worst training-route AUC delta",
+      "minimize the number of training routes switched to target-only GP",
+      "prefer the lower-parameter controller when behavior is tied",
+      "prefer the earlier handoff when all prior criteria are tied"
+    ],
+    "constraints": {
+      "training_and_evaluation_routes_are_disjoint": true,
+      "evaluation_metrics_do_not_enter_policy_selection": true,
+      "same_initial_target_observations": true,
+      "same_target_reveal_budget": true,
+      "fallback_continues_from_accumulated_observations": true,
+      "no_unrevealed_target_outcome_access_during_execution": true
+    },
+    "claim_policy": "The controller is selected using only the 11 training routes and then evaluated on six route-disjoint trajectories. All trajectories are previously completed retrospective replays, so this is a leakage-controlled development audit rather than prospective or external validation."
+  }
+}

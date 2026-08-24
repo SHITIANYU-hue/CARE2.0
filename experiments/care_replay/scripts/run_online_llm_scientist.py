@@ -1059,7 +1059,8 @@ def calibration_gate_snapshot(
     prediction_errors: Sequence[float],
     *,
     hard_abstention: bool,
-    threshold: float,
+    threshold: float | None,
+    force_fallback: bool = False,
 ) -> dict[str, Any]:
     mean_error = (
         float(np.mean(np.asarray(prediction_errors, dtype=np.float64)))
@@ -1067,9 +1068,11 @@ def calibration_gate_snapshot(
         else None
     )
     reasons = []
+    if force_fallback:
+        reasons.append("bounded_authority_round_limit")
     if hard_abstention:
         reasons.append("hard_abstention")
-    if mean_error is not None and mean_error > threshold:
+    if threshold is not None and mean_error is not None and mean_error > threshold:
         reasons.append("prediction_mae_above_threshold")
     return {
         "scored_prediction_count": len(prediction_errors),
@@ -1077,7 +1080,8 @@ def calibration_gate_snapshot(
             round(mean_error, 6) if mean_error is not None else None
         ),
         "hard_abstention": hard_abstention,
-        "threshold": float(threshold),
+        "threshold": float(threshold) if threshold is not None else None,
+        "force_fallback": force_fallback,
         "switch_to_target_gp": bool(reasons),
         "trigger_reasons": reasons,
     }
@@ -1224,19 +1228,30 @@ def run_online(args: argparse.Namespace) -> None:
     calibration_gate_hard_abstention = bool(
         getattr(args, "calibration_gate_hard_abstention", True)
     )
+    calibration_gate_force_fallback = bool(
+        getattr(args, "calibration_gate_force_fallback", False)
+    )
     calibration_gate_enabled = calibration_gate_round is not None
+    if calibration_gate_force_fallback and not calibration_gate_enabled:
+        raise ValueError(
+            "Bounded-authority fallback requires --calibration-gate-round."
+        )
     if calibration_gate_enabled:
         calibration_gate_round = int(calibration_gate_round)
-        if calibration_gate_threshold is None:
+        if calibration_gate_threshold is None and not calibration_gate_force_fallback:
             raise ValueError(
                 "Calibration gate requires --calibration-gate-mae-threshold."
             )
-        calibration_gate_threshold = float(calibration_gate_threshold)
+        if calibration_gate_threshold is not None:
+            calibration_gate_threshold = float(calibration_gate_threshold)
         if not 1 <= calibration_gate_round <= rounds:
             raise ValueError(
                 "Calibration gate round must be within the executed reveal budget."
             )
-        if calibration_gate_threshold < 0.0:
+        if (
+            calibration_gate_threshold is not None
+            and calibration_gate_threshold < 0.0
+        ):
             raise ValueError("Calibration gate threshold must be non-negative.")
     by_id = {
         candidate.candidate_id: index
@@ -1708,7 +1723,8 @@ def run_online(args: argparse.Namespace) -> None:
             calibration_gate_snapshot_record = calibration_gate_snapshot(
                 calibration_prediction_errors,
                 hard_abstention=calibration_hard_abstention_seen,
-                threshold=float(calibration_gate_threshold),
+                threshold=calibration_gate_threshold,
+                force_fallback=calibration_gate_force_fallback,
             )
             calibration_gate_triggered = bool(
                 calibration_gate_snapshot_record["switch_to_target_gp"]
@@ -1767,6 +1783,9 @@ def run_online(args: argparse.Namespace) -> None:
         "calibration_gate_mae_threshold": calibration_gate_threshold,
         "calibration_gate_hard_abstention_enabled": (
             calibration_gate_hard_abstention
+        ),
+        "calibration_gate_force_fallback_enabled": (
+            calibration_gate_force_fallback
         ),
         "calibration_gate_triggered": calibration_gate_triggered,
         "calibration_gate_trigger_reasons": calibration_gate_trigger_reason,
@@ -1834,6 +1853,7 @@ def run_online(args: argparse.Namespace) -> None:
                 calibration_gate_threshold
             ),
             "hard_abstention_enabled": calibration_gate_hard_abstention,
+            "force_fallback_after_evaluation": calibration_gate_force_fallback,
             "hard_abstention_conditions": [
                 "hypothesis_status=falsified",
                 "continue_source_transfer=false",
@@ -1991,6 +2011,15 @@ def main() -> None:
         help=(
             "Also switch when the prefix contains a falsified hypothesis or an "
             "explicit request to stop source transfer."
+        ),
+    )
+    run_parser.add_argument(
+        "--calibration-gate-force-fallback",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help=(
+            "Always transfer control to target-only GP-UCB after the configured "
+            "gate round. This implements a bounded LLM-authority controller."
         ),
     )
     run_parser.add_argument("--fail-on-llm-error", action="store_true")

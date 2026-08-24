@@ -25,6 +25,18 @@ SOURCE_ID = "real_baumgartner_cn_aniline_alphos"
 
 
 class OnlineLlmScientistTests(unittest.TestCase):
+    def test_calibration_gate_can_enforce_bounded_authority(self) -> None:
+        snapshot = online.calibration_gate_snapshot(
+            [],
+            hard_abstention=False,
+            threshold=None,
+            force_fallback=True,
+        )
+        self.assertTrue(snapshot["switch_to_target_gp"])
+        self.assertEqual(
+            snapshot["trigger_reasons"], ["bounded_authority_round_limit"]
+        )
+
     def setUp(self) -> None:
         self.config = json.loads(CONFIG.read_text(encoding="utf-8"))
         self.target = replay.DATASET_BUILDERS[TARGET_ID]()

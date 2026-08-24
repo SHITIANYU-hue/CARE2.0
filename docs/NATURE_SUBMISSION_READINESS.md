@@ -48,10 +48,12 @@ The current Opus suite supports the following statements:
    against the same LLM initial observations followed by target-only GP-UCB.
 3. In the frozen 11-route first-trajectory portfolio, six routes improve
    best-so-far AUC, two tie, and three lose relative to same-start target GP.
-4. An executable prediction-error gate evaluated after three LLM-guided reveals
-   can stop later LLM calls and continue with target-only GP-UCB. A single global
-   threshold of five reduces the retrospective target-GP loss count from three
-   routes to two and raises the equal-route mean AUC delta from +1.753 to +2.135.
+4. The round-three threshold-5 gate improves the original 11-route development
+   panel but fails on six route-disjoint retrospective routes. A training-only
+   comparison of 115 controller candidates instead selects a one-round bounded-
+   authority policy; on the six disjoint routes it changes the mean from -1.056
+   for full online LLM to +0.612 versus target GP and reduces losses from two to
+   one. The interval crosses zero, so this is a mechanism and robustness signal.
 5. The complete 17-route retrospective inventory, including six earlier
    negative or null development routes, has a smaller and uncertain mean effect
    of +0.762 versus target GP, preventing selective route reporting.
@@ -78,13 +80,17 @@ target-only GP-UCB, under an identical target-reveal budget.
 | Frozen 11-route cross-validated calibration gate versus target GP | 11 | +2.0357 | [+0.4245, +3.9006] | 5 / 4 / 2 | p=0.4531 |
 | Frozen 11-route fixed-threshold-5 gate replay versus target GP | 11 | +2.1346 | [+0.5146, +4.0010] | 6 / 3 / 2 | p=0.2891 |
 | Complete 17-route retrospective inventory versus target GP | 17 | +0.7618 | [-0.5008, +2.0907] | 8 / 4 / 5 | p=0.5811 |
+| Route-disjoint full online LLM versus target GP | 6 | -1.0558 | [-3.0103, +0.1539] | 2 / 2 / 2 | p=1.0000 |
+| Route-disjoint fixed round-three threshold-5 gate versus target GP | 6 | -1.9677 | [-6.4382, +0.8731] | 2 / 2 / 2 | p=1.0000 |
+| Route-disjoint selected one-round bounded authority versus target GP | 6 | +0.6124 | [-0.4422, +1.7934] | 2 / 3 / 1 | p=1.0000 |
 
 These intervals resample source-target routes, not independent LLM calls.
 Several routes share task families, and each route currently contains one
 online Opus trajectory, so they quantify benchmark-route variation rather than
-within-route stochastic uncertainty. Both gate rows are retrospective replays.
-The fixed-threshold row is the exact rule now frozen for future trajectories,
-but it is not a substitute for completing the repeated-trajectory protocol.
+within-route stochastic uncertainty. Every gate/controller row is a
+retrospective replay. The six evaluation routes do not enter controller
+selection, but their outcomes were previously known, so they are not an
+external or prospective test.
 
 ## Frozen repeated-trajectory protocol
 
@@ -116,6 +122,19 @@ triggered trajectory makes no later LLM request. Target-only GP-UCB continues
 from all accumulated observations, so the target budget is unchanged while LLM
 rounds and token use can fall. This 330-trajectory protocol has not completed;
 no prospective gate claim is currently evaluated.
+
+This first gate protocol is retained unchanged as a frozen audit artifact, but
+the route-disjoint failure means it is no longer the primary protocol proposed
+for execution. The current primary controller protocol is
+`online_llm_bounded_authority_route_disjoint_confirmation_v1.json`. The policy
+was selected on 11 routes without using the six evaluation-route metrics. It
+permits one online proposer/critic decision, then makes no later LLM request and
+continues target-only GP-UCB from every accumulated observation. The protocol
+declares six routes, 30 independent trajectories per route, no optional
+stopping, and a hierarchical-bootstrap success rule that is disabled until all
+180 trajectories complete. Because route identities and one earlier outcome
+trajectory per route were already known, completion will establish internal
+stochastic replication, not external-task or wet-lab validation.
 
 ### Repetition pilot and operational amendment
 
@@ -349,6 +368,25 @@ counterfactual execution it replaces 70 later LLM-guided rounds, equivalent to
 140 nominal proposer/critic calls. These numbers describe calls the executable
 Gate would avoid on the saved trajectories, not API savings already realized.
 
+A stricter route-split audit then held six earlier trajectories out of all
+controller selection. The imported round-three threshold-5 rule did not
+generalize: it averaged -1.968 AUC versus target GP, compared with -1.056 for
+the full online LLM, and retained two losses. The failure is concentrated in
+`phonons -> perovskites`, where handing control back after three LLM rounds was
+too late to recover the early search reward.
+
+We next evaluated 115 candidate handoff policies on the 11 training routes
+only. The declared lexicographic rule first minimizes negative routes, then
+maximizes equal-route mean and worst-route AUC, and finally prefers the simpler
+controller on ties. It selected a threshold-free one-round authority limit.
+On the six route-disjoint trajectories this controller averaged +0.612 versus
+target GP (95% interval -0.442 to +1.793; 2 wins, 3 ties, 1 loss), and +1.668
+relative to the original full online LLM. The result identifies a plausible
+mechanism: LLM semantic transfer is most useful as an early intervention,
+whereas repeated stochastic policy control can erase that benefit. The
+intervals cross zero and one loss remains, so the claim is improved observed
+robustness, not general superiority.
+
 ## What a reviewer is likely to challenge
 
 ### 1. The strongest gains are development results
@@ -420,10 +458,10 @@ library" for a separately implemented and evaluated module.
 6. **Matched transfer-BO baselines.** Compare the online LLM controller with
    calibration-selected RGPE and multitask GP under the same initial target
    observations, candidate pool, reveal budget, and held-out routes.
-7. **Prospective calibration-gate confirmation.** The gate round, global
-   threshold, fallback semantics, route list, and 330-trajectory analysis rule
-   are now frozen. Execute the protocol and compare gated LLM with ungated LLM,
-   target GP, and rule-fixed transfer BO without retuning or optional stopping.
+7. **Prospective bounded-authority confirmation.** The one-round LLM authority
+   limit, fallback semantics, six-route panel, and 180-trajectory analysis rule
+   are frozen. Execute the protocol and compare it with ungated LLM, target GP,
+   and rule-fixed transfer BO without retuning or optional stopping.
 
 ### P1: needed to make the paper distinctive
 

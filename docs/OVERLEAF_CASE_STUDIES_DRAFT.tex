@@ -187,6 +187,32 @@ LLM-guided rounds, equivalent to 140 nominal proposer/critic calls. We report
 this as an auditable replay quantity rather than as already realized API
 savings.
 
+The apparent benefit did not survive a route-disjoint stress test. We excluded
+six earlier completed trajectories from all threshold and controller selection,
+then applied the fixed round-three threshold-5 rule without retuning. Full
+online LLM obtained a mean AUC difference of $-1.056$ relative to target-only
+GP (95\% route-bootstrap interval $[-3.010,+0.154]$; two wins, two ties, and two
+losses), whereas the fixed gate obtained $-1.968$
+($[-6.438,+0.873]$; two wins, two ties, and two losses). The failure was driven
+primarily by phonons $\rightarrow$ perovskites, for which a handoff after three
+LLM-guided reveals occurred too late to recover early best-so-far reward. This
+negative result rules out the claim that prediction-error thresholding alone
+provides a general negative-transfer solution.
+
+We therefore compared 115 handoff policies using only the original eleven
+routes. The declared lexicographic rule minimized route losses, maximized
+equal-route mean and worst-route AUC, and preferred the lower-parameter policy
+on exact behavioral ties. It selected a threshold-free bounded-authority
+controller: permit one online LLM-guided reveal and then continue target-only
+GP-UCB from all accumulated observations. On the six route-disjoint
+trajectories this policy obtained $+0.612$ AUC versus target GP
+($[-0.442,+1.793]$; two wins, three ties, and one loss), and improved by
+$+1.668$ relative to the original full online LLM. Because the six trajectory
+outcomes were previously known and the confidence intervals include zero, we
+interpret this as a leakage-controlled mechanism audit rather than
+confirmation. A frozen six-route by 30-trajectory protocol will test the
+one-round handoff on new stochastic trajectories without optional stopping.
+
 \paragraph{Repeated calls expose trajectory-level uncertainty.}
 The frozen development run for experimental band gap $\rightarrow$ Materials
 Project band gap produced $\Delta$AUC=$-2.4464$: the LLM-guided trajectory did
@@ -270,3 +296,10 @@ trajectory-level benefit.
 % experiments/care_replay/configs/online_llm_gated_repeated_confirmation_v1.json
 % experiments/care_replay/results/2026-08-24-online-llm-fixed-threshold5-gate-replay-v1/
 %   {aggregate.json,route_results.csv,calibration_gate_route_effects.svg}
+% experiments/care_replay/results/2026-08-24-online-llm-route-disjoint-fixed-threshold5-gate-audit-v1/
+%   {aggregate.json,route_results.csv,calibration_gate_route_effects.svg}
+% experiments/care_replay/results/2026-08-24-online-llm-route-disjoint-bounded-authority-v1/
+%   {aggregate.json,route_results.csv,calibration_gate_route_effects.svg}
+% experiments/care_replay/results/2026-08-24-online-llm-route-split-gate-selection-v1/
+%   {candidate_grid.csv,selected_policy.json,selected_policy_evaluation_routes.jsonl,route_disjoint_controller_comparison.pdf}
+% experiments/care_replay/configs/online_llm_bounded_authority_route_disjoint_confirmation_v1.json

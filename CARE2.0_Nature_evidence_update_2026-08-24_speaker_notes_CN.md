@@ -52,16 +52,17 @@ Replay harness 用完整历史数据模拟真实的逐轮实验。虽然磁盘�
 
 ## 第 13 页：结论边界
 
-已经完成的是无泄漏 replay、同预算主对照、三个任务家族、逐轮真实 LLM 决策和完整 trace；同时完成了 11 路线 rule-fixed baseline audit、17 路线完整历史盘点和固定阈值 prediction-error gate 回放。全局阈值 5 把相对 target GP 的平均增益从 +1.753 提到 +2.135，route-bootstrap 95% 区间为 +0.515 到 +4.001，并把负向路线从 3 条降到 2 条。但它相对原 LLM 的额外增量只有 +0.381，区间仍跨 0，而且相对事后最强 baseline 仍为 -0.168。尚未完成的是每条路线足量的独立重复、稳定超过 transfer BO、真正未参与开发的新任务和 prospective wet-lab 验证。系统会更新运行状态、GP 和假设，但不会训练 LLM 权重，也没有把 trace 自动蒸馏为永久 skill。
+已经完成的是无泄漏 replay、同预算主对照、三个任务家族、逐轮真实 LLM 决策和完整 trace。冻结 11 路线中，在线 LLM 相对同开局 target GP 的平均 AUC 增益为 +1.753；把所有 17 条历史路线纳入后，均值降到 +0.762，区间跨 0。更严格的六条分离路线完全不参与控制器选择：完整 LLM 均值为 -1.056，第三轮阈值 5 Gate 为 -1.968，说明原 Gate 在开发路线上的改善不能直接外推。仅用另外 11 条训练路线比较 115 个控制器后，固定规则选出“LLM 在线决策一轮，随后交回 GP”；它在六条分离路线中的均值为 +0.612，2 胜、3 平、1 负，但区间仍跨 0。当前能说的是发现了一个更合理的 LLM 介入边界，不能说已经普遍跨领域提升。系统会更新运行状态、GP 和假设，但不会训练 LLM 权重，也没有把 trace 自动蒸馏为永久 skill。
 
 ## 第 14 页：下一轮实验
 
-运行时 Gate 已经接入在线控制器，未来确认协议也已冻结。协议覆盖 11 条 source-target 路线，每条 30 次，共 330 条新随机轨迹；每条轨迹使用相同初始观测、10 轮预算和 Opus 4.8 proposer + critic。Gate 固定在第三次 LLM 引导的 target reveal 后检查，所有路线共用 MAE 阈值 5；如果误差超阈值，或模型证伪并主动停止迁移，剩余轮次不再调用 LLM，而由 target-only GP-UCB 从已经积累的观测继续。协议禁止根据中间结果删路线、改阈值或提前停止。截至 2026-08-24，规则已经冻结，但这 330 条新轨迹尚未完成，因此当前只能报告协议和 retrospective replay，不能称为前瞻确认结果。后续还需要独立新任务家族、source/critic/gate 消融和至少一条 prospective wet-lab campaign。
+单轮 LLM 的运行时交接已经接入在线控制器，新的确认协议也已冻结。协议覆盖 6 条没有参与控制器选择的 source-target 路线，每条 30 次，共 180 条新随机轨迹；每条轨迹使用相同初始观测、10 轮预算和 Opus 4.8 proposer + critic。LLM 只控制第一次在线 reveal；从第二轮开始不再调用 LLM，而由 target-only GP-UCB 从初始观测和第一轮结果继续。协议禁止根据中间结果删路线、改控制器或提前停止，只有 180 条轨迹全部完成后才计算主要层级 bootstrap 结论。路线名称和每条路线的一条旧轨迹此前已知，因此完成后仍属于内部重复确认，不是外部新任务或 wet-lab 证明。后续还需要真正未参与开发的新任务家族、source/critic/handoff 消融和至少一条 prospective wet-lab campaign。
 
-## 第 15 页：为什么要加入校准 Gate
+## 第 15 页：从失败 Gate 到单轮 LLM
 
-原来的在线 LLM 在每一轮都拥有较高决策权，但它给出的 expected outcome 有时与真实揭示值相差很大。固定 Gate 在第三个 LLM 在线实验结束后检查前三轮明确预测的平均绝对误差。所有路线共用阈值 5；如果误差超过阈值，或者 LLM 自己宣布假设被证伪、不应继续迁移，系统不会清空已有实验，而是把前三轮结果和初始观测一起交给 target-only GP-UCB，继续完成剩余 7 轮。固定规则在 10/11 条 retrospective route replay 中触发，平均 AUC 增益由 +1.753 提高到 +2.135，负向路线由 3 条降到 2 条。相对原 LLM 的额外 +0.381 区间仍跨 0，相对每条路线事后最强 baseline 仍为 -0.168。因此这一页的贡献是“固定、可执行并能节省后续 LLM 调用的负迁移控制”，不是“Gate 已经解决负迁移”。真正的 prospective 结论必须等待冻结的 330 条新轨迹完成。
-在这 11 条保存轨迹的反事实回放里，Gate 共替换了 70 个后续 LLM 决策轮次；因为每轮包含 proposer 和 critic，这对应 140 次逻辑调用。这个数字用于说明潜在计算节省，不能说成已经实际省下 140 次付费请求。
+图中的六条路线完全不参与控制器选择。灰色圆点是完整 10 轮在线 LLM，均值相对 target GP 为 -1.056；橙色方块是开发路线中表现不错的第三轮阈值 5 Gate，但在这六条路线中降到 -1.968，说明预测误差阈值并不稳健。最大的失败是 phonons 到 perovskites：第三轮才交回 GP 时，前期 AUC 损失已经无法挽回。
+
+随后我们只用另外 11 条训练路线比较 115 个候选策略。选择规则先最小化负向路线，再最大化平均 AUC 和最差路线，完全相同时偏好参数更少的策略。最终选中的是单轮 LLM 控制器：LLM 做一次在线语义判断和候选选择，随后由 GP 完成剩余数值优化。绿色菱形是冻结后在六条分离路线上的回放结果，均值为 +0.612，2 胜、3 平、1 负；相对完整 LLM 改善 +1.668。它的 95% 区间仍跨 0，而且仍输给部分更强的事后 baseline，所以本页支持的是一个机制假设：LLM 更适合前期定方向，而不是长期接管优化。真正的统计结论必须等待 6×30 新轨迹完成。
 
 ## 数据来源
 
@@ -96,4 +97,9 @@ Replay harness 用完整历史数据模拟真实的逐轮实验。虽然磁盘�
 - `experiments/care_replay/configs/online_llm_gated_repeated_confirmation_v1.json`
 - `experiments/care_replay/results/2026-08-24-online-llm-fixed-threshold5-gate-replay-v1/aggregate.json`
 - `experiments/care_replay/results/2026-08-24-online-llm-fixed-threshold5-gate-replay-v1/route_results.csv`
+- `experiments/care_replay/results/2026-08-24-online-llm-route-disjoint-fixed-threshold5-gate-audit-v1/aggregate.json`
+- `experiments/care_replay/results/2026-08-24-online-llm-route-disjoint-bounded-authority-v1/aggregate.json`
+- `experiments/care_replay/results/2026-08-24-online-llm-route-split-gate-selection-v1/selected_policy.json`
+- `experiments/care_replay/results/2026-08-24-online-llm-route-split-gate-selection-v1/selected_policy_evaluation_routes.jsonl`
+- `experiments/care_replay/configs/online_llm_bounded_authority_route_disjoint_confirmation_v1.json`
 - `docs/GLM53_CROSS_MODEL_PROTOCOL.md`

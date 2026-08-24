@@ -247,21 +247,40 @@ delta versus target GP from `+1.7532` to `+2.1346` (route-bootstrap 95% interval
 `[+0.5146,+4.0010]`) and reduces the loss count from three to two. The increment
 versus the ungated LLM is not statistically confirmed, and the gated controller
 still trails the post-hoc strongest route-wise baseline. It is therefore a
-negative-transfer control pending completion of the frozen 330-trajectory run.
+negative-transfer control on the original 11-route panel, not a general solution.
 Across the saved trajectories, the fixed replay replaces 70 later LLM-guided
 rounds, or 140 nominal proposer/critic calls. This is an auditable
 counterfactual from the replay, not a claim about API cost already saved.
 
-Run or resume the frozen gated protocol:
+The fixed rule failed a stricter route-disjoint stress test. On six previously
+completed routes excluded from threshold selection, full online LLM averaged
+`-1.0558` AUC versus same-start target GP, while the round-three threshold-5
+Gate averaged `-1.9677`; both had two negative routes. The largest failure was
+`phonons -> perovskites`, showing that three LLM-guided reveals can already be
+too late for recovery.
+
+`build_online_llm_gate_selection_audit.py` therefore evaluates the controller
+family with a declared 11-route training panel and six-route disjoint evaluation
+panel. Among 115 candidates, its training-only lexicographic rule selects
+`bounded_authority_r1`: one online LLM proposer/critic decision followed by
+target-only GP-UCB from all accumulated observations. On the disjoint panel it
+averages `+0.6124` versus target GP (95% route-bootstrap interval
+`[-0.4422,+1.7934]`; 2/3/1 wins/ties/losses), compared with `-1.0558` for the
+full online LLM. This remains retrospective and uncertain; it motivates the
+frozen 180-trajectory confirmation rather than replacing it.
+
+The older threshold-5 protocol remains frozen as an audit artifact. The current
+primary confirmation protocol tests the route-split selected bounded-authority
+controller:
 
 ```bash
 python3 experiments/care_replay/scripts/run_repeated_online_llm_confirmation_v2.py \
-  --suite-config experiments/care_replay/configs/online_llm_gated_repeated_confirmation_v1.json \
-  --output-root experiments/care_replay/results/2026-08-24-online-llm-gated-repeated-confirmation-v1 \
+  --suite-config experiments/care_replay/configs/online_llm_bounded_authority_route_disjoint_confirmation_v1.json \
+  --output-root experiments/care_replay/results/2026-08-24-online-llm-bounded-authority-route-disjoint-confirmation-v1 \
   --continue-on-error
 ```
 
-No confirmatory decision is emitted until all 330 declared trajectories are complete.
+No confirmatory decision is emitted until all 180 declared trajectories are complete.
 
 Run the frozen seven-pair source-outcome suite through the canonical entry point:
 

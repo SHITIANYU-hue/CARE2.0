@@ -33,6 +33,30 @@ class OnlineLlmCalibrationGateAuditTests(unittest.TestCase):
         self.assertFalse(gate.gate_switches({"hard_abstention": False, "mean_absolute_prediction_error": 5.0}, 10.0))
         self.assertTrue(gate.gate_switches({"hard_abstention": True, "mean_absolute_prediction_error": 0.0}, 10.0))
 
+    def test_bounded_authority_policy_forces_switch(self):
+        features = {
+            "hard_abstention": False,
+            "mean_absolute_prediction_error": 0.0,
+        }
+        self.assertTrue(
+            gate.policy_switches(
+                features,
+                9999.0,
+                hard_abstention=False,
+                force_fallback=True,
+            )
+        )
+
+    def test_route_disjoint_audit_config_has_no_threshold_training_overlap(self):
+        config = gate.portfolio.load_portfolio_config(
+            ROOT / "configs" / "online_llm_gate_route_disjoint_panel_v1.json"
+        )
+        result = gate.validate_route_disjointness(config)
+        self.assertIsNotNone(result)
+        self.assertEqual(result["threshold_training_route_count"], 11)
+        self.assertEqual(result["evaluation_route_count"], 6)
+        self.assertEqual(result["overlap_count"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,108 @@
+{
+  "suite": "online_llm_bounded_authority_route_disjoint_confirmation_v1",
+  "protocol": {
+    "status": "frozen_before_execution",
+    "frozen_on": "2026-08-24",
+    "purpose": "Prospectively test a controller selected on 11 disjoint development routes: permit one online LLM-guided reveal, then continue with deterministic same-start target-only GP-UCB from all accumulated observations.",
+    "primary_estimand": "Equal-route-weighted mean of within-route mean best-so-far AUC deltas for the bounded-authority controller versus the matched same-initial target-only GP-UCB comparator.",
+    "primary_success_rule": "The two-sided hierarchical bootstrap 95% confidence interval for the primary estimand must lie entirely above zero after all 180 declared trajectories complete.",
+    "secondary_endpoints": [
+      "route-level mean final-best delta",
+      "route-level win, tie, and loss counts",
+      "negative-transfer route rate",
+      "one-round LLM participation, GP override, critic revision, source-active, and token-use rates",
+      "target-GP fallback rounds, LLM rounds saved, and nominal proposer/critic calls avoided"
+    ],
+    "multiplicity": "Route-level two-sided sign-test p-values are adjusted with Benjamini-Hochberg. These are secondary analyses.",
+    "replicate_start": 3000,
+    "replicates_per_route": 30,
+    "bootstrap_samples": 100000,
+    "bootstrap_seed": 20260824,
+    "partial_result_policy": "Partial execution is operational evidence only. Confirmatory inference is disabled until every declared route has every declared trajectory.",
+    "stopping_rule": "No optional stopping, route removal, or controller change based on interim outcomes. Infrastructure failures remain in the audit tree and may be retried only under the frozen retry policy.",
+    "route_selection_note": "The six routes are disjoint from the 11 routes used to choose the controller. They are not newly discovered task families: one earlier retrospective trajectory per route was inspected during development.",
+    "claim_boundary": "New stochastic trajectories are prospective with respect to the frozen controller, but the route identities and earlier outcomes were already known. This is an internal route-disjoint repeated confirmation, not external-task or wet-lab validation."
+  },
+  "runner": {
+    "model": "anthropic/claude-opus-4-8",
+    "base_url": "https://api.commonstack.ai/v1",
+    "api_key_env": "COMMONSTACK_API_KEY",
+    "api_mode": "chat",
+    "temperature": 0.2,
+    "max_tokens": 1400,
+    "repair_attempts": 1,
+    "rounds": 10,
+    "initial_design_mode": "auto",
+    "decision_policy": "high_authority",
+    "deliberation_mode": "proposal_critic",
+    "fail_on_llm_error": true
+  },
+  "retry_policy": {
+    "max_infrastructure_attempts": 3,
+    "retryable_failures": "HTTP 408/409/425/429/5xx, rate or cost caps, timeouts, DNS failures, and connection interruptions.",
+    "model_validation_failure": "terminal",
+    "scientific_outcome_failure": "not_retryable",
+    "claim_policy": "A confirmatory decision is disabled unless all 180 declared trajectories complete successfully. Every failed attempt remains in the audit tree."
+  },
+  "calibration_gate": {
+    "enabled": true,
+    "evaluation_after_reveals": 1,
+    "force_fallback_after_evaluation": true,
+    "hard_abstention": false,
+    "policy_provenance": "Selected using only the 11-route training panel in configs/online_llm_gate_selection_audit_v1.json; no evaluation-route metric enters selection.",
+    "fallback_policy": "After one online proposer/critic decision and reveal, make no later LLM request. Execute deterministic target-only GP-UCB rank one from every observation accumulated so far."
+  },
+  "menu": {
+    "gp_count": 5,
+    "source_count": 3,
+    "consensus_count": 3,
+    "diversity_count": 1,
+    "max_transfer_gp_rank": 5,
+    "safety_fallback_gp_count": 5,
+    "force_first_consensus": false
+  },
+  "cases": [
+    {
+      "case_id": "molecular_lipophilicity_to_freesolv",
+      "domain": "molecular_property",
+      "evidence_tier": "route_disjoint_repeated_confirmation",
+      "config": "configs/online_llm_generalization_v1.json",
+      "initial_record": "results/2026-08-15-opus5-generalization-study/v1/molecular_lipophilicity_to_freesolv/initial_record.json"
+    },
+    {
+      "case_id": "materials_bulk_to_shear_modulus",
+      "domain": "materials_property",
+      "evidence_tier": "route_disjoint_repeated_confirmation",
+      "config": "configs/online_llm_generalization_v2.json",
+      "initial_record": "results/2026-08-15-opus5-generalization-study/v2/materials_bulk_to_shear_modulus/initial_record.json"
+    },
+    {
+      "case_id": "materials_phonons_to_perovskites",
+      "domain": "materials_property",
+      "evidence_tier": "route_disjoint_repeated_confirmation",
+      "config": "configs/online_llm_generalization_v3.json",
+      "initial_record": "results/2026-08-15-opus5-generalization-study/v3/materials_phonons_to_perovskites/initial_record.json"
+    },
+    {
+      "case_id": "materials_expt_gap_to_steels",
+      "domain": "materials_property",
+      "evidence_tier": "route_disjoint_repeated_confirmation",
+      "config": "configs/online_llm_generalization_v4.json",
+      "initial_record": "results/2026-08-15-opus5-generalization-study/v4/materials_expt_gap_to_steels/initial_record.json"
+    },
+    {
+      "case_id": "molecular_freesolv_to_bace",
+      "domain": "molecular_property",
+      "evidence_tier": "route_disjoint_repeated_confirmation",
+      "config": "configs/online_llm_generalization_v4.json",
+      "initial_record": "results/2026-08-15-opus5-generalization-study/v4/molecular_freesolv_to_bace/initial_record.json"
+    },
+    {
+      "case_id": "materials_perovskites_to_mp_e_form",
+      "domain": "materials_property",
+      "evidence_tier": "route_disjoint_repeated_confirmation",
+      "config": "configs/online_llm_generalization_v5.json",
+      "initial_record": "results/2026-08-15-opus5-generalization-study/v5/materials_perovskites_to_mp_e_form/initial_record.json"
+    }
+  ]
+}
