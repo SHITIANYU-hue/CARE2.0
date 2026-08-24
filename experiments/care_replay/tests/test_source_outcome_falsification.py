@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -72,6 +73,56 @@ class SourceOutcomeFalsificationTests(unittest.TestCase):
             summary["true_outcomes_minus_mean_permutation"]["best_so_far_auc"]["mean"],
             2.0,
         )
+
+    def test_job_checkpoint_requires_matching_hash_and_conditions(self) -> None:
+        permutation_seeds = [101, 211]
+        rows = [
+            {
+                "pair_id": "pair",
+                "target_seed": 10,
+                "condition": condition,
+                "final_best": 1.0,
+                "best_so_far_auc": 1.0,
+                "top10_hit": 0.0,
+            }
+            for condition in (
+                falsification.BASELINE,
+                falsification.TRUE_OUTCOMES,
+                falsification.condition_name(101),
+                falsification.condition_name(211),
+            )
+        ]
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            checkpoint = Path(temporary_directory) / "job.json"
+            falsification.write_job_checkpoint(
+                checkpoint,
+                config_sha256="config-hash",
+                implementation_sha256="implementation-hash",
+                pair_id="pair",
+                target_seed=10,
+                rows=rows,
+                audits={},
+            )
+            loaded = falsification.load_job_checkpoint(
+                checkpoint,
+                config_sha256="config-hash",
+                implementation_sha256="implementation-hash",
+                pair_id="pair",
+                target_seed=10,
+                permutation_seeds=permutation_seeds,
+            )
+            self.assertIsNotNone(loaded)
+            self.assertEqual(loaded[0], rows)
+
+            checkpoint.write_text("{}\n", encoding="utf-8")
+            self.assertIsNone(falsification.load_job_checkpoint(
+                checkpoint,
+                config_sha256="config-hash",
+                implementation_sha256="implementation-hash",
+                pair_id="pair",
+                target_seed=10,
+                permutation_seeds=permutation_seeds,
+            ))
 
 
 if __name__ == "__main__":

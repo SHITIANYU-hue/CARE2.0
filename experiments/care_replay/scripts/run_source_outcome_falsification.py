@@ -16,6 +16,7 @@ import csv
 import hashlib
 import json
 import math
+import platform
 import random
 from dataclasses import replace
 from pathlib import Path
@@ -36,6 +37,10 @@ ROOT = Path(__file__).resolve().parents[1]
 METRICS = ("final_best", "best_so_far_auc", "top10_hit")
 BASELINE = "target_only_anchor"
 TRUE_OUTCOMES = "true_source_outcomes"
+CHECKPOINT_SCHEMA = "care.source_outcome_falsification_job/v1"
+
+
+_RUNTIME_CACHE: dict[str, tuple[Any, ...]] = {}
 
 
 def resolve_path(value: str) -> Path:
@@ -55,6 +60,56 @@ def write_sha256(path: Path) -> None:
         f"{file_sha256(path)}  {path.name}\n",
         encoding="utf-8",
     )
+
+
+def verify_sha256(path: Path) -> bool:
+    sidecar = path.with_name(f"{path.name}.sha256")
+    if not path.exists() or not sidecar.exists():
+        return False
+    fields = sidecar.read_text(encoding="utf-8").strip().split()
+    return bool(fields) and fields[0] == file_sha256(path)
+
+
+def write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
+    temporary = path.with_name(f".{path.name}.tmp")
+    temporary.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    temporary.replace(path)
+    write_sha256(path)
+
+
+def implementation_fingerprint() -> dict[str, Any]:
+    files = {
+        "runner": Path(__file__).resolve(),
+        "calibrated": Path(calibrated.__file__).resolve(),
+        "evolution": Path(evolution.__file__).resolve(),
+        "outcome_router": Path(outcome_router.__file__).resolve(),
+        "replay": Path(replay.__file__).resolve(),
+        "semantic": Path(semantic.__file__).resolve(),
+        "surrogate": Path(surrogate.__file__).resolve(),
+        "transfer": Path(transfer.__file__).resolve(),
+        "weighted": Path(weighted.__file__).resolve(),
+    }
+    file_hashes = {name: file_sha256(path) for name, path in files.items()}
+    runtime_versions = {
+        "python": platform.python_version(),
+        "numpy": (
+            None
+            if surrogate.np is None
+            else str(surrogate.np.__version__)
+        ),
+        "gp_backend": surrogate.gp_backend_name(),
+    }
+    combined = hashlib.sha256(
+        json.dumps(
+            {"files": file_hashes, "runtime_versions": runtime_versions},
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()
+    return {
+        "sha256": combined,
+        "files": file_hashes,
+        "runtime_versions": runtime_versions,
+    }
 
 
 def permuted_source_observations(
@@ -130,6 +185,58 @@ def runtime_components(
     return source, target, patches, target_skill, scales
 
 
+def cached_runtime_components(
+    pair: dict[str, Any],
+    protocol: dict[str, Any],
+) -> tuple[
+    replay.DatasetAdapter,
+    replay.DatasetAdapter,
+    tuple[evolution.KernelSkillPatch, ...],
+    semantic.SemanticSkill | None,
+    list[replay.Candidate],
+    dict[str, replay.Candidate],
+    dict[str, surrogate.FeatureRecord],
+    set[str],
+]:
+    """Cache immutable per-pair state inside each worker process."""
+
+    key = str(pair["pair_id"])
+    cached = _RUNTIME_CACHE.get(key)
+    if cached is not None:
+        return cached  # type: ignore[return-value]
+    source, target, patches, target_skill, _scales = runtime_components(pair, protocol)
+    source_observed = transfer.source_observations(
+        source,
+        int(protocol["source_seed"]),
+        int(pair["source_observations"]),
+    )
+    by_id = {candidate.candidate_id: candidate for candidate in target.candidates}
+    features_by_id = {
+        candidate.candidate_id: surrogate.candidate_features(target, candidate)
+        for candidate in target.candidates
+    }
+    top10_ids = {
+        candidate.candidate_id
+        for candidate in sorted(
+            target.candidates,
+            key=lambda item: item.objective_value,
+            reverse=True,
+        )[:10]
+    }
+    value = (
+        source,
+        target,
+        patches,
+        target_skill,
+        source_observed,
+        by_id,
+        features_by_id,
+        top10_ids,
+    )
+    _RUNTIME_CACHE[key] = value
+    return value
+
+
 def run_condition(
     *,
     condition: str,
@@ -142,6 +249,9 @@ def run_condition(
     target_skill: semantic.SemanticSkill | None,
     target_seed: int,
     source_initial_strategy: str,
+    by_id: dict[str, replay.Candidate],
+    features_by_id: dict[str, surrogate.FeatureRecord],
+    top10_ids: set[str],
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     task = replay.make_task(
         target,
@@ -213,19 +323,6 @@ def run_condition(
         source_initial_strategy,
     )
     observed_ids = {candidate.candidate_id for candidate in observed}
-    by_id = {candidate.candidate_id: candidate for candidate in target.candidates}
-    features_by_id = {
-        candidate.candidate_id: surrogate.candidate_features(target, candidate)
-        for candidate in target.candidates
-    }
-    top10_ids = {
-        candidate.candidate_id
-        for candidate in sorted(
-            target.candidates,
-            key=lambda item: item.objective_value,
-            reverse=True,
-        )[:10]
-    }
     selected_top10 = any(candidate.candidate_id in top10_ids for candidate in observed)
     best_trace: list[float] = []
     audit: list[dict[str, Any]] = []
@@ -290,12 +387,16 @@ def run_target_seed(
     retain_audit: bool,
 ) -> tuple[list[dict[str, Any]], dict[str, list[dict[str, Any]]]]:
     pair = normalized_pair(pair, protocol)
-    source, target, patches, target_skill, _scales = runtime_components(pair, protocol)
-    source_observed = transfer.source_observations(
+    (
         source,
-        int(protocol["source_seed"]),
-        int(pair["source_observations"]),
-    )
+        target,
+        patches,
+        target_skill,
+        source_observed,
+        by_id,
+        features_by_id,
+        top10_ids,
+    ) = cached_runtime_components(pair, protocol)
     rows: list[dict[str, Any]] = []
     audits: dict[str, list[dict[str, Any]]] = {}
     baseline, baseline_audit = run_condition(
@@ -309,6 +410,9 @@ def run_target_seed(
         target_skill=target_skill,
         target_seed=target_seed,
         source_initial_strategy="matched",
+        by_id=by_id,
+        features_by_id=features_by_id,
+        top10_ids=top10_ids,
     )
     rows.append(baseline)
     true_row, true_audit = run_condition(
@@ -322,6 +426,9 @@ def run_target_seed(
         target_skill=target_skill,
         target_seed=target_seed,
         source_initial_strategy=pair["source_initial_strategy"],
+        by_id=by_id,
+        features_by_id=features_by_id,
+        top10_ids=top10_ids,
     )
     rows.append(true_row)
     if retain_audit:
@@ -341,6 +448,9 @@ def run_target_seed(
             target_skill=target_skill,
             target_seed=target_seed,
             source_initial_strategy=pair["source_initial_strategy"],
+            by_id=by_id,
+            features_by_id=features_by_id,
+            top10_ids=top10_ids,
         )
         rows.append(row)
         if retain_audit:
@@ -482,6 +592,77 @@ def write_results(path: Path, report: dict[str, Any]) -> None:
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
+def job_checkpoint_path(job_dir: Path, pair_id: str, target_seed: int) -> Path:
+    safe_pair_id = "".join(
+        character if character.isalnum() or character in "-_" else "_"
+        for character in pair_id
+    )
+    return job_dir / f"{safe_pair_id}__seed_{target_seed}.json"
+
+
+def load_job_checkpoint(
+    path: Path,
+    *,
+    config_sha256: str,
+    implementation_sha256: str,
+    pair_id: str,
+    target_seed: int,
+    permutation_seeds: list[int],
+) -> tuple[list[dict[str, Any]], dict[str, list[dict[str, Any]]]] | None:
+    if not verify_sha256(path):
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    expected_conditions = {
+        BASELINE,
+        TRUE_OUTCOMES,
+        *(condition_name(seed) for seed in permutation_seeds),
+    }
+    rows = payload.get("rows")
+    if (
+        payload.get("schema_version") != CHECKPOINT_SCHEMA
+        or payload.get("config_sha256") != config_sha256
+        or payload.get("implementation_sha256") != implementation_sha256
+        or payload.get("pair_id") != pair_id
+        or int(payload.get("target_seed", -1)) != target_seed
+        or not isinstance(rows, list)
+        or {str(row.get("condition")) for row in rows} != expected_conditions
+        or any(
+            row.get("pair_id") != pair_id
+            or int(row.get("target_seed", -1)) != target_seed
+            for row in rows
+        )
+    ):
+        return None
+    audits = payload.get("audits", {})
+    if not isinstance(audits, dict):
+        return None
+    return rows, audits
+
+
+def write_job_checkpoint(
+    path: Path,
+    *,
+    config_sha256: str,
+    implementation_sha256: str,
+    pair_id: str,
+    target_seed: int,
+    rows: list[dict[str, Any]],
+    audits: dict[str, list[dict[str, Any]]],
+) -> None:
+    write_json_atomic(path, {
+        "schema_version": CHECKPOINT_SCHEMA,
+        "config_sha256": config_sha256,
+        "implementation_sha256": implementation_sha256,
+        "pair_id": pair_id,
+        "target_seed": target_seed,
+        "rows": rows,
+        "audits": audits,
+    })
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, required=True)
@@ -490,6 +671,11 @@ def main() -> None:
     parser.add_argument("--max-target-seeds", type=int)
     parser.add_argument("--max-permutations", type=int)
     parser.add_argument("--pair", action="append", default=[])
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Reuse checksum-verified per-seed checkpoints in the output directory.",
+    )
     args = parser.parse_args()
 
     config = json.loads(args.config.read_text(encoding="utf-8"))
@@ -507,6 +693,10 @@ def main() -> None:
         parser.error("At least one target seed and one permutation are required")
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
+    job_dir = args.output_dir / "jobs"
+    job_dir.mkdir(parents=True, exist_ok=True)
+    config_sha256 = file_sha256(args.config)
+    implementation = implementation_fingerprint()
     all_rows: list[dict[str, Any]] = []
     retained_audits: dict[str, Any] = {}
     pairs = [
@@ -528,16 +718,75 @@ def main() -> None:
         for pair in pairs
         for target_seed in target_seeds
     ]
-    if args.workers == 1:
-        outputs = [execute_job(job) for job in jobs]
-    else:
-        with concurrent.futures.ProcessPoolExecutor(max_workers=args.workers) as executor:
-            outputs = list(executor.map(execute_job, jobs))
-    for job, (rows, audits) in zip(jobs, outputs):
+    pending_jobs = []
+    resumed_jobs = 0
+
+    def collect_job(
+        job: tuple[dict[str, Any], dict[str, Any], int, list[int], bool],
+        output: tuple[list[dict[str, Any]], dict[str, list[dict[str, Any]]]],
+        *,
+        checkpoint: bool,
+    ) -> None:
         pair, _protocol, target_seed, _permutations, _retain_audit = job
+        rows, audits = output
+        if checkpoint:
+            write_job_checkpoint(
+                job_checkpoint_path(job_dir, pair["pair_id"], target_seed),
+                config_sha256=config_sha256,
+                implementation_sha256=implementation["sha256"],
+                pair_id=pair["pair_id"],
+                target_seed=target_seed,
+                rows=rows,
+                audits=audits,
+            )
         all_rows.extend(rows)
         if audits:
             retained_audits[f"{pair['pair_id']}::{target_seed}"] = audits
+
+    for job in jobs:
+        pair, _protocol, target_seed, _permutations, _retain_audit = job
+        checkpoint_path = job_checkpoint_path(job_dir, pair["pair_id"], target_seed)
+        checkpoint = None
+        if args.resume:
+            checkpoint = load_job_checkpoint(
+                checkpoint_path,
+                config_sha256=config_sha256,
+                implementation_sha256=implementation["sha256"],
+                pair_id=pair["pair_id"],
+                target_seed=target_seed,
+                permutation_seeds=permutation_seeds,
+            )
+        if checkpoint is None:
+            pending_jobs.append(job)
+        else:
+            collect_job(job, checkpoint, checkpoint=False)
+            resumed_jobs += 1
+
+    if not args.resume and any(job_dir.glob("*.json")):
+        parser.error(
+            f"Checkpoint files already exist in {job_dir}; use --resume or a new output directory"
+        )
+
+    completed_new_jobs = 0
+    if args.workers == 1:
+        for job in pending_jobs:
+            collect_job(job, execute_job(job), checkpoint=True)
+            completed_new_jobs += 1
+            print(
+                f"completed {resumed_jobs + completed_new_jobs}/{len(jobs)} jobs",
+                flush=True,
+            )
+    else:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=args.workers) as executor:
+            futures = {executor.submit(execute_job, job): job for job in pending_jobs}
+            for future in concurrent.futures.as_completed(futures):
+                job = futures[future]
+                collect_job(job, future.result(), checkpoint=True)
+                completed_new_jobs += 1
+                print(
+                    f"completed {resumed_jobs + completed_new_jobs}/{len(jobs)} jobs",
+                    flush=True,
+                )
 
     all_rows.sort(key=lambda row: (
         str(row["pair_id"]),
@@ -548,11 +797,19 @@ def main() -> None:
         "schema_version": "care.source_outcome_falsification/v1",
         "evidence_class": "retrospective_outcome_assignment_falsification",
         "config": args.config.name,
-        "config_sha256": file_sha256(args.config),
+        "config_sha256": config_sha256,
+        "implementation": implementation,
         "protocol": {
             **protocol,
             "executed_target_seed_count": len(target_seeds),
             "executed_permutation_count": len(permutation_seeds),
+        },
+        "execution": {
+            "job_count": len(jobs),
+            "resumed_job_count": resumed_jobs,
+            "new_job_count": completed_new_jobs,
+            "checkpoint_schema": CHECKPOINT_SCHEMA,
+            "gp_backend": surrogate.gp_backend_name(),
         },
         "intervention": (
             "Permute measured source outcomes across fixed source candidates while preserving "
@@ -572,11 +829,27 @@ def main() -> None:
     report_path = args.output_dir / "falsification_report.json"
     results_path = args.output_dir / "RESULTS.md"
     audit_path = args.output_dir / "canonical_audits.json"
+    manifest_path = args.output_dir / "job_manifest.json"
     write_csv(metrics_path, all_rows)
     report_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     write_results(results_path, report)
     audit_path.write_text(json.dumps(retained_audits, indent=2) + "\n", encoding="utf-8")
-    for path in (metrics_path, report_path, results_path, audit_path):
+    manifest = {
+        "schema_version": "care.source_outcome_falsification_manifest/v1",
+        "config_sha256": config_sha256,
+        "implementation": implementation,
+        "jobs": [
+            {
+                "pair_id": pair["pair_id"],
+                "target_seed": target_seed,
+                "path": str(job_checkpoint_path(job_dir, pair["pair_id"], target_seed).relative_to(args.output_dir)),
+                "sha256": file_sha256(job_checkpoint_path(job_dir, pair["pair_id"], target_seed)),
+            }
+            for pair, _protocol, target_seed, _permutations, _retain_audit in jobs
+        ],
+    }
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    for path in (metrics_path, report_path, results_path, audit_path, manifest_path):
         write_sha256(path)
     print(json.dumps(report, indent=2))
 

@@ -310,8 +310,132 @@ def aligned_source_prior(
     nearest_distance_values: list[float] = []
     exact_match_count = 0
     exact_match_candidate_ids: list[str] = []
+    target_candidates = list(target_adapter.candidates)
+    if surrogate.np is None:
+        neighbor_priors: list[float] = []
+        nearest_distances: list[float] = []
+        for target_candidate in target_candidates:
+            if not active_roles:
+                total_role_weight = 0.0
+            neighbors: list[tuple[float, float]] = []
+            for source_candidate in neighbor_source_observed:
+                mismatch = 0.0
+                for role in active_roles:
+                    source_value = mapped_value(
+                        role.source_field,
+                        str(source_candidate.metadata.get(role.source_field, "")),
+                        patch.canonicalize_source_values,
+                    )
+                    target_value = mapped_value(
+                        role.target_field,
+                        str(target_candidate.metadata.get(role.target_field, "")),
+                        patch.canonicalize_source_values,
+                    )
+                    if not source_value or not target_value:
+                        mismatch += 0.5 * role_weights[role.target_field]
+                    elif source_value != target_value:
+                        mismatch += role_weights[role.target_field]
+                categorical_distance = (
+                    mismatch / max(total_role_weight, 1e-9)
+                    if active_roles
+                    else 0.0
+                )
+                numeric_distance = math.sqrt(
+                    (
+                        (source_candidate.x1 - target_candidate.x1) ** 2
+                        + (source_candidate.x2 - target_candidate.x2) ** 2
+                        + (source_candidate.x3 - target_candidate.x3) ** 2
+                    )
+                    / 3.0
+                )
+                distance = (
+                    0.45 * categorical_distance + 0.55 * numeric_distance
+                    if use_numeric_descriptors
+                    else categorical_distance
+                )
+                neighbors.append((distance, source_z[source_candidate.candidate_id]))
+            neighbors.sort(key=lambda item: item[0])
+            nearest = neighbors[:neighbor_count]
+            similarity_weights = [
+                math.exp(-distance / patch.source_similarity_temperature)
+                for distance, _value in nearest
+            ]
+            weight_sum = sum(similarity_weights)
+            neighbor_priors.append(sum(
+                weight * value
+                for weight, (_distance, value) in zip(similarity_weights, nearest)
+            ) / max(weight_sum, 1e-12))
+            nearest_distances.append(nearest[0][0])
+        neighbor_backend = "python_reference"
+    else:
+        np = surrogate.np
+        source_count = len(neighbor_source_observed)
+        categorical_distances = np.zeros((len(target_candidates), source_count), dtype=float)
+        if active_roles:
+            mismatches = np.zeros_like(categorical_distances)
+            for role in active_roles:
+                source_role_values = np.asarray([
+                    mapped_value(
+                        role.source_field,
+                        str(candidate.metadata.get(role.source_field, "")),
+                        patch.canonicalize_source_values,
+                    )
+                    for candidate in neighbor_source_observed
+                ], dtype=str)
+                target_role_values = np.asarray([
+                    mapped_value(
+                        role.target_field,
+                        str(candidate.metadata.get(role.target_field, "")),
+                        patch.canonicalize_source_values,
+                    )
+                    for candidate in target_candidates
+                ], dtype=str)
+                missing = (
+                    (target_role_values[:, None] == "")
+                    | (source_role_values[None, :] == "")
+                )
+                unequal = target_role_values[:, None] != source_role_values[None, :]
+                role_mismatch = np.where(missing, 0.5, unequal.astype(float))
+                mismatches += role_weights[role.target_field] * role_mismatch
+            categorical_distances = mismatches / max(total_role_weight, 1e-9)
+        if use_numeric_descriptors:
+            source_numeric = np.asarray([
+                (candidate.x1, candidate.x2, candidate.x3)
+                for candidate in neighbor_source_observed
+            ], dtype=float)
+            target_numeric = np.asarray([
+                (candidate.x1, candidate.x2, candidate.x3)
+                for candidate in target_candidates
+            ], dtype=float)
+            numeric_distances = np.sqrt(np.mean(
+                (target_numeric[:, None, :] - source_numeric[None, :, :]) ** 2,
+                axis=2,
+            ))
+            distances = 0.45 * categorical_distances + 0.55 * numeric_distances
+        else:
+            distances = categorical_distances
+        nearest_indices = np.argsort(distances, axis=1, kind="stable")[:, :neighbor_count]
+        nearest_distance_matrix = np.take_along_axis(
+            distances,
+            nearest_indices,
+            axis=1,
+        )
+        similarity_weights = np.exp(
+            -nearest_distance_matrix / patch.source_similarity_temperature
+        )
+        source_z_values = np.asarray([
+            source_z[candidate.candidate_id]
+            for candidate in neighbor_source_observed
+        ], dtype=float)
+        nearest_source_z = source_z_values[nearest_indices]
+        neighbor_priors = (
+            np.sum(similarity_weights * nearest_source_z, axis=1)
+            / np.maximum(np.sum(similarity_weights, axis=1), 1e-12)
+        ).tolist()
+        nearest_distances = nearest_distance_matrix[:, 0].tolist()
+        neighbor_backend = "numpy_vectorized"
 
-    for target_candidate in target_adapter.candidates:
+    for target_index, target_candidate in enumerate(target_candidates):
         identity_predictions = [
             mean(exact_values[(target_field, target_value)])
             for _source_field, target_field in identity_fields
@@ -323,56 +447,8 @@ def aligned_source_prior(
             exact_match_count += 1
             exact_match_candidate_ids.append(target_candidate.candidate_id)
             continue
-        if not active_roles:
-            total_role_weight = 0.0
-        neighbors: list[tuple[float, float]] = []
-        for source_candidate in neighbor_source_observed:
-            mismatch = 0.0
-            for role in active_roles:
-                source_value = mapped_value(
-                    role.source_field,
-                    str(source_candidate.metadata.get(role.source_field, "")),
-                    patch.canonicalize_source_values,
-                )
-                target_value = mapped_value(
-                    role.target_field,
-                    str(target_candidate.metadata.get(role.target_field, "")),
-                    patch.canonicalize_source_values,
-                )
-                if not source_value or not target_value:
-                    mismatch += 0.5 * role_weights[role.target_field]
-                elif source_value != target_value:
-                    mismatch += role_weights[role.target_field]
-            categorical_distance = (
-                mismatch / max(total_role_weight, 1e-9)
-                if active_roles
-                else 0.0
-            )
-            numeric_distance = math.sqrt(
-                (
-                    (source_candidate.x1 - target_candidate.x1) ** 2
-                    + (source_candidate.x2 - target_candidate.x2) ** 2
-                    + (source_candidate.x3 - target_candidate.x3) ** 2
-                )
-                / 3.0
-            )
-            if use_numeric_descriptors:
-                distance = 0.45 * categorical_distance + 0.55 * numeric_distance
-            else:
-                distance = categorical_distance
-            neighbors.append((distance, source_z[source_candidate.candidate_id]))
-        neighbors.sort(key=lambda item: item[0])
-        nearest = neighbors[:neighbor_count]
-        similarity_weights = [
-            math.exp(-distance / patch.source_similarity_temperature)
-            for distance, _value in nearest
-        ]
-        weight_sum = sum(similarity_weights)
-        prior_by_id[target_candidate.candidate_id] = sum(
-            weight * value
-            for weight, (_distance, value) in zip(similarity_weights, nearest)
-        ) / max(weight_sum, 1e-12)
-        nearest_distance_values.append(nearest[0][0])
+        prior_by_id[target_candidate.candidate_id] = float(neighbor_priors[target_index])
+        nearest_distance_values.append(float(nearest_distances[target_index]))
 
     result = prior_by_id, {
         "active": True,
@@ -396,6 +472,7 @@ def aligned_source_prior(
             if use_numeric_descriptors
             else 0.0
         ),
+        "neighbor_backend": neighbor_backend,
         "nearest_distance_mean": (
             round(mean(nearest_distance_values), 6)
             if nearest_distance_values
@@ -452,14 +529,20 @@ def source_interaction_prior(
         (candidate.objective_value / 100.0 - source_mean) / source_scale
         for candidate in source_observed
     ]
-    marginal: dict[tuple[str, str], list[float]] = {}
-    for candidate, outcome in zip(source_observed, source_z):
-        for role in active_roles:
-            value = mapped_value(
+    source_values_by_field = {
+        role.source_field: [
+            mapped_value(
                 role.source_field,
                 str(candidate.metadata.get(role.source_field, "")),
                 patch.canonicalize_source_values,
             )
+            for candidate in source_observed
+        ]
+        for role in active_roles
+    }
+    marginal: dict[tuple[str, str], list[float]] = {}
+    for role in active_roles:
+        for value, outcome in zip(source_values_by_field[role.source_field], source_z):
             if value:
                 marginal.setdefault((role.source_field, value), []).append(outcome)
 
@@ -467,17 +550,11 @@ def source_interaction_prior(
     min_support = patch.source_interaction_min_support
     for left, right in combinations(active_roles, 2):
         buckets: dict[tuple[str, str], list[float]] = {}
-        for candidate, outcome in zip(source_observed, source_z):
-            left_value = mapped_value(
-                left.source_field,
-                str(candidate.metadata.get(left.source_field, "")),
-                patch.canonicalize_source_values,
-            )
-            right_value = mapped_value(
-                right.source_field,
-                str(candidate.metadata.get(right.source_field, "")),
-                patch.canonicalize_source_values,
-            )
+        for left_value, right_value, outcome in zip(
+            source_values_by_field[left.source_field],
+            source_values_by_field[right.source_field],
+            source_z,
+        ):
             if left_value and right_value:
                 buckets.setdefault((left_value, right_value), []).append(outcome)
         role_weight = math.sqrt(
@@ -504,27 +581,47 @@ def source_interaction_prior(
                 right_value,
             )] = (len(outcomes), residual, role_weight)
 
+    residuals_by_fields: dict[
+        tuple[str, str],
+        dict[tuple[str, str], tuple[int, float, float]],
+    ] = {}
+    for (
+        left_field,
+        left_value,
+        right_field,
+        right_value,
+    ), payload in residuals.items():
+        residuals_by_fields.setdefault((left_field, right_field), {})[
+            (left_value, right_value)
+        ] = payload
+    target_fields = {
+        field
+        for field_pair in residuals_by_fields
+        for field in field_pair
+    }
+    target_values_by_field = {
+        field: {
+            candidate.candidate_id: mapped_value(
+                field,
+                str(candidate.metadata.get(field, "")),
+                patch.canonicalize_source_values,
+            )
+            for candidate in target_adapter.candidates
+        }
+        for field in target_fields
+    }
+
     prior_by_id: dict[str, float] = {}
     matched_candidates = 0
     for candidate in target_adapter.candidates:
         signals: list[float] = []
-        for (
-            left_field,
-            left_value,
-            right_field,
-            right_value,
-        ), (_support, residual, role_weight) in residuals.items():
-            target_left = mapped_value(
-                left_field,
-                str(candidate.metadata.get(left_field, "")),
-                patch.canonicalize_source_values,
-            )
-            target_right = mapped_value(
-                right_field,
-                str(candidate.metadata.get(right_field, "")),
-                patch.canonicalize_source_values,
-            )
-            if target_left == left_value and target_right == right_value:
+        for (left_field, right_field), lookup in residuals_by_fields.items():
+            payload = lookup.get((
+                target_values_by_field[left_field][candidate.candidate_id],
+                target_values_by_field[right_field][candidate.candidate_id],
+            ))
+            if payload is not None:
+                _support, residual, role_weight = payload
                 signals.append(role_weight * residual)
         prior_by_id[candidate.candidate_id] = mean(signals) if signals else 0.0
         matched_candidates += int(bool(signals))
@@ -934,30 +1031,19 @@ def target_anchor_scores(
     categorical_length_scale: float,
     gp_noise: float,
 ) -> tuple[dict[str, dict[str, float]], dict[str, Any]]:
-    gp_ucb, ucb_diagnostics = surrogate.gp_scores(
+    gp_anchors, gp_diagnostics = surrogate.gp_anchor_scores(
         adapter,
         observed_ids,
         observed,
         features_by_id,
-        "mixed_kernel_gp_ucb",
         gp_beta,
         gp_xi,
         numeric_length_scale,
         categorical_length_scale,
         gp_noise,
     )
-    gp_ei, ei_diagnostics = surrogate.gp_scores(
-        adapter,
-        observed_ids,
-        observed,
-        features_by_id,
-        "mixed_kernel_gp_ei",
-        gp_beta,
-        gp_xi,
-        numeric_length_scale,
-        categorical_length_scale,
-        gp_noise,
-    )
+    gp_ucb = gp_anchors["mixed_kernel_gp_ucb"]
+    gp_ei = gp_anchors["mixed_kernel_gp_ei"]
     ucb_rank = weighted.rank_normalized(gp_ucb)
     ei_rank = weighted.rank_normalized(gp_ei)
     portfolio = {
@@ -968,7 +1054,7 @@ def target_anchor_scores(
         "gp_ucb": gp_ucb,
         "gp_ei": gp_ei,
         "target_acquisition_portfolio": portfolio,
-    }, {"gp_ucb": ucb_diagnostics, "gp_ei": ei_diagnostics}
+    }, {"gp_ucb": dict(gp_diagnostics), "gp_ei": dict(gp_diagnostics)}
 
 
 def run_target_portfolio(

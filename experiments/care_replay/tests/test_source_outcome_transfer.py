@@ -184,6 +184,25 @@ class SourceOutcomeTransferTests(unittest.TestCase):
         self.assertTrue(diagnostics["numeric_descriptor_active"])
         self.assertGreater(len({round(value, 6) for value in prior.values()}), 1)
 
+        numpy_backend = surrogate.np
+        if numpy_backend is not None:
+            try:
+                surrogate.np = None
+                router._SOURCE_PRIOR_CACHE.clear()
+                reference_prior, reference_diagnostics = router.aligned_source_prior(
+                    observed,
+                    target,
+                    card,
+                    patch,
+                )
+            finally:
+                surrogate.np = numpy_backend
+                router._SOURCE_PRIOR_CACHE.clear()
+            self.assertEqual(reference_diagnostics["neighbor_backend"], "python_reference")
+            self.assertEqual(prior.keys(), reference_prior.keys())
+            for candidate_id in prior:
+                self.assertAlmostEqual(prior[candidate_id], reference_prior[candidate_id])
+
     def test_cross_family_prior_does_not_reuse_numeric_coordinates(self) -> None:
         self.assertIsNone(
             router.shared_numeric_descriptor_family(

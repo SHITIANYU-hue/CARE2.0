@@ -13,6 +13,11 @@ from typing import Any, Tuple
 
 import run_synthetic_suzuki as replay
 
+try:
+    import numpy as np
+except ImportError:  # pragma: no cover - exercised only in minimal environments
+    np = None
+
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_RUNS = ROOT / "outputs" / "runs"
@@ -28,6 +33,7 @@ DEFAULT_MODES: tuple[BaselineMode, ...] = (
 )
 
 FeatureRecord = Tuple[Tuple[float, ...], Tuple[str, ...]]
+_FEATURE_ARRAY_CACHE: dict[int, tuple[Any, ...]] = {}
 
 
 def parse_modes(raw: str) -> tuple[BaselineMode, ...]:
@@ -110,18 +116,17 @@ def normal_cdf(z: float) -> float:
     return 0.5 * (1.0 + math.erf(z / math.sqrt(2.0)))
 
 
-def gp_scores(
+def _gp_anchor_scores_python(
     adapter: replay.DatasetAdapter,
     observed_ids: set[str],
     observed: list[replay.Candidate],
     features_by_id: dict[str, FeatureRecord],
-    mode: BaselineMode,
     beta: float,
     xi: float,
     numeric_length_scale: float,
     categorical_length_scale: float,
     noise: float,
-) -> tuple[dict[str, float], dict[str, Any]]:
+) -> tuple[dict[str, dict[str, float]], dict[str, Any]]:
     observed_features = [features_by_id[candidate.candidate_id] for candidate in observed]
     y_values = [candidate.objective_value / 100.0 for candidate in observed]
     y_mean = mean(y_values)
@@ -140,7 +145,8 @@ def gp_scores(
     alpha = solve_cholesky(lower, y_norm)
     best_seen = max(y_values)
 
-    scores: dict[str, float] = {}
+    ucb_scores: dict[str, float] = {}
+    ei_scores: dict[str, float] = {}
     diagnostics = {
         "posterior_mean_min": 1.0,
         "posterior_mean_max": 0.0,
@@ -158,26 +164,238 @@ def gp_scores(
         variance = max(1e-9, 1.0 - sum(k * v for k, v in zip(k_vec, solved)))
         posterior_mean = y_mean + y_scale * mean_norm
         posterior_std = y_scale * math.sqrt(variance)
-        if mode == "mixed_kernel_gp_ucb":
-            score = posterior_mean + beta * posterior_std
-        elif mode == "mixed_kernel_gp_ei":
-            if posterior_std <= 1e-9:
-                score = max(0.0, posterior_mean - best_seen - xi)
-            else:
-                improvement = posterior_mean - best_seen - xi
-                z = improvement / posterior_std
-                score = improvement * normal_cdf(z) + posterior_std * normal_pdf(z)
+        ucb_scores[candidate.candidate_id] = posterior_mean + beta * posterior_std
+        if posterior_std <= 1e-9:
+            ei_score = max(0.0, posterior_mean - best_seen - xi)
         else:
-            raise ValueError(f"Unsupported GP mode: {mode}")
-        scores[candidate.candidate_id] = score
+            improvement = posterior_mean - best_seen - xi
+            z = improvement / posterior_std
+            ei_score = improvement * normal_cdf(z) + posterior_std * normal_pdf(z)
+        ei_scores[candidate.candidate_id] = ei_score
         diagnostics["posterior_mean_min"] = min(diagnostics["posterior_mean_min"], round(posterior_mean, 6))
         diagnostics["posterior_mean_max"] = max(diagnostics["posterior_mean_max"], round(posterior_mean, 6))
         std_values.append(posterior_std)
-    diagnostics["candidate_count"] = len(scores)
+    diagnostics["candidate_count"] = len(ucb_scores)
     diagnostics["posterior_std_mean"] = round(mean(std_values), 6) if std_values else 0.0
     diagnostics["y_mean"] = round(y_mean, 6)
     diagnostics["y_scale"] = round(y_scale, 6)
-    return scores, diagnostics
+    return {
+        "mixed_kernel_gp_ucb": ucb_scores,
+        "mixed_kernel_gp_ei": ei_scores,
+    }, diagnostics
+
+
+def _cached_feature_arrays(
+    adapter: replay.DatasetAdapter,
+    features_by_id: dict[str, FeatureRecord],
+) -> tuple[tuple[str, ...], dict[str, int], Any, Any]:
+    key = id(features_by_id)
+    cached = _FEATURE_ARRAY_CACHE.get(key)
+    if cached is not None and cached[0] is features_by_id:
+        return cached[1], cached[2], cached[3], cached[4]
+    candidate_ids = tuple(candidate.candidate_id for candidate in adapter.candidates)
+    id_to_index = {candidate_id: index for index, candidate_id in enumerate(candidate_ids)}
+    numeric = np.asarray(
+        [features_by_id[candidate_id][0] for candidate_id in candidate_ids],
+        dtype=float,
+    )
+    categorical = np.asarray(
+        [features_by_id[candidate_id][1] for candidate_id in candidate_ids],
+        dtype=str,
+    )
+    _FEATURE_ARRAY_CACHE[key] = (
+        features_by_id,
+        candidate_ids,
+        id_to_index,
+        numeric,
+        categorical,
+    )
+    return candidate_ids, id_to_index, numeric, categorical
+
+
+def _gp_anchor_scores_vectorized(
+    adapter: replay.DatasetAdapter,
+    observed_ids: set[str],
+    observed: list[replay.Candidate],
+    features_by_id: dict[str, FeatureRecord],
+    beta: float,
+    xi: float,
+    numeric_length_scale: float,
+    categorical_length_scale: float,
+    noise: float,
+) -> tuple[dict[str, dict[str, float]], dict[str, Any]]:
+    candidate_ids, id_to_index, numeric, categorical = _cached_feature_arrays(
+        adapter,
+        features_by_id,
+    )
+    observed_indices = np.asarray(
+        [id_to_index[candidate.candidate_id] for candidate in observed],
+        dtype=int,
+    )
+    observed_numeric = numeric[observed_indices]
+    observed_categorical = categorical[observed_indices]
+    y_values = [candidate.objective_value / 100.0 for candidate in observed]
+    y_mean = mean(y_values)
+    y_scale = max(pstdev(y_values), 0.05)
+    y_norm = [(value - y_mean) / y_scale for value in y_values]
+    size = len(observed)
+    kernel_matrix = [[0.0] * size for _ in range(size)]
+    observed_features = [features_by_id[candidate.candidate_id] for candidate in observed]
+    for i in range(size):
+        for j in range(i + 1):
+            value = mixed_kernel(
+                observed_features[i],
+                observed_features[j],
+                numeric_length_scale,
+                categorical_length_scale,
+            )
+            kernel_matrix[i][j] = value
+            kernel_matrix[j][i] = value
+    for i in range(size):
+        kernel_matrix[i][i] += noise
+    lower = cholesky_spd(kernel_matrix)
+    alpha = solve_cholesky(lower, y_norm)
+    best_seen = max(y_values)
+
+    mask = np.asarray(
+        [candidate_id not in observed_ids for candidate_id in candidate_ids],
+        dtype=bool,
+    )
+    remaining_ids = [
+        candidate_id for candidate_id, keep in zip(candidate_ids, mask) if keep
+    ]
+    remaining_numeric = numeric[mask]
+    remaining_categorical = categorical[mask]
+    numeric_sq = np.sum(
+        (remaining_numeric[:, None, :] - observed_numeric[None, :, :]) ** 2,
+        axis=2,
+    )
+    categorical_mismatch = np.sum(
+        remaining_categorical[:, None, :] != observed_categorical[None, :, :],
+        axis=2,
+    )
+    kernel_vectors = np.exp(
+        -(numeric_sq / (2.0 * numeric_length_scale * numeric_length_scale))
+        - (categorical_mismatch / categorical_length_scale)
+    )
+    lower_array = np.asarray(lower, dtype=float)
+    forward = np.linalg.solve(lower_array, kernel_vectors.T)
+    solved = np.linalg.solve(lower_array.T, forward).T
+    mean_norm = kernel_vectors @ np.asarray(alpha, dtype=float)
+    variance = np.maximum(
+        1e-9,
+        1.0 - np.sum(kernel_vectors * solved, axis=1),
+    )
+    posterior_mean = y_mean + y_scale * mean_norm
+    posterior_std = y_scale * np.sqrt(variance)
+
+    ucb_scores = {
+        candidate_id: float(mean_value + beta * std_value)
+        for candidate_id, mean_value, std_value in zip(
+            remaining_ids,
+            posterior_mean,
+            posterior_std,
+        )
+    }
+    ei_scores: dict[str, float] = {}
+    for candidate_id, mean_value, std_value in zip(
+        remaining_ids,
+        posterior_mean,
+        posterior_std,
+    ):
+        if std_value <= 1e-9:
+            score = max(0.0, float(mean_value) - best_seen - xi)
+        else:
+            improvement = float(mean_value) - best_seen - xi
+            z = improvement / float(std_value)
+            score = improvement * normal_cdf(z) + float(std_value) * normal_pdf(z)
+        ei_scores[candidate_id] = score
+
+    posterior_mean_values = [float(value) for value in posterior_mean]
+    posterior_std_values = [float(value) for value in posterior_std]
+    diagnostics = {
+        "posterior_mean_min": round(min(posterior_mean_values), 6),
+        "posterior_mean_max": round(max(posterior_mean_values), 6),
+        "posterior_std_mean": round(mean(posterior_std_values), 6),
+        "candidate_count": len(remaining_ids),
+        "y_mean": round(y_mean, 6),
+        "y_scale": round(y_scale, 6),
+        "gp_backend": "numpy_vectorized",
+    }
+    return {
+        "mixed_kernel_gp_ucb": ucb_scores,
+        "mixed_kernel_gp_ei": ei_scores,
+    }, diagnostics
+
+
+def gp_backend_name() -> str:
+    return "numpy_vectorized" if np is not None else "python_reference"
+
+
+def gp_anchor_scores(
+    adapter: replay.DatasetAdapter,
+    observed_ids: set[str],
+    observed: list[replay.Candidate],
+    features_by_id: dict[str, FeatureRecord],
+    beta: float,
+    xi: float,
+    numeric_length_scale: float,
+    categorical_length_scale: float,
+    noise: float,
+) -> tuple[dict[str, dict[str, float]], dict[str, Any]]:
+    if np is None:
+        anchors, diagnostics = _gp_anchor_scores_python(
+            adapter,
+            observed_ids,
+            observed,
+            features_by_id,
+            beta,
+            xi,
+            numeric_length_scale,
+            categorical_length_scale,
+            noise,
+        )
+        diagnostics["gp_backend"] = "python_reference"
+        return anchors, diagnostics
+    return _gp_anchor_scores_vectorized(
+        adapter,
+        observed_ids,
+        observed,
+        features_by_id,
+        beta,
+        xi,
+        numeric_length_scale,
+        categorical_length_scale,
+        noise,
+    )
+
+
+def gp_scores(
+    adapter: replay.DatasetAdapter,
+    observed_ids: set[str],
+    observed: list[replay.Candidate],
+    features_by_id: dict[str, FeatureRecord],
+    mode: BaselineMode,
+    beta: float,
+    xi: float,
+    numeric_length_scale: float,
+    categorical_length_scale: float,
+    noise: float,
+) -> tuple[dict[str, float], dict[str, Any]]:
+    if mode not in {"mixed_kernel_gp_ucb", "mixed_kernel_gp_ei"}:
+        raise ValueError(f"Unsupported GP mode: {mode}")
+    anchors, diagnostics = gp_anchor_scores(
+        adapter,
+        observed_ids,
+        observed,
+        features_by_id,
+        beta,
+        xi,
+        numeric_length_scale,
+        categorical_length_scale,
+        noise,
+    )
+    return anchors[mode], diagnostics
 
 
 def knn_scores(
