@@ -122,22 +122,33 @@ are kept under `experiments/care_replay/`.
 
 ### Latest online-LLM evidence
 
-The 2026-08-16 suite isolates the online controller by comparing it with the
-same LLM-generated initial observations followed by target-only GP-UCB under
-the same reveal budget. Opus has an executable choice on every online round.
-Across 11 real source-target routes, the controller records six wins, two ties,
-and three losses with mean best-so-far AUC delta `+1.0135`. The route-level
-bootstrap 95% interval is `[-0.4433, +2.7821]`, and the exact two-sided sign-test
-`p` value excluding ties is `0.5078`.
+The 2026-08-24 same-start audit replays the completed online LLM trajectories
+against target-only GP-UCB and classical transfer BO from the exact same three
+initial target observations, candidate pool, and ten-reveal budget. In the
+frozen 11-route panel, the online LLM gains `+1.7532` best-so-far AUC over
+target-only GP-UCB (route-bootstrap 95% interval `[+0.4147, +3.3149]`; six
+wins, two ties, three losses). The exact route sign test remains non-significant
+(`p=0.5078`), and each route still has only one completed online trajectory.
 
-Five chemistry routes were added after the high-authority controller was
-frozen. This extension records three wins, one tie, and one loss, but the mean
-delta is only `+0.0212`, with bootstrap 95% interval
-`[-0.5171, +0.4194]` and sign-test `p=0.6250`. The correct current conclusion is
-therefore route-specific, majority-positive transfer evidence, not a universal
-or statistically confirmatory cross-domain claim. The complete audit, vector
-figures, SHA-256 files, and next-evidence requirements are in
-`experiments/care_replay/results/2026-08-22-submission-evidence-audit/`.
+To expose route-selection effects, the audit also includes all 17 distinct
+online LLM routes already present in the repository, including six earlier
+null or negative cases. The complete retrospective mean is `+0.7618` versus
+target GP (95% interval `[-0.5008, +2.0907]`; eight wins, four ties, five
+losses). Against the strongest realized baseline selected post hoc within each
+of the frozen 11 routes, the online LLM averages `-0.5496` and records only
+three wins, one tie, and seven losses. The defensible claim is therefore a
+route-specific positive signal, not universal superiority over transfer BO.
+
+A leave-one-route-out prediction-error gate checks LLM calibration after three
+online reveals and hands control to target-only GP when the hypothesis is
+poorly calibrated or explicitly abandoned. In the 11-route retrospective
+audit, the gate raises the mean delta from `+1.7532` to `+2.0357` and reduces
+losses from three routes to two. Its incremental gain over the ungated LLM is
+uncertain, so this is evidence for risk control rather than a confirmatory
+performance claim. Code, traces, source-data plots, and hashes are under
+`experiments/care_replay/results/2026-08-24-online-llm-predeclared-baseline-portfolio-v1/`,
+`experiments/care_replay/results/2026-08-24-online-llm-predeclared-baseline-portfolio-v2/`,
+and `experiments/care_replay/results/2026-08-24-online-llm-calibration-gate-audit-v1/`.
 
 This online result is separate from the July frozen-selector studies below.
 Those studies use many paired seeds to test deterministic compiled transfer

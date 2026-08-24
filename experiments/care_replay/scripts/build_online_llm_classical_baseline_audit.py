@@ -162,6 +162,11 @@ def plot_comparisons(
     ]
     for output in outputs:
         fig.savefig(output, dpi=220, bbox_inches="tight")
+        if output.suffix == ".svg":
+            output.write_text(
+                "\n".join(line.rstrip() for line in output.read_text(encoding="utf-8").splitlines()) + "\n",
+                encoding="utf-8",
+            )
         output.with_suffix(output.suffix + ".sha256").write_text(
             f"{sha256(output)}  {output.name}\n",
             encoding="utf-8",
@@ -397,7 +402,7 @@ def main() -> None:
     csv_path = args.output_root / "comparisons.csv"
     csv_path.parent.mkdir(parents=True, exist_ok=True)
     with csv_path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]), lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
     csv_path.with_suffix(csv_path.suffix + ".sha256").write_text(

@@ -1,5 +1,34 @@
 # Overview
 
+## 2026-08-24：完整路线盘点、强 baseline 与预测误差 Gate
+
+这轮重点不是继续挑表现好的案例，而是把已经跑过的在线 LLM 路线全部摊开比较。
+所有方法从完全相同的三个 target 初始观测出发，使用相同候选池和 10 轮揭示预算。
+冻结的 11 路线组合中，在线 LLM 相对 target-only GP-UCB 平均 AUC 增益为
+`+1.7532`，结果为 6 胜、2 平、3 负；route bootstrap 区间为
+`[+0.4147,+3.3149]`，但符号检验不显著。把仓库中更早的 6 条负向或持平路线也
+纳入后，完整 17 路线均值降为 `+0.7618`，区间 `[-0.5008,+2.0907]`。因此目前
+能成立的是“部分路线存在正向信号”，而不是“跨领域普遍提升”。
+
+经典迁移对照也扩展到了全部 11 条冻结路线。统一规则是单 source 使用 RGPE，
+多 source 使用 multisource RGPE。在线 LLM 相对这套固定规则平均 `+3.2290`，但
+区间跨 0；如果每条路线看完结果后再选表现最强的 baseline，LLM 平均为
+`-0.5496`，只有 3 胜、1 平、7 负。这一结果被保留在主报告中，用来明确当前
+LLM 还不是多数路线上的最强优化器。
+
+新增的 prediction-error Gate 在第三轮之后检查 LLM 明确给出的 expected outcome
+与真实揭示值之间的误差。每条路线的阈值只用另外 10 条路线选择；触发后不重启，
+而是让 target-only GP 接着使用已经积累的观测完成剩余预算。回放中 Gate 在 8/11
+条路线触发，把平均增益从 `+1.7532` 提到 `+2.0357`，负向路线从 3 条降到 2 条。
+但它相对原 LLM 的增量区间仍跨 0，所以当前定位是“可校准的决策权限与负迁移
+控制”，下一步必须在新调用前冻结 Gate 和 baseline 规则，再做独立重复。
+
+对应配置、逐路线 baseline trace、Gate trace、CSV、PNG/PDF/SVG 与 SHA-256 在：
+
+- `experiments/care_replay/results/2026-08-24-online-llm-predeclared-baseline-portfolio-v1/`
+- `experiments/care_replay/results/2026-08-24-online-llm-predeclared-baseline-portfolio-v2/`
+- `experiments/care_replay/results/2026-08-24-online-llm-calibration-gate-audit-v1/`
+
 ## 2026-08-16：Opus 高权限在线控制与冻结化学扩展
 
 这一轮把 LLM 从受限打分器改成了逐轮决策者。每一轮先由 Opus 4.8 提出下一项

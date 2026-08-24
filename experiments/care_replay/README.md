@@ -217,14 +217,29 @@ python3 experiments/care_replay/scripts/run_online_llm_suite.py \
 ```
 
 The primary comparison keeps the LLM-selected initial observations fixed and
-then compares online Opus decisions with target-only GP-UCB under the same target
-budget. Across eleven real routes, the online controller records six wins, two
-ties, and three losses, with mean best-so-far AUC delta `+1.0135`. The five-route
-frozen chemistry extension records three wins, one tie, and one loss. LLM
-participation and decision authority are both 100%; Opus overrides the GP default
-in 45.5% of rounds on average. These results support majority-positive online
-generalization across the evaluated task families, not universal positive
-transfer. The full system remains sensitive to outcome-blind initial design.
+then compares online Opus decisions with target-only GP-UCB under the same
+target budget. The current 11-route same-start audit records six wins, two ties,
+and three losses, with mean best-so-far AUC delta `+1.7532` and route-bootstrap
+95% interval `[+0.4147, +3.3149]`; the route sign test is not significant. The
+complete 17-route retrospective inventory, which also includes earlier null and
+negative development routes, records eight wins, four ties, and five losses,
+with mean `+0.7618` and interval `[-0.5008, +2.0907]`.
+
+The rule-fixed classical audit uses RGPE for a single source and multisource
+RGPE for multiple sources. In the 11-route panel, online Opus averages `+3.2290`
+against this fixed comparator, but the interval crosses zero. Against the
+strongest realized route-wise baseline selected post hoc, it averages `-0.5496`
+and records three wins, one tie, and seven losses. LLM participation and
+decision authority remain 100%; the evidence does not establish that the
+controller is the strongest optimizer on most routes.
+
+The retrospective calibration-gate audit checks asserted LLM prediction error
+after three online reveals. The threshold for each held-out route is chosen on
+the other ten routes only; a triggered gate continues target-only GP from all
+observations accumulated so far. This raises the mean delta versus target GP
+from `+1.7532` to `+2.0357` and reduces the loss count from three to two. The
+increment versus the ungated LLM is not statistically confirmed, so the gate is
+treated as a negative-transfer control pending prospective repeated runs.
 
 Run the frozen seven-pair source-outcome suite through the canonical entry point:
 

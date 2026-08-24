@@ -46,11 +46,15 @@ The current Opus suite supports the following statements:
    round and can override the target-only GP default.
 2. The online-controller increment is isolated from initial design by comparing
    against the same LLM initial observations followed by target-only GP-UCB.
-3. Six of eleven source-target routes improve best-so-far AUC; two tie and three
-   lose.
-4. A five-route post-freeze chemistry extension is majority positive at the
-   route-count level: three wins, one tie, and one loss.
-5. Every proposal, critic response, selected candidate, reveal, prediction
+3. In the frozen 11-route first-trajectory portfolio, six routes improve
+   best-so-far AUC, two tie, and three lose relative to same-start target GP.
+4. A leave-one-route-out prediction-error gate evaluated after three LLM-guided
+   reveals reduces the target-GP loss count from three routes to two and raises
+   the equal-route mean AUC delta from +1.753 to +2.036.
+5. The complete 17-route retrospective inventory, including six earlier
+   negative or null development routes, has a smaller and uncertain mean effect
+   of +0.762 versus target GP, preventing selective route reporting.
+6. Every proposal, critic response, selected candidate, reveal, prediction
    error, hypothesis status, and fallback is retained in the trace.
 
 The current evidence does not support these statements:
@@ -67,16 +71,18 @@ The current evidence does not support these statements:
 The primary comparison is online Opus versus the same LLM initial design plus
 target-only GP-UCB, under an identical target-reveal budget.
 
-| Evidence tier | Routes | Mean AUC delta | Bootstrap 95% interval | Win / tie / loss | Two-sided sign test |
+| Evidence tier or method | Routes | Mean AUC delta | Route-bootstrap 95% interval | Win / tie / loss | Two-sided sign test |
 |---|---:|---:|---:|---:|---:|
-| All current routes | 11 | +1.0135 | [-0.4433, +2.7821] | 6 / 2 / 3 | p=0.5078 |
-| Retrospective development | 6 | +1.8403 | [-0.8465, +4.6151] | 3 / 1 / 2 | p=1.0000 |
-| Post-freeze chemistry extension | 5 | +0.0212 | [-0.5171, +0.4194] | 3 / 1 / 1 | p=0.6250 |
+| Frozen 11-route online LLM versus target GP | 11 | +1.7532 | [+0.4147, +3.3149] | 6 / 2 / 3 | p=0.5078 |
+| Frozen 11-route cross-validated calibration gate versus target GP | 11 | +2.0357 | [+0.4245, +3.9006] | 5 / 4 / 2 | p=0.4531 |
+| Complete 17-route retrospective inventory versus target GP | 17 | +0.7618 | [-0.5008, +2.0907] | 8 / 4 / 5 | p=0.5811 |
 
-These intervals resample source-target routes. Several routes share task
-families, and each route currently contains one online Opus trajectory, so the
-analysis is a sensitivity check rather than a population-level hierarchical
-estimate.
+These intervals resample source-target routes, not independent LLM calls.
+Several routes share task families, and each route currently contains one
+online Opus trajectory, so they quantify benchmark-route variation rather than
+within-route stochastic uncertainty. The leave-one-route-out gate never uses
+the held-out route to choose its threshold, but it remains retrospective and is
+not a substitute for the frozen repeated-trajectory protocol.
 
 ## Frozen repeated-trajectory protocol
 
@@ -269,6 +275,56 @@ selected repeated confirmation. Its value is to show that the method survives
 stronger comparators on the molecular and material examples while exposing a
 specific classical method that remains better on Suzuki.
 
+### Full-portfolio baseline audit and prediction-error gate
+
+The three-route stress test was broadened in two directions. First, every one
+of the eleven completed trajectories in the frozen v1 route panel was replayed
+from its exact initial candidate IDs against target-only GP-UCB, RGPE, and
+multitask GP under the same target pool and ten-reveal budget. The primary
+classical comparator rule was fixed at analysis time: RGPE for a single source
+and multisource RGPE for multiple sources. This is not prospective
+preregistration because the online trajectories already existed.
+
+Across the eleven routes, the online LLM gained +1.753 AUC over target GP
+(route-bootstrap interval +0.415 to +3.315; 6 wins, 2 ties, 3 losses) and
++3.229 over the rule-fixed RGPE comparator (interval -1.844 to +10.141;
+6 wins, 1 tie, 4 losses). Against the strongest realized baseline selected
+post hoc within each route, however, the mean was -0.550 with only 3 wins,
+1 tie, and 7 losses. The latter is an intentionally unfavorable oracle
+diagnostic; it shows that the current LLM controller is not yet the strongest
+optimizer on most routes.
+
+Second, the inventory was expanded to all seventeen distinct online LLM routes
+already present in the repository, including six earlier null or negative
+development cases. In this complete retrospective inventory, the mean gain was
++0.762 versus target GP (interval -0.501 to +2.091; 8 wins, 4 ties, 5 losses)
+and +0.987 versus rule-fixed RGPE (interval -2.901 to +5.960; 8 wins, 2 ties,
+7 losses). Against the strongest realized baseline, the online LLM averaged
+-1.821 AUC with 3 wins, 2 ties, and 12 losses. Reporting both the frozen
+11-route panel and the complete 17-route inventory makes route selection
+visible rather than allowing the stronger subset to stand in for all prior
+experiments.
+
+The new calibration-gate audit tests a narrower CARE claim: whether observed
+LLM reliability can control decision authority. After three LLM-guided target
+reveals, the gate computes the mean absolute error between the LLM's asserted
+expected outcomes and the revealed values. Responses that explicitly defer to
+GP are not scored as predictions. A threshold is selected for each held-out
+route using only the other ten routes; if the error exceeds that threshold, or
+the LLM explicitly falsifies or abandons the transfer hypothesis, target-only
+GP continues from all observations accumulated so far. The GP is not restarted
+and the result is not spliced from an independent trajectory.
+
+This gate switched on eight of eleven held-out evaluations. Its mean AUC gain
+over target GP was +2.036 (route-bootstrap interval +0.425 to +3.901; 5 wins,
+4 ties, 2 losses), compared with +1.753 and 6/2/3 for the ungated online LLM.
+Thus the negative-transfer rate fell from 27.3% to 18.2%. The gate changed the
+mean by only +0.283 relative to the original LLM, with an interval crossing
+zero, and it still averaged -0.267 against the strongest realized baseline.
+The defensible conclusion is that prediction-error calibration improves risk
+control in this retrospective portfolio, not that it establishes universal
+superiority. Prospective repeated confirmation remains required.
+
 ## What a reviewer is likely to challenge
 
 ### 1. The strongest gains are development results
@@ -340,6 +396,9 @@ library" for a separately implemented and evaluated module.
 6. **Matched transfer-BO baselines.** Compare the online LLM controller with
    calibration-selected RGPE and multitask GP under the same initial target
    observations, candidate pool, reveal budget, and held-out routes.
+7. **Prospective calibration-gate confirmation.** Freeze one gate round and one
+   threshold-selection procedure before new LLM trajectories, then compare the
+   gated controller with ungated LLM, target GP, and rule-fixed transfer BO.
 
 ### P1: needed to make the paper distinctive
 

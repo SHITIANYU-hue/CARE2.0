@@ -8,7 +8,7 @@ CARE 2.0 研究的是旧实验经验能否帮助新任务更快找到好条件�
 
 ## 第 2 页：目前最准确的结果
 
-当前证据覆盖 11 条真实数据迁移路线，包括反应优化、分子性质和材料任务。在线 LLM Scientist 相对同开局、同预算的 target-only GP-UCB，平均 best-so-far AUC 增益为 1.01；6 条路线提高、2 条持平、3 条下降。LLM 在每条路线的 10 个在线轮次都参与最终选择。这里必须同时说明证据边界：按路线 bootstrap 得到的 95% 区间为 -0.44 到 2.78，仍然跨过 0，而且每条路线目前只有一条在线 LLM 轨迹。因此，这组结果说明存在路线特异的正向信号，还不能证明普遍跨领域提升。
+冻结协议下完成的第一批证据覆盖 11 条真实数据迁移路线，包括反应优化、分子性质和材料任务。在线 LLM Scientist 相对同开局、同预算的 target-only GP-UCB，平均 best-so-far AUC 增益为 1.75；6 条路线提高、2 条持平、3 条下降。按路线 bootstrap 得到的区间为 0.41 到 3.31，但符号检验并不显著，而且每条路线仍只有一条在线 LLM 轨迹。为了检查路线选择偏差，我们又纳入仓库中 6 条更早的负向或持平路线；完整 17 路线回顾的平均增益降到 0.76，区间为 -0.50 到 2.09。这里的准确结论是：冻结 11 路线组合上有平均正向信号，但所有历史路线合并后仍不能证明普遍提升。
 
 ## 第 3 页：问题如何定义
 
@@ -28,7 +28,7 @@ Replay harness 用完整历史数据模拟真实的逐轮实验。虽然磁盘�
 
 ## 第 7 页：主对照为什么公平
 
-最重要的主对照是 same-initial target-only GP-UCB。它与在线 LLM 使用相同的三个初始观测、候选空间和 10 轮预算，也看不到未执行的 target 标签。唯一差别是后续决策是否使用 source evidence 和 LLM proposer/critic，因此可以隔离在线 LLM 增量。我们又从完全相同的 candidate IDs 重放了 RGPE 和 multitask GP：FreeSolv→Lipophilicity 的在线 LLM 比三种 baseline 中最强的 target GP 高 +6.325 AUC；phonons→bulk modulus 比最强的 RGPE 高 +1.922；Suzuki 则比 multisource ICM-BMA 低 1.960。三条路线相对事后最强 baseline 的等权平均为 +2.096，2/3 路线获胜。这里的“最强”是看完轨迹后选出的压力测试，不是预先 calibration 的主结果；每条路线也只有一次 LLM 调用，所以不能报显著性。下一步仍需在新冻结重复协议里预先规定 baseline 选择规则。
+最重要的主对照是 same-initial target-only GP-UCB。它与在线 LLM 使用相同的三个初始观测、候选空间和 10 轮预算，也看不到未执行的 target 标签。唯一差别是后续决策是否使用 source evidence 和 LLM proposer/critic，因此可以隔离在线 LLM 增量。我们先在三个代表性案例中重放了 RGPE 和 multitask GP：分子和材料路线超过所有已跑 baseline，Suzuki 则输给 multisource ICM-BMA。随后把同开局对照扩展到冻结的全部 11 条路线。LLM 相对 target GP 的平均增益是 +1.753，相对固定 RGPE 对照是 +3.229，但相对每条路线事后最强 baseline 的平均值是 -0.550，只取得 3 胜、1 平、7 负。因此，LLM 的优势目前主要是相对 no-transfer 和部分迁移方法，不能说普遍超过最强 optimizer。
 
 ## 第 8 页：LLM 的真实输入和输出
 
@@ -40,7 +40,7 @@ Replay harness 用完整历史数据模拟真实的逐轮实验。虽然磁盘�
 
 ## 第 10 页：路线级结果
 
-图中的每个点都是一条真实 source-target 路线，横轴是在线 LLM 相对同开局 target-only GP 的 best-so-far AUC 差值。正值表示更早找到高值条件，负值表示迁移拖慢搜索。11 条路线中，材料 `expt gap→dielectric` 为 +6.75，`FreeSolv→Lipophilicity` 为 +6.33；材料 `expt gap→mp gap` 为 -2.45。结果说明迁移效果有明显异质性，负迁移不能被平均值掩盖。
+图中的每一行是一条真实 source-target 路线。圆点表示在线 LLM 相对同开局 target-only GP-UCB 的 best-so-far AUC 差值，方块表示相对固定 RGPE 规则的差值。正值表示 LLM 更早找到高值条件，负值表示搜索更慢。冻结 11 路线中，相对 target GP 为 6 胜、2 平、3 负；相对固定 RGPE 为 6 胜、1 平、4 负。最大的正向包括材料 `expt gap→dielectric` 和 `FreeSolv→Lipophilicity`。如果改成每条路线看完结果后选择最强 baseline，LLM 只取得 3 胜、1 平、7 负，因此这页不能讲成 LLM 已经普遍超过传统迁移优化。
 
 ## 第 11 页：配对稳定性审计
 
@@ -52,11 +52,15 @@ Replay harness 用完整历史数据模拟真实的逐轮实验。虽然磁盘�
 
 ## 第 13 页：结论边界
 
-已经完成的是无泄漏 replay、同预算主对照、三个任务家族、逐轮真实 LLM 决策和完整 trace。context-preserving 协议下的分子、材料和 Suzuki 三条单轨迹相对同开局 GP 均为正，但它们仍是 `n=1` development evidence；其中材料 case 还是拒绝 source transfer 后的 target 自适应。尚未完成的是每条路线足量的独立重复、窄且不跨 0 的确认区间、稳定超过 fixed CARE 与 transfer GP，以及 prospective wet-lab 验证。系统会更新运行状态、GP 和假设，但不会训练 LLM 权重，也没有把 trace 自动蒸馏为永久 skill。
+已经完成的是无泄漏 replay、同预算主对照、三个任务家族、逐轮真实 LLM 决策和完整 trace；同时完成了 11 路线 rule-fixed baseline audit、17 路线完整历史盘点和 prediction-error calibration gate。校准 gate 把相对 target GP 的平均增益从 +1.753 提到 +2.036，并把负向路线从 3 条降到 2 条，但它相对原 LLM 的增量只有 +0.283，区间跨 0，而且相对事后最强 baseline 仍为负。尚未完成的是每条路线足量的独立重复、稳定超过 transfer BO、真正未参与开发的新任务和 prospective wet-lab 验证。系统会更新运行状态、GP 和假设，但不会训练 LLM 权重，也没有把 trace 自动蒸馏为永久 skill。
 
 ## 第 14 页：下一轮实验
 
-重复实验已经启动：Opus 冻结 v1 完成 11/330，另有三条 context-preserving development 轨迹。GLM 仍没有完整轨迹，因此不能报告跨模型效果。同开局 classical stress test 已完成三条路线：分子和材料路线超过 RGPE/ICM，Suzuki 则由 multisource ICM-BMA 领先。下一步要在看结果前固定 baseline 选择规则，再把在线 LLM、RGPE、multitask GP-ICM 和 target-only GP 放进同一个重复协议。除此之外还需要未参与开发的新任务家族、source/critic/gate 消融，以及至少一条 prospective wet-lab campaign。
+重复实验已经启动：Opus 冻结 v1 完成 11/330，另有三条 context-preserving development 轨迹。GLM 仍没有完整轨迹，因此不能报告跨模型效果。rule-fixed baseline audit 已覆盖冻结 11 路线，完整历史盘点覆盖 17 路线；校准 gate 已完成 leave-one-route-out 回放。下一步不是继续调当前 11 条路线，而是把 gate round、阈值选择和 baseline 规则在新调用前彻底冻结，再同时重复在线 LLM、gated LLM、RGPE、multitask GP 和 target GP。除此之外还需要未参与开发的新任务家族、source/critic/gate 消融，以及至少一条 prospective wet-lab campaign。
+
+## 第 15 页：为什么要加入校准 Gate
+
+原来的在线 LLM 在每一轮都拥有较高决策权，但它给出的 expected outcome 有时与真实揭示值相差很大。新 gate 固定在第三个 LLM 在线实验结束后检查前三轮预测误差。如果误差超过阈值，或者 LLM 自己宣布假设被证伪、不应继续迁移，系统不会清空已有实验，而是把前三轮结果和初始观测一起交给 target-only GP，继续完成剩余预算。为了避免拿当前路线调阈值，每条路线的阈值只用另外 10 条路线选择。回放结果中 gate 在 11 条路线里的 8 条触发，平均 AUC 增益由 +1.753 提高到 +2.036，负向路线由 3 条降到 2 条。它改善了风险控制，但没有显著超过原 LLM，也没有稳定打败最强经典 baseline，所以这一页的贡献应表述为“可校准的 LLM 决策权”，而不是“gate 已经解决负迁移”。
 
 ## 数据来源
 
@@ -84,4 +88,8 @@ Replay harness 用完整历史数据模拟真实的逐轮实验。虽然磁盘�
 - `experiments/care_replay/configs/online_llm_matched_classical_audit_v1.json`
 - `experiments/care_replay/results/2026-08-24-online-llm-matched-classical-audit-v1/aggregate.json`
 - `experiments/care_replay/results/2026-08-24-online-llm-matched-classical-audit-v1/comparisons.csv`
+- `experiments/care_replay/results/2026-08-24-online-llm-predeclared-baseline-portfolio-v1/aggregate.json`
+- `experiments/care_replay/results/2026-08-24-online-llm-predeclared-baseline-portfolio-v2/aggregate.json`
+- `experiments/care_replay/results/2026-08-24-online-llm-calibration-gate-audit-v1/aggregate.json`
+- `experiments/care_replay/results/2026-08-24-online-llm-calibration-gate-audit-v1/route_results.csv`
 - `docs/GLM53_CROSS_MODEL_PROTOCOL.md`

@@ -128,6 +128,40 @@ is a post-hoc single-trajectory stress test, not a calibration-selected or
 confirmatory comparison; it identifies both where the LLM survives stronger
 transfer-BO baselines and where a classical model remains superior.
 
+\paragraph{Complete route inventory and calibration-gated authority.}
+We next replayed every completed route in the frozen 11-route panel from the
+exact online-LLM initial candidates against target-only GP-UCB, RGPE, and
+multitask GP under the same candidate pool and ten-reveal budget. Relative to
+target-only GP, the online LLM achieved an equal-route mean AUC difference of
+$+1.753$ (route-bootstrap 95\% interval $[+0.415,+3.315]$), with six wins, two
+ties, and three losses. Relative to an analysis-time rule-fixed RGPE
+comparator, the mean was $+3.229$ but the interval crossed zero
+($[-1.844,+10.141]$; six wins, one tie, four losses). Against the strongest
+realized baseline selected post hoc within each route, the mean was $-0.550$
+with three wins, one tie, and seven losses. We therefore do not interpret the
+online LLM as a uniformly stronger optimizer.
+
+To expose route-selection effects, we also audited all 17 distinct online-LLM
+routes in the repository, including six earlier null or negative development
+cases. The complete retrospective inventory yielded $+0.762$ AUC versus target
+GP (95\% interval $[-0.501,+2.091]$; eight wins, four ties, five losses) and
+$+0.987$ versus rule-fixed RGPE (95\% interval $[-2.901,+5.960]$; eight wins,
+two ties, seven losses). These results are weaker than the frozen 11-route
+panel and are reported to prevent selective route presentation.
+
+Finally, we evaluated a prediction-error gate after three LLM-guided target
+reveals. The gate scores only asserted LLM expected outcomes, selects its error
+threshold on the other ten routes in a leave-one-route-out analysis, and hands
+control to target-only GP when the held-out trajectory is poorly calibrated or
+the LLM explicitly abandons its hypothesis. GP continues from the accumulated
+observations rather than restarting. The gated controller increased the mean
+AUC difference versus target GP from $+1.753$ to $+2.036$ and reduced the loss
+count from three routes to two (95\% interval $[+0.425,+3.901]$; five wins,
+four ties, two losses). The mean change versus the original LLM was only
+$+0.283$ and its interval crossed zero. This is retrospective evidence that
+calibration can reduce negative-transfer risk, not prospective evidence of
+universal superiority.
+
 \paragraph{Repeated calls expose trajectory-level uncertainty.}
 The frozen development run for experimental band gap $\rightarrow$ Materials
 Project band gap produced $\Delta$AUC=$-2.4464$: the LLM-guided trajectory did
@@ -202,3 +236,9 @@ trajectory-level benefit.
 %   {summary.json,llm_trace.jsonl,audit/outcome_semantics_audit.json}
 % experiments/care_replay/results/2026-08-24-online-llm-matched-classical-audit-v1/
 %   {aggregate.json,comparisons.csv}
+% experiments/care_replay/results/2026-08-24-online-llm-predeclared-baseline-portfolio-v1/
+%   {aggregate.json,route_comparisons.csv,predeclared_baseline_portfolio.svg}
+% experiments/care_replay/results/2026-08-24-online-llm-predeclared-baseline-portfolio-v2/
+%   {aggregate.json,route_comparisons.csv,predeclared_baseline_portfolio.svg}
+% experiments/care_replay/results/2026-08-24-online-llm-calibration-gate-audit-v1/
+%   {aggregate.json,route_results.csv,calibration_gate_route_effects.svg}
