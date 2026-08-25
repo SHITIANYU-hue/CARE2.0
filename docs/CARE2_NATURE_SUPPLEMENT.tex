@@ -78,7 +78,18 @@ that the true binding exceeded the permutation mean by 0.340 AUC, but the
 assignment-level randomization test did not reject the null at 0.05
 ($p=0.07$). Thus the prospective efficacy result stands, whereas the proposed
 outcome-binding mechanism remains suggestive and non-unique. Neither result is
-wet-lab validation. All negative and null results are retained.
+wet-lab validation. We therefore froze efficacy and source-assignment endpoints
+together on a new FLIP2 TrpB family before downloading its data. The
+LLM-selected additive skill improved official-test AUC by 0.949 [95\% CI
+$0.864,1.034$], and the true source binding exceeded the mean of 99 outcome
+permutations by 0.890 AUC [95\% bootstrap CI $0.810,0.970$], with no null
+assignment as large as the true effect ($p=0.01$). The frozen gate nevertheless
+abstained because its single-mutant calibration interval crossed zero; exact
+mutation-token coverage was 0\% on calibration but 99.97\% at deployment.
+Thus TrpB supplies independent prospective efficacy and mechanism confirmation
+for one LLM-selected skill while exposing a power failure in the present
+router. It does not establish universal cross-domain transfer or wet-lab
+discovery. All negative and null results are retained.
 \end{abstract}
 
 \begin{appendices}
@@ -131,6 +142,7 @@ External task-family stress test & Does a frozen controller generalize to a task
 Source-only family gate & Can completed source tasks reject unsafe transfer without target outcomes? & Two 50-seed source-only pseudo-target routes, frozen lower-confidence-bound eligibility rule, and outcome-blind P06241 deployment replay & Retrospective mechanism audit; the rule was designed after the external result and is not prospective confirmation \\
 Prospective family gate & Does the source-only rule prevent harm when frozen before a second external family is downloaded? & Preregistered FLIP2 Rhodopsin by-wild-type split; two 50-seed calibration routes and 100 untouched test seeds & Prospective negative-transfer prevention on one external family; not positive-transfer efficacy \\
 Prospective positive-transfer skill & Can an outcome-blind LLM generate a useful skill before a new external dataset is downloaded? & Preregistered FLIP2 IRED two-to-many split; 100 train-to-validation calibration seeds, 100 untouched official-test seeds, and all paired baselines & Positive finite-pool efficacy for one LLM-generated additive skill; a fixed skill prior remains stronger \\
+Prospective efficacy and attribution replication & Does an independently frozen LLM-selected skill improve a new family, and does that gain require the measured source binding? & Preregistered FLIP2 TrpB one-to-many split; 100 deployment seeds, 99 predeclared outcome permutations, and a sequence-only finite-pool rule & Positive skill efficacy and rejection of the source-assignment null; the frozen router abstained and did not realize the gain \\
 Frozen repeated protocol & Are effects stable across stochastic model calls? & Declared 30 trajectories per route, hash-locked analysis, no optional stopping & Pending until all declared trajectories complete \\
 \bottomrule
 \end{tabularx}
@@ -143,9 +155,11 @@ calibrated, rejectable, and auditable; some of these skills improve finite-pool
 search on held-out real datasets, and one preregistered gate prevented a harmful
 transfer on a second external family. A separately preregistered IRED experiment
 also supplies positive external efficacy for one outcome-blind LLM-generated
-skill. The present evidence does not establish universal cross-domain transfer,
-superiority to the strongest fixed prior, elimination of negative transfer, or
-a new physical discovery.
+skill. A second preregistered TrpB family independently confirms positive skill
+efficacy and source-outcome attribution. The present evidence does not establish
+universal cross-domain transfer, elimination of negative transfer, or a new
+physical discovery; the TrpB result also shows that the current gate can abstain
+when a useful transfer is available.
 
 \section{Problem setting and evaluation protocol}
 \label{sec:protocol}
@@ -810,6 +824,98 @@ the LLM identified the uniquely correct source feature--outcome relation. The
 next external protocol should freeze this assignment null before outcome access
 and treat mechanism attribution as a co-primary endpoint.
 
+\subsection{Preregistered FLIP2 TrpB efficacy and source-outcome confirmation}
+\label{sec:flip2_trpb_replication}
+
+We implemented that next protocol on a previously unused external family: the
+official FLIP2 Tryptophan Synthase $\beta$-Subunit (TrpB)
+\code{one-to-many} split. The public benchmark contains 228,298 measured
+variants across ten combinatorial sub-landscapes and 20 engineered positions.
+The official train and validation partitions contain 304 and 76 zero- or
+single-mutation variants; the official test contains 227,918 variants with two
+to four mutations. Before downloading the file, we froze an outcome-blind
+finite pool consisting of at most 5,000 rows per partition selected solely by
+the lexicographically smallest SHA-256 sequence hashes. The resulting test
+pool contains 215 double, 1,899 triple, and 2,886 quadruple mutants.
+
+Claude Opus 4.8 received only the public task description, official split
+logic, scientific context, budget, finite-pool rule, and a two-item menu: the
+same bounded additive-mutation executor or abstention. It selected the
+additive skill and predicted that first-order mutation effects would improve
+early target ranking while explicitly naming dominant epistasis, incomplete
+mutation coverage, low-to-high-order shift, and authority miscalibration as
+failure conditions. The raw response, 2,460-token usage record, parsed
+hypothesis, request hash, executable code hashes, 100 calibration seeds, 100
+deployment seeds, and a 99-assignment source-outcome randomization test were
+committed as \code{c5f4065} while the raw TrpB file was absent.
+
+Table \ref{tab:flip2_trpb_replication} separates candidate-skill efficacy from
+the frozen routing decision. On the official test, the LLM additive skill
+improved best-so-far AUC by 0.949 [95\% paired CI $0.864,1.034$] with 97 wins,
+three ties, and no losses. The generic skill prior improved by 0.154, whereas
+RGPE and ICM-BMA did not improve. This comparison rules out a weak target-only
+baseline explanation and shows that mutation-specific source outcomes carry
+substantially more useful information than a generic source ranking.
+
+\begin{table}[t]
+\centering
+\caption{Preregistered FLIP2 TrpB external replication. Official-test values
+are paired best-so-far AUC differences against target-only GP-UCB over 100
+seeds. The gate decision was fixed before those outcomes were inspected.}
+\label{tab:flip2_trpb_replication}
+\scriptsize
+\setlength{\tabcolsep}{3.0pt}
+\begin{tabularx}{\textwidth}{@{}X r r r@{}}
+\toprule
+Method or decision & Mean $\dauc$ & 95\% paired CI & W/T/L or result \\
+\midrule
+RGPE & $-0.023$ & [$-0.057,+0.011$] & 29/19/52 \\
+ICM-BMA & $-0.037$ & [$-0.062,-0.011$] & 22/25/53 \\
+Generic skill prior & $+0.154$ & [$+0.091,+0.216$] & 64/13/23 \\
+LLM additive skill & $+0.949$ & [$+0.864,+1.034$] & 97/3/0 \\
+Frozen deployed policy & $0.000$ & exact target-only fallback & HOLD \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The predeclared assignment test then held the target pool, 100 new target
+seeds, starting observations, budget, GP kernel, additive executor, source
+rows, outcome marginal distribution, and 0.50-to-0.10 authority schedule fixed.
+Only the binding between 380 source outcomes and source mutation features was
+changed. With the measured binding, the skill improved AUC by 0.885 [normal
+95\% CI $0.805,0.965$] versus target-only GP-UCB. Relative to the per-seed mean
+of 99 outcome-permuted skills, the true binding improved AUC by 0.890
+[200,000-resample bootstrap CI $0.810,0.970$]. No null assignment reached the
+true assignment effect, giving the predeclared plus-one randomization value
+$p=(1+0)/(1+99)=0.01$. The mechanism co-primary endpoint therefore passed.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.99\textwidth]{prospective_trpb_replication.png}
+\caption{Preregistered TrpB replication generated from the complete real-data
+result files. Panel A compares the LLM additive skill with strong matched
+baselines on the untouched sequence-hash test pool. Panel B locates the true
+source binding among 99 outcome-permuted assignments. Panel C shows matched
+best-so-far trajectories under the same target budget. The red annotation
+records the frozen gate's HOLD decision rather than silently replacing it with
+the successful ungated candidate.}
+\label{fig:flip2_trpb_replication}
+\end{figure*}
+
+The gate result reveals a routing failure rather than an efficacy failure. Its
+train$\rightarrow$validation estimate was $+0.044$ [95\% CI
+$-0.018,+0.106$], so the frozen lower-bound rule deployed target-only GP-UCB.
+That calibration route had zero exact mutation-token coverage because both
+partitions contain held-out single mutants and the executor could use only
+class-level fallback. At official-test deployment, the source train+validation
+set covered 99.97\% of mutation tokens in the multi-mutant target pool. The
+calibration task therefore tested a different information regime from the
+deployment task. We retain the abstention as the complete-system result: the
+LLM proposed a strongly useful skill and the attribution test confirmed its
+source dependence, but the current router failed to deploy it. A revised gate
+must condition on structural coverage and must be frozen on another family;
+the TrpB outcome cannot be used to retroactively change this decision.
+
 \section{Online LLM controller and strong baselines}
 \label{sec:online}
 
@@ -1115,6 +1221,7 @@ Artifact & Contents \\
 2026-08-25: FLIP2 Rhodopsin prospective gate & Commit-before-download preregistration, two 50-seed source-only calibration routes, 100 untouched official-test seeds, per-seed audits, protocol locks, and real-data confidence-interval figure \\
 2026-08-25: FLIP2 IRED prospective positive transfer & Outcome-blind Opus hypothesis, commit-before-download preregistration, 100 calibration seeds, 100 untouched official-test seeds, five matched policies, 6,000 test audit rows, bootstrap statistics, and real-data trajectory figure \\
 2026-08-25: IRED source-outcome falsification & One true binding, 99 deterministic outcome-permuted bindings, 100 matched target seeds, 10,000 skill trajectories, 100 target-GP trajectories, assignment-level randomization test, and source-data figure \\
+2026-08-25: FLIP2 TrpB prospective replication & Commit-before-download Opus hypothesis, outcome-blind sequence-hash pool, 100 calibration and 100 deployment seeds, strong matched baselines, 99 preregistered source-outcome permutations, 10,100 mechanism trajectories, and source-data figure \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -1228,13 +1335,22 @@ audit found that the true source binding exceeded the mean of 99 false bindings
 by 0.340 AUC [0.259, 0.422], but six null assignments were at least as large
 ($p=0.07$). This is one external finite-pool efficacy result with suggestive,
 not conclusive, mechanism attribution; it is not a general LLM advantage.
-No result should therefore be described as universal
+
+The independently frozen TrpB protocol strengthens that boundary. Its
+LLM-selected additive skill improved official-test AUC by 0.949 and its
+predeclared source-assignment test rejected the 99-permutation null at
+$p=0.01$. This shows that a model-generated executable skill can carry measured
+source information into a new enzyme family under a fixed budget. The same
+experiment also falsifies a stronger complete-system claim: the confidence-
+bound router abstained because its single-mutant calibration route had no exact-
+token coverage, so the deployed policy remained target-only. No result should
+therefore be described as universal
 cross-domain transfer or prospective wet-lab discovery.
 
 The next decisive evidence is: (i) completion of the frozen repeated-call
-protocol, (ii) replication of positive efficacy across additional external
-families with stronger fixed and learned baselines, (iii) a prospectively frozen
-source-outcome confirmation on new routes, and (iv) at least one paired
+protocol, (ii) replication in a more distant domain with stronger fixed and
+learned baselines, (iii) a coverage-aware router frozen on a new family, and
+(iv) at least one paired
 prospective wet-lab campaign. Until then, the principal contribution is an auditable
 method for compiling, testing, and rejecting scientific transfer skills.
 

@@ -124,6 +124,19 @@ The current Opus suite supports the following statements:
     larger mean AUC effect, giving a one-sided assignment-level randomization
     value of p=0.07. This is suggestive mechanism evidence, not rejection of the
     source-assignment null.
+15. A second external positive-transfer family was preregistered before data
+    download. On FLIP2 TrpB, the outcome-blind Opus-selected additive skill
+    improved official-test AUC by `+0.949` with 95% CI `[+0.864, +1.034]`,
+    97/3/0 wins/ties/losses, and no negative seed.
+16. The TrpB source-assignment null was frozen with the efficacy protocol. The
+    true source binding exceeded the 99-permutation mean by `+0.890` AUC with
+    95% bootstrap CI `[+0.810, +0.970]`; no null assignment was as large and
+    the predeclared plus-one randomization test gave `p=0.01`.
+17. The complete frozen TrpB router did not realize this gain. Its
+    train-to-validation interval crossed zero, so it deployed target-only GP.
+    Exact mutation-token coverage was 0% on calibration but 99.97% on
+    deployment. This is a prospective router power failure and is retained as
+    such.
 
 The current evidence does not support these statements:
 
@@ -133,8 +146,10 @@ The current evidence does not support these statements:
 4. The LLM updates its model parameters or has already implemented automatic
    persistent skill evolution.
 5. The system has accelerated a new physical wet-lab discovery.
-6. The correct source feature-outcome association has been shown to carry more
-   transferable information than randomized source-outcome assignments.
+6. The correct source feature-outcome association carries more transferable
+   information than randomized assignments across domains or across the online
+   controller. This has been established prospectively for the TrpB additive
+   skill only.
 7. The LLM's self-reported improvement probability is prospectively calibrated
    or can already serve as a validated abstention gate.
 8. The Hydrophobic Core task establishes positive cross-domain efficacy. It
@@ -147,6 +162,9 @@ The current evidence does not support these statements:
 10. The prospective IRED gain proves that the LLM identified the uniquely
     correct source feature-outcome mechanism. The later assignment audit was
     post-hoc and did not reject its 99-permutation null at 0.05.
+11. The complete TrpB CARE router improved optimization. The LLM-selected
+    candidate skill improved strongly, but the frozen gate abstained and the
+    deployed policy was exactly target-only GP-UCB.
 
 ## Current statistical result
 
@@ -303,6 +321,36 @@ suggestive, non-unique signal. The audit does not establish that the LLM found
 the uniquely correct causal mechanism, and it reinforces the need for an
 independent prospectively frozen source-assignment test.
 
+### Prospective TrpB efficacy and mechanism replication
+
+The official FLIP2 TrpB `one-to-many` split provides a second independent
+enzyme family. Before download, the project committed the public task spec,
+sequence-hash finite-pool rule, Opus prompt and raw response, additive executor,
+100 calibration seeds, 100 deployment seeds, and 99 source-outcome
+permutations. The LLM selected additive transfer using only public metadata.
+
+| Method | Official-test AUC delta [95% CI] | Win / tie / loss |
+|---|---:|---:|
+| RGPE | -0.023 [-0.057, +0.011] | 29 / 19 / 52 |
+| ICM-BMA | -0.037 [-0.062, -0.011] | 22 / 25 / 53 |
+| Generic skill prior | +0.154 [+0.091, +0.216] | 64 / 13 / 23 |
+| LLM additive skill | +0.949 [+0.864, +1.034] | 97 / 3 / 0 |
+
+The mechanism test is stronger than the post-hoc IRED audit. The true TrpB
+binding improved AUC by `+0.885` versus target GP and by `+0.890` versus the
+per-seed mean of 99 outcome-permuted skills. The latter interval is `[+0.810,
++0.970]`; zero null assignments matched the true effect and the preregistered
+randomization test gave `p=0.01`. This supports source-outcome attribution for
+the TrpB additive skill.
+
+The complete router result is still a hold. The calibration route contained
+held-out single mutants and therefore had 0% exact-token coverage, while the
+multi-mutant deployment pool had 99.97% coverage from completed single-mutant
+sources. The lower-bound gate tested class-level extrapolation rather than the
+exact-token composition used at deployment and abstained. We must report both
+facts: the skill and mechanism succeeded, but the frozen router did not deploy
+the skill.
+
 ## Frozen repeated-trajectory protocol
 
 The first confirmatory gap now has an executable frozen protocol in
@@ -325,8 +373,10 @@ This protocol addresses stochastic repeatability, but it does not turn the six
 development routes into independent confirmation. The FLIP2 Hydrophobic Core
 stress test supplies a negative external efficacy result, Rhodopsin supplies a
 prospective safety result, and IRED supplies one prospective positive finite-
-pool result. Replication across additional external families and a prospective
-laboratory experiment remain necessary.
+pool result. TrpB independently confirms positive skill efficacy and
+source-outcome attribution, while also exposing a router abstention error.
+Replication in a more distant domain and a prospective laboratory experiment
+remain necessary.
 
 The executable-gate protocol is separately frozen in
 `experiments/care_replay/configs/online_llm_gated_repeated_confirmation_v1.json`.
@@ -758,8 +808,9 @@ attribution endpoint rather than adding it only after a positive result.
    controller development. A new route inside the same C-N dataset is useful but
    insufficient for a broad cross-domain claim. Hydrophobic Core and Rhodopsin
    provide external negative-transfer and safety evidence, while IRED provides
-   one preregistered positive finite-pool result. A more distant family and
-   independent replication are still required for a broad claim.
+   one preregistered positive finite-pool result and TrpB independently
+   replicates skill efficacy plus source attribution. A more distant domain is
+   still required for a broad cross-domain claim.
 4. **Prospective experimental validation.** Run at least one wet-lab or genuinely
    prospective closed-loop campaign with matched budget and starting state.
 5. **Complete-system accounting.** Report the online increment, initial-design
@@ -778,10 +829,9 @@ attribution endpoint rather than adding it only after a positive result.
    found no stable LLM calibration advantage and a +0.060 probability bias.
    Fit any calibration map on development routes only, then lock its parameters
    and abstention threshold before a new disjoint confirmation.
-9. **Prospective mechanism attribution.** Freeze a source-outcome assignment
-   randomization or another mechanism-matched negative control before the next
-   external result. The current IRED audit is informative but post-hoc and has
-   p=0.07.
+9. **Prospective mechanism attribution.** Completed for the TrpB additive skill:
+   the source-outcome assignment null was frozen before download and rejected
+   at `p=0.01`. Replication outside additive protein landscapes remains open.
 
 Completed supporting control: the 17-route hidden-label non-interference audit
 now provides production-path evidence that unrevealed target labels cannot
@@ -883,13 +933,13 @@ protocol completes.
 ## Submission decision
 
 The current package is materially stronger but is not ready for a broad Nature
-claim. The method now has commit-before-download external safety and positive-
-efficacy confirmations, but the positive IRED skill is weaker than the fixed
-prior and remains one-family finite-pool evidence. The IRED source-outcome audit
-finds a stable +0.340 AUC advantage over the mean false binding, but its
-assignment-level p=0.07 prevents a causal-mechanism claim. Repeated online LLM
-confirmation, replication on a more distant external family, and a paired
+claim. It now has commit-before-download external safety, two positive-skill
+families, and a prospectively significant TrpB source-assignment test
+(`p=0.01`). This closes the immediate independent attribution gap. It also
+reveals a new complete-system weakness: the frozen TrpB router abstained because
+its calibration task had zero exact-token coverage even though deployment
+coverage was 99.97%. Repeated online LLM confirmation, a coverage-aware router
+frozen on another external family, a more distant domain, and a paired
 prospective wet-lab campaign are still missing. The highest-value next move is
-an independently preregistered external replication with its attribution null
-frozen in advance, followed by one paired prospective laboratory campaign, not
-another post-hoc development sweep.
+the coverage-aware prospective router plus a laboratory campaign, not a
+retroactive TrpB gate rewrite.
