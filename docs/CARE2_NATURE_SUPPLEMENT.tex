@@ -52,7 +52,11 @@ and materials-property tasks. Matched mechanism controls show that some of the
 largest source-conditioned gains are explained by the initial experimental
 design rather than continuous online transfer. A route-disjoint audit and a
 six-route live pilot further show that online LLM participation does not yet
-provide a stable general advantage. All negative and null results are retained.
+provide a stable general advantage. A newly frozen protein-engineering task
+family produces strong negative transfer for all three classical transfer
+baselines; one live LLM trajectory identifies the mismatch and hands control
+back to target-only GP, but its initial design remains worse than a fixed
+design. All negative and null results are retained.
 \end{abstract}
 
 \begin{appendices}
@@ -82,6 +86,7 @@ Hidden-label non-interference & Can unrevealed target labels affect a decision s
 Online controller audit & Does the LLM change decisions after a matched initial design? & Same-start target GP, RGPE, multitask GP, route inventory, and controller handoff replays & Development and robustness evidence, not external confirmation \\
 Probability calibration audit & Does the LLM know when its executed candidate will improve the current best? & All 170 archived decisions, scored against the same-candidate GP probability & Retrospective uncertainty audit; no prospective gate claim \\
 Live bounded-authority pilot & Does one real LLM decision add value on disjoint routes? & Six successful Opus trajectories plus one preserved infrastructure failure & Operational pilot only; no confirmatory inference \\
+External task-family stress test & Does a frozen controller generalize to a task family absent from development? & Official FLIP2 wild-type holdout; 100 paired classical-transfer seeds and one live Opus trajectory & Negative-transfer boundary and abstention case; not positive external confirmation \\
 Frozen repeated protocol & Are effects stable across stochastic model calls? & Declared 30 trajectories per route, hash-locked analysis, no optional stopping & Pending until all declared trajectories complete \\
 \bottomrule
 \end{tabularx}
@@ -411,6 +416,78 @@ feature--outcome association contributes information beyond schema and the
 initialization mechanism. The positive warm-start results must not be presented
 as verified source-outcome learning.
 
+\section{Frozen external task-family stress test}
+\label{sec:flip2_external}
+
+We next froze an evaluation on a task family that was absent from controller
+development: the FLIP2 Hydrophobic Core protein-stability benchmark. The
+official \code{to-P06241} wild-type split contains 24,935 experimentally
+measured variants across three protein backbones. Completed P01053 (6,463
+variants) and P0A9X9 (8,500 variants) campaigns were the only source tasks;
+P06241 (9,972 variants) was the unseen target. The raw split is distributed by
+the FLIP2 authors at
+\url{https://flip.protein.properties/assets/splits/hydro/to_P06241.csv.gz}.
+
+The public representation uses only the seven randomized F/I/L/M/V core
+residues: residue counts, mean side-chain volume, residue diversity, and the
+seven-residue core sequence. Target outcomes were unavailable to the LLM and
+all policies before each reveal. The split, 100 seeds, three initial target
+observations, 12 reveals, source observation counts, kernel settings, and
+comparison rules were frozen before execution. The protocol lock records the
+canonical config hash, raw-data hash, and hashes of every participating runner.
+No P06241 outcome was used for controller or hyperparameter selection.
+
+\begin{table}[t]
+\centering
+\caption{Frozen FLIP2 external-task evaluation. AUC differences and normal
+95\% confidence intervals are paired against target-only GP-UCB over the same
+100 target seeds.}
+\label{tab:flip2_external}
+\small
+\begin{tabularx}{\textwidth}{X r r r r}
+\toprule
+Policy & Mean AUC & $\dauc$ vs target GP & 95\% CI & AUC win rate \\
+\midrule
+Target-only GP-UCB & 81.949 & --- & --- & --- \\
+Multisource RGPE & 64.990 & $-16.959$ & $[-18.407,-15.511]$ & 0.00 \\
+Multisource ICM-BMA & 73.816 & $-8.133$ & $[-9.872,-6.394]$ & 0.12 \\
+Fixed multisource skill prior & 58.941 & $-23.008$ & $[-25.657,-20.359]$ & 0.00 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.98\textwidth]{external_task_family_transfer.png}
+\caption{External protein-backbone transfer audit generated directly from the
+frozen result files. Panel A reports 100-seed paired effects for three numerical
+transfer baselines. Panel B reports one live Opus 4.8 trajectory and therefore
+has no sampling confidence interval. The online LLM selected GP rank one and
+then abstained, yielding zero online increment over the same-start GP. The full
+LLM trajectory was 7.186 AUC below the fixed-design comparator because its
+source-informed initial design was worse.}
+\label{fig:flip2_external}
+\end{figure*}
+
+The initial LLM hypothesis predicted that low aromatic content and high
+beta-branched Val/Ile packing would transfer across protein backbones. Its three
+target measurements were 28.589, 34.553, and 67.757. The best observation was
+instead a low-diversity methionine-rich core. At the first online round, the
+proposer and critic explicitly downgraded the original source rule, set
+\code{continue\_source\_transfer=false}, and selected target-GP rank one. The
+candidate returned 55.005 against an expected 60.0 (absolute error 4.995).
+The frozen one-round authority limit then handed all 11 later rounds to target
+GP, avoiding 22 nominal proposer--critic calls. Online CARE and the same-start
+GP were therefore identical ($\dauc=0$). The full LLM system was worse than the
+fixed initial design ($\dauc=-7.186$).
+
+This experiment is positive evidence for auditability and bounded abstention,
+not for efficacy on the new domain. It also demonstrates that a semantically
+plausible cross-backbone hypothesis can fail even when source and target share
+an apparently identical seven-residue design schema. Any generalization claim
+must therefore include negative-transfer rate and same-start target-only
+controls.
+
 \section{Online LLM controller and strong baselines}
 \label{sec:online}
 
@@ -654,9 +731,9 @@ Experiments use public measured finite pools from Dreher--Doyle
 Buchwald--Hartwig HTE, ChemLex Acid--Amine wet-lab data, Reizman Suzuki cases,
 MoleculeNet ESOL, FreeSolv, Lipophilicity and BACE, Matbench experimental band
 gap, dielectric, phonons, bulk modulus, shear modulus, perovskites and steels,
-and Materials Project-derived property pools. Synthetic Suzuki and synthetic
-ChemLex adapters are retained only as smoke tests and are not used for the
-headline real-data claims.
+Materials Project-derived property pools, and the official FLIP2 Hydrophobic
+Core wild-type split. Synthetic Suzuki and synthetic ChemLex adapters are
+retained only as smoke tests and are not used for the headline real-data claims.
 
 Every reported run stores the config, config hash, seed ranges, target budget,
 candidate IDs, selected outcomes, per-round best-so-far trace, model request
@@ -689,6 +766,7 @@ Artifact & Contents \\
 2026-08-24: source-outcome falsification & Three frozen routes, 100 target seeds per route, 19 matched outcome permutations, and randomization-test outputs \\
 2026-08-24: hidden-target non-interference & Exact shadow-label reconstruction for 170 archived decision states, route-level summaries, and verified prompt hashes \\
 2026-08-24: LLM probability calibration & All 170 archived decisions, fixed-bin reliability data, same-candidate GP comparison, and route-bootstrap uncertainty \\
+2026-08-24: FLIP2 external task family & Frozen official wild-type split, 100-seed GP/RGPE/ICM/skill-prior comparison, protocol lock, one live Opus trace, and negative-transfer audit \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -752,13 +830,17 @@ trajectory. Several routes share task families, and controller policies were
 developed with knowledge of earlier trajectories. The live bounded-authority
 pilot had zero decision impact. The completed 100-seed source-outcome
 falsification did not reject matched outcome-assignment nulls on any of three
-frozen routes. No result should therefore be described as universal
+frozen routes. The frozen external FLIP2 task family produced significant
+negative transfer for all three numerical transfer baselines; the LLM
+abstained online but its initial design was worse than the fixed comparator.
+No result should therefore be described as universal
 cross-domain transfer or prospective wet-lab discovery.
 
 The next decisive evidence is: (i) completion of the frozen repeated-call
-protocol, (ii) a new task family not used in controller development, (iii) a
-prospectively frozen source-outcome confirmation on new routes, and (iv) at
-least one prospective wet-lab campaign. Until then, the principal contribution is an auditable
+protocol, (ii) replication on additional task families not used in controller
+development, (iii) a prospectively frozen source-outcome confirmation on new
+routes, and (iv) at least one prospective wet-lab campaign. Until then, the
+principal contribution is an auditable
 method for compiling, testing, and rejecting scientific transfer skills.
 
 \end{appendices}

@@ -292,6 +292,22 @@ def main() -> None:
             llm_temperature=float(suite["temperature"]),
             llm_max_tokens=int(suite["max_tokens"]),
             llm_repair_attempts=int(suite["repair_attempts"]),
+            calibration_gate_round=suite.get("calibration_gate", {}).get(
+                "round"
+            ),
+            calibration_gate_mae_threshold=suite.get(
+                "calibration_gate", {}
+            ).get("mae_threshold"),
+            calibration_gate_hard_abstention=bool(
+                suite.get("calibration_gate", {}).get(
+                    "hard_abstention", True
+                )
+            ),
+            calibration_gate_force_fallback=bool(
+                suite.get("calibration_gate", {}).get(
+                    "force_fallback", False
+                )
+            ),
         )
         online.run_online(run_args)
 

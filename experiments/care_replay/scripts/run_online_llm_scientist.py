@@ -60,6 +60,14 @@ def write_fingerprint(path: Path) -> None:
 
 
 def numeric_feature_names(adapter: replay.DatasetAdapter) -> list[str]:
+    if adapter.dataset_id.startswith("real_flip2_hydro_"):
+        return [
+            "aromatic_core_fraction",
+            "beta_branched_core_fraction",
+            "leucine_core_fraction",
+            "methionine_core_fraction",
+            "core_residue_diversity",
+        ]
     if adapter.dataset_id.startswith("real_baumgartner_cn_"):
         return [
             "base_equivalents",

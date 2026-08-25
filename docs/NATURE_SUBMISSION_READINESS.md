@@ -77,6 +77,15 @@ The current Opus suite supports the following statements:
    was -0.0016 with a route-bootstrap 95% interval [-0.0132, +0.0090], so there
    is no stable calibration advantage. The LLM was modestly optimistic: mean
    probability 0.219 versus observed improvement rate 0.159.
+10. A frozen external task-family stress test was completed on the official
+    FLIP2 Hydrophobic Core `to-P06241` wild-type split. Neither this protein-
+    engineering family nor its target was used for controller development.
+    Across 100 paired target seeds, multisource RGPE, ICM-BMA, and a fixed skill
+    prior all transferred negatively relative to target-only GP-UCB, with mean
+    AUC deltas of -16.959, -8.133, and -23.008. In one live Opus trajectory,
+    the LLM downgraded the source hypothesis, selected GP rank one, and set
+    `continue_source_transfer=false`; the online increment was zero, while the
+    full LLM trajectory was 7.186 AUC below the fixed-design comparator.
 
 The current evidence does not support these statements:
 
@@ -90,6 +99,9 @@ The current evidence does not support these statements:
    transferable information than randomized source-outcome assignments.
 7. The LLM's self-reported improvement probability is prospectively calibrated
    or can already serve as a validated abstention gate.
+8. The external protein-engineering task establishes positive cross-domain
+   efficacy. It establishes a negative-transfer boundary and one auditable
+   abstention case only.
 
 ## Current statistical result
 
@@ -114,6 +126,36 @@ retrospective replay. The six evaluation routes do not enter controller
 selection, but their outcomes were previously known, so they are not an
 external or prospective test.
 
+## External task-family stress test
+
+The FLIP2 Hydrophobic Core evaluation is the first genuinely new task family
+added after the controller-development portfolio. The official `to-P06241`
+split contains 24,935 measured sequences: P01053 and P0A9X9 are completed
+sources and P06241 is the 9,972-candidate target. The config, 100 seeds, target
+budget, kernel, source counts, and comparator identities were frozen before
+execution. `protocol_lock.json` records the canonical config, raw-file, and
+implementation hashes. No target outcome entered parameter or controller
+selection.
+
+| Policy | Mean AUC | Delta vs target GP [95% paired interval] | AUC win rate |
+|---|---:|---:|---:|
+| Target-only GP-UCB | 81.949 | reference | reference |
+| Multisource RGPE | 64.990 | -16.959 [-18.407, -15.511] | 0.00 |
+| Multisource ICM-BMA | 73.816 | -8.133 [-9.872, -6.394] | 0.12 |
+| Fixed multisource skill prior | 58.941 | -23.008 [-25.657, -20.359] | 0.00 |
+
+The live Opus hypothesis expected low aromatic content and high beta-branched
+Val/Ile packing to transfer across backbones. After three initial P06241
+measurements, the best target observation instead supported a low-diversity,
+methionine-rich region. At the first online round, proposer and critic both
+abandoned direct source transfer and chose target-GP rank one. The one-round
+authority limit then avoided 11 later LLM rounds, or 22 nominal proposer/critic
+calls. This is a useful case because the reasoning trace explains why transfer
+was rejected and the executed action matches the safe target-only default.
+It is not a positive-performance result: online delta was 0.000, and the LLM-
+generated initial design was worse than the fixed initializer in this single
+trajectory.
+
 ## Frozen repeated-trajectory protocol
 
 The first confirmatory gap now has an executable frozen protocol in
@@ -133,8 +175,9 @@ rates are retained. The runner writes a hash lock over the protocol, analysis
 script, route configs, and initial records before the first model call.
 
 This protocol addresses stochastic repeatability, but it does not turn the six
-development routes into independent confirmation and it does not replace a new
-task family or prospective experiment.
+development routes into independent confirmation. The FLIP2 stress test now
+supplies one new task family, with a negative efficacy result; further external
+families and a prospective experiment remain necessary.
 
 The executable-gate protocol is separately frozen in
 `experiments/care_replay/configs/online_llm_gated_repeated_confirmation_v1.json`.

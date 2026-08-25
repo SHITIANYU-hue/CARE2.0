@@ -95,6 +95,24 @@ OUTCOME_SEMANTICS: dict[str, dict[str, str]] = {
         "raw_quantity": "shear modulus G_VRH; the Matbench target is log10(G_VRH)",
         "raw_unit": "GPa before the log10 transform",
     },
+    "real_flip2_hydro_p06241": {
+        "observed_value_type": "dimensionless_replay_score",
+        "score_definition": "clip((measured_stability_fitness + 5) / 5.5 * 100, 0, 100)",
+        "raw_quantity": "experimentally measured FLIP2 hydrophobic-core stability fitness",
+        "raw_unit": "dataset fitness unit",
+    },
+    "real_flip2_hydro_p01053": {
+        "observed_value_type": "dimensionless_replay_score",
+        "score_definition": "clip((measured_stability_fitness + 5) / 5.5 * 100, 0, 100)",
+        "raw_quantity": "experimentally measured FLIP2 hydrophobic-core stability fitness",
+        "raw_unit": "dataset fitness unit",
+    },
+    "real_flip2_hydro_p0a9x9": {
+        "observed_value_type": "dimensionless_replay_score",
+        "score_definition": "clip((measured_stability_fitness + 5) / 5.5 * 100, 0, 100)",
+        "raw_quantity": "experimentally measured FLIP2 hydrophobic-core stability fitness",
+        "raw_unit": "dataset fitness unit",
+    },
 }
 
 

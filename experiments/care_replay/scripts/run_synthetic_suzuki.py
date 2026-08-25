@@ -43,6 +43,10 @@ PUBLIC_DATA_URLS = {
     "moleculenet_freesolv_sampl.csv": "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/SAMPL.csv",
     "moleculenet_lipophilicity.csv": "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/Lipophilicity.csv",
     "moleculenet_bace.csv": "https://deepchemdata.s3-us-west-1.amazonaws.com/datasets/bace.csv",
+    "flip2_hydro_to_P06241.csv.gz": (
+        "https://flip.protein.properties/assets/splits/hydro/"
+        "to_P06241.csv.gz"
+    ),
     "chemlex_acidamine_wetlab_v3.xlsx": "https://zenodo.org/records/17596563/files/Chemlex_Acidamine_Wetlab_Data.xlsx?download=1",
     "matbench_expt_gap.json.gz": "https://ml.materialsproject.org/projects/matbench_expt_gap.json.gz",
     "matbench_dielectric.json.gz": "https://ml.materialsproject.org/projects/matbench_dielectric.json.gz",
@@ -261,6 +265,11 @@ def ensure_public_data_file(filename: str) -> Path:
 
 def read_csv_dicts(path: Path) -> list[dict[str, str]]:
     with path.open(newline="", encoding="utf-8") as f:
+        return list(csv.DictReader(f))
+
+
+def read_csv_gz_dicts(path: Path) -> list[dict[str, str]]:
+    with gzip.open(path, "rt", newline="", encoding="utf-8") as f:
         return list(csv.DictReader(f))
 
 
@@ -1689,6 +1698,213 @@ def real_moleculenet_bace_common_adapter() -> DatasetAdapter:
     )
 
 
+FLIP2_HYDRO_BACKBONES = {
+    "P06241": 57,
+    "P01053": 63,
+    "P0A9X9": 65,
+}
+FLIP2_HYDRO_DECISION_COLUMNS = (
+    "core_sequence",
+    "aromatic_count_bin",
+    "beta_branched_count_bin",
+    "leucine_count_bin",
+    "methionine_count_bin",
+    "core_diversity_bin",
+    "packing_volume_bin",
+)
+FLIP2_HYDRO_RESIDUE_VOLUME = {
+    "F": 189.9,
+    "I": 166.7,
+    "L": 166.7,
+    "M": 162.9,
+    "V": 140.0,
+}
+
+
+def flip2_hydro_variable_positions(
+    records: list[dict[str, str]],
+) -> dict[int, tuple[int, ...]]:
+    positions: dict[int, tuple[int, ...]] = {}
+    for length in sorted(FLIP2_HYDRO_BACKBONES.values()):
+        sequences = [
+            row["sequence"].strip()
+            for row in records
+            if len(row["sequence"].strip()) == length
+        ]
+        if not sequences:
+            raise ValueError(f"FLIP2 Hydro contains no sequences of length {length}.")
+        variable = tuple(
+            index
+            for index in range(length)
+            if len({sequence[index] for sequence in sequences}) > 1
+        )
+        if len(variable) != 7:
+            raise ValueError(
+                f"FLIP2 Hydro backbone length {length} has {len(variable)} "
+                "variable positions; expected seven."
+            )
+        observed = {sequence[index] for sequence in sequences for index in variable}
+        if not observed <= set(FLIP2_HYDRO_RESIDUE_VOLUME):
+            raise ValueError(
+                "FLIP2 Hydro variable positions contain residues outside F/I/L/M/V."
+            )
+        positions[length] = variable
+    return positions
+
+
+def flip2_hydro_public_features(
+    sequence: str,
+    variable_positions: tuple[int, ...],
+) -> tuple[dict[str, Any], tuple[float, ...]]:
+    core = "".join(sequence[index] for index in variable_positions)
+    counts = {residue: core.count(residue) for residue in FLIP2_HYDRO_RESIDUE_VOLUME}
+    aromatic_count = counts["F"]
+    beta_branched_count = counts["I"] + counts["V"]
+    unique_count = len(set(core))
+    mean_volume = sum(FLIP2_HYDRO_RESIDUE_VOLUME[residue] for residue in core) / len(core)
+    metadata = {
+        "core_sequence": core,
+        "aromatic_count_bin": numeric_bin(
+            float(aromatic_count),
+            (0.0, 1.0, 2.0),
+            (
+                "aromatic_none",
+                "aromatic_one",
+                "aromatic_two",
+                "aromatic_three_plus",
+            ),
+        ),
+        "beta_branched_count_bin": numeric_bin(
+            float(beta_branched_count),
+            (1.0, 3.0, 5.0),
+            (
+                "beta_branched_low",
+                "beta_branched_mid",
+                "beta_branched_high",
+                "beta_branched_very_high",
+            ),
+        ),
+        "leucine_count_bin": numeric_bin(
+            float(counts["L"]),
+            (0.0, 1.0, 2.0),
+            (
+                "leucine_none",
+                "leucine_one",
+                "leucine_two",
+                "leucine_three_plus",
+            ),
+        ),
+        "methionine_count_bin": numeric_bin(
+            float(counts["M"]),
+            (0.0, 1.0, 2.0),
+            (
+                "methionine_none",
+                "methionine_one",
+                "methionine_two",
+                "methionine_three_plus",
+            ),
+        ),
+        "core_diversity_bin": numeric_bin(
+            float(unique_count),
+            (1.0, 2.0, 3.0),
+            ("one_residue", "two_residues", "three_residues", "four_or_five_residues"),
+        ),
+        "packing_volume_bin": numeric_bin(
+            mean_volume,
+            (155.0, 170.0, 180.0),
+            ("volume_low", "volume_mid", "volume_high", "volume_very_high"),
+        ),
+        "core_f_count": counts["F"],
+        "core_i_count": counts["I"],
+        "core_l_count": counts["L"],
+        "core_m_count": counts["M"],
+        "core_v_count": counts["V"],
+        "mean_core_residue_volume": round(mean_volume, 6),
+    }
+    numeric = (
+        aromatic_count / 7.0,
+        beta_branched_count / 7.0,
+        counts["L"] / 7.0,
+        counts["M"] / 7.0,
+        unique_count / 5.0,
+    )
+    return metadata, numeric
+
+
+def real_flip2_hydro_adapter(backbone_id: str) -> DatasetAdapter:
+    if backbone_id not in FLIP2_HYDRO_BACKBONES:
+        raise ValueError(f"Unknown FLIP2 Hydro backbone: {backbone_id}")
+    path = ensure_public_data_file("flip2_hydro_to_P06241.csv.gz")
+    records = read_csv_gz_dicts(path)
+    positions_by_length = flip2_hydro_variable_positions(records)
+    sequence_length = FLIP2_HYDRO_BACKBONES[backbone_id]
+    variable_positions = positions_by_length[sequence_length]
+    pool: list[Candidate] = []
+    for row_index, row in enumerate(records):
+        sequence = row["sequence"].strip()
+        if len(sequence) != sequence_length:
+            continue
+        raw_fitness = float(row["target"])
+        normalized_fitness = clamp_score((raw_fitness + 5.0) / 5.5 * 100.0)
+        metadata, numeric_features = flip2_hydro_public_features(
+            sequence, variable_positions
+        )
+        pool.append(
+            Candidate(
+                candidate_id=f"flip2_hydro_{backbone_id}_{len(pool):05d}",
+                group=str(metadata["aromatic_count_bin"]),
+                x1=numeric_features[0],
+                x2=numeric_features[1],
+                x3=numeric_features[4],
+                objective_value=normalized_fitness,
+                metadata={
+                    "backbone_id": backbone_id,
+                    "sequence": sequence,
+                    "sequence_length": sequence_length,
+                    "variable_positions_1indexed": [
+                        index + 1 for index in variable_positions
+                    ],
+                    **metadata,
+                    "measured_stability_fitness": round(raw_fitness, 8),
+                    "normalized_stability_score": normalized_fitness,
+                    "official_split": row["set"],
+                    "official_validation": row["validation"],
+                    "source_row": row_index + 2,
+                },
+                numeric_features=numeric_features,
+            )
+        )
+    if not pool:
+        raise ValueError(f"FLIP2 Hydro adapter {backbone_id} has no candidates.")
+    return DatasetAdapter(
+        dataset_id=f"real_flip2_hydro_{backbone_id.lower()}",
+        title=f"FLIP2 Hydrophobic Core {backbone_id} stability replay",
+        objective="maximize_normalized_hydrophobic_core_stability",
+        decision_columns=FLIP2_HYDRO_DECISION_COLUMNS,
+        hidden_target="normalized_stability_score",
+        group_column="aromatic_count_bin",
+        preferred_groups=(),
+        failure_note=(
+            "This adapter uses experimentally measured hydrophobic-core fitness "
+            "from the official FLIP2 wild-type split. Public features are derived "
+            "only from the seven randomized F/I/L/M/V core residues."
+        ),
+        candidates=tuple(pool),
+    )
+
+
+def real_flip2_hydro_p06241_adapter() -> DatasetAdapter:
+    return real_flip2_hydro_adapter("P06241")
+
+
+def real_flip2_hydro_p01053_adapter() -> DatasetAdapter:
+    return real_flip2_hydro_adapter("P01053")
+
+
+def real_flip2_hydro_p0a9x9_adapter() -> DatasetAdapter:
+    return real_flip2_hydro_adapter("P0A9X9")
+
+
 def real_matbench_expt_gap_adapter() -> DatasetAdapter:
     path = ensure_public_data_file("matbench_expt_gap.json.gz")
     records = read_matbench_json_gz(path)
@@ -2057,6 +2273,9 @@ DATASET_BUILDERS: dict[str, Callable[[], DatasetAdapter]] = {
     "real_moleculenet_freesolv_continuous": real_moleculenet_freesolv_continuous_adapter,
     "real_moleculenet_lipophilicity": real_moleculenet_lipophilicity_adapter,
     "real_moleculenet_bace_common": real_moleculenet_bace_common_adapter,
+    "real_flip2_hydro_p06241": real_flip2_hydro_p06241_adapter,
+    "real_flip2_hydro_p01053": real_flip2_hydro_p01053_adapter,
+    "real_flip2_hydro_p0a9x9": real_flip2_hydro_p0a9x9_adapter,
     "real_matbench_expt_gap": real_matbench_expt_gap_adapter,
     "real_matbench_dielectric": real_matbench_dielectric_adapter,
     "real_matbench_phonons": real_matbench_phonons_adapter,

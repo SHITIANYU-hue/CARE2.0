@@ -63,6 +63,8 @@ def task_descriptor(adapter: replay.DatasetAdapter) -> dict[str, str]:
     metadata = adapter.candidates[0].metadata
     if adapter.dataset_id.startswith("real_moleculenet_"):
         domain = "molecular_property"
+    elif adapter.dataset_id.startswith("real_flip2_hydro_"):
+        domain = "protein_engineering"
     elif adapter.dataset_id.startswith("real_matbench_"):
         domain = "materials_property"
     elif "suzuki" in adapter.dataset_id or "buchwald" in adapter.dataset_id:
