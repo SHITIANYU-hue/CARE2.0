@@ -70,6 +70,13 @@ The current Opus suite supports the following statements:
    menus, diagnostics, and current-code LLM prompts remained exactly invariant.
    Archived prompt SHA-256 values were also verified. This supports the
    implementation information boundary, not LLM efficacy.
+9. The final LLM probability of improving the current best was scored on every
+   archived decision. Across 170 decisions and 17 routes, 27 improved the
+   pre-round best. The LLM Brier score was 0.133 versus 0.134 for the production
+   GP probability on the same executed candidate. The equal-route difference
+   was -0.0016 with a route-bootstrap 95% interval [-0.0132, +0.0090], so there
+   is no stable calibration advantage. The LLM was modestly optimistic: mean
+   probability 0.219 versus observed improvement rate 0.159.
 
 The current evidence does not support these statements:
 
@@ -81,6 +88,8 @@ The current evidence does not support these statements:
 5. The system has accelerated a new physical wet-lab discovery.
 6. The correct source feature-outcome association has been shown to carry more
    transferable information than randomized source-outcome assignments.
+7. The LLM's self-reported improvement probability is prospectively calibrated
+   or can already serve as a validated abstention gate.
 
 ## Current statistical result
 
@@ -513,6 +522,17 @@ Required response: use the terms "evidence-conditioned hypothesis revision" and
 "external trace memory" for the current system. Reserve "self-evolving skill
 library" for a separately implemented and evaluated module.
 
+### 6. The LLM does not yet know when to trust itself
+
+The complete 170-decision archive shows modest probability discrimination but
+no route-level calibration advantage over the GP probability assigned to the
+same candidate. The LLM is also more optimistic than the realized improvement
+frequency. Raw model confidence is therefore not a defensible transfer gate.
+
+Required response: fit probability calibration only on declared development
+routes, combine the calibrated probability with action-change and evidence-
+support features, and freeze the abstention rule before disjoint evaluation.
+
 ## Minimum Nature-level evidence package
 
 ### P0: required before a strong submission
@@ -540,6 +560,10 @@ library" for a separately implemented and evaluated module.
    operational pilot. Develop a challenger or compiled-skill policy only on the
    declared development routes; require nonzero beneficial action change there;
    then freeze a new disjoint repeated protocol before any evaluation calls.
+8. **Prospectively calibrated abstention.** The retrospective reliability audit
+   found no stable LLM calibration advantage and a +0.060 probability bias.
+   Fit any calibration map on development routes only, then lock its parameters
+   and abstention threshold before a new disjoint confirmation.
 
 Completed supporting control: the 17-route hidden-label non-interference audit
 now provides production-path evidence that unrevealed target labels cannot
@@ -566,8 +590,8 @@ task and prospective confirmation requirements above.
 2. Proposer-only versus proposer-plus-critic ablation.
 3. Source evidence, target observations, and generic scientific prior ablations.
 4. Skill retrieval and knowledge-base update ablations.
-5. Calibration curves for predicted improvement probability versus realized
-   improvement.
+5. Extend the completed retrospective probability-calibration audit with a
+   development-only calibration map and a newly frozen disjoint evaluation.
 
 ## Nature Portfolio reproducibility requirements
 

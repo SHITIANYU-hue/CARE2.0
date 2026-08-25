@@ -80,6 +80,7 @@ Frozen semantic skill & Can an LLM-compiled representation improve a strong targ
 Mechanism audit & Which component produces the observed gain? & Same-seed schedule-only, no-prior, warm-start-only, and data-only controls & Retrospective component attribution \\
 Hidden-label non-interference & Can unrevealed target labels affect a decision state? & Exact shadow-label reconstruction of 170 archived states across 17 routes & Implementation-boundary evidence, not efficacy evidence \\
 Online controller audit & Does the LLM change decisions after a matched initial design? & Same-start target GP, RGPE, multitask GP, route inventory, and controller handoff replays & Development and robustness evidence, not external confirmation \\
+Probability calibration audit & Does the LLM know when its executed candidate will improve the current best? & All 170 archived decisions, scored against the same-candidate GP probability & Retrospective uncertainty audit; no prospective gate claim \\
 Live bounded-authority pilot & Does one real LLM decision add value on disjoint routes? & Six successful Opus trajectories plus one preserved infrastructure failure & Operational pilot only; no confirmatory inference \\
 Frozen repeated protocol & Are effects stable across stochastic model calls? & Declared 30 trajectories per route, hash-locked analysis, no optional stopping & Pending until all declared trajectories complete \\
 \bottomrule
@@ -467,6 +468,57 @@ evaluation trajectories were previously known.}
 \label{fig:bounded_authority}
 \end{figure*}
 
+\subsection{Archived probability calibration and abstention implication}
+
+The final proposer--critic response reports a probability that the executed
+candidate will improve the pre-round best. We scored this field on every one of
+the 170 archived decisions and compared it with the production GP probability
+of improvement for the same executed candidate. This design evaluates
+probability estimation without confounding it with candidate selection. There
+were 27 improvements, an observed rate of 0.159.
+
+\begin{table}[t]
+\centering
+\caption{Retrospective probability calibration on the complete 17-route
+archive. ECE uses five fixed 0.2-wide bins.}
+\label{tab:probability_calibration}
+\begin{tabular}{lrrrrrr}
+\toprule
+Probability source & Mean $p$ & Observed & Bias & Brier & ECE & ROC AUC \\
+\midrule
+Final LLM decision & 0.219 & 0.159 & $+0.060$ & 0.133 & 0.060 & 0.679 \\
+GP, same candidate & 0.182 & 0.159 & $+0.023$ & 0.134 & 0.023 & 0.628 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The equal-route mean LLM-minus-GP Brier difference is $-0.0016$ with a
+route-bootstrap 95\% interval $[-0.0132,+0.0090]$; negative values favor the
+LLM. The corresponding equal-route ROC-AUC difference is $+0.0308$
+$[-0.0581,+0.1373]$. Both intervals include zero. The LLM probability is on
+average six percentage points above the realized improvement rate, whereas the
+GP probability is 2.3 points high. Thus, the archive does not establish that
+the LLM is better calibrated, and its self-reported probability should not be
+used directly as a deployment gate.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.98\textwidth]{llm_probability_calibration.png}
+\caption{Probability calibration on real archived decisions. Panel A compares
+fixed-bin predicted and observed improvement rates. Panel B shows the
+route-level Brier difference; negative values favor the LLM. Of the 170 GP
+probabilities, 110 were archived directly and 60 were reconstructed from the
+archived posterior mean, standard deviation, and current best using the
+production Gaussian probability-of-improvement formula. The audit pools two
+model/controller versions and is not a prospective gate validation.}
+\label{fig:probability_calibration}
+\end{figure*}
+
+The operational implication is to fit a probability calibration map only on
+declared development routes, use the calibrated probability as an abstention
+signal, and then freeze both map and threshold before disjoint evaluation. This
+prospective test remains outstanding.
+
 \subsection{Live bounded-authority pilot}
 
 One real Opus 4.8 proposer--critic decision completed on each of six disjoint
@@ -628,6 +680,7 @@ Artifact & Contents \\
 2026-08-24: bounded-authority confirmation & Live pilot, decision-impact audit, tokens, failures, and confirmation lock \\
 2026-08-24: source-outcome falsification & Three frozen routes, 100 target seeds per route, 19 matched outcome permutations, and randomization-test outputs \\
 2026-08-24: hidden-target non-interference & Exact shadow-label reconstruction for 170 archived decision states, route-level summaries, and verified prompt hashes \\
+2026-08-24: LLM probability calibration & All 170 archived decisions, fixed-bin reliability data, same-candidate GP comparison, and route-bootstrap uncertainty \\
 \bottomrule
 \end{tabularx}
 \end{table}
