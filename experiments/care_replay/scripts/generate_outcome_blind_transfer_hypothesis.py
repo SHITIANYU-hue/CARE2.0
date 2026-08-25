@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import hashlib
 import json
 import os
@@ -121,6 +122,7 @@ def generate(
     record = {
         "schema_version": "care.outcome_blind_transfer_hypothesis/v1",
         "status": "generated_before_dataset_download",
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "model": model,
         "base_url": base_url,
         "temperature": 0,
@@ -130,6 +132,9 @@ def generate(
         "request_sha256": sha256_bytes(body),
         "raw_response": raw_response,
         "parsed_hypothesis": parsed,
+        "provider_response_id": response_payload.get("id"),
+        "finish_reason": response_payload["choices"][0].get("finish_reason"),
+        "system_fingerprint": response_payload.get("system_fingerprint"),
         "usage": response_payload.get("usage", {}),
     }
     output_path.parent.mkdir(parents=True, exist_ok=True)

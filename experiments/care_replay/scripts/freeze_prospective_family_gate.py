@@ -20,6 +20,21 @@ def sha256_path(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def verify_public_task_spec(
+    hypothesis: Mapping[str, Any], record: Mapping[str, Any]
+) -> tuple[Path, str]:
+    public_spec_path = ROOT / str(hypothesis["public_task_spec_path"])
+    if not public_spec_path.exists():
+        raise ValueError("The declared public task specification is missing.")
+    public_spec_sha256 = sha256_path(public_spec_path)
+    if public_spec_sha256 != hypothesis.get("public_task_spec_sha256"):
+        raise ValueError("The public task specification hash does not match the config.")
+    public_spec = json.loads(public_spec_path.read_text(encoding="utf-8"))
+    if record.get("public_task_spec") != public_spec:
+        raise ValueError("The LLM record embeds a different public task specification.")
+    return public_spec_path, public_spec_sha256
+
+
 def build_lock(config: Mapping[str, Any], output_path: Path) -> dict[str, Any]:
     gate.validate_protocol(config)
     protocol = config["protocol"]
@@ -51,13 +66,24 @@ def build_lock(config: Mapping[str, Any], output_path: Path) -> dict[str, Any]:
         recommended = record.get("parsed_hypothesis", {}).get("recommended_skill")
         if recommended != hypothesis.get("recommended_skill"):
             raise ValueError("The parsed LLM recommendation differs from the config.")
-        if recommended not in protocol["gate"]["candidate_methods"]:
+        if recommended == "abstain":
+            if protocol["gate"]["fallback_policy"] != "target_gp_ucb":
+                raise ValueError(
+                    "An LLM abstention requires the frozen target-only fallback."
+                )
+        elif recommended not in protocol["gate"]["candidate_methods"]:
             raise ValueError("The LLM-recommended skill is absent from the gate menu.")
+        public_spec_path, public_spec_sha256 = verify_public_task_spec(
+            hypothesis, record
+        )
         hypothesis_lock = {
             "record_path": str(record_path.relative_to(ROOT)),
             "record_sha256": record_sha256,
+            "public_task_spec_path": str(public_spec_path.relative_to(ROOT)),
+            "public_task_spec_sha256": public_spec_sha256,
             "model": record.get("model"),
             "recommended_skill": recommended,
+            "decision_authority": hypothesis.get("decision_authority"),
             "target_outcomes_available": False,
         }
     implementation_files = (

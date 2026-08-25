@@ -27,6 +27,10 @@ STANDARD_ELIGIBILITY_RULE = (
     "paired_auc_ci95_lower_bound_above_zero_on_every_source_only_route"
 )
 COVERAGE_CONDITIONED_ELIGIBILITY_RULE = "coverage_conditioned_additive_v1"
+OUTCOME_BLIND_LLM_SKILLS = {
+    multisource.ADDITIVE_MUTATION_POLICY_MODE,
+    "abstain",
+}
 
 
 def canonical_sha256(payload: Mapping[str, Any]) -> str:
@@ -129,6 +133,11 @@ def validate_protocol(config: Mapping[str, Any]) -> None:
             value = float(thresholds[key])
             if not 0.0 <= value <= 1.0:
                 raise ValueError(f"Coverage threshold {key} must lie in [0, 1].")
+    semantic_hypothesis = protocol.get("semantic_hypothesis")
+    if semantic_hypothesis is not None:
+        recommended = str(semantic_hypothesis.get("recommended_skill", ""))
+        if recommended not in OUTCOME_BLIND_LLM_SKILLS:
+            raise ValueError(f"Unknown outcome-blind LLM skill: {recommended}")
 
 
 def verify_preregistration(config: Mapping[str, Any]) -> dict[str, Any] | None:
@@ -395,6 +404,39 @@ def structural_coverage_for_route(
     }
 
 
+def apply_outcome_blind_llm_recommendation(
+    gate_decision: dict[str, Any],
+    protocol: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Apply a frozen LLM abstention after preserving the gate counterfactual."""
+    hypothesis = protocol.get("semantic_hypothesis")
+    if hypothesis is None:
+        gate_decision["llm_recommended_skill"] = None
+        gate_decision["llm_abstention_applied"] = False
+        gate_decision["selection_reason"] = "calibration_gate"
+        return gate_decision
+    recommended = str(hypothesis["recommended_skill"])
+    if recommended not in OUTCOME_BLIND_LLM_SKILLS:
+        raise ValueError(f"Unknown outcome-blind LLM skill: {recommended}")
+    gate_decision["llm_recommended_skill"] = recommended
+    gate_decision["counterfactual_deployed_policy_before_llm_recommendation"] = (
+        gate_decision["deployed_policy"]
+    )
+    if recommended == "abstain":
+        gate_decision["deployed_policy"] = str(
+            protocol["gate"]["fallback_policy"]
+        )
+        gate_decision["fallback_triggered"] = True
+        gate_decision["llm_abstention_applied"] = True
+        gate_decision["selection_reason"] = "outcome_blind_llm_abstention"
+    else:
+        if recommended not in gate_decision["candidate_methods"]:
+            raise ValueError("The LLM-recommended skill is absent from the gate menu.")
+        gate_decision["llm_abstention_applied"] = False
+        gate_decision["selection_reason"] = "calibration_gate"
+    return gate_decision
+
+
 def write_outer_lock(
     config: Mapping[str, Any], output_dir: Path, dataset_path: Path
 ) -> dict[str, Any]:
@@ -480,6 +522,7 @@ def run(config: dict[str, Any], output_dir: Path) -> dict[str, Any]:
         deployment_coverage=deployment_coverage,
         coverage_thresholds=protocol["gate"].get("coverage_thresholds"),
     )
+    gate = apply_outcome_blind_llm_recommendation(gate, protocol)
     deployment_spec = protocol["deployment"]
     deployment_config = build_inner_config(
         config,

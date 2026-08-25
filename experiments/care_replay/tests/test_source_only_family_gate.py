@@ -163,6 +163,46 @@ class SourceOnlyFamilyGateTests(unittest.TestCase):
         )
         self.assertEqual(selected["deployed_policy"], "target_gp_ucb")
 
+    def test_outcome_blind_llm_abstention_overrides_positive_gate(self):
+        decision = {
+            "candidate_methods": ["source_additive_mutation_prior"],
+            "deployed_policy": "source_additive_mutation_prior",
+            "fallback_triggered": False,
+        }
+        protocol = {
+            "semantic_hypothesis": {"recommended_skill": "abstain"},
+            "gate": {"fallback_policy": "target_gp_ucb"},
+        }
+        applied = gate.apply_outcome_blind_llm_recommendation(decision, protocol)
+        self.assertEqual(applied["deployed_policy"], "target_gp_ucb")
+        self.assertEqual(
+            applied["counterfactual_deployed_policy_before_llm_recommendation"],
+            "source_additive_mutation_prior",
+        )
+        self.assertTrue(applied["llm_abstention_applied"])
+        self.assertEqual(
+            applied["selection_reason"], "outcome_blind_llm_abstention"
+        )
+
+    def test_outcome_blind_llm_additive_recommendation_preserves_gate(self):
+        decision = {
+            "candidate_methods": ["source_additive_mutation_prior"],
+            "deployed_policy": "source_additive_mutation_prior",
+            "fallback_triggered": False,
+        }
+        protocol = {
+            "semantic_hypothesis": {
+                "recommended_skill": "source_additive_mutation_prior"
+            },
+            "gate": {"fallback_policy": "target_gp_ucb"},
+        }
+        applied = gate.apply_outcome_blind_llm_recommendation(decision, protocol)
+        self.assertEqual(
+            applied["deployed_policy"], "source_additive_mutation_prior"
+        )
+        self.assertFalse(applied["llm_abstention_applied"])
+        self.assertEqual(applied["selection_reason"], "calibration_gate")
+
 
 if __name__ == "__main__":
     unittest.main()
