@@ -68,6 +68,16 @@ def numeric_feature_names(adapter: replay.DatasetAdapter) -> list[str]:
             "methionine_core_fraction",
             "core_residue_diversity",
         ]
+    if adapter.dataset_id.startswith("real_flip2_rhomax_"):
+        return [
+            *(f"amino_acid_fraction_{residue}" for residue in replay.FLIP2_RHOMAX_AMINO_ACIDS),
+            "normalized_sequence_length",
+            "hydrophobic_fraction",
+            "charged_fraction",
+            "aromatic_fraction",
+            "polar_fraction",
+            "gly_pro_fraction",
+        ]
     if adapter.dataset_id.startswith("real_baumgartner_cn_"):
         return [
             "base_equivalents",

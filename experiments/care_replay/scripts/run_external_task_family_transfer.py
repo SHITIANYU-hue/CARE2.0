@@ -113,7 +113,12 @@ def run(config: dict[str, Any], output_dir: Path) -> dict[str, Any]:
     protocol = config["protocol"]
     kernel = protocol["kernel"]
     output_dir.mkdir(parents=True, exist_ok=True)
-    dataset_path = replay.ensure_public_data_file("flip2_hydro_to_P06241.csv.gz")
+    dataset_filename = str(
+        protocol["dataset"].get(
+            "local_filename", "flip2_hydro_to_P06241.csv.gz"
+        )
+    )
+    dataset_path = replay.ensure_public_data_file(dataset_filename)
     protocol_lock = write_protocol_lock(config, output_dir, dataset_path)
     source_ids = [str(item) for item in protocol["source_task_ids"]]
     sources = [replay.DATASET_BUILDERS[task_id]() for task_id in source_ids]

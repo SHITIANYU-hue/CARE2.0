@@ -84,6 +84,23 @@ def validate_protocol(config: Mapping[str, Any]) -> None:
         raise ValueError("The source-only safety fallback must be target_gp_ucb.")
 
 
+def verify_preregistration(config: Mapping[str, Any]) -> dict[str, Any] | None:
+    spec = config["protocol"].get("preregistration")
+    if not spec:
+        return None
+    lock_path = ROOT / str(spec["lock_path"])
+    if not lock_path.exists():
+        raise ValueError(f"Required preregistration lock is missing: {lock_path}")
+    lock = json.loads(lock_path.read_text(encoding="utf-8"))
+    if lock.get("status") != "preregistered_before_dataset_download":
+        raise ValueError("Preregistration lock has an invalid status.")
+    if lock.get("canonical_config_sha256") != canonical_sha256(config):
+        raise ValueError("Preregistration config hash does not match this run.")
+    if lock.get("deployment_target_outcomes_available_at_freeze") is not False:
+        raise ValueError("Preregistration does not prove an outcome-blind freeze.")
+    return lock
+
+
 def build_inner_config(
     config: Mapping[str, Any],
     route: Mapping[str, Any],
@@ -230,9 +247,15 @@ def write_outer_lock(
 
 def run(config: dict[str, Any], output_dir: Path) -> dict[str, Any]:
     validate_protocol(config)
+    preregistration = verify_preregistration(config)
     protocol = config["protocol"]
     output_dir.mkdir(parents=True, exist_ok=True)
-    dataset_path = replay.ensure_public_data_file("flip2_hydro_to_P06241.csv.gz")
+    dataset_filename = str(
+        protocol["dataset"].get(
+            "local_filename", "flip2_hydro_to_P06241.csv.gz"
+        )
+    )
+    dataset_path = replay.ensure_public_data_file(dataset_filename)
     lock = write_outer_lock(config, output_dir, dataset_path)
 
     calibration_summaries: dict[str, dict[str, Any]] = {}
@@ -319,6 +342,11 @@ def run(config: dict[str, Any], output_dir: Path) -> dict[str, Any]:
         "protocol_version": protocol["version"],
         "analysis_status": protocol["analysis_status"],
         "protocol_lock_sha256": sha256_path(output_dir / "protocol_lock.json"),
+        "preregistration_lock_sha256": (
+            sha256_path(ROOT / str(protocol["preregistration"]["lock_path"]))
+            if preregistration is not None
+            else None
+        ),
         "raw_dataset_sha256": lock["raw_dataset_sha256"],
         "calibration_route_count": len(calibration_summaries),
         "calibration_target_excludes_deployment_target": True,

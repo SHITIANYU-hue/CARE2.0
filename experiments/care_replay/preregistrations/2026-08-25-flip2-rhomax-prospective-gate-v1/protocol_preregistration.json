@@ -1,0 +1,83 @@
+{
+  "schema_version": "care.prospective_family_gate_preregistration/v1",
+  "status": "preregistered_before_dataset_download",
+  "protocol_version": "care2_flip2_rhomax_prospective_gate_v1",
+  "frozen_on": "2026-08-25",
+  "canonical_config_sha256": "b7659c89d550e083468fda3d00f6d802a08cb2f6da38dc781b523284f2f33b57",
+  "dataset": {
+    "name": "FLIP2 Rhodopsin (Rhomax)",
+    "official_split": "by-wild-type",
+    "url": "https://flip.protein.properties/assets/splits/rhomax/by_wild_type.csv.gz",
+    "local_filename": "flip2_rhomax_by_wild_type.csv.gz",
+    "license": "CC-BY-4.0",
+    "citation": "Didi et al., FLIP2, ICML 2026 Spotlight",
+    "public_metadata": {
+      "total_variants": 884,
+      "wild_types": 75,
+      "train_wild_types": 5,
+      "validation_wild_types": 34,
+      "test_wild_types": 36
+    }
+  },
+  "deployment_target_task_id": "real_flip2_rhomax_test",
+  "deployment_target_outcomes_available_at_freeze": false,
+  "raw_dataset_present_at_freeze": false,
+  "implementation_files_sha256": {
+    "care_replay/scripts/freeze_prospective_family_gate.py": "103dfe23e14e05cf10f4b88b9700c0f2162931cdc77fb43dfe569d2eff4adcd4",
+    "care_replay/scripts/run_source_only_family_gate.py": "5a79f312b1c68c080e1f4046f4dce34f77efde6e815b94d76421b1f2a83f8a13",
+    "care_replay/scripts/run_external_task_family_transfer.py": "925384cb93688d4f8d8cc164901e6119204242b8f81bf3a22b9fb4a91aca1f94",
+    "care_replay/scripts/run_synthetic_suzuki.py": "cc33d15f22520f9e385234505ccbc74ef2ee1f7fd7a947d48dd63e90826debc9",
+    "care_replay/scripts/run_transfer_ablation.py": "b168ab4312031c87f93f47261018561b2cda537df79af664594ff5975d133040",
+    "care_replay/scripts/run_classical_transfer_baselines.py": "1db15acf5d720ea948af982df7bcd5f0dcc0b68973ec930ba9e4f82581859aeb",
+    "care_replay/scripts/run_multisource_transfer_baselines.py": "b11f870005a54f17f31e603a8a6cf038f590449885c17692f8520d63be92a3a2"
+  },
+  "gate": {
+    "candidate_methods": [
+      "multisource_rgpe",
+      "multisource_icm_bma",
+      "multisource_skill_prior"
+    ],
+    "eligibility_rule": "paired_auc_ci95_lower_bound_above_zero_on_every_source_only_route",
+    "no_gate_selection_rule": "largest_route_equal_mean_auc_delta",
+    "fallback_policy": "target_gp_ucb"
+  },
+  "calibration_routes": [
+    {
+      "route_id": "train_to_validation",
+      "source_task_ids": [
+        "real_flip2_rhomax_train"
+      ],
+      "pseudo_target_task_id": "real_flip2_rhomax_validation",
+      "heldout_seed_start": 95000,
+      "heldout_seed_count": 50
+    },
+    {
+      "route_id": "validation_to_train",
+      "source_task_ids": [
+        "real_flip2_rhomax_validation"
+      ],
+      "pseudo_target_task_id": "real_flip2_rhomax_train",
+      "heldout_seed_start": 95100,
+      "heldout_seed_count": 50
+    }
+  ],
+  "deployment": {
+    "source_task_ids": [
+      "real_flip2_rhomax_train",
+      "real_flip2_rhomax_validation"
+    ],
+    "target_task_id": "real_flip2_rhomax_test",
+    "heldout_seed_start": 95200,
+    "heldout_seed_count": 100
+  },
+  "constraints": {
+    "test_partition_outcomes_excluded_from_gate_selection": true,
+    "calibration_uses_official_train_and_validation_partitions_only": true,
+    "official_by_wild_type_split_preserved": true,
+    "same_initial_observations_within_seed": true,
+    "same_target_reveal_budget": true,
+    "all_declared_seeds_retained": true,
+    "no_optional_stopping": true
+  },
+  "claim_boundary": "This protocol is preregistered before the official Rhomax file is downloaded or any test-partition outcome is inspected. It is a finite-pool prospective replay on an external protein family, not a wet-lab discovery claim."
+}

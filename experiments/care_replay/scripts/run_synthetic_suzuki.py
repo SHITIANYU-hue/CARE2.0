@@ -47,6 +47,10 @@ PUBLIC_DATA_URLS = {
         "https://flip.protein.properties/assets/splits/hydro/"
         "to_P06241.csv.gz"
     ),
+    "flip2_rhomax_by_wild_type.csv.gz": (
+        "https://flip.protein.properties/assets/splits/rhomax/"
+        "by_wild_type.csv.gz"
+    ),
     "chemlex_acidamine_wetlab_v3.xlsx": "https://zenodo.org/records/17596563/files/Chemlex_Acidamine_Wetlab_Data.xlsx?download=1",
     "matbench_expt_gap.json.gz": "https://ml.materialsproject.org/projects/matbench_expt_gap.json.gz",
     "matbench_dielectric.json.gz": "https://ml.materialsproject.org/projects/matbench_dielectric.json.gz",
@@ -1905,6 +1909,170 @@ def real_flip2_hydro_p0a9x9_adapter() -> DatasetAdapter:
     return real_flip2_hydro_adapter("P0A9X9")
 
 
+FLIP2_RHOMAX_AMINO_ACIDS = tuple("ACDEFGHIKLMNPQRSTVWY")
+FLIP2_RHOMAX_HYDROPHOBIC = frozenset("AILMFWVY")
+FLIP2_RHOMAX_CHARGED = frozenset("DEKR")
+FLIP2_RHOMAX_AROMATIC = frozenset("FWY")
+FLIP2_RHOMAX_POLAR = frozenset("STNQ")
+FLIP2_RHOMAX_DECISION_COLUMNS = (
+    "sequence_length_bin",
+    "hydrophobic_fraction_bin",
+    "charged_fraction_bin",
+    "aromatic_fraction_bin",
+    "polar_fraction_bin",
+    "gly_pro_fraction_bin",
+)
+
+
+def flip2_rhomax_partition(row: dict[str, str]) -> str:
+    set_name = str(row.get("set", "")).strip().lower()
+    validation = str(row.get("validation", "")).strip().lower()
+    is_validation = validation in {"1", "true", "yes"}
+    if is_validation or set_name in {"validation", "val"}:
+        return "validation"
+    if set_name == "train":
+        return "train"
+    if set_name == "test":
+        return "test"
+    raise ValueError(f"Unknown FLIP2 Rhomax partition: {set_name!r}")
+
+
+def flip2_rhomax_public_features(
+    sequence: str,
+) -> tuple[dict[str, Any], tuple[float, ...]]:
+    sequence = sequence.strip().upper()
+    if not sequence:
+        raise ValueError("FLIP2 Rhomax sequence cannot be empty.")
+    unknown = sorted(set(sequence) - set(FLIP2_RHOMAX_AMINO_ACIDS))
+    if unknown:
+        raise ValueError(
+            f"FLIP2 Rhomax sequence contains unsupported residues: {unknown}"
+        )
+    length = float(len(sequence))
+    fractions = {
+        residue: sequence.count(residue) / length
+        for residue in FLIP2_RHOMAX_AMINO_ACIDS
+    }
+    hydrophobic_fraction = sum(fractions[item] for item in FLIP2_RHOMAX_HYDROPHOBIC)
+    charged_fraction = sum(fractions[item] for item in FLIP2_RHOMAX_CHARGED)
+    aromatic_fraction = sum(fractions[item] for item in FLIP2_RHOMAX_AROMATIC)
+    polar_fraction = sum(fractions[item] for item in FLIP2_RHOMAX_POLAR)
+    gly_pro_fraction = fractions["G"] + fractions["P"]
+    metadata = {
+        "sequence_length_bin": numeric_bin(
+            length,
+            (200.0, 250.0, 300.0),
+            ("length_short", "length_mid", "length_long", "length_very_long"),
+        ),
+        "hydrophobic_fraction_bin": numeric_bin(
+            hydrophobic_fraction,
+            (0.40, 0.48, 0.56),
+            ("hydrophobic_low", "hydrophobic_mid", "hydrophobic_high", "hydrophobic_very_high"),
+        ),
+        "charged_fraction_bin": numeric_bin(
+            charged_fraction,
+            (0.08, 0.12, 0.16),
+            ("charged_low", "charged_mid", "charged_high", "charged_very_high"),
+        ),
+        "aromatic_fraction_bin": numeric_bin(
+            aromatic_fraction,
+            (0.07, 0.10, 0.13),
+            ("aromatic_low", "aromatic_mid", "aromatic_high", "aromatic_very_high"),
+        ),
+        "polar_fraction_bin": numeric_bin(
+            polar_fraction,
+            (0.10, 0.14, 0.18),
+            ("polar_low", "polar_mid", "polar_high", "polar_very_high"),
+        ),
+        "gly_pro_fraction_bin": numeric_bin(
+            gly_pro_fraction,
+            (0.10, 0.14, 0.18),
+            ("gly_pro_low", "gly_pro_mid", "gly_pro_high", "gly_pro_very_high"),
+        ),
+        "sequence_length": int(length),
+        "hydrophobic_fraction": round(hydrophobic_fraction, 8),
+        "charged_fraction": round(charged_fraction, 8),
+        "aromatic_fraction": round(aromatic_fraction, 8),
+        "polar_fraction": round(polar_fraction, 8),
+        "gly_pro_fraction": round(gly_pro_fraction, 8),
+    }
+    numeric = (
+        *(fractions[item] for item in FLIP2_RHOMAX_AMINO_ACIDS),
+        min(length, 500.0) / 500.0,
+        hydrophobic_fraction,
+        charged_fraction,
+        aromatic_fraction,
+        polar_fraction,
+        gly_pro_fraction,
+    )
+    return metadata, numeric
+
+
+def real_flip2_rhomax_adapter(partition: str) -> DatasetAdapter:
+    if partition not in {"train", "validation", "test"}:
+        raise ValueError(f"Unknown FLIP2 Rhomax partition: {partition}")
+    path = ensure_public_data_file("flip2_rhomax_by_wild_type.csv.gz")
+    records = read_csv_gz_dicts(path)
+    pool: list[Candidate] = []
+    for row_index, row in enumerate(records):
+        if flip2_rhomax_partition(row) != partition:
+            continue
+        sequence = row["sequence"].strip().upper()
+        metadata, numeric_features = flip2_rhomax_public_features(sequence)
+        wavelength_nm = float(row["target"])
+        normalized_wavelength = clamp_score((wavelength_nm - 350.0) / 300.0 * 100.0)
+        pool.append(
+            Candidate(
+                candidate_id=f"flip2_rhomax_{partition}_{len(pool):04d}",
+                group=str(metadata["hydrophobic_fraction_bin"]),
+                x1=numeric_features[-5],
+                x2=numeric_features[-4],
+                x3=numeric_features[-3],
+                objective_value=normalized_wavelength,
+                metadata={
+                    "sequence": sequence,
+                    "rhomax_partition": partition,
+                    **metadata,
+                    "measured_peak_wavelength_nm": round(wavelength_nm, 8),
+                    "normalized_peak_wavelength_score": normalized_wavelength,
+                    "official_split": row.get("set", ""),
+                    "official_validation": row.get("validation", ""),
+                    "source_row": row_index + 2,
+                },
+                numeric_features=numeric_features,
+            )
+        )
+    if not pool:
+        raise ValueError(f"FLIP2 Rhomax adapter {partition} has no candidates.")
+    return DatasetAdapter(
+        dataset_id=f"real_flip2_rhomax_{partition}",
+        title=f"FLIP2 Rhodopsin {partition} peak-wavelength replay",
+        objective="maximize_normalized_peak_absorption_wavelength",
+        decision_columns=FLIP2_RHOMAX_DECISION_COLUMNS,
+        hidden_target="normalized_peak_wavelength_score",
+        group_column="hydrophobic_fraction_bin",
+        preferred_groups=(),
+        failure_note=(
+            "This adapter uses experimentally measured peak absorption wavelength "
+            "from the official FLIP2 by-wild-type split. Public features are "
+            "computed from sequence composition and length only."
+        ),
+        candidates=tuple(pool),
+    )
+
+
+def real_flip2_rhomax_train_adapter() -> DatasetAdapter:
+    return real_flip2_rhomax_adapter("train")
+
+
+def real_flip2_rhomax_validation_adapter() -> DatasetAdapter:
+    return real_flip2_rhomax_adapter("validation")
+
+
+def real_flip2_rhomax_test_adapter() -> DatasetAdapter:
+    return real_flip2_rhomax_adapter("test")
+
+
 def real_matbench_expt_gap_adapter() -> DatasetAdapter:
     path = ensure_public_data_file("matbench_expt_gap.json.gz")
     records = read_matbench_json_gz(path)
@@ -2276,6 +2444,9 @@ DATASET_BUILDERS: dict[str, Callable[[], DatasetAdapter]] = {
     "real_flip2_hydro_p06241": real_flip2_hydro_p06241_adapter,
     "real_flip2_hydro_p01053": real_flip2_hydro_p01053_adapter,
     "real_flip2_hydro_p0a9x9": real_flip2_hydro_p0a9x9_adapter,
+    "real_flip2_rhomax_train": real_flip2_rhomax_train_adapter,
+    "real_flip2_rhomax_validation": real_flip2_rhomax_validation_adapter,
+    "real_flip2_rhomax_test": real_flip2_rhomax_test_adapter,
     "real_matbench_expt_gap": real_matbench_expt_gap_adapter,
     "real_matbench_dielectric": real_matbench_dielectric_adapter,
     "real_matbench_phonons": real_matbench_phonons_adapter,
