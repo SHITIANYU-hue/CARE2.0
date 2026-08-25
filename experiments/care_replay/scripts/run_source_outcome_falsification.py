@@ -584,9 +584,13 @@ def write_results(path: Path, report: dict[str, Any]) -> None:
         )
     lines.extend([
         "",
-        "A positive true-vs-permuted interval shows that the source feature-outcome ",
-        "association matters beyond the outcome marginal distribution. This retrospective ",
-        "falsification does not substitute for a fresh-task or prospective experiment.",
+        "The paired confidence intervals quantify uncertainty across target seeds, conditional ",
+        "on the tested outcome assignments. They do not test whether the true source assignment ",
+        "is exceptional among matched permutations. That causal question is evaluated by the ",
+        "empirical randomization p-value. Under the frozen 19-permutation audit, none of the ",
+        "tested routes rejects the assignment-null at p < 0.05. The result therefore does not ",
+        "establish source feature-outcome learning beyond the outcome marginal and initialization ",
+        "mechanism, and it does not substitute for a fresh-task or prospective experiment.",
         "",
     ])
     path.write_text("\n".join(lines), encoding="utf-8")

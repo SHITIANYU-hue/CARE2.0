@@ -124,6 +124,49 @@ class SourceOutcomeFalsificationTests(unittest.TestCase):
                 permutation_seeds=permutation_seeds,
             ))
 
+    def test_results_distinguish_seed_uncertainty_from_randomization_test(self) -> None:
+        report = {
+            "pairs": [
+                {
+                    "source_dataset": "source",
+                    "target_dataset": "target",
+                    "true_outcomes_minus_target_only": {
+                        "best_so_far_auc": {
+                            "mean": 2.0,
+                            "normal_95ci_low": 1.0,
+                            "normal_95ci_high": 3.0,
+                        },
+                    },
+                    "true_outcomes_minus_mean_permutation": {
+                        "best_so_far_auc": {
+                            "mean": 1.5,
+                            "normal_95ci_low": 1.5,
+                            "normal_95ci_high": 1.5,
+                        },
+                    },
+                    "randomization_test": {
+                        "best_so_far_auc": {"one_sided_empirical_p": 0.15},
+                    },
+                },
+            ],
+        }
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            results_path = Path(temporary_directory) / "RESULTS.md"
+            falsification.write_results(results_path, report)
+            results = results_path.read_text(encoding="utf-8")
+            normalized_results = " ".join(results.split())
+
+        self.assertIn(
+            "conditional on the tested outcome assignments",
+            normalized_results,
+        )
+        self.assertIn("empirical randomization p-value", normalized_results)
+        self.assertIn("none of the tested routes rejects", normalized_results)
+        self.assertNotIn(
+            "shows that the source feature-outcome association matters",
+            normalized_results,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

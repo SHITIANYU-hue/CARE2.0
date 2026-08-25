@@ -63,6 +63,13 @@ The current Opus suite supports the following statements:
    routes with 100 target seeds and 19 matched outcome permutations per route.
    Reaction and materials warm starts beat target-only, but none of the true
    source-outcome assignments rejected the permutation null at 0.05.
+8. A production-path hidden-label non-interference audit passed on all 170
+   archived request states across the complete 17-route portfolio. The audit
+   permuted 2,725,689 state-level unrevealed label positions while preserving
+   revealed outcomes and public candidate attributes; source priors, executable
+   menus, diagnostics, and current-code LLM prompts remained exactly invariant.
+   Archived prompt SHA-256 values were also verified. This supports the
+   implementation information boundary, not LLM efficacy.
 
 The current evidence does not support these statements:
 
@@ -433,6 +440,16 @@ binding is more informative than randomized assignments. A prospectively frozen
 new task family remains mandatory; retrospective warm-start gains cannot carry
 the causal source-outcome claim.
 
+The hidden-target information boundary now has executable evidence. A frozen
+audit reconstructed every archived request state in the 17-route online
+portfolio, permuted all labels that were unrevealed at that state, and reran the
+production source-prior, menu, diagnostics, and prompt builders. All 170 states
+were invariant and every archived prompt matched its recorded digest. Six early
+routes use a historical prompt/menu schema, so exact old-prompt reconstruction
+is retained as a version-drift diagnostic rather than conflated with the
+current-code non-interference endpoint. This closes a reproducibility gap but
+does not close the larger efficacy or prospective-generalization gaps.
+
 The defensible architecture is therefore:
 
 `source evidence + target schema -> LLM-compiled skill -> strict compiler -> calibration -> frozen skill -> target optimizer`
@@ -523,6 +540,12 @@ library" for a separately implemented and evaluated module.
    operational pilot. Develop a challenger or compiled-skill policy only on the
    declared development routes; require nonzero beneficial action change there;
    then freeze a new disjoint repeated protocol before any evaluation calls.
+
+Completed supporting control: the 17-route hidden-label non-interference audit
+now provides production-path evidence that unrevealed target labels cannot
+change the current source prior, candidate menu, diagnostics, or LLM prompt on
+the 170 archived states. This control should accompany, not replace, the fresh
+task and prospective confirmation requirements above.
 
 ### P1: needed to make the paper distinctive
 

@@ -78,6 +78,7 @@ Tier & Main question & Evidence & Permitted interpretation \\
 \midrule
 Frozen semantic skill & Can an LLM-compiled representation improve a strong target-only optimizer? & 300--500 paired held-out seeds per target after development and calibration & Positive task-specific evidence for compiled skills \\
 Mechanism audit & Which component produces the observed gain? & Same-seed schedule-only, no-prior, warm-start-only, and data-only controls & Retrospective component attribution \\
+Hidden-label non-interference & Can unrevealed target labels affect a decision state? & Exact shadow-label reconstruction of 170 archived states across 17 routes & Implementation-boundary evidence, not efficacy evidence \\
 Online controller audit & Does the LLM change decisions after a matched initial design? & Same-start target GP, RGPE, multitask GP, route inventory, and controller handoff replays & Development and robustness evidence, not external confirmation \\
 Live bounded-authority pilot & Does one real LLM decision add value on disjoint routes? & Six successful Opus trajectories plus one preserved infrastructure failure & Operational pilot only; no confirmatory inference \\
 Frozen repeated protocol & Are effects stable across stochastic model calls? & Declared 30 trajectories per route, hash-locked analysis, no optional stopping & Pending until all declared trajectories complete \\
@@ -142,6 +143,46 @@ At online round $t$, only outcomes revealed in rounds $<t$ are included. The
 target-only comparator starts from the same target observations when isolating
 the online-controller increment. Calibration, held-out replay, and online
 trajectory evidence are stored in separate directories with immutable hashes.
+
+\subsection{Empirical hidden-label non-interference}
+\label{sec:noninterference}
+
+We tested the information boundary through the production decision-state code
+rather than relying only on a prompt-field blacklist. For every one of 170
+archived online request states spanning 17 source--target routes, we preserved
+the outcomes already revealed before that request, every public candidate
+attribute, source evidence, and all protocol settings. We then permuted every
+remaining hidden target label and rebuilt the source prior, candidate menu,
+menu diagnostics, and complete LLM prompt. A state passed only if all four
+objects were exactly invariant under canonical JSON serialization and the
+archived prompt still matched its recorded SHA-256.
+
+All 170 states passed, covering 40 molecular-property states, 80
+materials-property states, and 50 reaction-optimization states. Across these
+state-level interventions, 2,725,689 unrevealed label positions were permuted.
+Figure~\ref{fig:hidden_label_noninterference} reports every route and round.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.98\textwidth]{hidden_target_noninterference.png}
+\caption{Hidden-target non-interference audit generated from the archived
+decision states. Panel A shows the number of unrevealed labels permuted at each
+route and round; Panel B aggregates intervention coverage by route. Every state
+preserved the source prior, executable candidate menu, diagnostics, and full
+current-code LLM prompt exactly. Historical prompt hashes were verified
+separately. All archived states predate the added public outcome-semantics
+field; 110 states reproduce after removing only that field, whereas 60 states
+from six earlier routes also predate the current eligibility and safety fields.
+Exact historical byte reconstruction is therefore reported as code-version
+drift rather than used as the primary endpoint.}
+\label{fig:hidden_label_noninterference}
+\end{figure*}
+
+This audit supports the implementation-level claim that unrevealed target
+labels do not affect the current decision-state construction on the tested
+routes. It does not establish that an LLM decision is scientifically correct,
+that transfer improves the target experiment, or that the same property holds
+for an untested future implementation.
 
 \subsection{Baselines and why they are included}
 
@@ -567,7 +608,7 @@ Credentials are never stored in the repository.
 
 \subsection{Primary artifact map}
 
-\begin{table}[!h]
+\begin{table}[!htbp]
 \centering
 \caption{Repository artifacts supporting the supplement. Paths are relative to
 \code{experiments/care\_replay/results}.}
@@ -585,6 +626,8 @@ Artifact & Contents \\
 2026-08-24: predeclared baseline portfolio v2 & Target GP, RGPE, and multitask-GP matched baselines \\
 2026-08-24: route-disjoint bounded authority & Training/evaluation route split and 115-policy handoff audit \\
 2026-08-24: bounded-authority confirmation & Live pilot, decision-impact audit, tokens, failures, and confirmation lock \\
+2026-08-24: source-outcome falsification & Three frozen routes, 100 target seeds per route, 19 matched outcome permutations, and randomization-test outputs \\
+2026-08-24: hidden-target non-interference & Exact shadow-label reconstruction for 170 archived decision states, route-level summaries, and verified prompt hashes \\
 \bottomrule
 \end{tabularx}
 \end{table}
