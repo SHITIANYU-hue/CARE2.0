@@ -86,6 +86,14 @@ The current Opus suite supports the following statements:
     the LLM downgraded the source hypothesis, selected GP rank one, and set
     `continue_source_transfer=false`; the online increment was zero, while the
     full LLM trajectory was 7.186 AUC below the fixed-design comparator.
+11. A source-only family gate was audited without using P06241 outcomes. On two
+    50-seed pseudo-target rotations between the completed P01053 and P0A9X9
+    backbones, RGPE, ICM-BMA, and the fixed skill prior all had paired 95%
+    intervals below zero. The frozen eligibility rule therefore rejected every
+    transfer policy and deployed target-only GP-UCB on P06241. The otherwise
+    selected ICM-BMA policy lost 8.133 AUC, so the fallback avoided that loss.
+    The gate was designed after the external result was observed and is
+    therefore a retrospective mechanism audit, not prospective confirmation.
 
 The current evidence does not support these statements:
 
@@ -102,6 +110,9 @@ The current evidence does not support these statements:
 8. The external protein-engineering task establishes positive cross-domain
    efficacy. It establishes a negative-transfer boundary and one auditable
    abstention case only.
+9. The source-only family gate is already a prospectively validated safety
+   mechanism. Its computation excludes P06241 outcomes, but its design history
+   is retrospective; it must be preregistered on another unseen task family.
 
 ## Current statistical result
 
@@ -155,6 +166,30 @@ was rejected and the executed action matches the safe target-only default.
 It is not a positive-performance result: online delta was 0.000, and the LLM-
 generated initial design was worse than the fixed initializer in this single
 trajectory.
+
+### Source-only family gate
+
+The follow-up audit asks a more operational question: can the completed source
+campaigns veto unsafe transfer without reading any deployment-target outcome?
+P01053 and P0A9X9 were alternately treated as pseudo-targets for 50 paired seeds
+per direction. A transfer method was eligible only when its paired 95%
+confidence-interval lower bound exceeded zero on both source-only routes.
+P06241 was prohibited from calibration and method selection.
+
+| Method | P01053 to P0A9X9 delta [95% CI] | P0A9X9 to P01053 delta [95% CI] | Eligible? |
+|---|---:|---:|---:|
+| RGPE | -6.743 [-8.466, -5.020] | -5.573 [-11.073, -0.073] | No |
+| ICM-BMA | -3.361 [-4.739, -1.984] | -8.158 [-13.936, -2.380] | No |
+| Fixed skill prior | -12.702 [-14.327, -11.078] | -27.288 [-32.522, -22.054] | No |
+
+All three methods were rejected. An ungated source-only selector would have
+chosen ICM-BMA as the least harmful calibration method; it lost 8.133 AUC on
+P06241. The frozen fallback instead selected target-only GP-UCB and avoided
+that loss. This is useful evidence that target labels are not technically
+required for the veto decision. It is not evidence of prospective safety,
+because the gate was designed after the P06241 stress-test result was known.
+The next external family must preregister this exact rule, route construction,
+and fallback before any target outcome is inspected.
 
 ## Frozen repeated-trajectory protocol
 

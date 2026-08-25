@@ -56,7 +56,11 @@ provide a stable general advantage. A newly frozen protein-engineering task
 family produces strong negative transfer for all three classical transfer
 baselines; one live LLM trajectory identifies the mismatch and hands control
 back to target-only GP, but its initial design remains worse than a fixed
-design. All negative and null results are retained.
+design. A retrospective gate calibrated only on completed source backbones
+would reject all three transfer policies before reading P06241 outcomes and
+avoid the 8.133 AUC loss of the least harmful transfer policy. Because this gate
+was designed after the external result was known, it is a mechanism audit, not
+prospective safety confirmation. All negative and null results are retained.
 \end{abstract}
 
 \begin{appendices}
@@ -87,6 +91,7 @@ Online controller audit & Does the LLM change decisions after a matched initial 
 Probability calibration audit & Does the LLM know when its executed candidate will improve the current best? & All 170 archived decisions, scored against the same-candidate GP probability & Retrospective uncertainty audit; no prospective gate claim \\
 Live bounded-authority pilot & Does one real LLM decision add value on disjoint routes? & Six successful Opus trajectories plus one preserved infrastructure failure & Operational pilot only; no confirmatory inference \\
 External task-family stress test & Does a frozen controller generalize to a task family absent from development? & Official FLIP2 wild-type holdout; 100 paired classical-transfer seeds and one live Opus trajectory & Negative-transfer boundary and abstention case; not positive external confirmation \\
+Source-only family gate & Can completed source tasks reject unsafe transfer without target outcomes? & Two 50-seed source-only pseudo-target routes, frozen lower-confidence-bound eligibility rule, and outcome-blind P06241 deployment replay & Retrospective mechanism audit; the rule was designed after the external result and is not prospective confirmation \\
 Frozen repeated protocol & Are effects stable across stochastic model calls? & Declared 30 trajectories per route, hash-locked analysis, no optional stopping & Pending until all declared trajectories complete \\
 \bottomrule
 \end{tabularx}
@@ -488,6 +493,51 @@ an apparently identical seven-residue design schema. Any generalization claim
 must therefore include negative-transfer rate and same-start target-only
 controls.
 
+\subsection{Source-only family gate}
+\label{sec:flip2_source_only_gate}
+
+We next asked whether the completed protein campaigns could reject harmful
+transfer without using any P06241 outcome. We treated P01053 and P0A9X9 in turn
+as pseudo-targets and evaluated the three fixed transfer policies over 50 paired
+seeds per direction. A policy was eligible for deployment only if the lower
+bound of its paired 95\% confidence interval exceeded zero on \emph{both}
+source-only routes. Otherwise the frozen fallback was target-only GP-UCB. The
+P06241 target was prohibited from the calibration-route specification and from
+all policy-selection calculations.
+
+RGPE changed AUC by $-6.743$ [$-8.466,-5.020$] on P01053$\rightarrow$P0A9X9
+and $-5.573$ [$-11.073,-0.073$] on the reverse route. ICM-BMA changed AUC by
+$-3.361$ [$-4.739,-1.984$] and $-8.158$ [$-13.936,-2.380$], respectively.
+The fixed skill prior changed AUC by $-12.702$ [$-14.327,-11.078$] and
+$-27.288$ [$-32.522,-22.054$]. No transfer policy was therefore eligible.
+Without the gate, source-only selection would have chosen ICM-BMA because it
+had the least negative route-equal mean ($-5.760$). On P06241, that policy lost
+$8.133$ AUC relative to target-only GP-UCB; the gate deployed target-only GP-UCB
+and therefore avoided that loss by construction.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.98\textwidth]{source_only_family_gate.png}
+\caption{Source-only family-gate audit generated directly from the frozen
+result files. The first two columns are the only calibration evidence: each
+completed source backbone is treated as a pseudo-target in turn. All three
+transfer policies have confidence intervals below zero on both directions and
+are rejected. The third column is an external deployment audit on P06241 and
+does not enter calibration or policy selection. The gate falls back to
+target-only GP-UCB and avoids the 8.133 AUC loss of the otherwise selected
+ICM-BMA policy. The gate design followed observation of the external-family
+result, so this is retrospective mechanism evidence rather than prospective
+safety confirmation.}
+\label{fig:flip2_source_only_gate}
+\end{figure*}
+
+This result narrows the next confirmatory question. The numerical rule can be
+computed without deployment-target labels and would have blocked the observed
+negative transfer, but its design history prevents a prospective claim. A
+second external family must therefore be preregistered with the same eligibility
+rule, source-only calibration procedure, and target-only fallback before any
+target outcome is inspected.
+
 \section{Online LLM controller and strong baselines}
 \label{sec:online}
 
@@ -767,6 +817,7 @@ Artifact & Contents \\
 2026-08-24: hidden-target non-interference & Exact shadow-label reconstruction for 170 archived decision states, route-level summaries, and verified prompt hashes \\
 2026-08-24: LLM probability calibration & All 170 archived decisions, fixed-bin reliability data, same-candidate GP comparison, and route-bootstrap uncertainty \\
 2026-08-24: FLIP2 external task family & Frozen official wild-type split, 100-seed GP/RGPE/ICM/skill-prior comparison, protocol lock, one live Opus trace, and negative-transfer audit \\
+2026-08-24: FLIP2 source-only family gate & Two 50-seed pseudo-target calibration routes, frozen eligibility calculation, outcome-blind P06241 deployment replay, protocol lock, and real-data gate matrix \\
 \bottomrule
 \end{tabularx}
 \end{table}
