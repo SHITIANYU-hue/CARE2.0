@@ -145,7 +145,7 @@ def build_inner_config(
             "kernel": dict(protocol["kernel"]),
             "constraints": {
                 "new_domain_not_used_in_controller_development": True,
-                "official_wild_type_split_preserved": True,
+                "official_task_split_preserved": True,
                 "target_outcomes_hidden_until_selection": True,
                 "no_target_task_parameter_tuning": True,
                 "same_initial_observations_within_seed": True,

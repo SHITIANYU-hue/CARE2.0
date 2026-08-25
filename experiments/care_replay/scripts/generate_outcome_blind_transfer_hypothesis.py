@@ -74,10 +74,11 @@ def generate(
             "task": spec,
             "skill_menu": {
                 "source_additive_mutation_prior": (
-                    "Estimate shrunk per-mutation effects from completed 0-2 "
-                    "mutation source experiments, sum available effects for a "
-                    "higher-order target variant, and blend that source rank "
-                    "with target-only GP-UCB under a fixed decaying authority."
+                    "Estimate shrunk per-mutation effects from the completed "
+                    "low-order source experiments defined by the supplied "
+                    "split, sum available effects for a higher-order target "
+                    "variant, and blend that source rank with target-only "
+                    "GP-UCB under a fixed decaying authority."
                 ),
                 "abstain": "Use target-only GP-UCB and transfer no source effect.",
             },

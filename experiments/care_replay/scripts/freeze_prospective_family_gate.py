@@ -63,6 +63,7 @@ def build_lock(config: Mapping[str, Any], output_path: Path) -> dict[str, Any]:
     implementation_files = (
         Path(__file__).resolve(),
         Path(__file__).with_name("generate_outcome_blind_transfer_hypothesis.py"),
+        Path(__file__).with_name("run_ired_source_outcome_falsification.py"),
         *gate.IMPLEMENTATION_FILES,
     )
     return {

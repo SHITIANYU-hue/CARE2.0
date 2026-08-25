@@ -1,0 +1,67 @@
+{
+  "protocol": {
+    "version": "care2_flip2_trpb_source_outcome_confirmation_v1",
+    "schema_version": "care.source_outcome_assignment_confirmation/v1",
+    "status": "prospective_mechanism_confirmation",
+    "created_on": "2026-08-25",
+    "evidence_class": "prospective_source_outcome_assignment_confirmation",
+    "parent_protocol": "care2_flip2_trpb_prospective_positive_transfer_v1",
+    "parent_config_path": "configs/flip2_trpb_prospective_positive_transfer_v1.json",
+    "preregistration_lock_path": "preregistrations/2026-08-25-flip2-trpb-positive-transfer-v1/protocol_preregistration.json",
+    "dataset": {
+      "name": "FLIP2 Tryptophan Synthase beta-Subunit (TrpB)",
+      "official_split": "one-to-many",
+      "local_filename": "flip2_trpb_one_to_many.csv.gz",
+      "license": "CC-BY-4.0",
+      "finite_pool_rule": "At most 5,000 rows per partition selected by smallest SHA-256 sequence hash"
+    },
+    "source_task_id": "real_flip2_trpb_train_validation",
+    "target_task_id": "real_flip2_trpb_test",
+    "source_seed": 0,
+    "source_observation_count": 5000,
+    "target_seed_start": 99500,
+    "target_seed_count": 100,
+    "permutation_seed_start": 99700,
+    "permutation_count": 99,
+    "initial_observations": 3,
+    "reveal_rounds": 12,
+    "skill_prior_mass_start": 0.5,
+    "skill_prior_mass_end": 0.1,
+    "bootstrap_draws": 200000,
+    "kernel": {
+      "gp_beta": 1.5,
+      "numeric_length_scale": 0.45,
+      "categorical_length_scale": 4.0,
+      "gp_noise": 0.05
+    },
+    "intervention": {
+      "fixed_components": [
+        "outcome-blind target finite pool",
+        "target seeds and initial observations",
+        "target reveal budget",
+        "GP-UCB kernel and beta",
+        "LLM-selected additive-mutation executor",
+        "source sequence rows",
+        "source outcome marginal distribution",
+        "decaying source-authority schedule"
+      ],
+      "changed_component": "assignment of measured source outcomes to source mutation features",
+      "true_condition": "measured source outcomes remain attached to their observed variants",
+      "null_conditions": "99 deterministic permutations of the same source outcomes across the same source variants"
+    },
+    "primary_estimand": "mean paired best-so-far AUC of the true source-outcome assignment minus the mean over outcome-permuted assignments",
+    "primary_test": "one-sided finite randomization test with plus-one correction over 99 null assignments",
+    "success_rule": "one_sided_randomization_p_auc_at_most_0.05_and_bootstrap_ci95_lower_bound_above_zero",
+    "constraints": {
+      "protocol_frozen_before_dataset_download": true,
+      "official_test_split_preserved_before_outcome_blind_subsampling": true,
+      "same_initial_observations_within_target_seed": true,
+      "same_target_reveal_budget": true,
+      "target_outcomes_excluded_from_source_prior_construction": true,
+      "all_target_seeds_retained": true,
+      "all_permutation_assignments_retained": true,
+      "no_optional_stopping": true
+    },
+    "claim_boundary": "This independently preregistered audit tests whether the LLM-selected additive executor benefits specifically from the correct TrpB source sequence-outcome binding. It is an external finite-pool replay, not a wet-lab discovery or universal cross-domain claim."
+  }
+}

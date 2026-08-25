@@ -1,0 +1,102 @@
+{
+  "protocol": {
+    "version": "care2_flip2_trpb_prospective_positive_transfer_v1",
+    "status": "frozen_before_execution",
+    "frozen_on": "2026-08-25",
+    "analysis_status": "prospective_preregistered_before_test_outcomes",
+    "evidence_class": "prospective_external_positive_transfer_replication",
+    "dataset": {
+      "name": "FLIP2 Tryptophan Synthase beta-Subunit (TrpB)",
+      "official_split": "one-to-many",
+      "url": "https://flip.protein.properties/assets/splits/trpb/one_to_many.csv.gz",
+      "local_filename": "flip2_trpb_one_to_many.csv.gz",
+      "license": "CC-BY-4.0",
+      "citation": "Didi et al., FLIP2, ICML 2026 Spotlight",
+      "public_metadata": {
+        "total_variants": 228298,
+        "sublandscapes": 10,
+        "engineered_positions": 20,
+        "source_mutation_orders": [0, 1],
+        "target_mutation_order": "greater_than_1"
+      },
+      "finite_pool_rule": "Within each official partition, retain at most 5,000 sequences with the lexicographically smallest SHA-256 sequence hashes"
+    },
+    "preregistration": {
+      "lock_path": "preregistrations/2026-08-25-flip2-trpb-positive-transfer-v1/protocol_preregistration.json"
+    },
+    "semantic_hypothesis": {
+      "status": "generated_before_dataset_download",
+      "model": "anthropic/claude-opus-4-8",
+      "record_path": "preregistrations/2026-08-25-flip2-trpb-positive-transfer-v1/llm_hypothesis_record.json",
+      "record_sha256": "0c610668bec87b826decf9c6b45ecfab1cc90148ceb9beb04cb788ecc484f70c",
+      "public_task_spec_sha256": "ba21450bd5758a0303e0d2f67b20c2998cbafdab87cf469f43444bc58020a2ba",
+      "recommended_skill": "source_additive_mutation_prior",
+      "target_outcomes_available_to_model": false
+    },
+    "mechanism_confirmation": {
+      "config_path": "configs/flip2_trpb_source_outcome_confirmation_v1.json",
+      "config_sha256": "620bd6a77caeb237fb71a7ae6d9facba7dc564f3a6522979530dda1591fa883b",
+      "primary_estimand": "true source-outcome assignment AUC minus mean outcome-permuted assignment AUC",
+      "primary_test": "one-sided plus-one randomization test over 99 deterministic assignments",
+      "success_rule": "p_at_most_0.05_and_bootstrap_ci95_lower_bound_above_zero"
+    },
+    "calibration_routes": [
+      {
+        "route_id": "train_to_validation",
+        "source_task_ids": ["real_flip2_trpb_train"],
+        "pseudo_target_task_id": "real_flip2_trpb_validation",
+        "heldout_seed_start": 99000,
+        "heldout_seed_count": 100
+      }
+    ],
+    "deployment": {
+      "source_task_ids": ["real_flip2_trpb_train_validation"],
+      "target_task_id": "real_flip2_trpb_test",
+      "heldout_seed_start": 99200,
+      "heldout_seed_count": 100
+    },
+    "gate": {
+      "candidate_methods": ["source_additive_mutation_prior"],
+      "eligibility_rule": "paired_auc_ci95_lower_bound_above_zero_on_every_source_only_route",
+      "no_gate_selection_rule": "predeclared_llm_recommended_skill_only",
+      "fallback_policy": "target_gp_ucb"
+    },
+    "success_rules": {
+      "positive_external_efficacy": "deployed_policy_is_source_additive_mutation_prior_and_official_test_paired_auc_ci95_lower_bound_above_zero",
+      "source_outcome_mechanism": "one_sided_randomization_p_auc_at_most_0.05_and_bootstrap_ci95_lower_bound_above_zero",
+      "safety": "if_calibration_gate_rejects_then_deploy_target_gp_ucb",
+      "no_optional_stopping": true
+    },
+    "source_seed": 0,
+    "source_observation_count_per_task": 5000,
+    "source_inducing_limit": 128,
+    "initial_observations": 3,
+    "reveal_rounds": 12,
+    "rgpe_draws": 256,
+    "multitask_rho_grid": [-0.9, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75, 0.9],
+    "bma_temperature": 1.0,
+    "skill_prior_mass_start": 0.5,
+    "skill_prior_mass_end": 0.1,
+    "kernel": {
+      "gp_beta": 1.5,
+      "numeric_length_scale": 0.45,
+      "categorical_length_scale": 4.0,
+      "gp_noise": 0.05
+    },
+    "constraints": {
+      "test_partition_outcomes_excluded_from_gate_selection": true,
+      "calibration_uses_official_train_and_validation_partitions_only": true,
+      "official_one_to_many_split_preserved": true,
+      "finite_pool_sampling_uses_sequence_hash_only": true,
+      "candidate_cap_per_partition": 5000,
+      "llm_hypothesis_generated_before_dataset_download": true,
+      "mechanism_test_frozen_before_dataset_download": true,
+      "same_initial_observations_within_seed": true,
+      "same_target_reveal_budget": true,
+      "all_declared_seeds_retained": true,
+      "all_declared_permutations_retained": true,
+      "no_optional_stopping": true
+    },
+    "claim_boundary": "This protocol was frozen before the official TrpB file was downloaded or any target fitness was inspected. It independently replicates finite-pool positive transfer from low-order to higher-order variants in a new external enzyme family and prospectively tests source-outcome attribution. It is not a wet-lab discovery or universal cross-domain efficacy claim."
+  }
+}

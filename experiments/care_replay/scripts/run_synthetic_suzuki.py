@@ -55,6 +55,10 @@ PUBLIC_DATA_URLS = {
         "https://flip.protein.properties/assets/splits/ired/"
         "two_to_many.csv.gz"
     ),
+    "flip2_trpb_one_to_many.csv.gz": (
+        "https://flip.protein.properties/assets/splits/trpb/"
+        "one_to_many.csv.gz"
+    ),
     "chemlex_acidamine_wetlab_v3.xlsx": "https://zenodo.org/records/17596563/files/Chemlex_Acidamine_Wetlab_Data.xlsx?download=1",
     "matbench_expt_gap.json.gz": "https://ml.materialsproject.org/projects/matbench_expt_gap.json.gz",
     "matbench_dielectric.json.gz": "https://ml.materialsproject.org/projects/matbench_dielectric.json.gz",
@@ -2336,6 +2340,145 @@ def real_flip2_ired_test_adapter() -> DatasetAdapter:
     return real_flip2_ired_adapter("test")
 
 
+FLIP2_TRPB_CANDIDATE_CAP = 5000
+FLIP2_TRPB_DECISION_COLUMNS = FLIP2_IRED_DECISION_COLUMNS
+
+
+def flip2_trpb_partition(row: dict[str, str]) -> str:
+    return flip2_ired_partition(row)
+
+
+def flip2_trpb_reference_sequence(records: list[dict[str, str]]) -> str:
+    sequences = [
+        str(row.get("sequence", "")).strip().upper()
+        for row in records
+        if flip2_trpb_partition(row) in {"train", "validation"}
+    ]
+    if not sequences:
+        raise ValueError("FLIP2 TrpB has no train/validation sequences.")
+    length_counts: dict[int, int] = {}
+    for sequence in sequences:
+        length_counts[len(sequence)] = length_counts.get(len(sequence), 0) + 1
+    reference_length = max(length_counts, key=lambda length: (length_counts[length], length))
+    aligned = [sequence for sequence in sequences if len(sequence) == reference_length]
+    amino_order = {residue: index for index, residue in enumerate(FLIP2_IRED_AMINO_ACIDS)}
+    unknown = sorted(set("".join(aligned)) - set(FLIP2_IRED_AMINO_ACIDS))
+    if unknown:
+        raise ValueError(f"FLIP2 TrpB contains unsupported residues: {unknown}")
+    reference = []
+    for position in range(reference_length):
+        counts: dict[str, int] = {}
+        for sequence in aligned:
+            residue = sequence[position]
+            counts[residue] = counts.get(residue, 0) + 1
+        reference.append(
+            max(counts, key=lambda residue: (counts[residue], -amino_order[residue]))
+        )
+    return "".join(reference)
+
+
+def flip2_trpb_public_features(
+    sequence: str,
+    reference: str,
+) -> tuple[dict[str, Any], tuple[float, ...]]:
+    return flip2_ired_public_features(sequence, reference)
+
+
+def _flip2_trpb_partition_rows(
+    records: list[dict[str, str]],
+    included: set[str],
+) -> list[tuple[int, dict[str, str]]]:
+    rows = [
+        (row_index, row)
+        for row_index, row in enumerate(records)
+        if flip2_trpb_partition(row) in included
+    ]
+    rows.sort(
+        key=lambda item: hashlib.sha256(
+            str(item[1].get("sequence", "")).strip().upper().encode("utf-8")
+        ).hexdigest()
+    )
+    return rows[:FLIP2_TRPB_CANDIDATE_CAP]
+
+
+def real_flip2_trpb_adapter(partition: str) -> DatasetAdapter:
+    valid = {"train", "validation", "train_validation", "test"}
+    if partition not in valid:
+        raise ValueError(f"Unknown FLIP2 TrpB partition: {partition}")
+    path = ensure_public_data_file("flip2_trpb_one_to_many.csv.gz")
+    records = read_csv_gz_dicts(path)
+    reference = flip2_trpb_reference_sequence(records)
+    included = {"train", "validation"} if partition == "train_validation" else {partition}
+    pool: list[Candidate] = []
+    for row_index, row in _flip2_trpb_partition_rows(records, included):
+        sequence = str(row.get("sequence", "")).strip().upper()
+        if len(sequence) != len(reference):
+            continue
+        metadata, numeric_features = flip2_trpb_public_features(sequence, reference)
+        fitness = float(row["target"])
+        if not math.isfinite(fitness):
+            raise ValueError("FLIP2 TrpB target must be finite.")
+        official_partition = flip2_trpb_partition(row)
+        pool.append(
+            Candidate(
+                candidate_id=f"flip2_trpb_{partition}_{len(pool):05d}",
+                group=str(metadata["mutation_count_bin"]),
+                x1=numeric_features[20],
+                x2=numeric_features[25],
+                x3=numeric_features[26],
+                objective_value=fitness,
+                metadata={
+                    "sequence": sequence,
+                    "trpb_partition": partition,
+                    **metadata,
+                    "measured_trpb_fitness": round(fitness, 8),
+                    "official_partition": official_partition,
+                    "official_split": row.get("set", ""),
+                    "official_validation": row.get("validation", ""),
+                    "source_row": row_index + 2,
+                    "outcome_blind_sampling_key": hashlib.sha256(
+                        sequence.encode("utf-8")
+                    ).hexdigest(),
+                },
+                numeric_features=numeric_features,
+            )
+        )
+    if not pool:
+        raise ValueError(f"FLIP2 TrpB adapter {partition} has no candidates.")
+    return DatasetAdapter(
+        dataset_id=f"real_flip2_trpb_{partition}",
+        title=f"FLIP2 TrpB {partition} growth-fitness replay",
+        objective="maximize_measured_trpb_growth_fitness",
+        decision_columns=FLIP2_TRPB_DECISION_COLUMNS,
+        hidden_target="measured_trpb_fitness",
+        group_column="mutation_count_bin",
+        preferred_groups=(),
+        failure_note=(
+            "This adapter uses the official FLIP2 TrpB one-to-many split and "
+            "an outcome-blind SHA-256 finite-pool sample capped at 5,000 rows "
+            "per partition. Mutation descriptors are computed from public "
+            "sequences; growth fitness remains hidden until reveal."
+        ),
+        candidates=tuple(pool),
+    )
+
+
+def real_flip2_trpb_train_adapter() -> DatasetAdapter:
+    return real_flip2_trpb_adapter("train")
+
+
+def real_flip2_trpb_validation_adapter() -> DatasetAdapter:
+    return real_flip2_trpb_adapter("validation")
+
+
+def real_flip2_trpb_train_validation_adapter() -> DatasetAdapter:
+    return real_flip2_trpb_adapter("train_validation")
+
+
+def real_flip2_trpb_test_adapter() -> DatasetAdapter:
+    return real_flip2_trpb_adapter("test")
+
+
 def real_matbench_expt_gap_adapter() -> DatasetAdapter:
     path = ensure_public_data_file("matbench_expt_gap.json.gz")
     records = read_matbench_json_gz(path)
@@ -2714,6 +2857,10 @@ DATASET_BUILDERS: dict[str, Callable[[], DatasetAdapter]] = {
     "real_flip2_ired_validation": real_flip2_ired_validation_adapter,
     "real_flip2_ired_train_validation": real_flip2_ired_train_validation_adapter,
     "real_flip2_ired_test": real_flip2_ired_test_adapter,
+    "real_flip2_trpb_train": real_flip2_trpb_train_adapter,
+    "real_flip2_trpb_validation": real_flip2_trpb_validation_adapter,
+    "real_flip2_trpb_train_validation": real_flip2_trpb_train_validation_adapter,
+    "real_flip2_trpb_test": real_flip2_trpb_test_adapter,
     "real_matbench_expt_gap": real_matbench_expt_gap_adapter,
     "real_matbench_dielectric": real_matbench_dielectric_adapter,
     "real_matbench_phonons": real_matbench_phonons_adapter,

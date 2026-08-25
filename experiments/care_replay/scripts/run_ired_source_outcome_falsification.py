@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Falsify the IRED additive skill with matched source-outcome permutations."""
+"""Test an additive transfer skill with matched source-outcome permutations."""
 
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ import run_transfer_ablation as transfer
 ROOT = Path(__file__).resolve().parents[1]
 TRUE_CONDITION = "true_source_outcomes"
 BASELINE_CONDITION = "target_gp_ucb"
-SCHEMA_VERSION = "care.ired_source_outcome_falsification/v1"
+DEFAULT_SCHEMA_VERSION = "care.ired_source_outcome_falsification/v1"
 METRICS = ("final_best", "best_so_far_auc", "simple_regret", "top10_hit")
 
 _WORKER: dict[str, Any] = {}
@@ -66,8 +66,12 @@ def canonical_sha256(payload: Mapping[str, Any]) -> str:
 
 def validate_config(config: Mapping[str, Any]) -> None:
     protocol = config["protocol"]
-    if protocol.get("status") != "retrospective_mechanism_falsification":
-        raise ValueError("The IRED falsification must retain its post-hoc status.")
+    valid_statuses = {
+        "retrospective_mechanism_falsification",
+        "prospective_mechanism_confirmation",
+    }
+    if protocol.get("status") not in valid_statuses:
+        raise ValueError("Unknown source-outcome assignment-test status.")
     if int(protocol["permutation_count"]) < 19:
         raise ValueError("At least 19 source-outcome permutations are required.")
     if int(protocol["target_seed_count"]) < 30:
@@ -76,6 +80,22 @@ def validate_config(config: Mapping[str, Any]) -> None:
         raise ValueError("Unknown source task.")
     if protocol["target_task_id"] not in replay.DATASET_BUILDERS:
         raise ValueError("Unknown target task.")
+    if protocol["status"] == "prospective_mechanism_confirmation":
+        parent_path = ROOT / str(protocol["parent_config_path"])
+        preregistration_path = ROOT / str(protocol["preregistration_lock_path"])
+        if not parent_path.exists() or not preregistration_path.exists():
+            raise ValueError("Prospective mechanism confirmation requires frozen parent files.")
+        parent = json.loads(parent_path.read_text(encoding="utf-8"))
+        lock = json.loads(preregistration_path.read_text(encoding="utf-8"))
+        declared_hash = parent["protocol"]["mechanism_confirmation"][
+            "config_sha256"
+        ]
+        if declared_hash != canonical_sha256(config):
+            raise ValueError("Mechanism config differs from the parent protocol declaration.")
+        if lock.get("canonical_config_sha256") != canonical_sha256(parent):
+            raise ValueError("Parent protocol differs from the preregistration lock.")
+        if lock.get("deployment_target_outcomes_available_at_freeze") is not False:
+            raise ValueError("Preregistration does not prove outcome-blind mechanism freeze.")
 
 
 def permuted_source_observations(
@@ -400,7 +420,7 @@ def build_report(
         float(row["auc_delta_vs_target_gp"]["mean"]) for row in null_summaries
     ]
     report = {
-        "schema_version": SCHEMA_VERSION,
+        "schema_version": protocol.get("schema_version", DEFAULT_SCHEMA_VERSION),
         "protocol_version": protocol["version"],
         "evidence_class": protocol["evidence_class"],
         "claim_boundary": protocol["claim_boundary"],
@@ -479,7 +499,7 @@ def main() -> None:
         Path(transfer.__file__).resolve(),
     ]
     lock = {
-        "schema_version": f"{SCHEMA_VERSION}.lock",
+        "schema_version": f"{protocol.get('schema_version', DEFAULT_SCHEMA_VERSION)}.lock",
         "config_sha256": canonical_sha256(config),
         "raw_data_sha256": sha256_path(raw_path),
         "implementation_sha256": {
@@ -490,7 +510,10 @@ def main() -> None:
             "numpy": np.__version__,
             "gp_backend": surrogate.gp_backend_name(),
         },
-        "posthoc_status_retained": True,
+        "analysis_status": protocol["status"],
+        "posthoc_status_retained": (
+            protocol["status"] == "retrospective_mechanism_falsification"
+        ),
     }
     lock_path = args.output_dir / "protocol_lock.json"
     write_json(lock_path, lock)
