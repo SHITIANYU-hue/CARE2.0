@@ -1,6 +1,6 @@
 # CARE 2.0: Nature Submission Readiness
 
-Updated 2026-08-24.
+Updated 2026-08-25.
 
 ## Editorial position
 
@@ -94,6 +94,16 @@ The current Opus suite supports the following statements:
     selected ICM-BMA policy lost 8.133 AUC, so the fallback avoided that loss.
     The gate was designed after the external result was observed and is
     therefore a retrospective mechanism audit, not prospective confirmation.
+12. The unchanged source-only gate was then preregistered on the official FLIP2
+    Rhodopsin by-wild-type benchmark before the raw file was downloaded. The
+    config, code hashes, eligibility rule, fallback, two 50-seed source-only
+    calibration routes, and 100-seed official-test deployment were committed as
+    `4130dd4`. No method cleared the requirement that its paired AUC 95% interval
+    lower bound exceed zero on both calibration routes. The ungated selector
+    would have deployed the fixed skill prior, which lost 1.548 AUC on the
+    untouched official test [95% CI -1.996, -1.099]. The gate deployed target-
+    only GP-UCB and avoided that loss. This is prospective negative-transfer
+    prevention on one external protein family, not positive-transfer efficacy.
 
 The current evidence does not support these statements:
 
@@ -110,9 +120,9 @@ The current evidence does not support these statements:
 8. The external protein-engineering task establishes positive cross-domain
    efficacy. It establishes a negative-transfer boundary and one auditable
    abstention case only.
-9. The source-only family gate is already a prospectively validated safety
-   mechanism. Its computation excludes P06241 outcomes, but its design history
-   is retrospective; it must be preregistered on another unseen task family.
+9. The source-only family gate eliminates negative transfer in general. It now
+   has one prospective external-family confirmation, but that single successful
+   veto does not establish universal safety or positive transfer efficacy.
 
 ## Current statistical result
 
@@ -188,8 +198,33 @@ P06241. The frozen fallback instead selected target-only GP-UCB and avoided
 that loss. This is useful evidence that target labels are not technically
 required for the veto decision. It is not evidence of prospective safety,
 because the gate was designed after the P06241 stress-test result was known.
-The next external family must preregister this exact rule, route construction,
-and fallback before any target outcome is inspected.
+This requirement defined the next test: preregister the exact rule, route
+construction, and fallback on a second external family before any target
+outcome is inspected.
+
+### Prospective Rhodopsin family-gate confirmation
+
+That confirmatory test has now been completed on a second external family. The
+official FLIP2 Rhodopsin by-wild-type split contains 884 measured variants from
+75 wild types. The official train, validation, and test partitions contain 584,
+116, and 184 variants and correspond to 5, 34, and 36 wild types. The raw file
+was absent when the protocol was frozen. Commit `4130dd4` records the config,
+implementation hashes, source-only routes, eligibility rule, fallback, and 200
+evaluation seeds before download.
+
+| Method | Train to validation delta [95% CI] | Validation to train delta [95% CI] | Official test delta [95% CI] | Eligible? |
+|---|---:|---:|---:|---:|
+| RGPE | -0.298 [-0.922, +0.325] | -0.263 [-1.252, +0.727] | -3.819 [-4.498, -3.140] | No |
+| ICM-BMA | -0.791 [-1.397, -0.185] | -0.965 [-1.660, -0.270] | -1.539 [-2.066, -1.011] | No |
+| Fixed skill prior | +0.384 [-0.301, +1.069] | +1.192 [+0.271, +2.112] | -1.548 [-1.996, -1.099] | No |
+
+The fixed skill prior had the best route-equal calibration mean (+0.788), but
+its first-route confidence interval crossed zero, so the frozen gate rejected
+it and fell back to target-only GP-UCB. The official test was read only after
+that decision and showed that the ungated choice would have caused a stable
+1.548 AUC loss. This converts the earlier retrospective mechanism into one
+prospective external safety result. It does not show positive external efficacy,
+universal negative-transfer control, or prospective wet-lab discovery.
 
 ## Frozen repeated-trajectory protocol
 
@@ -210,9 +245,10 @@ rates are retained. The runner writes a hash lock over the protocol, analysis
 script, route configs, and initial records before the first model call.
 
 This protocol addresses stochastic repeatability, but it does not turn the six
-development routes into independent confirmation. The FLIP2 stress test now
-supplies one new task family, with a negative efficacy result; further external
-families and a prospective experiment remain necessary.
+development routes into independent confirmation. The FLIP2 Hydrophobic Core
+stress test supplies a negative external efficacy result, and the Rhodopsin
+confirmation supplies a prospective safety result. Positive external efficacy
+and a prospective laboratory experiment remain necessary.
 
 The executable-gate protocol is separately frozen in
 `experiments/care_replay/configs/online_llm_gated_repeated_confirmation_v1.json`.
@@ -630,7 +666,9 @@ support features, and freeze the abstention rule before disjoint evaluation.
    initial observations and target-only GP comparator.
 3. **Fresh task family.** Add at least one domain not used during prompt or
    controller development. A new route inside the same C-N dataset is useful but
-   insufficient for a broad cross-domain claim.
+   insufficient for a broad cross-domain claim. Two protein-engineering families
+   now provide external negative-transfer and safety evidence; a fresh family
+   with positive efficacy is still required.
 4. **Prospective experimental validation.** Run at least one wet-lab or genuinely
    prospective closed-loop campaign with matched budget and starting state.
 5. **Complete-system accounting.** Report the online increment, initial-design
@@ -655,6 +693,12 @@ now provides production-path evidence that unrevealed target labels cannot
 change the current source prior, candidate menu, diagnostics, or LLM prompt on
 the 170 archived states. This control should accompany, not replace, the fresh
 task and prospective confirmation requirements above.
+
+Completed prospective safety control: the Rhodopsin protocol was committed
+before dataset download, retained all declared seeds, and correctly fell back to
+target-only GP-UCB before the official test was inspected. This satisfies one
+external negative-transfer-prevention endpoint, but it does not satisfy the
+positive-efficacy or wet-lab requirements above.
 
 ### P1: needed to make the paper distinctive
 
@@ -743,8 +787,9 @@ protocol completes.
 
 ## Submission decision
 
-The current package is not ready for a strong claim at Nature or Nature
-Communications. The method and audit architecture are promising, but the
-confirmatory effect and prospective evidence are not yet strong enough. The
-highest-value next move is not another development sweep. It is a frozen,
-repeated, cross-family confirmation followed by one paired prospective campaign.
+The current package is materially stronger but is not ready for a broad Nature
+claim. The method now has a commit-before-download external safety confirmation,
+yet positive external efficacy, repeated online LLM confirmation, and a paired
+prospective wet-lab campaign are still missing. The highest-value next move is
+not another development sweep. It is a frozen positive-efficacy confirmation on
+an untouched family, followed by one paired prospective laboratory campaign.

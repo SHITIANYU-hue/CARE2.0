@@ -60,7 +60,14 @@ design. A retrospective gate calibrated only on completed source backbones
 would reject all three transfer policies before reading P06241 outcomes and
 avoid the 8.133 AUC loss of the least harmful transfer policy. Because this gate
 was designed after the external result was known, it is a mechanism audit, not
-prospective safety confirmation. All negative and null results are retained.
+prospective safety confirmation. We therefore preregistered the identical
+source-only eligibility rule, target-only fallback, code, and seed schedule on
+a second external protein family before downloading its official data. On the
+untouched Rhodopsin test partition, the ungated source-only choice lost 1.548
+AUC [95\% CI $-1.996,-1.099$]; the frozen gate rejected transfer and avoided
+that loss. This is prospective negative-transfer prevention on one external
+family, not positive-transfer efficacy or wet-lab validation. All negative and
+null results are retained.
 \end{abstract}
 
 \begin{appendices}
@@ -95,6 +102,7 @@ Probability calibration audit & Does the LLM know when its executed candidate wi
 Live bounded-authority pilot & Does one real LLM decision add value on disjoint routes? & Six successful Opus trajectories plus one preserved infrastructure failure & Operational pilot only; no confirmatory inference \\
 External task-family stress test & Does a frozen controller generalize to a task family absent from development? & Official FLIP2 wild-type holdout; 100 paired classical-transfer seeds and one live Opus trajectory & Negative-transfer boundary and abstention case; not positive external confirmation \\
 Source-only family gate & Can completed source tasks reject unsafe transfer without target outcomes? & Two 50-seed source-only pseudo-target routes, frozen lower-confidence-bound eligibility rule, and outcome-blind P06241 deployment replay & Retrospective mechanism audit; the rule was designed after the external result and is not prospective confirmation \\
+Prospective family gate & Does the source-only rule prevent harm when frozen before a second external family is downloaded? & Preregistered FLIP2 Rhodopsin by-wild-type split; two 50-seed calibration routes and 100 untouched test seeds & Prospective negative-transfer prevention on one external family; not positive-transfer efficacy \\
 Frozen repeated protocol & Are effects stable across stochastic model calls? & Declared 30 trajectories per route, hash-locked analysis, no optional stopping & Pending until all declared trajectories complete \\
 \bottomrule
 \end{tabularx}
@@ -104,9 +112,10 @@ The strongest current claim is deliberately narrower than ``a general AI
 scientist improves every domain.'' The supported claim is that an LLM can
 compile scientific descriptions into explicit skills that are executable,
 calibrated, rejectable, and auditable; some of these skills improve finite-pool
-search on held-out real datasets. The present evidence does not establish
-universal cross-domain transfer, elimination of negative transfer, or a new
-physical discovery.
+search on held-out real datasets, and one preregistered gate prevented a harmful
+transfer on a second external family. The present evidence does not establish
+universal cross-domain transfer, positive efficacy on a new family, elimination
+of negative transfer, or a new physical discovery.
 
 \section{Problem setting and evaluation protocol}
 \label{sec:protocol}
@@ -537,9 +546,78 @@ safety confirmation.}
 This result narrows the next confirmatory question. The numerical rule can be
 computed without deployment-target labels and would have blocked the observed
 negative transfer, but its design history prevents a prospective claim. A
-second external family must therefore be preregistered with the same eligibility
-rule, source-only calibration procedure, and target-only fallback before any
-target outcome is inspected.
+This requirement defined the confirmatory test: preregister the same eligibility
+rule, source-only calibration procedure, and target-only fallback on a second
+external family before any target outcome is inspected.
+
+\subsection{Preregistered FLIP2 Rhodopsin confirmation}
+\label{sec:flip2_rhomax_gate}
+
+We tested that requirement on the official FLIP2 Rhodopsin peak-wavelength
+benchmark (Rhomax). Its by-wild-type split contains 884 measured sequences from
+75 wild types. The official partition assigns the five most common wild types to
+training, 34 wild types to validation, and 36 wild types to test; these contain
+584, 116, and 184 sequence variants, respectively. The file is distributed at
+\url{https://flip.protein.properties/assets/splits/rhomax/by_wild_type.csv.gz}.
+Public candidate features contain only sequence length, amino-acid composition,
+and six predeclared physicochemical fractions. The measured peak wavelength is
+hidden until reveal and is mapped to the declared replay score by
+$100(\lambda-350)/300$, clipped to $[0,100]$.
+
+The protocol, eligibility rule, source-only route construction, target-only
+fallback, implementation hashes, and all 200 evaluation seeds were committed as
+\code{4130dd4} before the raw file was downloaded. The preregistration record
+states that the raw dataset was absent and deployment-target outcomes were
+unavailable at freeze. Calibration used train$\rightarrow$validation and
+validation$\rightarrow$train, with 50 paired seeds per route. The official test
+partition was excluded from gate computation and method selection. A method was
+eligible only if its paired AUC 95\% confidence-interval lower bound exceeded
+zero on both calibration routes.
+
+\begin{table}[t]
+\centering
+\caption{Preregistered FLIP2 Rhodopsin family-gate confirmation. Values are
+paired $\dauc$ relative to target-only GP-UCB. The official-test column contains
+100 paired seeds and was read only after the frozen gate decision.}
+\label{tab:flip2_rhomax_gate}
+\small
+\begin{tabularx}{\textwidth}{X r r r c}
+\toprule
+Method & Train$\rightarrow$val. & Val.$\rightarrow$train & Official test & Eligible \\
+\midrule
+Multisource RGPE & $-0.298$ [$-0.922,+0.325$] & $-0.263$ [$-1.252,+0.727$] & $-3.819$ [$-4.498,-3.140$] & No \\
+Multisource ICM-BMA & $-0.791$ [$-1.397,-0.185$] & $-0.965$ [$-1.660,-0.270$] & $-1.539$ [$-2.066,-1.011$] & No \\
+Fixed skill prior & $+0.384$ [$-0.301,+1.069$] & $+1.192$ [$+0.271,+2.112$] & $-1.548$ [$-1.996,-1.099$] & No \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The route-equal calibration mean was largest for the fixed skill prior
+($+0.788$), but its confidence interval crossed zero on
+train$\rightarrow$validation, so it was ineligible. The gate therefore deployed
+target-only GP-UCB. After deployment was fixed, the official test showed that
+the ungated choice would have lost 1.548 AUC; RGPE and ICM-BMA were also harmful.
+The target-only fallback therefore avoided 1.548 AUC of negative transfer.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.98\textwidth]{prospective_rhomax_gate.png}
+\caption{Prospective external-family gate confirmation generated from the
+preregistered result files. Panel A shows paired AUC effects and 95\% confidence
+intervals on the two source-only calibration routes and the untouched official
+test partition. Panel B records the predeclared decision: no transfer method met
+the requirement that the confidence-interval lower bound exceed zero on both
+calibration routes, so the policy fell back to target-only GP-UCB. Official test
+outcomes enter only the post-decision evaluation.}
+\label{fig:flip2_rhomax_gate}
+\end{figure*}
+
+This result closes the prospective-design gap for one safety endpoint: a rule
+frozen before data access prevented a statistically stable negative transfer on
+a second external protein family. It does not show that CARE improves Rhodopsin
+optimization, that every harmful transfer will be rejected, or that the system
+generalizes positively beyond replay. Positive external efficacy and a paired
+prospective laboratory campaign remain open requirements.
 
 \section{Online LLM controller and strong baselines}
 \label{sec:online}
@@ -821,6 +899,7 @@ Artifact & Contents \\
 2026-08-24: LLM probability calibration & All 170 archived decisions, fixed-bin reliability data, same-candidate GP comparison, and route-bootstrap uncertainty \\
 2026-08-24: FLIP2 external task family & Frozen official wild-type split, 100-seed GP/RGPE/ICM/skill-prior comparison, protocol lock, one live Opus trace, and negative-transfer audit \\
 2026-08-24: FLIP2 source-only family gate & Two 50-seed pseudo-target calibration routes, frozen eligibility calculation, outcome-blind P06241 deployment replay, protocol lock, and real-data gate matrix \\
+2026-08-25: FLIP2 Rhodopsin prospective gate & Commit-before-download preregistration, two 50-seed source-only calibration routes, 100 untouched official-test seeds, per-seed audits, protocol locks, and real-data confidence-interval figure \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -887,13 +966,17 @@ falsification did not reject matched outcome-assignment nulls on any of three
 frozen routes. The frozen external FLIP2 task family produced significant
 negative transfer for all three numerical transfer baselines; the LLM
 abstained online but its initial design was worse than the fixed comparator.
+On a second FLIP2 family, a commit-before-download source-only gate
+prospectively rejected all three transfer baselines and avoided the 1.548 AUC
+loss of the ungated choice. This is one external safety confirmation, not
+positive external efficacy.
 No result should therefore be described as universal
 cross-domain transfer or prospective wet-lab discovery.
 
 The next decisive evidence is: (i) completion of the frozen repeated-call
-protocol, (ii) replication on additional task families not used in controller
+protocol, (ii) positive efficacy on task families not used in controller
 development, (iii) a prospectively frozen source-outcome confirmation on new
-routes, and (iv) at least one prospective wet-lab campaign. Until then, the
+routes, and (iv) at least one paired prospective wet-lab campaign. Until then, the
 principal contribution is an auditable
 method for compiling, testing, and rejecting scientific transfer skills.
 
