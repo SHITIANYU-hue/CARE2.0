@@ -1,0 +1,64 @@
+{
+  "schema_version": "care.outcome_blind_transfer_hypothesis/v1",
+  "status": "generated_before_dataset_download",
+  "model": "anthropic/claude-opus-4-8",
+  "base_url": "https://api.commonstack.ai/v1",
+  "temperature": 0,
+  "public_task_spec": {
+    "dataset": "FLIP2 Imine Reductase (IRED)",
+    "official_split": "two-to-many",
+    "scientific_context": "Imine reductases convert imines to amines and are used in pharmaceutical production.",
+    "source_partition": "Official train and validation variants with zero, one, or two mutations.",
+    "deployment_partition": "Official test variants with more than two mutations.",
+    "public_variant_counts": {
+      "total": 17143,
+      "train": 3746,
+      "validation": 662,
+      "test": 4178
+    },
+    "public_mutation_range": "The complete dataset includes variants with up to 15 mutations.",
+    "optimization_endpoint": "Best-so-far activity AUC under three initial target observations and twelve additional reveals.",
+    "evidence_constraint": "Official test activities are unavailable to the planner, calibration gate, and skill selector.",
+    "source": "Didi et al., FLIP2, ICML 2026 Spotlight; official FLIP2 website and Zenodo record 18433203."
+  },
+  "target_outcomes_available": false,
+  "prompt": {
+    "system": "You are the semantic transfer planner in a preregistered scientific optimization protocol. You may use only the supplied public task metadata. You have no experimental target values. Decide whether the bounded additive-mutation skill is scientifically justified. Return JSON only and never invent observed performance.",
+    "user": "{\"required_json_schema\": {\"failure_conditions\": [\"string\"], \"hypothesis\": \"string\", \"mechanism\": \"string\", \"rationale\": \"string\", \"recommended_skill\": \"source_additive_mutation_prior or abstain\", \"transfer_scope\": \"string\"}, \"skill_menu\": {\"abstain\": \"Use target-only GP-UCB and transfer no source effect.\", \"source_additive_mutation_prior\": \"Estimate shrunk per-mutation effects from completed 0-2 mutation source experiments, sum available effects for a higher-order target variant, and blend that source rank with target-only GP-UCB under a fixed decaying authority.\"}, \"task\": {\"dataset\": \"FLIP2 Imine Reductase (IRED)\", \"deployment_partition\": \"Official test variants with more than two mutations.\", \"evidence_constraint\": \"Official test activities are unavailable to the planner, calibration gate, and skill selector.\", \"official_split\": \"two-to-many\", \"optimization_endpoint\": \"Best-so-far activity AUC under three initial target observations and twelve additional reveals.\", \"public_mutation_range\": \"The complete dataset includes variants with up to 15 mutations.\", \"public_variant_counts\": {\"test\": 4178, \"total\": 17143, \"train\": 3746, \"validation\": 662}, \"scientific_context\": \"Imine reductases convert imines to amines and are used in pharmaceutical production.\", \"source\": \"Didi et al., FLIP2, ICML 2026 Spotlight; official FLIP2 website and Zenodo record 18433203.\", \"source_partition\": \"Official train and validation variants with zero, one, or two mutations.\"}}"
+  },
+  "request_sha256": "0a42117a5e54c04802ff8d04251999dbb2fac8c434f311cccb5e23f78a47f833",
+  "raw_response": "{\"failure_conditions\": [\"Epistatic interactions among mutations dominate, so summed single/double-mutation effects mispredict higher-order variant activity and the source rank misleads acquisition.\", \"Test variants carry mutations at positions never observed in the 0-2 mutation source set, leaving summed effects incomplete or undefined for key sites.\", \"Distribution shift between low-order source and high-order test regime makes shrunk additive effects systematically biased.\", \"The fixed decaying authority over-weights the source rank early, wasting scarce reveals (only 12) on additively-optimal but epistatically-poor variants.\"], \"hypothesis\": \"Per-mutation activity effects estimated from 0-2 mutation source variants are approximately additive and, when summed, provide a useful prior ranking for >2 mutation target variants that improves best-so-far AUC over target-only GP-UCB.\", \"mechanism\": \"Fit shrunk additive per-mutation effects on completed source (train+validation) 0-2 mutation variants, sum the available component effects to score each higher-order test variant, and blend this source-derived rank with target-only GP-UCB under a fixed decaying authority that yields to target observations as reveals accumulate.\", \"rationale\": \"The source and target share the same IRED landscape and mutation vocabulary, and the source partition (0-2 mutations) is structurally the additive-decomposition regime needed to estimate per-mutation effects, so an additive prior is mechanistically coherent for seeding the low-data target search. The shrinkage plus fixed decaying authority bounds the damage from partial epistasis: the source only guides early acquisition and cedes control to target-only GP-UCB, which is safe under the strict evidence constraint that no test activities are visible to planner, gate, or selector. Given only 3 initial and 12 additional reveals, a defensible informative prior is more likely to help than pure target-only exploration, and the decay caps downside. This justifies the skill without inventing any observed performance.\", \"recommended_skill\": \"source_additive_mutation_prior\", \"transfer_scope\": \"Transfer only shrunk additive per-mutation effect estimates from official train+validation 0-2 mutation source variants into a decaying-authority prior over rank for the two-to-many test partition (>2 mutations); transfer no absolute activity values and no target test observations.\"}",
+  "parsed_hypothesis": {
+    "failure_conditions": [
+      "Epistatic interactions among mutations dominate, so summed single/double-mutation effects mispredict higher-order variant activity and the source rank misleads acquisition.",
+      "Test variants carry mutations at positions never observed in the 0-2 mutation source set, leaving summed effects incomplete or undefined for key sites.",
+      "Distribution shift between low-order source and high-order test regime makes shrunk additive effects systematically biased.",
+      "The fixed decaying authority over-weights the source rank early, wasting scarce reveals (only 12) on additively-optimal but epistatically-poor variants."
+    ],
+    "hypothesis": "Per-mutation activity effects estimated from 0-2 mutation source variants are approximately additive and, when summed, provide a useful prior ranking for >2 mutation target variants that improves best-so-far AUC over target-only GP-UCB.",
+    "mechanism": "Fit shrunk additive per-mutation effects on completed source (train+validation) 0-2 mutation variants, sum the available component effects to score each higher-order test variant, and blend this source-derived rank with target-only GP-UCB under a fixed decaying authority that yields to target observations as reveals accumulate.",
+    "rationale": "The source and target share the same IRED landscape and mutation vocabulary, and the source partition (0-2 mutations) is structurally the additive-decomposition regime needed to estimate per-mutation effects, so an additive prior is mechanistically coherent for seeding the low-data target search. The shrinkage plus fixed decaying authority bounds the damage from partial epistasis: the source only guides early acquisition and cedes control to target-only GP-UCB, which is safe under the strict evidence constraint that no test activities are visible to planner, gate, or selector. Given only 3 initial and 12 additional reveals, a defensible informative prior is more likely to help than pure target-only exploration, and the decay caps downside. This justifies the skill without inventing any observed performance.",
+    "recommended_skill": "source_additive_mutation_prior",
+    "transfer_scope": "Transfer only shrunk additive per-mutation effect estimates from official train+validation 0-2 mutation source variants into a decaying-authority prior over rank for the two-to-many test partition (>2 mutations); transfer no absolute activity values and no target test observations."
+  },
+  "usage": {
+    "prompt_tokens": 636,
+    "completion_tokens": 775,
+    "total_tokens": 1411,
+    "tps": 32.87,
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 0,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_write_tokens": 0,
+      "cached_tokens": 0,
+      "image_tokens": 0,
+      "text_tokens": 0,
+      "video_tokens": 0
+    }
+  }
+}

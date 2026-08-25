@@ -284,7 +284,7 @@ def run(config: dict[str, Any], output_dir: Path) -> dict[str, Any]:
     deployment_config = build_inner_config(
         config,
         deployment_spec,
-        version_suffix="deployment_p06241",
+        version_suffix=f"deployment_{deployment_spec['target_task_id']}",
         evidence_class="external_family_gate_application",
         claim_boundary=protocol["claim_boundary"],
     )
@@ -323,7 +323,7 @@ def run(config: dict[str, Any], output_dir: Path) -> dict[str, Any]:
         rows.append(
             {
                 "stage": "external_deployment",
-                "route_id": "p01053_p0a9x9_to_p06241",
+                "route_id": str(deployment_spec["target_task_id"]),
                 "method": method,
                 "mean_auc_delta": deployment_effect["mean_delta"],
                 "ci95_low": deployment_effect["normal_95ci_low"],

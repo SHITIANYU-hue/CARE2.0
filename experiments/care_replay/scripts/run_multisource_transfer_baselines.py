@@ -32,8 +32,10 @@ POLICY_MODES = (
     "multisource_icm_bma",
     "multisource_skill_prior",
 )
+ADDITIVE_MUTATION_POLICY_MODE = "source_additive_mutation_prior"
 SELECTED_ROUTE_MODE = "development_selected_route"
 MODES = POLICY_MODES + (SELECTED_ROUTE_MODE,)
+AGGREGATE_MODES = MODES + (ADDITIVE_MUTATION_POLICY_MODE,)
 
 
 def validate_new_task_protocol(config: dict[str, Any]) -> None:
@@ -58,7 +60,7 @@ def validate_new_task_protocol(config: dict[str, Any]) -> None:
 
 def aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
     output: dict[str, Any] = {}
-    for mode in MODES:
+    for mode in AGGREGATE_MODES:
         selected = [row for row in rows if row["mode"] == mode]
         if not selected:
             continue
@@ -109,6 +111,101 @@ def classical_rank_normalized(values: np.ndarray) -> dict[int, float]:
     order = np.argsort(np.argsort(np.asarray(values, dtype=np.float64), kind="mergesort"))
     denominator = max(1, len(order) - 1)
     return {index: float(rank / denominator) for index, rank in enumerate(order)}
+
+
+def additive_mutation_prior(
+    source_observed_sets: Sequence[Sequence[replay.Candidate]],
+    target_candidates: Sequence[replay.Candidate],
+) -> tuple[np.ndarray, dict[str, Any]]:
+    """Estimate an additive mutation-effect rank from source observations only."""
+    if not source_observed_sets:
+        raise ValueError("Additive mutation prior requires source observations.")
+    source_ranks: list[np.ndarray] = []
+    source_diagnostics: list[dict[str, Any]] = []
+    for source_candidates in source_observed_sets:
+        if not source_candidates:
+            raise ValueError("Each additive source must contain observations.")
+        normalized_y, _center, _scale = classical.normalized_outcomes(
+            source_candidates
+        )
+        exact_values: dict[str, list[float]] = {}
+        class_values: dict[str, list[float]] = {}
+        for candidate, value in zip(source_candidates, normalized_y):
+            exact_tokens = [
+                str(item) for item in candidate.metadata.get("mutation_tokens", [])
+            ]
+            class_tokens = [
+                str(item)
+                for item in candidate.metadata.get("mutation_class_tokens", [])
+            ]
+            denominator = max(1, len(exact_tokens))
+            contribution = float(value) / denominator
+            for token in exact_tokens:
+                exact_values.setdefault(token, []).append(contribution)
+            for token in class_tokens:
+                class_values.setdefault(token, []).append(contribution)
+
+        exact_effects = {
+            token: float(np.mean(values)) * len(values) / (len(values) + 1.0)
+            for token, values in exact_values.items()
+        }
+        class_effects = {
+            token: float(np.mean(values)) * len(values) / (len(values) + 2.0)
+            for token, values in class_values.items()
+        }
+        predictions: list[float] = []
+        exact_hits = 0
+        class_hits = 0
+        total_tokens = 0
+        candidates_with_evidence = 0
+        for candidate in target_candidates:
+            exact_tokens = [
+                str(item) for item in candidate.metadata.get("mutation_tokens", [])
+            ]
+            class_tokens = [
+                str(item)
+                for item in candidate.metadata.get("mutation_class_tokens", [])
+            ]
+            score = 0.0
+            used = 0
+            for index, token in enumerate(exact_tokens):
+                total_tokens += 1
+                if token in exact_effects:
+                    score += exact_effects[token]
+                    exact_hits += 1
+                    used += 1
+                elif index < len(class_tokens) and class_tokens[index] in class_effects:
+                    score += class_effects[class_tokens[index]]
+                    class_hits += 1
+                    used += 1
+            if used:
+                candidates_with_evidence += 1
+            predictions.append(score)
+        rank = np.asarray(
+            list(classical_rank_normalized(np.asarray(predictions)).values()),
+            dtype=np.float64,
+        )
+        source_ranks.append(rank)
+        source_diagnostics.append(
+            {
+                "source_observation_count": len(source_candidates),
+                "exact_mutation_effect_count": len(exact_effects),
+                "mutation_class_effect_count": len(class_effects),
+                "target_token_count": total_tokens,
+                "exact_token_coverage": round(exact_hits / max(1, total_tokens), 6),
+                "class_fallback_coverage": round(class_hits / max(1, total_tokens), 6),
+                "candidate_evidence_coverage": round(
+                    candidates_with_evidence / max(1, len(target_candidates)), 6
+                ),
+            }
+        )
+    consensus = np.median(np.stack(source_ranks), axis=0)
+    return consensus, {
+        "executor": "source_only_shrunk_additive_mutation_effects",
+        "target_outcomes_used": False,
+        "source_aggregation": "median_of_source_ranks",
+        "sources": source_diagnostics,
+    }
 
 
 def source_draw(
@@ -281,8 +378,9 @@ def run_seed(
     skill_prior_mass_start: float = 0.0,
     skill_prior_mass_end: float = 0.0,
     fixed_initial_indices: Sequence[int] | None = None,
+    source_observed_sets: Sequence[Sequence[replay.Candidate]] | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-    if mode not in POLICY_MODES:
+    if mode not in (*POLICY_MODES, ADDITIVE_MUTATION_POLICY_MODE):
         raise ValueError(f"Unknown multi-source mode: {mode}")
     pool = target_adapter.candidates
     target_features = classical.feature_arrays(target_adapter, pool)
@@ -307,6 +405,12 @@ def run_seed(
     best_trace: list[float] = []
     audit: list[dict[str, Any]] = []
     source_consensus = consensus_prior(source_posteriors)
+    additive_consensus: np.ndarray | None = None
+    additive_diagnostics: dict[str, Any] | None = None
+    if mode == ADDITIVE_MUTATION_POLICY_MODE:
+        additive_consensus, additive_diagnostics = additive_mutation_prior(
+            source_observed_sets or (), pool
+        )
     for round_index in range(rounds):
         observed_candidates = [pool[index] for index in observed_indices]
         observed_y, target_center, target_scale = classical.normalized_outcomes(
@@ -366,7 +470,7 @@ def run_seed(
                 bma_temperature,
             )
             diagnostics["multisource_icm_bma"] = bma_diagnostics
-        else:
+        elif mode == "multisource_skill_prior":
             target_scores = target_mean + gp_beta * np.sqrt(target_variance)
             target_rank = np.asarray(
                 list(classical_rank_normalized(target_scores).values()),
@@ -385,7 +489,28 @@ def run_seed(
                 "mass_end": skill_prior_mass_end,
                 "source_aggregation": "median_of_per_source_rank",
             }
-        if mode != "multisource_skill_prior":
+        else:
+            if additive_consensus is None or additive_diagnostics is None:
+                raise ValueError("Additive mutation prior was not initialized.")
+            target_scores = target_mean + gp_beta * np.sqrt(target_variance)
+            target_rank = np.asarray(
+                list(classical_rank_normalized(target_scores).values()),
+                dtype=np.float64,
+            )
+            mass = scheduled_mass(
+                skill_prior_mass_start,
+                skill_prior_mass_end,
+                round_index,
+                rounds,
+            )
+            scores = (1.0 - mass) * target_rank + mass * additive_consensus
+            diagnostics["source_additive_mutation_prior"] = {
+                **additive_diagnostics,
+                "mass": round(mass, 6),
+                "mass_start": skill_prior_mass_start,
+                "mass_end": skill_prior_mass_end,
+            }
+        if mode not in {"multisource_skill_prior", ADDITIVE_MUTATION_POLICY_MODE}:
             scores = posterior_mean + gp_beta * np.sqrt(posterior_variance)
         selected_index = classical.top_unobserved(scores, observed_set)
         selected = pool[selected_index]
@@ -415,6 +540,8 @@ def run_seed(
                     "catalyst_loading_mol_percent": selected.metadata.get(
                         "catalyst_loading_mol_percent"
                     ),
+                    "mutation_count": selected.metadata.get("mutation_count"),
+                    "mutation_tokens": selected.metadata.get("mutation_tokens"),
                 },
                 "selected_score": round(float(scores[selected_index]), 6),
                 "revealed_value": selected.objective_value,

@@ -51,6 +51,10 @@ PUBLIC_DATA_URLS = {
         "https://flip.protein.properties/assets/splits/rhomax/"
         "by_wild_type.csv.gz"
     ),
+    "flip2_ired_two_to_many.csv.gz": (
+        "https://flip.protein.properties/assets/splits/ired/"
+        "two_to_many.csv.gz"
+    ),
     "chemlex_acidamine_wetlab_v3.xlsx": "https://zenodo.org/records/17596563/files/Chemlex_Acidamine_Wetlab_Data.xlsx?download=1",
     "matbench_expt_gap.json.gz": "https://ml.materialsproject.org/projects/matbench_expt_gap.json.gz",
     "matbench_dielectric.json.gz": "https://ml.materialsproject.org/projects/matbench_dielectric.json.gz",
@@ -2073,6 +2077,265 @@ def real_flip2_rhomax_test_adapter() -> DatasetAdapter:
     return real_flip2_rhomax_adapter("test")
 
 
+FLIP2_IRED_AMINO_ACIDS = tuple("ACDEFGHIKLMNPQRSTVWY")
+FLIP2_IRED_HYDROPHOBIC = frozenset("AILMFWVY")
+FLIP2_IRED_CHARGED = frozenset("DEKR")
+FLIP2_IRED_AROMATIC = frozenset("FWY")
+FLIP2_IRED_GLY_PRO = frozenset("GP")
+FLIP2_IRED_POSITION_BINS = 12
+FLIP2_IRED_DECISION_COLUMNS = (
+    "mutation_count_bin",
+    "mutation_position_region",
+    "hydrophobicity_change_bin",
+    "charge_change_bin",
+    "aromatic_change_flag",
+    "gly_pro_change_flag",
+)
+
+
+def flip2_ired_partition(row: dict[str, str]) -> str:
+    set_name = str(row.get("set", "")).strip().lower()
+    validation = str(row.get("validation", "")).strip().lower()
+    if validation in {"1", "true", "yes"} or set_name in {"validation", "val"}:
+        return "validation"
+    if set_name == "train":
+        return "train"
+    if set_name == "test":
+        return "test"
+    raise ValueError(f"Unknown FLIP2 IRED partition: {set_name!r}")
+
+
+def flip2_ired_reference_sequence(records: list[dict[str, str]]) -> str:
+    sequences = [
+        str(row.get("sequence", "")).strip().upper()
+        for row in records
+        if flip2_ired_partition(row) in {"train", "validation"}
+    ]
+    if not sequences:
+        raise ValueError("FLIP2 IRED has no train/validation sequences.")
+    length_counts: dict[int, int] = {}
+    for sequence in sequences:
+        length_counts[len(sequence)] = length_counts.get(len(sequence), 0) + 1
+    reference_length = max(length_counts, key=lambda length: (length_counts[length], length))
+    aligned = [sequence for sequence in sequences if len(sequence) == reference_length]
+    unknown = sorted(set("".join(aligned)) - set(FLIP2_IRED_AMINO_ACIDS))
+    if unknown:
+        raise ValueError(f"FLIP2 IRED contains unsupported residues: {unknown}")
+    amino_order = {residue: index for index, residue in enumerate(FLIP2_IRED_AMINO_ACIDS)}
+    reference = []
+    for position in range(reference_length):
+        counts: dict[str, int] = {}
+        for sequence in aligned:
+            residue = sequence[position]
+            counts[residue] = counts.get(residue, 0) + 1
+        reference.append(
+            max(counts, key=lambda residue: (counts[residue], -amino_order[residue]))
+        )
+    return "".join(reference)
+
+
+def flip2_ired_residue_class(residue: str) -> str:
+    if residue in FLIP2_IRED_HYDROPHOBIC:
+        return "hydrophobic"
+    if residue in FLIP2_IRED_CHARGED:
+        return "charged"
+    if residue in FLIP2_IRED_GLY_PRO:
+        return "gly_pro"
+    return "polar_other"
+
+
+def flip2_ired_change_flag(delta: int, stem: str) -> str:
+    if delta > 0:
+        return f"{stem}_gain"
+    if delta < 0:
+        return f"{stem}_loss"
+    return f"{stem}_neutral"
+
+
+def flip2_ired_public_features(
+    sequence: str,
+    reference: str,
+) -> tuple[dict[str, Any], tuple[float, ...]]:
+    sequence = sequence.strip().upper()
+    if len(sequence) != len(reference):
+        raise ValueError("FLIP2 IRED sequence length differs from the source consensus.")
+    unknown = sorted(set(sequence) - set(FLIP2_IRED_AMINO_ACIDS))
+    if unknown:
+        raise ValueError(f"FLIP2 IRED sequence contains unsupported residues: {unknown}")
+    mutations = [
+        (index, source_residue, target_residue)
+        for index, (source_residue, target_residue) in enumerate(zip(reference, sequence))
+        if source_residue != target_residue
+    ]
+    mutation_tokens = [
+        f"{source_residue}{index + 1}{target_residue}"
+        for index, source_residue, target_residue in mutations
+    ]
+    mutation_class_tokens = [
+        f"{flip2_ired_residue_class(source_residue)}>{flip2_ired_residue_class(target_residue)}"
+        for _index, source_residue, target_residue in mutations
+    ]
+    length = float(len(sequence))
+    fractions = {
+        residue: sequence.count(residue) / length
+        for residue in FLIP2_IRED_AMINO_ACIDS
+    }
+    hydrophobic_delta = sum(
+        (target_residue in FLIP2_IRED_HYDROPHOBIC)
+        - (source_residue in FLIP2_IRED_HYDROPHOBIC)
+        for _index, source_residue, target_residue in mutations
+    )
+    charge_delta = sum(
+        (target_residue in FLIP2_IRED_CHARGED)
+        - (source_residue in FLIP2_IRED_CHARGED)
+        for _index, source_residue, target_residue in mutations
+    )
+    aromatic_delta = sum(
+        (target_residue in FLIP2_IRED_AROMATIC)
+        - (source_residue in FLIP2_IRED_AROMATIC)
+        for _index, source_residue, target_residue in mutations
+    )
+    gly_pro_delta = sum(
+        (target_residue in FLIP2_IRED_GLY_PRO)
+        - (source_residue in FLIP2_IRED_GLY_PRO)
+        for _index, source_residue, target_residue in mutations
+    )
+    positions = [index / max(1.0, length - 1.0) for index, _a, _b in mutations]
+    mean_position = sum(positions) / len(positions) if positions else 0.5
+    position_spread = (
+        (max(positions) - min(positions)) if len(positions) > 1 else 0.0
+    )
+    position_counts = [0] * FLIP2_IRED_POSITION_BINS
+    for position, _source_residue, _target_residue in mutations:
+        bin_index = min(
+            FLIP2_IRED_POSITION_BINS - 1,
+            int(position / max(1, len(sequence)) * FLIP2_IRED_POSITION_BINS),
+        )
+        position_counts[bin_index] += 1
+    position_region = numeric_bin(
+        mean_position,
+        (0.25, 0.50, 0.75),
+        ("n_terminal", "first_middle", "second_middle", "c_terminal"),
+    )
+    metadata = {
+        "mutation_count": len(mutations),
+        "mutation_tokens": mutation_tokens,
+        "mutation_class_tokens": mutation_class_tokens,
+        "mutation_count_bin": numeric_bin(
+            float(len(mutations)),
+            (1.0, 2.0, 4.0),
+            ("zero_or_one", "two", "three_or_four", "five_plus"),
+        ),
+        "mutation_position_region": position_region,
+        "hydrophobicity_change_bin": numeric_bin(
+            float(hydrophobic_delta),
+            (-1.0, 0.0, 1.0),
+            ("hydrophobic_loss_large", "hydrophobic_loss", "hydrophobic_neutral", "hydrophobic_gain"),
+        ),
+        "charge_change_bin": numeric_bin(
+            float(charge_delta),
+            (-1.0, 0.0, 1.0),
+            ("charge_loss_large", "charge_loss", "charge_neutral", "charge_gain"),
+        ),
+        "aromatic_change_flag": flip2_ired_change_flag(aromatic_delta, "aromatic"),
+        "gly_pro_change_flag": flip2_ired_change_flag(gly_pro_delta, "gly_pro"),
+        "hydrophobicity_change": hydrophobic_delta,
+        "charge_change": charge_delta,
+        "aromatic_change": aromatic_delta,
+        "gly_pro_change": gly_pro_delta,
+        "mean_mutation_position": round(mean_position, 8),
+        "mutation_position_spread": round(position_spread, 8),
+    }
+    numeric = (
+        *(fractions[item] for item in FLIP2_IRED_AMINO_ACIDS),
+        min(len(mutations), 15) / 15.0,
+        hydrophobic_delta / 15.0,
+        charge_delta / 15.0,
+        aromatic_delta / 15.0,
+        gly_pro_delta / 15.0,
+        mean_position,
+        position_spread,
+        *(count / 15.0 for count in position_counts),
+    )
+    return metadata, numeric
+
+
+def real_flip2_ired_adapter(partition: str) -> DatasetAdapter:
+    valid = {"train", "validation", "train_validation", "test"}
+    if partition not in valid:
+        raise ValueError(f"Unknown FLIP2 IRED partition: {partition}")
+    path = ensure_public_data_file("flip2_ired_two_to_many.csv.gz")
+    records = read_csv_gz_dicts(path)
+    reference = flip2_ired_reference_sequence(records)
+    included = {"train", "validation"} if partition == "train_validation" else {partition}
+    pool: list[Candidate] = []
+    for row_index, row in enumerate(records):
+        official_partition = flip2_ired_partition(row)
+        if official_partition not in included:
+            continue
+        sequence = str(row.get("sequence", "")).strip().upper()
+        if len(sequence) != len(reference):
+            continue
+        metadata, numeric_features = flip2_ired_public_features(sequence, reference)
+        activity = float(row["target"])
+        if not math.isfinite(activity):
+            raise ValueError("FLIP2 IRED target must be finite.")
+        pool.append(
+            Candidate(
+                candidate_id=f"flip2_ired_{partition}_{len(pool):05d}",
+                group=str(metadata["mutation_count_bin"]),
+                x1=numeric_features[20],
+                x2=numeric_features[25],
+                x3=numeric_features[26],
+                objective_value=activity,
+                metadata={
+                    "sequence": sequence,
+                    "ired_partition": partition,
+                    **metadata,
+                    "measured_ired_activity": round(activity, 8),
+                    "official_split": row.get("set", ""),
+                    "official_validation": row.get("validation", ""),
+                    "source_row": row_index + 2,
+                },
+                numeric_features=numeric_features,
+            )
+        )
+    if not pool:
+        raise ValueError(f"FLIP2 IRED adapter {partition} has no candidates.")
+    return DatasetAdapter(
+        dataset_id=f"real_flip2_ired_{partition}",
+        title=f"FLIP2 Imine Reductase {partition} activity replay",
+        objective="maximize_measured_imine_reductase_activity",
+        decision_columns=FLIP2_IRED_DECISION_COLUMNS,
+        hidden_target="measured_ired_activity",
+        group_column="mutation_count_bin",
+        preferred_groups=(),
+        failure_note=(
+            "This adapter uses the official FLIP2 IRED two-to-many split. "
+            "All mutation tokens and physicochemical descriptors are computed "
+            "from public sequences relative to a train/validation consensus; "
+            "activity remains hidden until reveal."
+        ),
+        candidates=tuple(pool),
+    )
+
+
+def real_flip2_ired_train_adapter() -> DatasetAdapter:
+    return real_flip2_ired_adapter("train")
+
+
+def real_flip2_ired_validation_adapter() -> DatasetAdapter:
+    return real_flip2_ired_adapter("validation")
+
+
+def real_flip2_ired_train_validation_adapter() -> DatasetAdapter:
+    return real_flip2_ired_adapter("train_validation")
+
+
+def real_flip2_ired_test_adapter() -> DatasetAdapter:
+    return real_flip2_ired_adapter("test")
+
+
 def real_matbench_expt_gap_adapter() -> DatasetAdapter:
     path = ensure_public_data_file("matbench_expt_gap.json.gz")
     records = read_matbench_json_gz(path)
@@ -2447,6 +2710,10 @@ DATASET_BUILDERS: dict[str, Callable[[], DatasetAdapter]] = {
     "real_flip2_rhomax_train": real_flip2_rhomax_train_adapter,
     "real_flip2_rhomax_validation": real_flip2_rhomax_validation_adapter,
     "real_flip2_rhomax_test": real_flip2_rhomax_test_adapter,
+    "real_flip2_ired_train": real_flip2_ired_train_adapter,
+    "real_flip2_ired_validation": real_flip2_ired_validation_adapter,
+    "real_flip2_ired_train_validation": real_flip2_ired_train_validation_adapter,
+    "real_flip2_ired_test": real_flip2_ired_test_adapter,
     "real_matbench_expt_gap": real_matbench_expt_gap_adapter,
     "real_matbench_dielectric": real_matbench_dielectric_adapter,
     "real_matbench_phonons": real_matbench_phonons_adapter,

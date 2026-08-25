@@ -34,8 +34,35 @@ def build_lock(config: Mapping[str, Any], output_path: Path) -> dict[str, Any]:
     declared_lock = ROOT / str(protocol["preregistration"]["lock_path"])
     if output_path.resolve() != declared_lock.resolve():
         raise ValueError("Output path does not match the protocol declaration.")
+    hypothesis_lock: dict[str, Any] | None = None
+    hypothesis = protocol.get("semantic_hypothesis")
+    if hypothesis:
+        record_path = ROOT / str(hypothesis["record_path"])
+        if not record_path.exists():
+            raise ValueError("The declared outcome-blind LLM hypothesis is missing.")
+        record_sha256 = sha256_path(record_path)
+        if record_sha256 != hypothesis.get("record_sha256"):
+            raise ValueError("The LLM hypothesis record hash does not match the config.")
+        record = json.loads(record_path.read_text(encoding="utf-8"))
+        if record.get("status") != "generated_before_dataset_download":
+            raise ValueError("The LLM hypothesis record is not outcome-blind.")
+        if record.get("target_outcomes_available") is not False:
+            raise ValueError("The LLM hypothesis record does not exclude target outcomes.")
+        recommended = record.get("parsed_hypothesis", {}).get("recommended_skill")
+        if recommended != hypothesis.get("recommended_skill"):
+            raise ValueError("The parsed LLM recommendation differs from the config.")
+        if recommended not in protocol["gate"]["candidate_methods"]:
+            raise ValueError("The LLM-recommended skill is absent from the gate menu.")
+        hypothesis_lock = {
+            "record_path": str(record_path.relative_to(ROOT)),
+            "record_sha256": record_sha256,
+            "model": record.get("model"),
+            "recommended_skill": recommended,
+            "target_outcomes_available": False,
+        }
     implementation_files = (
         Path(__file__).resolve(),
+        Path(__file__).with_name("generate_outcome_blind_transfer_hypothesis.py"),
         *gate.IMPLEMENTATION_FILES,
     )
     return {
@@ -48,6 +75,7 @@ def build_lock(config: Mapping[str, Any], output_path: Path) -> dict[str, Any]:
         "deployment_target_task_id": protocol["deployment"]["target_task_id"],
         "deployment_target_outcomes_available_at_freeze": False,
         "raw_dataset_present_at_freeze": False,
+        "semantic_hypothesis": hypothesis_lock,
         "implementation_files_sha256": {
             str(path.relative_to(ROOT.parent)): sha256_path(path)
             for path in dict.fromkeys(implementation_files)

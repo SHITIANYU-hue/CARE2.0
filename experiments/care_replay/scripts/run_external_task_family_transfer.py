@@ -17,7 +17,10 @@ import run_transfer_ablation as transfer
 
 
 ROOT = Path(__file__).resolve().parents[1]
-MODES = multisource.POLICY_MODES
+MODES = (
+    *multisource.POLICY_MODES,
+    multisource.ADDITIVE_MUTATION_POLICY_MODE,
+)
 IMPLEMENTATION_FILES = (
     Path(__file__).resolve(),
     Path(replay.__file__).resolve(),
@@ -127,6 +130,7 @@ def run(config: dict[str, Any], output_dir: Path) -> dict[str, Any]:
         classical.validate_compatible_spaces(source, target)
 
     source_posteriors = []
+    source_observed_sets = []
     for source, observation_count in zip(
         sources, protocol["source_observations"]
     ):
@@ -135,6 +139,7 @@ def run(config: dict[str, Any], output_dir: Path) -> dict[str, Any]:
             int(protocol["source_seed"]),
             int(observation_count),
         )
+        source_observed_sets.append(observed)
         source_posteriors.append(
             classical.build_source_posterior(
                 source,
@@ -170,6 +175,7 @@ def run(config: dict[str, Any], output_dir: Path) -> dict[str, Any]:
                 float(protocol["bma_temperature"]),
                 float(protocol["skill_prior_mass_start"]),
                 float(protocol["skill_prior_mass_end"]),
+                source_observed_sets=source_observed_sets,
             )
             rows.append(metrics)
             audits[mode].extend(audit)
