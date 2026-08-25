@@ -114,6 +114,16 @@ The current Opus suite supports the following statements:
     [95% paired-bootstrap interval +0.274, +0.503], with 72 wins, nine ties,
     and 19 losses. A predeclared fixed skill prior improved more (+0.864), so
     this is positive evidence for one LLM-generated skill, not LLM superiority.
+14. The IRED result was subjected to a source-outcome assignment falsification.
+    The target seeds, initial observations, budget, GP kernel, additive executor,
+    source rows, outcome marginal distribution, and decaying authority were held
+    fixed; only the binding between 3,500 measured source outcomes and mutation
+    features was changed across 99 deterministic permutations. The true binding
+    exceeded the mean permuted skill by +0.340 AUC [95% target-seed bootstrap
+    interval +0.259, +0.422], but six permuted bindings achieved an equal or
+    larger mean AUC effect, giving a one-sided assignment-level randomization
+    value of p=0.07. This is suggestive mechanism evidence, not rejection of the
+    source-assignment null.
 
 The current evidence does not support these statements:
 
@@ -134,6 +144,9 @@ The current evidence does not support these statements:
 9. The source-only family gate eliminates negative transfer in general. It now
    has one prospective external-family confirmation, but that single successful
    veto does not establish universal safety or positive transfer efficacy.
+10. The prospective IRED gain proves that the LLM identified the uniquely
+    correct source feature-outcome mechanism. The later assignment audit was
+    post-hoc and did not reject its 99-permutation null at 0.05.
 
 ## Current statistical result
 
@@ -261,6 +274,34 @@ interval crosses zero and its top-10 hit rate is lower than target GP, so the
 claim is specifically earlier discovery under the AUC endpoint. The fixed prior
 is stronger. This closes one external positive-efficacy gap but does not close
 the wet-lab or broad cross-domain generalization gaps.
+
+### IRED source-outcome mechanism falsification
+
+The positive IRED result leaves a harder attribution question: did the additive
+skill benefit from the measured mutation-activity binding, or could an arbitrary
+source ranking have produced a similar early-search gain? A post-hoc mechanism
+audit retained the official test target, all 100 target seeds, the three initial
+observations, twelve-reveal budget, GP kernel, source rows, source outcome
+marginal distribution, additive executor, and 0.50-to-0.10 authority schedule.
+It then compared the true binding with 99 deterministic outcome permutations
+over the same 3,500 source variants.
+
+| Mechanism comparison | Mean paired AUC effect | 95% interval | Assignment-level result |
+|---|---:|---:|---:|
+| True source binding versus target GP-UCB | +0.389 | [+0.274, +0.504] | 72 / 9 / 19 target-seed W/T/L |
+| Mean outcome-permuted skill versus target GP-UCB | +0.049 | [-0.037, +0.132] | 46 of 99 assignment means positive |
+| True binding versus the per-seed permutation mean | +0.340 | [+0.259, +0.422] | six null assignments at least as large |
+
+The paired target-seed interval for true minus permutation mean is entirely
+above zero, so the true binding is more useful than the average false binding.
+However, the finite randomization test asks the stricter question of where the
+true assignment ranks among independently permuted assignments. It ranks seventh
+of 100, corresponding to a one-sided plus-one-corrected p-value of 0.07. Thirty
+permuted assignments also had target-seed intervals above zero versus target GP.
+The defensible conclusion is therefore that the measured binding carries a
+suggestive, non-unique signal. The audit does not establish that the LLM found
+the uniquely correct causal mechanism, and it reinforces the need for an
+independent prospectively frozen source-assignment test.
 
 ## Frozen repeated-trajectory protocol
 
@@ -691,6 +732,18 @@ Required response: fit probability calibration only on declared development
 routes, combine the calibrated probability with action-change and evidence-
 support features, and freeze the abstention rule before disjoint evaluation.
 
+### 7. Positive efficacy is not yet cleanly attributable to the LLM mechanism
+
+The prospective IRED additive skill improves AUC, but the fixed rank prior is
+stronger and the later 99-assignment falsification gives p=0.07. Arbitrary
+outcome bindings can occasionally induce useful rankings in a finite candidate
+pool, so target-seed significance alone cannot establish semantic correctness.
+
+Required response: preregister the source-assignment null together with the next
+external-family efficacy protocol, use a mechanism-matched fixed prior and
+learned transfer baselines, and keep the randomization test as a co-primary
+attribution endpoint rather than adding it only after a positive result.
+
 ## Minimum Nature-level evidence package
 
 ### P0: required before a strong submission
@@ -725,6 +778,10 @@ support features, and freeze the abstention rule before disjoint evaluation.
    found no stable LLM calibration advantage and a +0.060 probability bias.
    Fit any calibration map on development routes only, then lock its parameters
    and abstention threshold before a new disjoint confirmation.
+9. **Prospective mechanism attribution.** Freeze a source-outcome assignment
+   randomization or another mechanism-matched negative control before the next
+   external result. The current IRED audit is informative but post-hoc and has
+   p=0.07.
 
 Completed supporting control: the 17-route hidden-label non-interference audit
 now provides production-path evidence that unrevealed target labels cannot
@@ -828,8 +885,11 @@ protocol completes.
 The current package is materially stronger but is not ready for a broad Nature
 claim. The method now has commit-before-download external safety and positive-
 efficacy confirmations, but the positive IRED skill is weaker than the fixed
-prior and remains one-family finite-pool evidence. Repeated online LLM
+prior and remains one-family finite-pool evidence. The IRED source-outcome audit
+finds a stable +0.340 AUC advantage over the mean false binding, but its
+assignment-level p=0.07 prevents a causal-mechanism claim. Repeated online LLM
 confirmation, replication on a more distant external family, and a paired
 prospective wet-lab campaign are still missing. The highest-value next move is
-independent replication followed by one paired prospective laboratory campaign,
-not another post-hoc development sweep.
+an independently preregistered external replication with its attribution null
+frozen in advance, followed by one paired prospective laboratory campaign, not
+another post-hoc development sweep.

@@ -1,0 +1,60 @@
+{
+  "protocol": {
+    "version": "care2_flip2_ired_source_outcome_falsification_v1",
+    "status": "retrospective_mechanism_falsification",
+    "created_on": "2026-08-25",
+    "evidence_class": "posthoc_source_outcome_assignment_falsification",
+    "parent_protocol": "care2_flip2_ired_prospective_positive_transfer_v1",
+    "dataset": {
+      "name": "FLIP2 Imine Reductase (IRED)",
+      "official_split": "two-to-many",
+      "local_filename": "flip2_ired_two_to_many.csv.gz",
+      "license": "CC-BY-4.0"
+    },
+    "source_task_id": "real_flip2_ired_train_validation",
+    "target_task_id": "real_flip2_ired_test",
+    "source_seed": 0,
+    "source_observation_count": 3500,
+    "target_seed_start": 97200,
+    "target_seed_count": 100,
+    "permutation_seed_start": 98100,
+    "permutation_count": 99,
+    "initial_observations": 3,
+    "reveal_rounds": 12,
+    "skill_prior_mass_start": 0.5,
+    "skill_prior_mass_end": 0.1,
+    "bootstrap_draws": 200000,
+    "kernel": {
+      "gp_beta": 1.5,
+      "numeric_length_scale": 0.45,
+      "categorical_length_scale": 4.0,
+      "gp_noise": 0.05
+    },
+    "intervention": {
+      "fixed_components": [
+        "target candidates and outcomes",
+        "target seeds and initial observations",
+        "target reveal budget",
+        "GP-UCB kernel and beta",
+        "LLM-selected additive-mutation executor",
+        "source feature rows",
+        "source outcome marginal distribution",
+        "decaying source-authority schedule"
+      ],
+      "changed_component": "assignment of measured source outcomes to source mutation features",
+      "true_condition": "measured source outcomes remain attached to their observed variants",
+      "null_conditions": "99 deterministic permutations of the same source outcomes across the same source variants"
+    },
+    "primary_estimand": "mean paired best-so-far AUC of the true source-outcome assignment minus the mean over outcome-permuted assignments",
+    "primary_test": "one-sided finite randomization test with plus-one correction over 99 null assignments",
+    "constraints": {
+      "official_test_split_preserved": true,
+      "same_initial_observations_within_target_seed": true,
+      "same_target_reveal_budget": true,
+      "target_outcomes_excluded_from_source_prior_construction": true,
+      "all_target_seeds_retained": true,
+      "all_permutation_assignments_retained": true
+    },
+    "claim_boundary": "This post-hoc audit was designed after the prospective IRED result was observed. It can test whether the frozen additive executor uses the correct source feature-outcome binding, but it is not an independent prospective efficacy confirmation and cannot establish universal transfer."
+  }
+}

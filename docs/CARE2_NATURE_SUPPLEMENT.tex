@@ -73,7 +73,12 @@ on the untouched test partition by 0.389 [95\% paired-bootstrap CI
 $0.274,0.503$] relative to target-only GP-UCB. A predeclared fixed skill prior
 improved more ($+0.864$), so this is prospective positive-transfer evidence for
 one LLM-generated skill, not evidence that the LLM is the strongest optimizer.
-Neither result is wet-lab validation. All negative and null results are retained.
+A post-hoc audit against 99 deterministic source-outcome permutations found
+that the true binding exceeded the permutation mean by 0.340 AUC, but the
+assignment-level randomization test did not reject the null at 0.05
+($p=0.07$). Thus the prospective efficacy result stands, whereas the proposed
+outcome-binding mechanism remains suggestive and non-unique. Neither result is
+wet-lab validation. All negative and null results are retained.
 \end{abstract}
 
 \begin{appendices}
@@ -743,6 +748,68 @@ finite-pool transfer evidence in one external enzyme family. It does not prove
 universal cross-domain generalization, LLM superiority over fixed priors, or
 prospective wet-lab discovery.
 
+\subsection{Post-hoc IRED source-outcome assignment falsification}
+\label{sec:ired_outcome_falsification}
+
+The prospective IRED endpoint establishes that the deployed additive skill
+improves early finite-pool search. It does not by itself establish why. We
+therefore performed a stricter post-hoc mechanism audit that asks whether the
+measured mutation--activity binding is more useful than false bindings. The
+official test candidates, 100 target seeds, three initial observations, twelve
+reveals, GP kernel, additive executor, 0.50-to-0.10 source-authority schedule,
+3,500 source feature rows, and source outcome marginal distribution were held
+fixed. The only intervention was the assignment of measured source outcomes to
+source variants. We compared the true assignment with 99 deterministic outcome
+permutations.
+
+\begin{table}[t]
+\centering
+\caption{IRED source-outcome assignment falsification. Intervals resample the
+100 paired target seeds. The assignment-level $p$-value instead ranks the true
+binding among the 99 outcome-permuted bindings and uses a one-sided plus-one
+correction. The audit was designed after the prospective IRED result and is
+therefore a mechanism analysis, not independent confirmation.}
+\label{tab:ired_outcome_falsification}
+\scriptsize
+\setlength{\tabcolsep}{3.2pt}
+\begin{tabularx}{\textwidth}{@{}X r r r@{}}
+\toprule
+Comparison & Mean $\dauc$ & 95\% target-seed interval & Assignment result \\
+\midrule
+True binding vs. target GP-UCB & $+0.389$ & [$+0.274,+0.504$] & 72/9/19 W/T/L \\
+Permutation mean vs. target GP-UCB & $+0.049$ & [$-0.037,+0.132$] & 46/99 means $>0$ \\
+True binding vs. permutation mean & $+0.340$ & [$+0.259,+0.422$] & $p=0.07$; 6 nulls $\geq$ true \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.98\textwidth]{ired_source_outcome_falsification.png}
+\caption{IRED source-outcome mechanism audit generated directly from 10,000
+skill trajectories, 100 matched target-GP trajectories, and the archived
+assignment schedule. Panel A locates the true skill effect within the 99
+outcome-permuted assignment effects. Panel B compares the mean permuted skill,
+the LLM-selected additive skill with the true binding, and the predeclared fixed
+rank prior against target-only GP-UCB. Panel C shows best-so-far trajectories
+under the same target budget. Ribbons and effect bars are bootstrap 95\%
+intervals over target seeds.}
+\label{fig:ired_outcome_falsification}
+\end{figure*}
+
+The true assignment exceeds the mean outcome-permuted skill by 0.340 AUC with a
+target-seed bootstrap interval entirely above zero. This answers a conditional
+question: for the declared set of 99 false bindings, the measured binding is
+better on average. The finite assignment randomization test asks a different
+question: is the true assignment sufficiently extreme among independently
+permuted assignments? Six null assignments achieved an equal or larger mean
+AUC effect, giving $p=(1+6)/(1+99)=0.07$. Thirty null assignments also had
+target-seed intervals above zero against target GP-UCB. Consequently, this audit
+provides suggestive but non-unique mechanism evidence. It does not prove that
+the LLM identified the uniquely correct source feature--outcome relation. The
+next external protocol should freeze this assignment null before outcome access
+and treat mechanism attribution as a co-primary endpoint.
+
 \section{Online LLM controller and strong baselines}
 \label{sec:online}
 
@@ -1047,6 +1114,7 @@ Artifact & Contents \\
 2026-08-24: FLIP2 source-only family gate & Two 50-seed pseudo-target calibration routes, frozen eligibility calculation, outcome-blind P06241 deployment replay, protocol lock, and real-data gate matrix \\
 2026-08-25: FLIP2 Rhodopsin prospective gate & Commit-before-download preregistration, two 50-seed source-only calibration routes, 100 untouched official-test seeds, per-seed audits, protocol locks, and real-data confidence-interval figure \\
 2026-08-25: FLIP2 IRED prospective positive transfer & Outcome-blind Opus hypothesis, commit-before-download preregistration, 100 calibration seeds, 100 untouched official-test seeds, five matched policies, 6,000 test audit rows, bootstrap statistics, and real-data trajectory figure \\
+2026-08-25: IRED source-outcome falsification & One true binding, 99 deterministic outcome-permuted bindings, 100 matched target seeds, 10,000 skill trajectories, 100 target-GP trajectories, assignment-level randomization test, and source-data figure \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -1155,8 +1223,11 @@ loss of the ungated choice. A third FLIP2 family supplied one prospective
 positive result: the outcome-blind LLM additive skill improved official-test
 AUC by 0.389 [0.274, 0.503] against target-only GP-UCB. The predeclared fixed
 skill prior improved by 0.864 and the LLM skill did not improve terminal best
-with a confidence interval excluding zero. This is one external finite-pool
-efficacy result, not a general LLM advantage.
+with a confidence interval excluding zero. A later post-hoc IRED assignment
+audit found that the true source binding exceeded the mean of 99 false bindings
+by 0.340 AUC [0.259, 0.422], but six null assignments were at least as large
+($p=0.07$). This is one external finite-pool efficacy result with suggestive,
+not conclusive, mechanism attribution; it is not a general LLM advantage.
 No result should therefore be described as universal
 cross-domain transfer or prospective wet-lab discovery.
 
