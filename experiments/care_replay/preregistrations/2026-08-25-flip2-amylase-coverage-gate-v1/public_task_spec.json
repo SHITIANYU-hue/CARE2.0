@@ -1,0 +1,35 @@
+{
+  "schema_version": "care.public_task_spec/v1",
+  "status": "prepared_before_dataset_download",
+  "dataset": "FLIP2 Alpha Amylase",
+  "official_split": "one-to-many",
+  "source": "Didi et al., FLIP2, ICML 2026 Spotlight; official FLIP2 website and download asset",
+  "source_url": "https://flip.protein.properties/assets/splits/amylase/one_to_many.csv.gz",
+  "license": "MIT",
+  "scientific_context": "Bacillus subtilis alpha amylase variants are measured by stain-removal activity, a detergent-relevant enzyme-engineering endpoint.",
+  "public_variant_counts": {
+    "total": 3706,
+    "train": 412,
+    "validation": 77,
+    "test": 3217,
+    "reported_single_mutants": 488
+  },
+  "source_partition": "Official train and validation variants with zero or one mutation.",
+  "deployment_partition": "Official test variants with more than one mutation.",
+  "optimization_endpoint": "Best-so-far stain-removal activity AUC under three initial target observations and twelve additional reveals.",
+  "candidate_skill": "Estimate shrunk per-mutation effects from completed low-order source measurements, sum exact supported effects for each higher-order target candidate, and blend the source rank with target-only GP-UCB under fixed decaying authority.",
+  "coverage_aware_gate": {
+    "eligibility_rule": "coverage_conditioned_additive_v1",
+    "minimum_deployment_exact_token_coverage": 0.9,
+    "minimum_deployment_candidate_evidence_coverage": 0.95,
+    "minimum_deployment_full_exact_candidate_coverage": 0.8,
+    "maximum_low_information_calibration_exact_token_coverage": 0.1,
+    "minimum_coverage_gap": 0.75,
+    "minimum_calibration_mean_auc_delta": 0.0,
+    "coverage_rescue_rule": "A calibration route whose confidence interval crosses zero may authorize transfer only when its mean effect is positive, its exact-token coverage is at most 0.10, deployment exact-token coverage exceeds it by at least 0.75, and all deployment applicability thresholds pass. A negative calibration mean is never rescued."
+  },
+  "evidence_constraint": "Official test activity values are unavailable to the LLM, structural coverage computation, gate decision, skill selector, candidate sampler, and protocol author at freeze time.",
+  "public_target_adapter": "The gate receives a public-sequence-only deployment adapter that stores zero as a placeholder objective and excludes measured activity metadata. Outcome-noninterference is tested by changing target values while holding sequences fixed.",
+  "development_history": "The rule is motivated by the preregistered TrpB false-negative hold and must therefore be evaluated only on this previously unused family. TrpB outcomes cannot enter the Amylase confirmatory endpoint.",
+  "claim_boundary": "This protocol can provide prospective finite-pool evidence for or against one coverage-aware routing rule on one external enzyme family. It is not a wet-lab discovery, a universal safety proof, or a population generalization estimate."
+}

@@ -12,7 +12,9 @@ from statistics import mean
 from typing import Any, Mapping, Sequence
 
 import run_external_task_family_transfer as external
+import run_multisource_transfer_baselines as multisource
 import run_synthetic_suzuki as replay
+import run_transfer_ablation as transfer
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,6 +23,10 @@ IMPLEMENTATION_FILES = (
     Path(external.__file__).resolve(),
     *external.IMPLEMENTATION_FILES[1:],
 )
+STANDARD_ELIGIBILITY_RULE = (
+    "paired_auc_ci95_lower_bound_above_zero_on_every_source_only_route"
+)
+COVERAGE_CONDITIONED_ELIGIBILITY_RULE = "coverage_conditioned_additive_v1"
 
 
 def canonical_sha256(payload: Mapping[str, Any]) -> str:
@@ -69,10 +75,13 @@ def validate_protocol(config: Mapping[str, Any]) -> None:
         raise ValueError(
             "Deployment target must be absent from source-only calibration routes."
         )
+    public_target = protocol["deployment"].get("public_target_task_id")
     declared = calibration_tasks | {
         deployment_target,
         *(str(item) for item in protocol["deployment"]["source_task_ids"]),
     }
+    if public_target is not None:
+        declared.add(str(public_target))
     unknown = sorted(task for task in declared if task not in replay.DATASET_BUILDERS)
     if unknown:
         raise ValueError(f"Unknown task IDs: {unknown}")
@@ -82,6 +91,44 @@ def validate_protocol(config: Mapping[str, Any]) -> None:
         raise ValueError(f"Invalid gate candidate methods: {unknown_methods}")
     if protocol["gate"]["fallback_policy"] != "target_gp_ucb":
         raise ValueError("The source-only safety fallback must be target_gp_ucb.")
+    eligibility_rule = protocol["gate"].get(
+        "eligibility_rule", STANDARD_ELIGIBILITY_RULE
+    )
+    if eligibility_rule not in {
+        STANDARD_ELIGIBILITY_RULE,
+        COVERAGE_CONDITIONED_ELIGIBILITY_RULE,
+    }:
+        raise ValueError(f"Unknown gate eligibility rule: {eligibility_rule}")
+    if eligibility_rule == COVERAGE_CONDITIONED_ELIGIBILITY_RULE:
+        if methods != [multisource.ADDITIVE_MUTATION_POLICY_MODE]:
+            raise ValueError(
+                "The coverage-conditioned gate is defined only for the frozen "
+                "additive mutation skill."
+            )
+        if public_target is None:
+            raise ValueError(
+                "Coverage-conditioned deployment requires public_target_task_id."
+            )
+        if str(public_target) == deployment_target:
+            raise ValueError(
+                "The public deployment adapter must be distinct from the measured target."
+            )
+        thresholds = protocol["gate"].get("coverage_thresholds", {})
+        required_thresholds = {
+            "minimum_deployment_exact_token_coverage",
+            "minimum_deployment_candidate_evidence_coverage",
+            "minimum_deployment_full_exact_candidate_coverage",
+            "maximum_low_information_calibration_exact_token_coverage",
+            "minimum_coverage_gap",
+            "minimum_calibration_mean_auc_delta",
+        }
+        missing = sorted(required_thresholds - set(thresholds))
+        if missing:
+            raise ValueError(f"Missing coverage thresholds: {missing}")
+        for key in required_thresholds - {"minimum_calibration_mean_auc_delta"}:
+            value = float(thresholds[key])
+            if not 0.0 <= value <= 1.0:
+                raise ValueError(f"Coverage threshold {key} must lie in [0, 1].")
 
 
 def verify_preregistration(config: Mapping[str, Any]) -> dict[str, Any] | None:
@@ -161,31 +208,127 @@ def select_source_only_policy(
     calibration_summaries: Mapping[str, Mapping[str, Any]],
     candidate_methods: Sequence[str],
     fallback_policy: str = "target_gp_ucb",
+    *,
+    eligibility_rule: str = STANDARD_ELIGIBILITY_RULE,
+    calibration_coverage: Mapping[str, Mapping[str, Any]] | None = None,
+    deployment_coverage: Mapping[str, Any] | None = None,
+    coverage_thresholds: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     if not calibration_summaries:
         raise ValueError("At least one source-only calibration route is required.")
     method_diagnostics: dict[str, Any] = {}
     eligible: list[str] = []
+    if eligibility_rule == COVERAGE_CONDITIONED_ELIGIBILITY_RULE:
+        if calibration_coverage is None or deployment_coverage is None:
+            raise ValueError("Coverage-conditioned selection requires coverage diagnostics.")
+        thresholds = dict(coverage_thresholds or {})
+    else:
+        thresholds = {}
     for method in candidate_methods:
         route_effects = []
         for route_id, summary in calibration_summaries.items():
             effect = summary["comparisons_vs_target_gp_ucb"][method][
                 "best_so_far_auc"
             ]
-            route_effects.append(
-                {
-                    "route_id": route_id,
-                    "mean_delta": float(effect["mean_delta"]),
-                    "ci95_low": float(effect["normal_95ci_low"]),
-                    "ci95_high": float(effect["normal_95ci_high"]),
-                }
-            )
+            route_effect = {
+                "route_id": route_id,
+                "mean_delta": float(effect["mean_delta"]),
+                "ci95_low": float(effect["normal_95ci_low"]),
+                "ci95_high": float(effect["normal_95ci_high"]),
+            }
+            if eligibility_rule == COVERAGE_CONDITIONED_ELIGIBILITY_RULE:
+                route_effect["structural_coverage"] = dict(
+                    calibration_coverage[route_id]
+                )
+            route_effects.append(route_effect)
         route_equal_mean = mean(item["mean_delta"] for item in route_effects)
-        is_eligible = all(item["ci95_low"] > 0.0 for item in route_effects)
+        route_decisions: list[dict[str, Any]] = []
+        if eligibility_rule == STANDARD_ELIGIBILITY_RULE:
+            for item in route_effects:
+                route_decisions.append(
+                    {
+                        "route_id": item["route_id"],
+                        "eligible": item["ci95_low"] > 0.0,
+                        "basis": "positive_calibration_ci95_lower_bound",
+                    }
+                )
+        elif eligibility_rule == COVERAGE_CONDITIONED_ELIGIBILITY_RULE:
+            deployment_exact = float(deployment_coverage["exact_token_coverage"])
+            deployment_evidence = float(
+                deployment_coverage["candidate_evidence_coverage"]
+            )
+            deployment_full_exact = float(
+                deployment_coverage["candidate_full_exact_coverage"]
+            )
+            structurally_applicable = (
+                deployment_exact
+                >= float(thresholds["minimum_deployment_exact_token_coverage"])
+                and deployment_evidence
+                >= float(
+                    thresholds[
+                        "minimum_deployment_candidate_evidence_coverage"
+                    ]
+                )
+                and deployment_full_exact
+                >= float(
+                    thresholds[
+                        "minimum_deployment_full_exact_candidate_coverage"
+                    ]
+                )
+            )
+            for item in route_effects:
+                route_coverage = item["structural_coverage"]
+                calibration_exact = float(route_coverage["exact_token_coverage"])
+                positive_calibration = item["ci95_low"] > 0.0
+                low_information_mismatch = (
+                    calibration_exact
+                    <= float(
+                        thresholds[
+                            "maximum_low_information_calibration_exact_token_coverage"
+                        ]
+                    )
+                    and deployment_exact - calibration_exact
+                    >= float(thresholds["minimum_coverage_gap"])
+                )
+                nonnegative_signal = (
+                    item["mean_delta"]
+                    > float(thresholds["minimum_calibration_mean_auc_delta"])
+                    and item["ci95_high"] > 0.0
+                )
+                coverage_rescue = (
+                    structurally_applicable
+                    and low_information_mismatch
+                    and nonnegative_signal
+                )
+                route_eligible = structurally_applicable and (
+                    positive_calibration or coverage_rescue
+                )
+                route_decisions.append(
+                    {
+                        "route_id": item["route_id"],
+                        "eligible": route_eligible,
+                        "basis": (
+                            "positive_calibration_ci95_lower_bound"
+                            if route_eligible and positive_calibration
+                            else (
+                                "coverage_mismatch_rescue"
+                                if route_eligible and coverage_rescue
+                                else "insufficient_evidence_or_structural_coverage"
+                            )
+                        ),
+                        "structurally_applicable": structurally_applicable,
+                        "positive_calibration": positive_calibration,
+                        "coverage_mismatch_rescue": coverage_rescue,
+                    }
+                )
+        else:
+            raise ValueError(f"Unknown gate eligibility rule: {eligibility_rule}")
+        is_eligible = all(item["eligible"] for item in route_decisions)
         if is_eligible:
             eligible.append(method)
         method_diagnostics[method] = {
             "route_effects": route_effects,
+            "route_decisions": route_decisions,
             "route_equal_mean_auc_delta": round(route_equal_mean, 6),
             "eligible": is_eligible,
         }
@@ -209,12 +352,46 @@ def select_source_only_policy(
         else fallback_policy
     )
     return {
+        "eligibility_rule": eligibility_rule,
         "candidate_methods": list(candidate_methods),
         "method_diagnostics": method_diagnostics,
         "eligible_methods": eligible,
         "ungated_source_only_selection": ungated,
         "deployed_policy": deployed,
         "fallback_triggered": deployed == fallback_policy,
+        "deployment_structural_coverage": (
+            dict(deployment_coverage) if deployment_coverage is not None else None
+        ),
+        "coverage_thresholds": thresholds or None,
+    }
+
+
+def structural_coverage_for_route(
+    config: Mapping[str, Any],
+    route: Mapping[str, Any],
+    *,
+    target_task_id: str,
+) -> dict[str, Any]:
+    protocol = config["protocol"]
+    source_ids = [str(item) for item in route["source_task_ids"]]
+    source_sets = []
+    for source_id in source_ids:
+        source = replay.DATASET_BUILDERS[source_id]()
+        source_sets.append(
+            transfer.source_observations(
+                source,
+                int(protocol["source_seed"]),
+                int(protocol["source_observation_count_per_task"]),
+            )
+        )
+    target = replay.DATASET_BUILDERS[target_task_id]()
+    diagnostics = multisource.mutation_coverage_diagnostics(
+        source_sets, target.candidates
+    )
+    return {
+        "source_task_ids": source_ids,
+        "target_task_id": target_task_id,
+        **diagnostics,
     }
 
 
@@ -275,10 +452,33 @@ def run(config: dict[str, Any], output_dir: Path) -> dict[str, Any]:
             inner, output_dir / "calibration" / route_id
         )
 
+    eligibility_rule = protocol["gate"].get(
+        "eligibility_rule", STANDARD_ELIGIBILITY_RULE
+    )
+    calibration_coverage: dict[str, dict[str, Any]] | None = None
+    deployment_coverage: dict[str, Any] | None = None
+    if eligibility_rule == COVERAGE_CONDITIONED_ELIGIBILITY_RULE:
+        calibration_coverage = {
+            str(route["route_id"]): structural_coverage_for_route(
+                config,
+                route,
+                target_task_id=str(route["pseudo_target_task_id"]),
+            )
+            for route in protocol["calibration_routes"]
+        }
+        deployment_coverage = structural_coverage_for_route(
+            config,
+            protocol["deployment"],
+            target_task_id=str(protocol["deployment"]["public_target_task_id"]),
+        )
     gate = select_source_only_policy(
         calibration_summaries,
         [str(item) for item in protocol["gate"]["candidate_methods"]],
         str(protocol["gate"]["fallback_policy"]),
+        eligibility_rule=eligibility_rule,
+        calibration_coverage=calibration_coverage,
+        deployment_coverage=deployment_coverage,
+        coverage_thresholds=protocol["gate"].get("coverage_thresholds"),
     )
     deployment_spec = protocol["deployment"]
     deployment_config = build_inner_config(

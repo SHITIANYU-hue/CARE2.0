@@ -59,6 +59,10 @@ PUBLIC_DATA_URLS = {
         "https://flip.protein.properties/assets/splits/trpb/"
         "one_to_many.csv.gz"
     ),
+    "flip2_amylase_one_to_many.csv.gz": (
+        "https://flip.protein.properties/assets/splits/amylase/"
+        "one_to_many.csv.gz"
+    ),
     "chemlex_acidamine_wetlab_v3.xlsx": "https://zenodo.org/records/17596563/files/Chemlex_Acidamine_Wetlab_Data.xlsx?download=1",
     "matbench_expt_gap.json.gz": "https://ml.materialsproject.org/projects/matbench_expt_gap.json.gz",
     "matbench_dielectric.json.gz": "https://ml.materialsproject.org/projects/matbench_dielectric.json.gz",
@@ -2479,6 +2483,150 @@ def real_flip2_trpb_test_adapter() -> DatasetAdapter:
     return real_flip2_trpb_adapter("test")
 
 
+FLIP2_AMYLASE_DECISION_COLUMNS = FLIP2_IRED_DECISION_COLUMNS
+
+
+def flip2_amylase_partition(row: dict[str, str]) -> str:
+    return flip2_ired_partition(row)
+
+
+def flip2_amylase_reference_sequence(records: list[dict[str, str]]) -> str:
+    sequences = [
+        str(row.get("sequence", "")).strip().upper()
+        for row in records
+        if flip2_amylase_partition(row) in {"train", "validation"}
+    ]
+    if not sequences:
+        raise ValueError("FLIP2 Amylase has no train/validation sequences.")
+    length_counts: dict[int, int] = {}
+    for sequence in sequences:
+        length_counts[len(sequence)] = length_counts.get(len(sequence), 0) + 1
+    reference_length = max(
+        length_counts, key=lambda length: (length_counts[length], length)
+    )
+    aligned = [sequence for sequence in sequences if len(sequence) == reference_length]
+    amino_order = {
+        residue: index for index, residue in enumerate(FLIP2_IRED_AMINO_ACIDS)
+    }
+    unknown = sorted(set("".join(aligned)) - set(FLIP2_IRED_AMINO_ACIDS))
+    if unknown:
+        raise ValueError(f"FLIP2 Amylase contains unsupported residues: {unknown}")
+    reference = []
+    for position in range(reference_length):
+        counts: dict[str, int] = {}
+        for sequence in aligned:
+            residue = sequence[position]
+            counts[residue] = counts.get(residue, 0) + 1
+        reference.append(
+            max(counts, key=lambda residue: (counts[residue], -amino_order[residue]))
+        )
+    return "".join(reference)
+
+
+def flip2_amylase_public_features(
+    sequence: str,
+    reference: str,
+) -> tuple[dict[str, Any], tuple[float, ...]]:
+    return flip2_ired_public_features(sequence, reference)
+
+
+def real_flip2_amylase_adapter(
+    partition: str,
+    *,
+    outcomes_visible: bool = True,
+) -> DatasetAdapter:
+    valid = {"train", "validation", "train_validation", "test"}
+    if partition not in valid:
+        raise ValueError(f"Unknown FLIP2 Amylase partition: {partition}")
+    path = ensure_public_data_file("flip2_amylase_one_to_many.csv.gz")
+    records = read_csv_gz_dicts(path)
+    reference = flip2_amylase_reference_sequence(records)
+    included = {"train", "validation"} if partition == "train_validation" else {partition}
+    pool: list[Candidate] = []
+    for row_index, row in enumerate(records):
+        official_partition = flip2_amylase_partition(row)
+        if official_partition not in included:
+            continue
+        sequence = str(row.get("sequence", "")).strip().upper()
+        if len(sequence) != len(reference):
+            continue
+        metadata, numeric_features = flip2_amylase_public_features(
+            sequence, reference
+        )
+        activity = float(row["target"]) if outcomes_visible else 0.0
+        if not math.isfinite(activity):
+            raise ValueError("FLIP2 Amylase target must be finite.")
+        candidate_metadata = {
+            "sequence": sequence,
+            "amylase_partition": partition,
+            **metadata,
+            "official_partition": official_partition,
+            "official_split": row.get("set", ""),
+            "official_validation": row.get("validation", ""),
+            "source_row": row_index + 2,
+        }
+        if outcomes_visible:
+            candidate_metadata["measured_amylase_activity"] = round(activity, 8)
+        pool.append(
+            Candidate(
+                candidate_id=f"flip2_amylase_{partition}_{len(pool):05d}",
+                group=str(metadata["mutation_count_bin"]),
+                x1=numeric_features[20],
+                x2=numeric_features[25],
+                x3=numeric_features[26],
+                objective_value=activity,
+                metadata=candidate_metadata,
+                numeric_features=numeric_features,
+            )
+        )
+    if not pool:
+        raise ValueError(f"FLIP2 Amylase adapter {partition} has no candidates.")
+    visibility = "measured" if outcomes_visible else "public-sequence-only"
+    return DatasetAdapter(
+        dataset_id=(
+            f"real_flip2_amylase_{partition}"
+            if outcomes_visible
+            else f"public_flip2_amylase_{partition}"
+        ),
+        title=f"FLIP2 Alpha Amylase {partition} {visibility} replay",
+        objective="maximize_measured_alpha_amylase_stain_removal_activity",
+        decision_columns=FLIP2_AMYLASE_DECISION_COLUMNS,
+        hidden_target=(
+            "measured_amylase_activity" if outcomes_visible else "unavailable"
+        ),
+        group_column="mutation_count_bin",
+        preferred_groups=(),
+        failure_note=(
+            "This adapter uses the official FLIP2 Alpha Amylase one-to-many "
+            "split. Mutation descriptors are computed from public sequences "
+            "relative to a train/validation consensus. The public deployment "
+            "adapter replaces every target value with zero and stores no "
+            "measured outcome so structural gate diagnostics cannot use it."
+        ),
+        candidates=tuple(pool),
+    )
+
+
+def real_flip2_amylase_train_adapter() -> DatasetAdapter:
+    return real_flip2_amylase_adapter("train")
+
+
+def real_flip2_amylase_validation_adapter() -> DatasetAdapter:
+    return real_flip2_amylase_adapter("validation")
+
+
+def real_flip2_amylase_train_validation_adapter() -> DatasetAdapter:
+    return real_flip2_amylase_adapter("train_validation")
+
+
+def real_flip2_amylase_test_adapter() -> DatasetAdapter:
+    return real_flip2_amylase_adapter("test")
+
+
+def public_flip2_amylase_test_adapter() -> DatasetAdapter:
+    return real_flip2_amylase_adapter("test", outcomes_visible=False)
+
+
 def real_matbench_expt_gap_adapter() -> DatasetAdapter:
     path = ensure_public_data_file("matbench_expt_gap.json.gz")
     records = read_matbench_json_gz(path)
@@ -2861,6 +3009,11 @@ DATASET_BUILDERS: dict[str, Callable[[], DatasetAdapter]] = {
     "real_flip2_trpb_validation": real_flip2_trpb_validation_adapter,
     "real_flip2_trpb_train_validation": real_flip2_trpb_train_validation_adapter,
     "real_flip2_trpb_test": real_flip2_trpb_test_adapter,
+    "real_flip2_amylase_train": real_flip2_amylase_train_adapter,
+    "real_flip2_amylase_validation": real_flip2_amylase_validation_adapter,
+    "real_flip2_amylase_train_validation": real_flip2_amylase_train_validation_adapter,
+    "real_flip2_amylase_test": real_flip2_amylase_test_adapter,
+    "public_flip2_amylase_test": public_flip2_amylase_test_adapter,
     "real_matbench_expt_gap": real_matbench_expt_gap_adapter,
     "real_matbench_dielectric": real_matbench_dielectric_adapter,
     "real_matbench_phonons": real_matbench_phonons_adapter,

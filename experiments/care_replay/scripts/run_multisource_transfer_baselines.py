@@ -113,6 +113,76 @@ def classical_rank_normalized(values: np.ndarray) -> dict[int, float]:
     return {index: float(rank / denominator) for index, rank in enumerate(order)}
 
 
+def mutation_coverage_diagnostics(
+    source_observed_sets: Sequence[Sequence[replay.Candidate]],
+    target_candidates: Sequence[replay.Candidate],
+) -> dict[str, Any]:
+    """Measure additive-skill applicability without reading any outcome value."""
+    if not source_observed_sets:
+        raise ValueError("Mutation coverage requires at least one source task.")
+    exact_tokens = {
+        str(token)
+        for source_candidates in source_observed_sets
+        for candidate in source_candidates
+        for token in candidate.metadata.get("mutation_tokens", [])
+    }
+    class_tokens = {
+        str(token)
+        for source_candidates in source_observed_sets
+        for candidate in source_candidates
+        for token in candidate.metadata.get("mutation_class_tokens", [])
+    }
+    exact_hits = 0
+    class_hits = 0
+    total_tokens = 0
+    candidates_with_evidence = 0
+    candidates_fully_exact = 0
+    mutation_counts: list[int] = []
+    for candidate in target_candidates:
+        candidate_exact = [
+            str(item) for item in candidate.metadata.get("mutation_tokens", [])
+        ]
+        candidate_classes = [
+            str(item)
+            for item in candidate.metadata.get("mutation_class_tokens", [])
+        ]
+        mutation_counts.append(len(candidate_exact))
+        used = 0
+        exact_for_candidate = 0
+        for index, token in enumerate(candidate_exact):
+            total_tokens += 1
+            if token in exact_tokens:
+                exact_hits += 1
+                exact_for_candidate += 1
+                used += 1
+            elif index < len(candidate_classes) and candidate_classes[index] in class_tokens:
+                class_hits += 1
+                used += 1
+        if used:
+            candidates_with_evidence += 1
+        if candidate_exact and exact_for_candidate == len(candidate_exact):
+            candidates_fully_exact += 1
+    return {
+        "target_outcomes_used": False,
+        "source_observation_count": sum(len(items) for items in source_observed_sets),
+        "source_exact_mutation_token_count": len(exact_tokens),
+        "source_mutation_class_token_count": len(class_tokens),
+        "target_candidate_count": len(target_candidates),
+        "target_token_count": total_tokens,
+        "mean_target_mutation_count": round(
+            float(np.mean(mutation_counts)) if mutation_counts else 0.0, 6
+        ),
+        "exact_token_coverage": round(exact_hits / max(1, total_tokens), 6),
+        "class_fallback_coverage": round(class_hits / max(1, total_tokens), 6),
+        "candidate_evidence_coverage": round(
+            candidates_with_evidence / max(1, len(target_candidates)), 6
+        ),
+        "candidate_full_exact_coverage": round(
+            candidates_fully_exact / max(1, len(target_candidates)), 6
+        ),
+    }
+
+
 def additive_mutation_prior(
     source_observed_sets: Sequence[Sequence[replay.Candidate]],
     target_candidates: Sequence[replay.Candidate],

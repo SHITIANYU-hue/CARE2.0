@@ -137,6 +137,13 @@ The current Opus suite supports the following statements:
     Exact mutation-token coverage was 0% on calibration but 99.97% on
     deployment. This is a prospective router power failure and is retained as
     such.
+18. The three preregistered external families now form a transparent routing
+    triad rather than a success-only collection. Rhomax is a correct rejection
+    of a harmful candidate (`-1.548` candidate AUC, `0.000` deployed); IRED is a
+    correct deployment (`+0.389` candidate and deployed); TrpB is a false-
+    negative hold (`+0.949` candidate, `0.000` deployed). The synthesis is
+    descriptive because three families cannot estimate a population
+    generalization rate.
 
 The current evidence does not support these statements:
 
@@ -350,6 +357,24 @@ sources. The lower-bound gate tested class-level extrapolation rather than the
 exact-token composition used at deployment and abstained. We must report both
 facts: the skill and mechanism succeeded, but the frozen router did not deploy
 the skill.
+
+### Prospective external-family routing synthesis
+
+The unified external-family figure reads the three preregistered results at the
+level the router actually controls. It reports both the candidate policy and the
+policy deployed after the gate:
+
+| Family | Candidate policy | Candidate AUC delta [95% CI] | Gate | Deployed AUC delta | Interpretation |
+|---|---|---:|---|---:|---|
+| Rhomax | Fixed skill prior | -1.548 [-1.996, -1.099] | HOLD | 0.000 | Correct rejection |
+| IRED | LLM additive skill | +0.389 [+0.274, +0.502] | TRANSFER | +0.389 | Correct deployment |
+| TrpB | LLM additive skill | +0.949 [+0.864, +1.034] | HOLD | 0.000 | False-negative hold |
+
+This is the cleanest current statement of the complete-system limitation. The
+system has evidence for both useful skills and safe abstention, but its routing
+recall is not yet adequate. The next independent test is therefore not another
+TrpB threshold replay. It is an outcome-blind, coverage-aware rule frozen on the
+previously unused FLIP2 Alpha Amylase `one-to-many` split before data download.
 
 ## Frozen repeated-trajectory protocol
 
@@ -943,3 +968,9 @@ frozen on another external family, a more distant domain, and a paired
 prospective wet-lab campaign are still missing. The highest-value next move is
 the coverage-aware prospective router plus a laboratory campaign, not a
 retroactive TrpB gate rewrite.
+
+Implementation for the Alpha Amylase public-sequence adapter and the
+coverage-conditioned decision rule is now test-covered. The official Amylase
+file remains absent. The confirmatory run must wait until an outcome-blind LLM
+hypothesis record and the final config hash are committed; until then this is an
+implementation milestone, not evidence.

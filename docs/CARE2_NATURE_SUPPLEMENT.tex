@@ -38,7 +38,7 @@
 \maketitle
 
 \begin{abstract}
-This Supplementary Information reports the experimental protocol, full result
+\mbox{T}his Supplementary Information reports the experimental protocol, full result
 tables, matched baselines, ablations, decision traces, and claim boundaries for
 \care. The system uses a large language model (LLM) in two distinct roles. An
 offline semantic-skill compiler converts source-task evidence and a public
@@ -915,6 +915,62 @@ LLM proposed a strongly useful skill and the attribution test confirmed its
 source dependence, but the current router failed to deploy it. A revised gate
 must condition on structural coverage and must be frozen on another family;
 the TrpB outcome cannot be used to retroactively change this decision.
+
+\subsection{Cross-family prospective synthesis}
+\label{sec:external_triad}
+
+The three preregistered external-family experiments answer different questions
+and should not be collapsed into a single efficacy average. Rhomax tests
+prospective safety: the frozen gate rejected a harmful fixed prior and kept the
+complete router at the target-only reference. IRED tests positive deployment:
+the LLM-selected additive skill passed calibration and the complete router
+realized a $+0.389$ AUC effect. TrpB jointly tests efficacy and source-outcome
+attribution: the same skill class improved AUC by $+0.949$ and passed the
+predeclared assignment test, but the complete router remained at zero because
+the gate issued a false-negative hold.
+
+\begin{table}[t]
+\centering
+\caption{Descriptive synthesis of preregistered external-family results. Each
+deployment comparison contains 100 paired target seeds. Candidate efficacy and
+the complete deployed router are reported separately. IRED uses its
+preregistered paired-bootstrap interval; Rhomax and TrpB use paired normal
+intervals from their frozen protocols.}
+\label{tab:external_triad}
+\scriptsize
+\setlength{\tabcolsep}{3.0pt}
+\begin{tabularx}{\textwidth}{@{}l X r l r X@{}}
+\toprule
+Family & Candidate & Candidate $\dauc$ [95\% CI] & Gate & Deployed $\dauc$ & Router outcome \\
+\midrule
+Rhomax & Fixed skill prior & $-1.548$ [$-1.996,-1.099$] & Hold & $0.000$ & Correct rejection \\
+IRED & LLM additive skill & $+0.389$ [$+0.274,+0.502$] & Transfer & $+0.389$ & Correct deployment \\
+TrpB & LLM additive skill & $+0.949$ [$+0.864,+1.034$] & Hold & $0.000$ & False-negative hold \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.99\textwidth]{prospective_external_family_triad.png}
+\caption{Candidate efficacy and complete-router behavior across three
+preregistered external protein families. Circles and paired 95\% confidence
+intervals show the candidate policy relative to target-only GP-UCB; diamonds
+show the policy actually deployed by the frozen router. The plot is generated
+directly from the archived result tables. It is a descriptive synthesis, not a
+population estimate of generalization because only three families are present.}
+\label{fig:external_triad}
+\end{figure*}
+
+This synthesis identifies a routing objective that a success-only aggregate
+would hide. The candidate layer distinguishes useful from harmful transferable
+structure in these examples, but the router has one false negative among two
+beneficial candidates. The next protocol therefore freezes a coverage-aware
+decision rule on a previously unused Alpha Amylase family. That experiment is
+prospective only if its public task specification, LLM hypothesis, thresholds,
+code hashes, and target-outcome exclusion are committed before the official file
+is downloaded. The existing TrpB outcomes are development evidence for this new
+router and cannot contribute to its confirmatory endpoint.
 
 \section{Online LLM controller and strong baselines}
 \label{sec:online}
