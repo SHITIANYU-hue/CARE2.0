@@ -2,6 +2,9 @@
 
 Updated 2026-08-25.
 
+For an evidence-by-evidence rebuttal and writing checklist, see
+[`NATURE_REVIEWER_RESPONSE_MATRIX.md`](NATURE_REVIEWER_RESPONSE_MATRIX.md).
+
 ## Editorial position
 
 CARE 2.0 should not be presented as a general-purpose agent that can already
