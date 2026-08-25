@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 import csv
 import json
 from pathlib import Path
@@ -242,6 +243,78 @@ def select_candidate(candidates: Sequence[Mapping[str, Any]]) -> Mapping[str, An
     return min(candidates, key=selection_key)
 
 
+def leave_one_route_out_selection(
+    evaluated: Sequence[Mapping[str, Any]],
+    route_results: Mapping[str, Mapping[str, Sequence[Mapping[str, Any]]]],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Re-select the controller after removing each development route in turn."""
+    if not evaluated:
+        raise ValueError("No controller candidates are available for stability audit.")
+    first_policy_id = str(evaluated[0]["policy"]["policy_id"])
+    training_rows = list(route_results[first_policy_id]["training"])
+    held_out_ids = [str(row["case_id"]) for row in training_rows]
+    rows: list[dict[str, Any]] = []
+    for held_out_id in held_out_ids:
+        reduced_candidates = []
+        for candidate in evaluated:
+            policy = candidate["policy"]
+            policy_id = str(policy["policy_id"])
+            reduced_rows = [
+                row
+                for row in route_results[policy_id]["training"]
+                if str(row["case_id"]) != held_out_id
+            ]
+            reduced_candidates.append(
+                {
+                    "policy": policy,
+                    "training": compact_metrics(reduced_rows),
+                    "evaluation": {},
+                }
+            )
+        selected = select_candidate(reduced_candidates)
+        selected_policy = selected["policy"]
+        selected_policy_id = str(selected_policy["policy_id"])
+        held_out_row = next(
+            row
+            for row in route_results[selected_policy_id]["training"]
+            if str(row["case_id"]) == held_out_id
+        )
+        rows.append(
+            {
+                "held_out_case_id": held_out_id,
+                "selected_policy_id": selected_policy_id,
+                "selected_policy_kind": str(selected_policy["kind"]),
+                "selected_gate_round": int(selected_policy["gate_round"]),
+                "selected_threshold": selected_policy["threshold"],
+                "selected_hard_abstention": bool(
+                    selected_policy["hard_abstention"]
+                ),
+                "held_out_auc_delta": float(
+                    held_out_row["policy_minus_target_gp_auc"]
+                ),
+                "held_out_switched_to_target_gp": bool(
+                    held_out_row["switched_to_target_gp"]
+                ),
+            }
+        )
+    values = [float(row["held_out_auc_delta"]) for row in rows]
+    policy_counts = Counter(str(row["selected_policy_id"]) for row in rows)
+    summary = {
+        "fold_count": len(rows),
+        "distinct_selected_policy_count": len(policy_counts),
+        "selected_policy_counts": dict(sorted(policy_counts.items())),
+        "dominant_policy_id": policy_counts.most_common(1)[0][0],
+        "dominant_policy_fraction": round(
+            policy_counts.most_common(1)[0][1] / len(rows), 6
+        ),
+        "held_out_equal_route_mean_auc_delta": round(mean(values), 6),
+        "held_out_wins": sum(value > portfolio.TOLERANCE for value in values),
+        "held_out_ties": sum(abs(value) <= portfolio.TOLERANCE for value in values),
+        "held_out_losses": sum(value < -portfolio.TOLERANCE for value in values),
+    }
+    return rows, summary
+
+
 def bootstrap_summary(
     route_rows: Sequence[Mapping[str, Any]],
     protocol: Mapping[str, Any],
@@ -462,6 +535,9 @@ def main() -> None:
         "parameter_count": 0,
     }
     original_evaluation_rows = apply_policy(original_policy, evaluation_records)
+    stability_rows, stability_summary = leave_one_route_out_selection(
+        evaluated, route_results
+    )
     args.output_root.mkdir(parents=True, exist_ok=True)
     write_candidate_grid(args.output_root / "candidate_grid.csv", evaluated)
     matched.write_jsonl(
@@ -479,6 +555,10 @@ def main() -> None:
     matched.write_jsonl(
         args.output_root / "full_online_llm_evaluation_routes.jsonl",
         original_evaluation_rows,
+    )
+    matched.write_jsonl(
+        args.output_root / "leave_one_route_out_selection.jsonl",
+        stability_rows,
     )
     figures = plot_evaluation(
         original_evaluation_rows,
@@ -519,6 +599,7 @@ def main() -> None:
         "selection_uses_evaluation_metrics": False,
         "candidate_count": len(evaluated),
         "selected_policy": selected["policy"],
+        "development_leave_one_route_out_stability": stability_summary,
         "selected_policy_training": selected_training_summary,
         "selected_policy_route_disjoint_evaluation": selected_evaluation_summary,
         "route_disjoint_full_online_llm": original_evaluation_summary,
@@ -566,6 +647,10 @@ def main() -> None:
                 f"| Evaluation / selected controller | {summary_line(selected_evaluation_summary)} |",
                 "",
                 f"On the six route-disjoint trajectories, the selected controller changed AUC by {selected_minus_online['equal_route_mean_auc_delta']:+.3f} versus the original full online-LLM trajectory. It still had {selected_evaluation_summary['route_losses']} loss against target-only GP-UCB, so this is evidence of improved robustness, not universal positive transfer.",
+                "",
+                "## Development-route selection stability",
+                "",
+                f"Leaving out each development route in turn selected {stability_summary['distinct_selected_policy_count']} distinct policies. The most frequent policy was `{stability_summary['dominant_policy_id']}` in {stability_summary['dominant_policy_fraction']:.1%} of folds. Applied to each omitted route, the re-selected policies averaged {stability_summary['held_out_equal_route_mean_auc_delta']:+.3f} AUC with {stability_summary['held_out_wins']} / {stability_summary['held_out_ties']} / {stability_summary['held_out_losses']} wins / ties / losses versus target-only GP-UCB.",
                 "",
                 "## Claim boundary",
                 "",

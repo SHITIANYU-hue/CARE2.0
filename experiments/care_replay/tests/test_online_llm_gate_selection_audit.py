@@ -84,6 +84,74 @@ class OnlineLlmGateSelectionAuditTests(unittest.TestCase):
         self.assertTrue(all(row["force_fallback"] for row in bounded))
         self.assertTrue(all(row["threshold"] is None for row in bounded))
 
+    def test_leave_one_route_out_selection_does_not_use_evaluation_rows(self):
+        policies = [
+            {
+                "policy_id": "safe",
+                "kind": "bounded_authority",
+                "gate_round": 1,
+                "threshold": None,
+                "hard_abstention": False,
+                "parameter_count": 1,
+            },
+            {
+                "policy_id": "risky",
+                "kind": "bounded_authority",
+                "gate_round": 2,
+                "threshold": None,
+                "hard_abstention": False,
+                "parameter_count": 1,
+            },
+        ]
+
+        def route(case_id, delta):
+            return {
+                "case_id": case_id,
+                "policy_minus_target_gp_auc": delta,
+                "switched_to_target_gp": True,
+                "nominal_llm_calls_avoided": 1,
+            }
+
+        route_results = {
+            "safe": {
+                "training": [route("a", 0.0), route("b", 0.0), route("c", 0.0)],
+                "evaluation": [route("eval", -999.0)],
+            },
+            "risky": {
+                "training": [route("a", 1.0), route("b", -1.0), route("c", 1.0)],
+                "evaluation": [route("eval", 999.0)],
+            },
+        }
+        evaluated = [
+            {
+                "policy": policy,
+                "training": selection.compact_metrics(
+                    route_results[policy["policy_id"]]["training"]
+                ),
+                "evaluation": {"mean_auc_delta": 999.0},
+            }
+            for policy in policies
+        ]
+        rows, summary = selection.leave_one_route_out_selection(
+            evaluated, route_results
+        )
+        self.assertEqual(len(rows), 3)
+        self.assertEqual(summary["held_out_losses"], 1)
+        self.assertEqual(
+            {row["held_out_case_id"] for row in rows}, {"a", "b", "c"}
+        )
+        route_results["safe"]["evaluation"][0][
+            "policy_minus_target_gp_auc"
+        ] = 1e12
+        route_results["risky"]["evaluation"][0][
+            "policy_minus_target_gp_auc"
+        ] = -1e12
+        repeated_rows, repeated_summary = selection.leave_one_route_out_selection(
+            evaluated, route_results
+        )
+        self.assertEqual(repeated_rows, rows)
+        self.assertEqual(repeated_summary, summary)
+
     def test_route_disjoint_confirmation_is_frozen_and_complete(self):
         config = selection.matched.load_json(
             ROOT

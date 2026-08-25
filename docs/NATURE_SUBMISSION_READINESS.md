@@ -409,6 +409,13 @@ whereas repeated stochastic policy control can erase that benefit. The
 intervals cross zero and one loss remains, so the claim is improved observed
 robustness, not general superiority.
 
+The controller choice is also reasonably stable to individual development
+routes. Leave-one-route-out re-selection chose `bounded_authority_r1` in 10 of
+11 folds. Applying each fold's selected policy to its omitted route produced a
+mean AUC delta of +1.141 with 2 wins, 8 ties, and 1 loss. This reduces concern
+that one development route alone determines the handoff rule, but it does not
+replace evaluation on a genuinely new prospective panel.
+
 ## Live bounded-authority pilot: participation did not change the action
 
 The first live launch completed one successful Opus 4.8 trajectory on each of

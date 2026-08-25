@@ -13,6 +13,10 @@ Selected policy: `bounded_authority_r1`. It permits 1 online LLM-guided reveal a
 
 On the six route-disjoint trajectories, the selected controller changed AUC by +1.668 versus the original full online-LLM trajectory. It still had 1 loss against target-only GP-UCB, so this is evidence of improved robustness, not universal positive transfer.
 
+## Development-route selection stability
+
+Leaving out each development route in turn selected 2 distinct policies. The most frequent policy was `bounded_authority_r1` in 90.9% of folds. Applied to each omitted route, the re-selected policies averaged +1.141 AUC with 2 / 8 / 1 wins / ties / losses versus target-only GP-UCB.
+
 ## Claim boundary
 
 The controller is selected using only the 11 training routes and then evaluated on six route-disjoint trajectories. All trajectories are previously completed retrospective replays, so this is a leakage-controlled development audit rather than prospective or external validation.
