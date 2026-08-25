@@ -1,0 +1,95 @@
+{
+  "schema_version": "care.prospective_family_gate_preregistration/v1",
+  "status": "preregistered_before_dataset_download",
+  "protocol_version": "care2_flip2_amylase_coverage_gate_v1",
+  "frozen_on": "2026-08-25",
+  "canonical_config_sha256": "aa616204d5791416504497b82b4ed02817c7b952efe738cfe2ad66a31a02c30a",
+  "dataset": {
+    "name": "FLIP2 Alpha Amylase",
+    "official_split": "one-to-many",
+    "url": "https://flip.protein.properties/assets/splits/amylase/one_to_many.csv.gz",
+    "local_filename": "flip2_amylase_one_to_many.csv.gz",
+    "license": "MIT",
+    "citation": "Didi et al., FLIP2, ICML 2026 Spotlight; official FLIP2 website and download asset",
+    "public_metadata": {
+      "total": 3706,
+      "train": 412,
+      "validation": 77,
+      "test": 3217,
+      "reported_single_mutants": 488
+    }
+  },
+  "deployment_target_task_id": "real_flip2_amylase_test",
+  "deployment_target_outcomes_available_at_freeze": false,
+  "raw_dataset_present_at_freeze": false,
+  "semantic_hypothesis": {
+    "record_path": "preregistrations/2026-08-25-flip2-amylase-coverage-gate-v1/llm_hypothesis_record.json",
+    "record_sha256": "0c5b556da54f334ae38bcdea6f494748ea949d5a849f17bc6296e58b8ed7b487",
+    "public_task_spec_path": "preregistrations/2026-08-25-flip2-amylase-coverage-gate-v1/public_task_spec.json",
+    "public_task_spec_sha256": "b26be3dcfba9ea5a1fe8281b433da50db733027e94e3c21badd09d831aa54d8c",
+    "model": "anthropic/claude-opus-4-8",
+    "recommended_skill": "source_additive_mutation_prior",
+    "decision_authority": "may_abstain_after_coverage_gate_but_cannot_force_transfer",
+    "target_outcomes_available": false
+  },
+  "implementation_files_sha256": {
+    "care_replay/scripts/freeze_prospective_family_gate.py": "16c35714a185d874d3fc61fad82f5c702bb6a9e36668252e94e72a10f3bbbf18",
+    "care_replay/scripts/generate_outcome_blind_transfer_hypothesis.py": "9aaab1e8483d1062ad1c81a39f73b725e67f33cc2b1f596e53ff28eca2714821",
+    "care_replay/scripts/run_ired_source_outcome_falsification.py": "189bbaef68c79c4a56ff6554010e79f4f53ed75ded6361076aa16f47da828c2f",
+    "care_replay/scripts/run_source_only_family_gate.py": "b8825cfa06616ddea1665ae27fa34d0c2190b8dc3e035cb12cb38185533a63e1",
+    "care_replay/scripts/run_external_task_family_transfer.py": "858b19237d805cb7dbb014a3612c5f47577502f3480511f0c0a6a4a4eb7a6130",
+    "care_replay/scripts/run_synthetic_suzuki.py": "a89ad7b2a1da7b3a14cf542e14ec31053b6a02b9c2cb961f3bb26985b937a635",
+    "care_replay/scripts/run_transfer_ablation.py": "b168ab4312031c87f93f47261018561b2cda537df79af664594ff5975d133040",
+    "care_replay/scripts/run_classical_transfer_baselines.py": "1db15acf5d720ea948af982df7bcd5f0dcc0b68973ec930ba9e4f82581859aeb",
+    "care_replay/scripts/run_multisource_transfer_baselines.py": "1603944f3cd12a705c0b46f661bb237cfe31d69ddb03f57de99153101efc9615"
+  },
+  "gate": {
+    "candidate_methods": [
+      "source_additive_mutation_prior"
+    ],
+    "eligibility_rule": "coverage_conditioned_additive_v1",
+    "coverage_thresholds": {
+      "minimum_deployment_exact_token_coverage": 0.9,
+      "minimum_deployment_candidate_evidence_coverage": 0.95,
+      "minimum_deployment_full_exact_candidate_coverage": 0.8,
+      "maximum_low_information_calibration_exact_token_coverage": 0.1,
+      "minimum_coverage_gap": 0.75,
+      "minimum_calibration_mean_auc_delta": 0.0
+    },
+    "no_gate_selection_rule": "coverage_gate_then_frozen_llm_abstention",
+    "fallback_policy": "target_gp_ucb"
+  },
+  "calibration_routes": [
+    {
+      "route_id": "train_to_validation",
+      "source_task_ids": [
+        "real_flip2_amylase_train"
+      ],
+      "pseudo_target_task_id": "real_flip2_amylase_validation",
+      "heldout_seed_start": 99400,
+      "heldout_seed_count": 100
+    }
+  ],
+  "deployment": {
+    "source_task_ids": [
+      "real_flip2_amylase_train_validation"
+    ],
+    "public_target_task_id": "public_flip2_amylase_test",
+    "target_task_id": "real_flip2_amylase_test",
+    "heldout_seed_start": 99600,
+    "heldout_seed_count": 100
+  },
+  "constraints": {
+    "test_partition_outcomes_excluded_from_gate_selection": true,
+    "public_target_adapter_contains_no_measured_outcomes": true,
+    "structural_coverage_is_target_outcome_invariant": true,
+    "calibration_uses_official_train_and_validation_partitions_only": true,
+    "official_one_to_many_split_preserved": true,
+    "llm_hypothesis_generated_before_dataset_download": true,
+    "same_initial_observations_within_seed": true,
+    "same_target_reveal_budget": true,
+    "all_declared_seeds_retained": true,
+    "no_optional_stopping": true
+  },
+  "claim_boundary": "This protocol can provide prospective finite-pool evidence for or against one coverage-aware routing rule on one external enzyme family. It is not a wet-lab discovery, a universal safety proof, or a population generalization estimate."
+}
