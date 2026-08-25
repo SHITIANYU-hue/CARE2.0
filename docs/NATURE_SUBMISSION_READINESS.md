@@ -104,6 +104,16 @@ The current Opus suite supports the following statements:
     untouched official test [95% CI -1.996, -1.099]. The gate deployed target-
     only GP-UCB and avoided that loss. This is prospective negative-transfer
     prevention on one external protein family, not positive-transfer efficacy.
+13. A separate positive-transfer protocol was preregistered on the official
+    FLIP2 Imine Reductase `two-to-many` split before the raw file was downloaded.
+    Claude Opus 4.8 received only public task metadata and chose a bounded
+    additive-mutation skill over abstention. The config, implementation hashes,
+    LLM request/response hash, eligibility rule, and 200 evaluation seeds were
+    committed as `5389a9c`. The skill passed train-to-validation calibration
+    and improved best-so-far AUC on the untouched official test by +0.389
+    [95% paired-bootstrap interval +0.274, +0.503], with 72 wins, nine ties,
+    and 19 losses. A predeclared fixed skill prior improved more (+0.864), so
+    this is positive evidence for one LLM-generated skill, not LLM superiority.
 
 The current evidence does not support these statements:
 
@@ -117,9 +127,10 @@ The current evidence does not support these statements:
    transferable information than randomized source-outcome assignments.
 7. The LLM's self-reported improvement probability is prospectively calibrated
    or can already serve as a validated abstention gate.
-8. The external protein-engineering task establishes positive cross-domain
-   efficacy. It establishes a negative-transfer boundary and one auditable
-   abstention case only.
+8. The Hydrophobic Core task establishes positive cross-domain efficacy. It
+   establishes a negative-transfer boundary and one auditable abstention case
+   only. The later IRED result is positive within one enzyme family and does not
+   establish universal cross-domain efficacy.
 9. The source-only family gate eliminates negative transfer in general. It now
    has one prospective external-family confirmation, but that single successful
    veto does not establish universal safety or positive transfer efficacy.
@@ -226,6 +237,31 @@ that decision and showed that the ungated choice would have caused a stable
 prospective external safety result. It does not show positive external efficacy,
 universal negative-transfer control, or prospective wet-lab discovery.
 
+### Prospective IRED positive-transfer confirmation
+
+The official FLIP2 IRED `two-to-many` split asks whether completed zero-, one-,
+and two-mutation variants can guide a budgeted search among variants with three
+to fifteen mutations. Before downloading the file, Claude Opus 4.8 received
+only public task metadata and an executable menu containing a shrunk additive-
+mutation skill or abstention. It selected the additive skill and recorded
+epistasis, unseen positions, distribution shift, and excessive early source
+authority as failure conditions. The prompt, raw response, parsed hypothesis,
+usage, and hashes are archived.
+
+| Method | Train to validation delta [95% paired-bootstrap interval] | Official test delta [95% paired-bootstrap interval] | Test win / tie / loss |
+|---|---:|---:|---:|
+| RGPE | +0.137 [+0.068, +0.209] | -0.085 [-0.207, +0.032] | 44 / 13 / 43 |
+| ICM-BMA | +0.032 [-0.032, +0.098] | -0.194 [-0.302, -0.091] | 23 / 17 / 60 |
+| Fixed skill prior | +0.489 [+0.385, +0.595] | +0.864 [+0.709, +1.019] | 78 / 8 / 14 |
+| LLM additive skill | +0.468 [+0.366, +0.574] | +0.389 [+0.274, +0.503] | 72 / 9 / 19 |
+
+The preregistered success rule is met because the LLM skill was deployed and
+its official-test paired AUC interval is entirely above zero. Its final-best
+interval crosses zero and its top-10 hit rate is lower than target GP, so the
+claim is specifically earlier discovery under the AUC endpoint. The fixed prior
+is stronger. This closes one external positive-efficacy gap but does not close
+the wet-lab or broad cross-domain generalization gaps.
+
 ## Frozen repeated-trajectory protocol
 
 The first confirmatory gap now has an executable frozen protocol in
@@ -246,9 +282,10 @@ script, route configs, and initial records before the first model call.
 
 This protocol addresses stochastic repeatability, but it does not turn the six
 development routes into independent confirmation. The FLIP2 Hydrophobic Core
-stress test supplies a negative external efficacy result, and the Rhodopsin
-confirmation supplies a prospective safety result. Positive external efficacy
-and a prospective laboratory experiment remain necessary.
+stress test supplies a negative external efficacy result, Rhodopsin supplies a
+prospective safety result, and IRED supplies one prospective positive finite-
+pool result. Replication across additional external families and a prospective
+laboratory experiment remain necessary.
 
 The executable-gate protocol is separately frozen in
 `experiments/care_replay/configs/online_llm_gated_repeated_confirmation_v1.json`.
@@ -666,9 +703,10 @@ support features, and freeze the abstention rule before disjoint evaluation.
    initial observations and target-only GP comparator.
 3. **Fresh task family.** Add at least one domain not used during prompt or
    controller development. A new route inside the same C-N dataset is useful but
-   insufficient for a broad cross-domain claim. Two protein-engineering families
-   now provide external negative-transfer and safety evidence; a fresh family
-   with positive efficacy is still required.
+   insufficient for a broad cross-domain claim. Hydrophobic Core and Rhodopsin
+   provide external negative-transfer and safety evidence, while IRED provides
+   one preregistered positive finite-pool result. A more distant family and
+   independent replication are still required for a broad claim.
 4. **Prospective experimental validation.** Run at least one wet-lab or genuinely
    prospective closed-loop campaign with matched budget and starting state.
 5. **Complete-system accounting.** Report the online increment, initial-design
@@ -788,8 +826,10 @@ protocol completes.
 ## Submission decision
 
 The current package is materially stronger but is not ready for a broad Nature
-claim. The method now has a commit-before-download external safety confirmation,
-yet positive external efficacy, repeated online LLM confirmation, and a paired
+claim. The method now has commit-before-download external safety and positive-
+efficacy confirmations, but the positive IRED skill is weaker than the fixed
+prior and remains one-family finite-pool evidence. Repeated online LLM
+confirmation, replication on a more distant external family, and a paired
 prospective wet-lab campaign are still missing. The highest-value next move is
-not another development sweep. It is a frozen positive-efficacy confirmation on
-an untouched family, followed by one paired prospective laboratory campaign.
+independent replication followed by one paired prospective laboratory campaign,
+not another post-hoc development sweep.

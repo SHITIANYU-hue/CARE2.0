@@ -66,12 +66,19 @@ a second external protein family before downloading its official data. On the
 untouched Rhodopsin test partition, the ungated source-only choice lost 1.548
 AUC [95\% CI $-1.996,-1.099$]; the frozen gate rejected transfer and avoided
 that loss. This is prospective negative-transfer prevention on one external
-family, not positive-transfer efficacy or wet-lab validation. All negative and
-null results are retained.
+family. We then froze an outcome-blind LLM hypothesis on the official FLIP2
+Imine Reductase two-to-many split before downloading the data. The LLM-generated
+additive-mutation skill passed train-to-validation calibration and improved AUC
+on the untouched test partition by 0.389 [95\% paired-bootstrap CI
+$0.274,0.503$] relative to target-only GP-UCB. A predeclared fixed skill prior
+improved more ($+0.864$), so this is prospective positive-transfer evidence for
+one LLM-generated skill, not evidence that the LLM is the strongest optimizer.
+Neither result is wet-lab validation. All negative and null results are retained.
 \end{abstract}
 
 \begin{appendices}
 
+\clearpage
 \section{Supplementary evidence map}
 \label{sec:evidence_map}
 
@@ -99,10 +106,26 @@ Mechanism audit & Which component produces the observed gain? & Same-seed schedu
 Hidden-label non-interference & Can unrevealed target labels affect a decision state? & Exact shadow-label reconstruction of 170 archived states across 17 routes & Implementation-boundary evidence, not efficacy evidence \\
 Online controller audit & Does the LLM change decisions after a matched initial design? & Same-start target GP, RGPE, multitask GP, route inventory, and controller handoff replays & Development and robustness evidence, not external confirmation \\
 Probability calibration audit & Does the LLM know when its executed candidate will improve the current best? & All 170 archived decisions, scored against the same-candidate GP probability & Retrospective uncertainty audit; no prospective gate claim \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{Evidence tiers used throughout the supplement (continued).}
+\label{tab:evidence_tiers_continued}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{0.92}
+\begin{tabularx}{\textwidth}{p{2.5cm}p{3.6cm}X p{3.2cm}}
+\toprule
+Tier & Main question & Evidence & Permitted interpretation \\
+\midrule
 Live bounded-authority pilot & Does one real LLM decision add value on disjoint routes? & Six successful Opus trajectories plus one preserved infrastructure failure & Operational pilot only; no confirmatory inference \\
 External task-family stress test & Does a frozen controller generalize to a task family absent from development? & Official FLIP2 wild-type holdout; 100 paired classical-transfer seeds and one live Opus trajectory & Negative-transfer boundary and abstention case; not positive external confirmation \\
 Source-only family gate & Can completed source tasks reject unsafe transfer without target outcomes? & Two 50-seed source-only pseudo-target routes, frozen lower-confidence-bound eligibility rule, and outcome-blind P06241 deployment replay & Retrospective mechanism audit; the rule was designed after the external result and is not prospective confirmation \\
 Prospective family gate & Does the source-only rule prevent harm when frozen before a second external family is downloaded? & Preregistered FLIP2 Rhodopsin by-wild-type split; two 50-seed calibration routes and 100 untouched test seeds & Prospective negative-transfer prevention on one external family; not positive-transfer efficacy \\
+Prospective positive-transfer skill & Can an outcome-blind LLM generate a useful skill before a new external dataset is downloaded? & Preregistered FLIP2 IRED two-to-many split; 100 train-to-validation calibration seeds, 100 untouched official-test seeds, and all paired baselines & Positive finite-pool efficacy for one LLM-generated additive skill; a fixed skill prior remains stronger \\
 Frozen repeated protocol & Are effects stable across stochastic model calls? & Declared 30 trajectories per route, hash-locked analysis, no optional stopping & Pending until all declared trajectories complete \\
 \bottomrule
 \end{tabularx}
@@ -113,9 +136,11 @@ scientist improves every domain.'' The supported claim is that an LLM can
 compile scientific descriptions into explicit skills that are executable,
 calibrated, rejectable, and auditable; some of these skills improve finite-pool
 search on held-out real datasets, and one preregistered gate prevented a harmful
-transfer on a second external family. The present evidence does not establish
-universal cross-domain transfer, positive efficacy on a new family, elimination
-of negative transfer, or a new physical discovery.
+transfer on a second external family. A separately preregistered IRED experiment
+also supplies positive external efficacy for one outcome-blind LLM-generated
+skill. The present evidence does not establish universal cross-domain transfer,
+superiority to the strongest fixed prior, elimination of negative transfer, or
+a new physical discovery.
 
 \section{Problem setting and evaluation protocol}
 \label{sec:protocol}
@@ -545,8 +570,8 @@ safety confirmation.}
 
 This result narrows the next confirmatory question. The numerical rule can be
 computed without deployment-target labels and would have blocked the observed
-negative transfer, but its design history prevents a prospective claim. A
-This requirement defined the confirmatory test: preregister the same eligibility
+negative transfer, but its design history prevents a prospective claim. This
+requirement therefore defined the confirmatory test: preregister the same eligibility
 rule, source-only calibration procedure, and target-only fallback on a second
 external family before any target outcome is inspected.
 
@@ -581,15 +606,15 @@ paired $\dauc$ relative to target-only GP-UCB. The official-test column contains
 100 paired seeds and was read only after the frozen gate decision.}
 \label{tab:flip2_rhomax_gate}
 \scriptsize
-\setlength{\tabcolsep}{2pt}
+\setlength{\tabcolsep}{2.5pt}
 \renewcommand{\arraystretch}{0.92}
-\begin{tabularx}{\textwidth}{@{}X r r r c@{}}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.7cm} >{\centering\arraybackslash}X >{\centering\arraybackslash}X >{\centering\arraybackslash}X@{}}
 \toprule
-Method & Train$\rightarrow$val. & Val.$\rightarrow$train & Official test & Eligible \\
+Route & RGPE & ICM-BMA & Fixed skill prior \\
 \midrule
-Multisource RGPE & $-0.298$ [$-0.922,+0.325$] & $-0.263$ [$-1.252,+0.727$] & $-3.819$ [$-4.498,-3.140$] & No \\
-Multisource ICM-BMA & $-0.791$ [$-1.397,-0.185$] & $-0.965$ [$-1.660,-0.270$] & $-1.539$ [$-2.066,-1.011$] & No \\
-Fixed skill prior & $+0.384$ [$-0.301,+1.069$] & $+1.192$ [$+0.271,+2.112$] & $-1.548$ [$-1.996,-1.099$] & No \\
+Train$\rightarrow$validation & $-0.298$ [$-0.922,+0.325$] & $-0.791$ [$-1.397,-0.185$] & $+0.384$ [$-0.301,+1.069$] \\
+Validation$\rightarrow$train & $-0.263$ [$-1.252,+0.727$] & $-0.965$ [$-1.660,-0.270$] & $+1.192$ [$+0.271,+2.112$] \\
+Official test & $-3.819$ [$-4.498,-3.140$] & $-1.539$ [$-2.066,-1.011$] & $-1.548$ [$-1.996,-1.099$] \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -618,8 +643,105 @@ This result closes the prospective-design gap for one safety endpoint: a rule
 frozen before data access prevented a statistically stable negative transfer on
 a second external protein family. It does not show that CARE improves Rhodopsin
 optimization, that every harmful transfer will be rejected, or that the system
-generalizes positively beyond replay. Positive external efficacy and a paired
-prospective laboratory campaign remain open requirements.
+generalizes positively beyond replay. The next subsection tests positive
+external efficacy separately; a paired prospective laboratory campaign remains
+an open requirement.
+
+\subsection{Preregistered FLIP2 IRED positive-transfer confirmation}
+\label{sec:flip2_ired_positive}
+
+The preceding experiments test whether CARE can refuse an unsafe transfer. We
+next preregistered a distinct positive-efficacy question on the official FLIP2
+Imine Reductase (IRED) \code{two-to-many} split. IREDs catalyze the reduction of
+imines to amines. The official training and validation partitions contain 3,746
+and 662 measured variants with zero, one, or two mutations; the official test
+partition contains 4,178 variants with three to fifteen mutations. The raw file
+is distributed at
+\url{https://flip.protein.properties/assets/splits/ired/two_to_many.csv.gz}.
+
+Before that file was downloaded, Claude Opus 4.8 received only the public task
+description, partition counts, scientific context, optimization endpoint, and
+a two-item executable menu: a bounded additive-mutation skill or abstention to
+target-only GP-UCB. It proposed the falsifiable hypothesis that shrunk effects
+estimated from low-order variants would remain sufficiently additive to rank
+higher-order variants. It also recorded four failure conditions: dominant
+epistasis, unseen mutation positions, low-to-high-order distribution shift, and
+excessive early source authority. The model prompt, raw response, parsed
+hypothesis, token count, and request hash were archived before data access.
+
+The resulting skill estimates exact mutation-token effects from source
+observations, backs off to amino-acid physicochemical class transitions when an
+exact token is unavailable, sums the available contributions for each target
+variant, rank-normalizes the result, and blends it with target GP-UCB. Source
+authority decays from 0.50 to 0.10 over the twelve target reveals. The skill
+never reads an official-test activity during construction. The executable
+skill, candidate menu, calibration rule, code hashes, 100 calibration seeds,
+100 official-test seeds, three initial target observations, twelve reveals,
+and no-optional-stopping rule were committed as \code{5389a9c} while the raw
+dataset was absent.
+
+Calibration used only official train$\rightarrow$validation replay. The
+predeclared LLM skill was eligible only if its paired AUC normal 95\% confidence
+interval had a lower bound above zero. It passed with $+0.468$
+[$+0.365,+0.571$]. The gate then deployed that unchanged skill from
+train$+$validation to the untouched official test. Table
+\ref{tab:flip2_ired_positive} reports paired-bootstrap intervals with 200,000
+resamples as a sensitivity analysis; they agree with the preregistered normal
+interval decision.
+
+\begin{table}[t]
+\centering
+\caption{Preregistered FLIP2 IRED positive-transfer confirmation. Values are
+paired $\dauc$ against target-only GP-UCB. W/T/L is computed on the 100 official
+test seeds. Only the LLM additive skill was a gate candidate; the other methods
+are predeclared comparators and are shown to avoid a weak-baseline claim.}
+\label{tab:flip2_ired_positive}
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\renewcommand{\arraystretch}{0.94}
+\begin{tabularx}{\textwidth}{@{}X r r r c@{}}
+\toprule
+Method & Train$\rightarrow$val. [95\% CI] & Official test [95\% CI] & Test W/T/L & Gate candidate \\
+\midrule
+RGPE & $+0.137$ [$+0.068,+0.209$] & $-0.085$ [$-0.207,+0.032$] & 44/13/43 & No \\
+ICM-BMA & $+0.032$ [$-0.032,+0.098$] & $-0.194$ [$-0.302,-0.091$] & 23/17/60 & No \\
+Fixed skill prior & $+0.489$ [$+0.385,+0.595$] & $+0.864$ [$+0.709,+1.019$] & 78/8/14 & No \\
+LLM additive skill & $+0.468$ [$+0.366,+0.574$] & $+0.389$ [$+0.274,+0.503$] & 72/9/19 & Yes \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.98\textwidth]{prospective_ired_positive_transfer.png}
+\caption{Prospective IRED positive-transfer result generated directly from the
+paired metrics and 6,000 official-test audit rows. Panel A shows paired AUC
+effects with 200,000-resample bootstrap intervals on calibration and untouched
+test seeds. Panel B shows mean best-so-far activity after each reveal; ribbons
+are bootstrap 95\% intervals over the same 100 seeds. The fixed prior is shown
+because it is a strong predeclared comparator, not an LLM ablation.}
+\label{fig:flip2_ired_positive}
+\end{figure*}
+
+On the official test, the deployed LLM skill improved AUC by 0.389
+[$0.274,0.503$], with 72 wins, nine ties, and 19 losses; the two-sided exact
+sign-test value excluding ties was $p=1.97\times10^{-8}$. Its final-best effect
+was $+0.162$ [$-0.066,+0.390$], so the evidence is specifically earlier discovery
+under the predeclared AUC endpoint, not a stable terminal-best improvement. The
+top-10 hit-rate difference was $-0.13$ [$-0.207,-0.053$]. The fixed skill prior
+was substantially stronger in AUC ($+0.864$), demonstrating that the
+outcome-blind LLM hypothesis was useful but not uniquely or maximally useful.
+
+All 1,200 LLM-skill decision rows are retained. In illustrative seed 97200, the
+skill began with source mass 0.50, 96.1\% exact mutation-token coverage, 3.9\%
+class-transition fallback, and complete candidate evidence coverage. By round
+12, source mass had decayed to 0.10 and the best observed activity was 1.355.
+That seed's AUC was 0.463 versus $-0.243$ for matched target-only GP-UCB. This
+trace shows the declared mechanism, but the claim rests on all 100 paired seeds,
+not on the selected example. The experiment supplies prospective positive
+finite-pool transfer evidence in one external enzyme family. It does not prove
+universal cross-domain generalization, LLM superiority over fixed priors, or
+prospective wet-lab discovery.
 
 \section{Online LLM controller and strong baselines}
 \label{sec:online}
@@ -841,6 +963,14 @@ route weight. Two-sided sign tests are secondary. These route intervals do not
 replace repeated stochastic LLM calls, and the older semantic-study intervals
 are not adjusted for multiple comparisons.
 
+The prospective IRED gate used its preregistered normal paired interval for the
+binary deployment decision. For reporting, Table
+\ref{tab:flip2_ired_positive} additionally gives deterministic percentile
+paired-bootstrap intervals with 200,000 resamples and exact two-sided sign
+tests after excluding ties. All 100 declared calibration seeds and all 100
+declared official-test seeds are included. The bootstrap analysis was added
+after execution as a robustness summary and did not alter the frozen gate.
+
 The frozen repeated protocol declares 30 independent trajectories per route,
 the model, temperature, prompt, candidate menu, target budget, retry semantics,
 same-start GP comparator, and primary hierarchical-bootstrap analysis. No
@@ -865,8 +995,9 @@ Buchwald--Hartwig HTE, ChemLex Acid--Amine wet-lab data, Reizman Suzuki cases,
 MoleculeNet ESOL, FreeSolv, Lipophilicity and BACE, Matbench experimental band
 gap, dielectric, phonons, bulk modulus, shear modulus, perovskites and steels,
 Materials Project-derived property pools, and the official FLIP2 Hydrophobic
-Core wild-type split. Synthetic Suzuki and synthetic ChemLex adapters are
-retained only as smoke tests and are not used for the headline real-data claims.
+Core, Rhodopsin, and Imine Reductase splits. Synthetic Suzuki and synthetic
+ChemLex adapters are retained only as smoke tests and are not used for the
+headline real-data claims.
 
 Every reported run stores the config, config hash, seed ranges, target budget,
 candidate IDs, selected outcomes, per-round best-so-far trace, model request
@@ -895,6 +1026,19 @@ Artifact & Contents \\
 2026-08-24: predeclared baseline portfolio v2 & Target GP, RGPE, and multitask-GP matched baselines \\
 2026-08-24: route-disjoint bounded authority & Training/evaluation route split and 115-policy handoff audit \\
 2026-08-24: controller selection stability & Eleven leave-one-development-route-out re-selections and six frozen disjoint-route effects \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[!htbp]
+\centering
+\caption{Repository artifacts supporting the supplement (continued).}
+\label{tab:artifact_map_continued}
+\small
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{6.2cm}X}
+\toprule
+Artifact & Contents \\
+\midrule
 2026-08-24: bounded-authority confirmation & Live pilot, decision-impact audit, tokens, failures, and confirmation lock \\
 2026-08-24: source-outcome falsification & Three frozen routes, 100 target seeds per route, 19 matched outcome permutations, and randomization-test outputs \\
 2026-08-24: hidden-target non-interference & Exact shadow-label reconstruction for 170 archived decision states, route-level summaries, and verified prompt hashes \\
@@ -902,6 +1046,7 @@ Artifact & Contents \\
 2026-08-24: FLIP2 external task family & Frozen official wild-type split, 100-seed GP/RGPE/ICM/skill-prior comparison, protocol lock, one live Opus trace, and negative-transfer audit \\
 2026-08-24: FLIP2 source-only family gate & Two 50-seed pseudo-target calibration routes, frozen eligibility calculation, outcome-blind P06241 deployment replay, protocol lock, and real-data gate matrix \\
 2026-08-25: FLIP2 Rhodopsin prospective gate & Commit-before-download preregistration, two 50-seed source-only calibration routes, 100 untouched official-test seeds, per-seed audits, protocol locks, and real-data confidence-interval figure \\
+2026-08-25: FLIP2 IRED prospective positive transfer & Outcome-blind Opus hypothesis, commit-before-download preregistration, 100 calibration seeds, 100 untouched official-test seeds, five matched policies, 6,000 test audit rows, bootstrap statistics, and real-data trajectory figure \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -929,6 +1074,42 @@ VALIDATION
   calibrate on development seeds only
   freeze before held-out replay
 \end{lstlisting}
+
+\subsection{Prospective outcome-blind IRED hypothesis}
+
+\begin{lstlisting}[style=carecode]
+MODEL
+  anthropic/claude-opus-4-8, temperature 0
+
+VISIBLE INPUT
+  public IRED task description and official partition counts
+  source: variants with 0--2 mutations
+  target schema: variants with >2 mutations
+  endpoint: best-so-far AUC under 3 + 12 target reveals
+  menu: additive-mutation skill or abstain
+
+HIDDEN INPUT
+  raw dataset and all train, validation, and test activities
+
+OUTPUT
+  recommended_skill: source_additive_mutation_prior
+  hypothesis: low-order mutation effects are approximately additive
+  mechanism: shrunk token effects + class fallback + decaying authority
+  failure conditions: epistasis, unseen positions, distribution shift,
+                      excessive early source authority
+
+AUDIT
+  request_sha256: 0a42117a5e54c048...f311cccb5e23f78a47f833
+  usage: 636 prompt + 775 completion = 1,411 tokens
+  generated and committed before dataset download
+\end{lstlisting}
+
+The stored record contains the complete system and user messages, unmodified
+model response, parsed JSON, request hash, token usage, and the explicit flag
+\code{target\_outcomes\_available=false}. The generated hypothesis is useful
+only because it is converted into an executable skill and evaluated against
+matched target-only and transfer baselines; the text alone is not counted as
+evidence.
 
 \subsection{Online proposer--critic record}
 
@@ -970,16 +1151,20 @@ negative transfer for all three numerical transfer baselines; the LLM
 abstained online but its initial design was worse than the fixed comparator.
 On a second FLIP2 family, a commit-before-download source-only gate
 prospectively rejected all three transfer baselines and avoided the 1.548 AUC
-loss of the ungated choice. This is one external safety confirmation, not
-positive external efficacy.
+loss of the ungated choice. A third FLIP2 family supplied one prospective
+positive result: the outcome-blind LLM additive skill improved official-test
+AUC by 0.389 [0.274, 0.503] against target-only GP-UCB. The predeclared fixed
+skill prior improved by 0.864 and the LLM skill did not improve terminal best
+with a confidence interval excluding zero. This is one external finite-pool
+efficacy result, not a general LLM advantage.
 No result should therefore be described as universal
 cross-domain transfer or prospective wet-lab discovery.
 
 The next decisive evidence is: (i) completion of the frozen repeated-call
-protocol, (ii) positive efficacy on task families not used in controller
-development, (iii) a prospectively frozen source-outcome confirmation on new
-routes, and (iv) at least one paired prospective wet-lab campaign. Until then, the
-principal contribution is an auditable
+protocol, (ii) replication of positive efficacy across additional external
+families with stronger fixed and learned baselines, (iii) a prospectively frozen
+source-outcome confirmation on new routes, and (iv) at least one paired
+prospective wet-lab campaign. Until then, the principal contribution is an auditable
 method for compiling, testing, and rejecting scientific transfer skills.
 
 \end{appendices}
