@@ -7,6 +7,8 @@ import sys
 import tempfile
 from unittest import mock
 
+import pytest
+
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 sys.path.insert(0, str(SCRIPTS))
@@ -48,6 +50,35 @@ def write_fixture(path: Path, *, test_target: str = "3.0") -> None:
         writer.writerows(rows)
 
 
+def write_reversed_fixture(path: Path) -> None:
+    rows = [
+        {
+            "sequence": REFERENCE,
+            "target": "0.0",
+            "set": "train",
+            "validation": "False",
+        },
+        {
+            "sequence": mutate((0, "V"), (1, "D"), (3, "F")),
+            "target": "3.0",
+            "set": "train",
+            "validation": "True",
+        },
+        {
+            "sequence": mutate((0, "V")),
+            "target": "2.0",
+            "set": "test",
+            "validation": "False",
+        },
+    ]
+    with gzip.open(path, "wt", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(
+            handle, fieldnames=["sequence", "target", "set", "validation"]
+        )
+        writer.writeheader()
+        writer.writerows(rows)
+
+
 def test_amylase_partitions_share_public_feature_contract() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         fixture = Path(tmp) / "amylase.csv.gz"
@@ -65,6 +96,15 @@ def test_amylase_partitions_share_public_feature_contract() -> None:
     classical.validate_compatible_spaces(train, test)
     public_json = str(hypothesis.public_candidate(test.candidates[0], test)).lower()
     assert "measured_amylase_activity" not in public_json
+
+
+def test_amylase_adapter_rejects_reversed_one_to_many_labels() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        fixture = Path(tmp) / "amylase_reversed.csv.gz"
+        write_reversed_fixture(fixture)
+        with mock.patch.object(replay, "ensure_public_data_file", return_value=fixture):
+            with pytest.raises(ValueError, match="labels violate"):
+                replay.real_flip2_amylase_train_adapter()
 
 
 def test_public_amylase_target_does_not_parse_or_store_outcomes() -> None:

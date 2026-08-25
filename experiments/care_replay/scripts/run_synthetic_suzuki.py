@@ -2530,6 +2530,39 @@ def flip2_amylase_public_features(
     return flip2_ired_public_features(sequence, reference)
 
 
+def validate_flip2_amylase_one_to_many_contract(
+    records: list[dict[str, str]],
+    reference: str,
+) -> None:
+    """Fail closed when file labels contradict the published split direction."""
+    violations: dict[str, int] = {
+        "low_order_labeled_test": 0,
+        "higher_order_labeled_source": 0,
+    }
+    partition_counts: dict[str, int] = {}
+    for row in records:
+        sequence = str(row.get("sequence", "")).strip().upper()
+        if len(sequence) != len(reference):
+            continue
+        mutation_count = sum(
+            observed != expected
+            for observed, expected in zip(sequence, reference)
+        )
+        partition = flip2_amylase_partition(row)
+        partition_counts[partition] = partition_counts.get(partition, 0) + 1
+        if partition == "test" and mutation_count <= 1:
+            violations["low_order_labeled_test"] += 1
+        elif partition in {"train", "validation"} and mutation_count > 1:
+            violations["higher_order_labeled_source"] += 1
+    if any(violations.values()):
+        raise ValueError(
+            "FLIP2 Amylase one-to-many labels violate the published split "
+            "contract (source: zero/one mutation; test: more than one): "
+            f"partitions={partition_counts}, violations={violations}. "
+            "Refusing to run or reinterpret labels post hoc."
+        )
+
+
 def real_flip2_amylase_adapter(
     partition: str,
     *,
@@ -2541,6 +2574,7 @@ def real_flip2_amylase_adapter(
     path = ensure_public_data_file("flip2_amylase_one_to_many.csv.gz")
     records = read_csv_gz_dicts(path)
     reference = flip2_amylase_reference_sequence(records)
+    validate_flip2_amylase_one_to_many_contract(records, reference)
     included = {"train", "validation"} if partition == "train_validation" else {partition}
     pool: list[Candidate] = []
     for row_index, row in enumerate(records):
