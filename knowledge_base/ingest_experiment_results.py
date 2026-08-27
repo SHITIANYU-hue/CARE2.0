@@ -42,6 +42,64 @@ def metric_label(row: dict[str, str]) -> str:
     return "inconclusive"
 
 
+def find_semantic_skill_definition(
+    result_dir: Path,
+    skill_id: str,
+) -> tuple[dict[str, Any] | None, str]:
+    """Recover the frozen executable rule set behind a reported skill."""
+    for path in sorted(result_dir.rglob("*.json")):
+        if path.name in {"summary.json", "run_manifest.json", "knowledge_feedback.json"}:
+            continue
+        try:
+            value = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            continue
+        if not isinstance(value, dict):
+            continue
+        skills = value.get("normalized_skills")
+        if not isinstance(skills, list):
+            continue
+        for skill in skills:
+            if isinstance(skill, dict) and str(skill.get("skill_id", "")) == skill_id:
+                return skill, display_path(path)
+    return None, ""
+
+
+def executable_skill_evidence(
+    result_dir: Path,
+    skill_id: str,
+) -> tuple[str, list[str]]:
+    skill, artifact = find_semantic_skill_definition(result_dir, skill_id)
+    if skill is None:
+        return "", []
+    executable = {
+        "skill_id": skill_id,
+        "hypothesis": skill.get("hypothesis", ""),
+        "rules": skill.get("rules", []),
+        "confidence": skill.get("confidence"),
+        "execution_parameters": {
+            key: skill[key]
+            for key in (
+                "ridge",
+                "prior_scale",
+                "semantic_mass_start",
+                "semantic_mass_end",
+                "ucb_weight",
+                "gp_beta_start",
+                "gp_beta_end",
+                "gp_xi",
+            )
+            if key in skill
+        },
+    }
+    return (
+        " Frozen executable definition: "
+        + json.dumps(executable, ensure_ascii=False, sort_keys=True)
+        + f" Artifact: {artifact}.",
+        ["executable-skill", "structured-rules"],
+    )
+
+
 def make_card(
     card_id: str,
     card_type: str,
@@ -278,6 +336,9 @@ def cards_from_result_dir(result_dir: Path) -> list[dict[str, Any]]:
         auc_delta = float(row.get("delta_auc", 0.0) or 0.0)
         rounds_saved = float(row.get("rounds_saved_top10", 0.0) or 0.0)
         execution = row.get("rule_prior", "unknown")
+        executable_evidence, executable_tags = executable_skill_evidence(
+            result_dir, skill
+        )
         if execution == "warmstart":
             skill_summary = (
                 f"For {target}, use the LLM-defined {skill} partition to choose "
@@ -364,7 +425,7 @@ def cards_from_result_dir(result_dir: Path) -> list[dict[str, Any]]:
             skill_summary,
             (
                 f"Evidence mode: {evidence_mode}. Execution: {execution}. "
-                f"{reusable_lesson}"
+                f"{reusable_lesson}{executable_evidence}"
             ),
             [
                 value
@@ -375,6 +436,7 @@ def cards_from_result_dir(result_dir: Path) -> list[dict[str, Any]]:
                     evidence_mode,
                     "schema-to-skill",
                     "target-calibration",
+                    *executable_tags,
                 )
                 if value
             ],

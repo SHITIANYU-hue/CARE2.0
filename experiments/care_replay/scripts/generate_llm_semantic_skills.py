@@ -18,6 +18,7 @@ import run_transfer_ablation as transfer
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 KNOWLEDGE_BASE_ROOT = REPO_ROOT / "knowledge_base"
+DEFAULT_KB_DB = KNOWLEDGE_BASE_ROOT / "care_kb.sqlite"
 sys.path.insert(0, str(KNOWLEDGE_BASE_ROOT))
 import retrieval as kb_retrieval  # noqa: E402
 
@@ -283,7 +284,20 @@ def main() -> None:
             "mechanism claims and compiles execution parameters deterministically."
         ),
     )
-    parser.add_argument("--kb-db", type=Path)
+    parser.add_argument(
+        "--kb-db",
+        type=Path,
+        default=DEFAULT_KB_DB,
+        help=(
+            "Runtime CARE knowledge base. Active skills and negative-transfer lessons are "
+            "retrieved automatically when the database exists."
+        ),
+    )
+    parser.add_argument(
+        "--no-kb-retrieval",
+        action="store_true",
+        help="Disable the experiment-to-skill feedback channel for a controlled ablation.",
+    )
     parser.add_argument("--kb-limit", type=int, default=5)
     parser.add_argument("--kb-cutoff", default="")
     args = parser.parse_args()
@@ -291,7 +305,8 @@ def main() -> None:
     if not api_key:
         raise RuntimeError(f"Set {args.llm_api_key_env} or CARE_LLM_API_KEY.")
     knowledge_context: list[dict[str, Any]] = []
-    if args.kb_db:
+    retrieval_enabled = not args.no_kb_retrieval and args.kb_db.exists()
+    if retrieval_enabled:
         knowledge_context = kb_retrieval.retrieve_runtime_cards(
             args.kb_db,
             (
@@ -368,8 +383,9 @@ def main() -> None:
         "parsed_response": parsed,
         "normalized_skills": [asdict(skill) for skill in skills],
         "knowledge_retrieval": {
-            "enabled": bool(args.kb_db),
-            "db": str(args.kb_db) if args.kb_db else "",
+            "enabled": retrieval_enabled,
+            "db": str(args.kb_db),
+            "disabled_by_operator": args.no_kb_retrieval,
             "cutoff": args.kb_cutoff,
             "card_ids": [card["id"] for card in knowledge_context],
         },

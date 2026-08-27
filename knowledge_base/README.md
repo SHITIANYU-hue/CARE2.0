@@ -72,6 +72,31 @@ State and append-only audit records are written under
 can also be called by an experiment runner after it has successfully finalized
 its result directory.
 
+## Closed experiment-to-skill loop
+
+Use the loop finalizer when an experiment is complete:
+
+```bash
+python3 knowledge_base/close_loop.py \
+  experiments/care_replay/results/<completed-run>
+```
+
+The finalizer performs four linked operations in one run:
+
+1. converts the frozen result and audit provenance into evidence and skill cards;
+2. activates only high-confidence skills whose manifest declares task-disjoint
+   confirmation, a pre-frozen protocol, and outcome-safe selection;
+3. rebuilds FTS and embedding indexes, while retaining failed transfer as
+   negative evidence;
+4. writes `knowledge_feedback.json` into the result directory to show exactly
+   what a subsequent task can retrieve.
+
+`generate_llm_semantic_skills.py` reads `knowledge_base/care_kb.sqlite` by
+default. Thus an active skill or negative-transfer lesson from run N enters the
+prompt context of run N+1. Use `--no-kb-retrieval` only for a controlled
+no-memory ablation. Use `close_loop.py --stage-only` to archive all new skills
+without activating them.
+
 Hypothesis-only LLM proposals and their zero-shot replay evidence use a separate
 ingester so the scientific claim, mechanism, failure conditions, compiler
 boundary, matched random-null comparison, and result provenance remain visible:
