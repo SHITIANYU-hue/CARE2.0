@@ -64,6 +64,10 @@ PUBLIC_DATA_URLS = {
         "one_to_many.csv.gz"
     ),
     "chemlex_acidamine_wetlab_v3.xlsx": "https://zenodo.org/records/17596563/files/Chemlex_Acidamine_Wetlab_Data.xlsx?download=1",
+    "photocatalytic_hydrogen_evolution/data.csv": (
+        "https://raw.githubusercontent.com/Ablatif6c/llm-closed-loop-experiments/"
+        "main/hydrogen_evolution_problem/data.csv"
+    ),
     "matbench_expt_gap.json.gz": "https://ml.materialsproject.org/projects/matbench_expt_gap.json.gz",
     "matbench_dielectric.json.gz": "https://ml.materialsproject.org/projects/matbench_dielectric.json.gz",
     "matbench_phonons.json.gz": "https://ml.materialsproject.org/projects/matbench_phonons.json.gz",
@@ -271,6 +275,7 @@ def ensure_public_data_file(filename: str) -> Path:
     path = RAW_DATA / filename
     if path.exists():
         return path
+    path.parent.mkdir(parents=True, exist_ok=True)
     url = PUBLIC_DATA_URLS[filename]
     print(f"downloading {filename} from {url}")
     request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
@@ -944,6 +949,132 @@ def synthetic_materials_adapter() -> DatasetAdapter:
         group_column="dopant",
         preferred_groups=("D2", "D4"),
         failure_note="Preferred dopants are sensitive to annealing temperature and long dwell overcooking.",
+        candidates=tuple(pool),
+    )
+
+
+PHOTOCATALYSIS_FEATURES: tuple[tuple[str, str], ...] = (
+    ("P10-MIX1", "p10_mix1"),
+    ("L-Cysteine-100gL", "l_cysteine_100gl"),
+    ("NaCl-3M", "nacl_3m"),
+    ("NaOH-1M", "naoh_1m"),
+    ("Sodiumsilicate-1wt", "sodium_silicate_1wt"),
+    ("AcidRed871_0gL", "acid_red_871"),
+    ("MethyleneB_250mgL", "methylene_blue_250mgl"),
+    ("RhodamineB1_0gL", "rhodamine_b_1gl"),
+    ("PVP-1wt", "pvp_1wt"),
+    ("SDS-1wt", "sds_1wt"),
+)
+
+
+def photocatalysis_amount_bin(value: float, lower: float, upper: float) -> str:
+    """Return an outcome-blind, coarse bin for an experimental amount."""
+
+    if value <= 0.0:
+        return "none"
+    if upper <= lower:
+        return "present"
+    fraction = (value - lower) / (upper - lower)
+    if fraction <= 0.25:
+        return "low"
+    if fraction <= 0.50:
+        return "medium"
+    if fraction <= 0.75:
+        return "high"
+    return "very_high"
+
+
+def real_photocatalytic_hydrogen_evolution_adapter() -> DatasetAdapter:
+    """Load the public 10D photocatalytic hydrogen-evolution benchmark.
+
+    The CSV contains formulation variables and measured hydrogen-evolution
+    rates used to train the public benchmark surrogate. CARE replays the
+    pinned finite table directly and never loads the upstream pickle model.
+    """
+
+    path = ensure_public_data_file("photocatalytic_hydrogen_evolution/data.csv")
+    records = read_csv_dicts(path)
+    bounds = {
+        raw_name: (
+            min(float(row[raw_name]) for row in records),
+            max(float(row[raw_name]) for row in records),
+        )
+        for raw_name, _public_name in PHOTOCATALYSIS_FEATURES
+    }
+    pool: list[Candidate] = []
+    for index, row in enumerate(records):
+        raw_values = {
+            public_name: float(row[raw_name])
+            for raw_name, public_name in PHOTOCATALYSIS_FEATURES
+        }
+        numeric_features = tuple(
+            0.0
+            if bounds[raw_name][1] <= bounds[raw_name][0]
+            else (float(row[raw_name]) - bounds[raw_name][0])
+            / (bounds[raw_name][1] - bounds[raw_name][0])
+            for raw_name, _public_name in PHOTOCATALYSIS_FEATURES
+        )
+        dye_presence = (
+            "dye_added"
+            if any(
+                raw_values[name] > 0.0
+                for name in (
+                    "acid_red_871",
+                    "methylene_blue_250mgl",
+                    "rhodamine_b_1gl",
+                )
+            )
+            else "dye_free"
+        )
+        surfactant_presence = (
+            "surfactant_added"
+            if raw_values["pvp_1wt"] > 0.0 or raw_values["sds_1wt"] > 0.0
+            else "surfactant_free"
+        )
+        metadata: dict[str, Any] = {
+            **raw_values,
+            "dye_presence": dye_presence,
+            "surfactant_presence": surfactant_presence,
+            "hydrogen_evolution_rate_umol_h": float(row["Target"]),
+            "source_row": index + 2,
+        }
+        for raw_name, public_name in PHOTOCATALYSIS_FEATURES:
+            lower, upper = bounds[raw_name]
+            metadata[f"{public_name}_bin"] = photocatalysis_amount_bin(
+                raw_values[public_name], lower, upper
+            )
+        pool.append(
+            Candidate(
+                candidate_id=f"photocatalytic_h2_{index:04d}",
+                group=dye_presence,
+                x1=numeric_features[0],
+                x2=numeric_features[1],
+                x3=numeric_features[3],
+                objective_value=clamp_score(float(row["Target"])),
+                metadata=metadata,
+                numeric_features=numeric_features,
+            )
+        )
+    return DatasetAdapter(
+        dataset_id="real_photocatalytic_hydrogen_evolution",
+        title="Photocatalytic hydrogen-evolution formulation replay",
+        objective="maximize_hydrogen_evolution_rate_umol_h",
+        decision_columns=(
+            "dye_presence",
+            "surfactant_presence",
+            "p10_mix1_bin",
+            "l_cysteine_100gl_bin",
+            "nacl_3m_bin",
+            "naoh_1m_bin",
+            "sodium_silicate_1wt_bin",
+        ),
+        hidden_target="hydrogen_evolution_rate_umol_h",
+        group_column="dye_presence",
+        preferred_groups=(),
+        failure_note=(
+            "Dyes and surfactants can look chemically plausible yet reduce hydrogen "
+            "evolution; no fixed preferred formulation or dye prior is encoded."
+        ),
         candidates=tuple(pool),
     )
 
@@ -3002,6 +3133,7 @@ DATASET_BUILDERS: dict[str, Callable[[], DatasetAdapter]] = {
     "synthetic_suzuki_i": synthetic_suzuki_adapter,
     "synthetic_chemlex_i": synthetic_chemlex_adapter,
     "synthetic_materials_i": synthetic_materials_adapter,
+    "real_photocatalytic_hydrogen_evolution": real_photocatalytic_hydrogen_evolution_adapter,
     "real_buchwald_hartwig": real_buchwald_hartwig_adapter,
     "real_suzuki_miyaura": real_suzuki_miyaura_adapter,
     "real_reizman_suzuki_case_1": real_reizman_suzuki_case_1_adapter,

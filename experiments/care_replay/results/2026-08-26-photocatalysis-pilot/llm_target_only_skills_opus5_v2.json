@@ -1,0 +1,742 @@
+{
+  "model": "claude-opus-5",
+  "usage": {
+    "prompt_tokens": 1909,
+    "completion_tokens": 4172,
+    "total_tokens": 6081,
+    "tps": 66.11,
+    "prompt_tokens_details": {
+      "cache_creation_input_tokens": 1907,
+      "cache_read_input_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 452
+    }
+  },
+  "llm_generation_call_count": 1,
+  "api_configuration": {
+    "base_url": "https://api.commonstack.ai/v1",
+    "api_mode": "chat",
+    "structured_mode": "json",
+    "temperature": 0.3,
+    "max_tokens": 8000
+  },
+  "source_dataset": "real_buchwald_hartwig",
+  "target_dataset": "real_photocatalytic_hydrogen_evolution",
+  "evidence_mode": "target_only",
+  "proposal_mode": "parametric",
+  "hypothesis_compilation": {
+    "mode": "parametric",
+    "fixed_execution_parameters": false
+  },
+  "prompt_payload": {
+    "task": "Design a diverse library of scientific transfer proposals for finite-pool search. The proposals must be auditable and grounded in the supplied public schema.",
+    "target": {
+      "dataset": "real_photocatalytic_hydrogen_evolution",
+      "title": "Photocatalytic hydrogen-evolution formulation replay",
+      "objective": "maximize_hydrogen_evolution_rate_umol_h",
+      "candidate_count": 1109,
+      "public_semantic_fields": {
+        "dye_presence": {
+          "dye_added": 189,
+          "dye_free": 920
+        },
+        "surfactant_presence": {
+          "surfactant_added": 214,
+          "surfactant_free": 895
+        },
+        "p10_mix1_bin": {
+          "high": 413,
+          "low": 100,
+          "medium": 186,
+          "very_high": 410
+        },
+        "l_cysteine_100gl_bin": {
+          "high": 210,
+          "low": 420,
+          "medium": 364,
+          "very_high": 115
+        },
+        "nacl_3m_bin": {
+          "high": 6,
+          "low": 230,
+          "medium": 46,
+          "none": 823,
+          "very_high": 4
+        },
+        "naoh_1m_bin": {
+          "high": 60,
+          "low": 485,
+          "medium": 192,
+          "none": 370,
+          "very_high": 2
+        },
+        "sodium_silicate_1wt_bin": {
+          "high": 86,
+          "low": 369,
+          "medium": 115,
+          "none": 488,
+          "very_high": 51
+        },
+        "acid_red_871_bin": {
+          "high": 1,
+          "low": 105,
+          "medium": 6,
+          "none": 994,
+          "very_high": 3
+        },
+        "methylene_blue_250mgl_bin": {
+          "high": 2,
+          "low": 80,
+          "medium": 12,
+          "none": 1012,
+          "very_high": 3
+        },
+        "rhodamine_b_1gl_bin": {
+          "high": 5,
+          "low": 57,
+          "medium": 31,
+          "none": 1014,
+          "very_high": 2
+        },
+        "pvp_1wt_bin": {
+          "high": 3,
+          "low": 144,
+          "medium": 19,
+          "none": 935,
+          "very_high": 8
+        },
+        "sds_1wt_bin": {
+          "high": 8,
+          "low": 66,
+          "medium": 18,
+          "none": 1015,
+          "very_high": 2
+        }
+      },
+      "hidden_target": "hydrogen_evolution_rate_umol_h",
+      "boundary": "Field values and counts are public; target outcomes are not included."
+    },
+    "source_transfer_evidence": {
+      "evidence_mode": "target_only",
+      "source_dataset": null,
+      "source_objective": null,
+      "mapped_roles": [],
+      "source_outcome_statistics": null,
+      "shared_value_priors": [],
+      "boundary": "No source identity, source schema, source outcomes, source effects, or source value priors are provided. The LLM must use the public target schema and its pretrained domain knowledge only."
+    },
+    "executor": {
+      "semantic_model": "Rules become binary features. Revealed target outcomes fit a ridge Bayesian linear surrogate whose coefficient prior follows rule weights.",
+      "anchor": "A rank blend of target-only GP-UCB and GP-EI.",
+      "fusion": "semantic_mass_start/end controls the rank mass assigned to the semantic surrogate; the remaining mass stays on the target-only anchor.",
+      "selection": "Independent calibration seeds select one frozen skill. Independent held-out seeds are evaluated only after selection."
+    },
+    "design_requirements": [
+      "Return exactly 6 diverse skills.",
+      "Keep each skill to 2-4 rules, each rationale to at most 25 words, and each hypothesis to at most 45 words.",
+      "Use only exact field/value pairs in public_semantic_fields.",
+      "Each conditions object must map a real catalog field name directly to one exact catalog value, for example {\"dominant_family\": \"oxide\"}. Never use literal placeholder keys such as exact_field, field_name, field, or value.",
+      "Give every skill a distinct, descriptive scientific skill_id. Never copy schema placeholders such as short_unique_name or add numeric suffixes to a placeholder.",
+      "Use two-condition interactions only when scientifically meaningful.",
+      "Use only target-schema-compatible domain knowledge; do not imply that a source task or source outcomes were observed.",
+      "Include at least one domain-knowledge proposal.",
+      "Include a counter-hypothesis proposal that reverses or downweights an uncertain source relation.",
+      "Prefer mechanistic, chemically or physically interpretable rules over arbitrary coverage rules.",
+      "Do not claim access to target outcomes and do not output candidate identifiers."
+    ],
+    "allowed_ranges": {
+      "rule_weight": "[-1, 1]",
+      "ridge": "[0.05, 20]",
+      "prior_scale": "[0, 1.5]",
+      "semantic_mass_start_end": "[0, 0.85]",
+      "ucb_weight": "[0, 1]; EI weight is 1 - ucb_weight",
+      "gp_beta_start_end": "[0.2, 4]",
+      "gp_xi": "[0, 0.2]",
+      "confidence": "[0.05, 1]"
+    },
+    "output_contract": {
+      "skills": [
+        {
+          "skill_id": "descriptive_scientific_skill_id",
+          "rules": [
+            {
+              "rule_id": "mechanistic_rule",
+              "conditions": {
+                "field_name_from_public_semantic_fields": "exact_catalog_value"
+              },
+              "weight": 0.5,
+              "rationale": "short scientific rationale"
+            }
+          ],
+          "ridge": 1.0,
+          "prior_scale": 0.25,
+          "semantic_mass_start": 0.3,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.7,
+          "hypothesis": "what this skill transfers and when it may fail"
+        }
+      ]
+    },
+    "proposal_mode": "parametric"
+  },
+  "raw_response": "```json\n{\n  \"skills\": [\n    {\n      \"skill_id\": \"photocatalyst_scavenger_stoichiometry_match\",\n      \"rules\": [\n        {\n          \"rule_id\": \"dense_catalyst_with_ample_thiol_donor\",\n          \"conditions\": {\"p10_mix1_bin\": \"very_high\", \"l_cysteine_100gl_bin\": \"high\"},\n          \"weight\": 0.8,\n          \"rationale\": \"Dense photocatalyst loading needs abundant cysteine hole scavenging to suppress recombination and sustain proton reduction turnover.\"\n        },\n        {\n          \"rule_id\": \"elevated_catalyst_loading\",\n          \"conditions\": {\"p10_mix1_bin\": \"high\"},\n          \"weight\": 0.45,\n          \"rationale\": \"More semiconductor surface increases photon capture and active sites until optical shielding of the suspension dominates.\"\n        },\n        {\n          \"rule_id\": \"scavenger_starved_regime\",\n          \"conditions\": {\"l_cysteine_100gl_bin\": \"low\"},\n          \"weight\": -0.5,\n          \"rationale\": \"Insufficient sacrificial donor leaves holes unconsumed, so recombination and photocorrosion limit hydrogen output.\"\n        }\n      ],\n      \"ridge\": 1.0,\n      \"prior_scale\": 0.35,\n      \"semantic_mass_start\": 0.55,\n      \"semantic_mass_end\": 0.15,\n      \"ucb_weight\": 0.65,\n      \"gp_beta_start\": 2.5,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.01,\n      \"confidence\": 0.75,\n      \"hypothesis\": \"Transfers the catalyst-donor pairing heuristic: activity rises jointly with photocatalyst and sacrificial-donor levels. May fail if the pool saturates optically at very high solids or cysteine adsorbs competitively.\"\n    },\n    {\n      \"skill_id\": \"alkaline_activation_of_thiol_donor\",\n      \"rules\": [\n        {\n          \"rule_id\": \"moderate_base_addition\",\n          \"conditions\": {\"naoh_1m_bin\": \"medium\"},\n          \"weight\": 0.55,\n          \"rationale\": \"Alkaline pH deprotonates cysteine thiol to faster-oxidizing thiolate and improves oxide dispersion via surface charging.\"\n        },\n        {\n          \"rule_id\": \"base_plus_rich_donor\",\n          \"conditions\": {\"naoh_1m_bin\": \"high\", \"l_cysteine_100gl_bin\": \"high\"},\n          \"weight\": 0.4,\n          \"rationale\": \"High pH with rich donor maximizes thiolate concentration available for hole capture at the particle interface.\"\n        },\n        {\n          \"rule_id\": \"unbuffered_acidic_formulation\",\n          \"conditions\": {\"naoh_1m_bin\": \"none\"},\n          \"weight\": -0.35,\n          \"rationale\": \"Without added base, protonated donor oxidizes sluggishly and near-neutral pH favors particle aggregation.\"\n        }\n      ],\n      \"ridge\": 2.0,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.45,\n      \"semantic_mass_end\": 0.12,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 2.0,\n      \"gp_beta_end\": 0.9,\n      \"gp_xi\": 0.02,\n      \"confidence\": 0.6,\n      \"hypothesis\": \"Transfers pH-dependent scavenger kinetics as a semantic prior. Fails if the pool's base levels shift pH past the point where proton availability for reduction becomes limiting.\"\n    },\n    {\n      \"skill_id\": \"silicate_dispersant_optimum_window\",\n      \"rules\": [\n        {\n          \"rule_id\": \"dilute_silicate_stabilization\",\n          \"conditions\": {\"sodium_silicate_1wt_bin\": \"low\"},\n          \"weight\": 0.5,\n          \"rationale\": \"Dilute silicate raises particle surface charge, keeping the powder suspended for light capture without coating active sites.\"\n        },\n        {\n          \"rule_id\": \"silicate_overdose_passivation\",\n          \"conditions\": {\"sodium_silicate_1wt_bin\": \"very_high\"},\n          \"weight\": -0.6,\n          \"rationale\": \"Excess silicate forms gel-like overlayers that block surface sites and scatter incident photons away from the semiconductor.\"\n        },\n        {\n          \"rule_id\": \"dispersant_matters_at_heavy_loading\",\n          \"conditions\": {\"sodium_silicate_1wt_bin\": \"medium\", \"p10_mix1_bin\": \"very_high\"},\n          \"weight\": 0.35,\n          \"rationale\": \"Concentrated suspensions sediment fastest, so moderate dispersant preserves illuminated surface area where loading is highest.\"\n        }\n      ],\n      \"ridge\": 3.0,\n      \"prior_scale\": 0.25,\n      \"semantic_mass_start\": 0.4,\n      \"semantic_mass_end\": 0.1,\n      \"ucb_weight\": 0.55,\n      \"gp_beta_start\": 2.2,\n      \"gp_beta_end\": 1.1,\n      \"gp_xi\": 0.015,\n      \"confidence\": 0.55,\n      \"hypothesis\": \"Encodes a non-monotonic dispersant response: helpful when dilute, passivating when concentrated. May fail if silicate mainly acts as a pH modifier rather than a colloidal stabilizer here.\"\n    },\n    {\n      \"skill_id\": \"dye_sensitization_counter_hypothesis\",\n      \"rules\": [\n        {\n          \"rule_id\": \"downweight_dye_addition\",\n          \"conditions\": {\"dye_presence\": \"dye_added\"},\n          \"weight\": -0.55,\n          \"rationale\": \"Against sensitization expectations, added dyes compete for photons and holes, and photobleach rather than boosting evolution.\"\n        },\n        {\n          \"rule_id\": \"inner_filter_from_cationic_dye\",\n          \"conditions\": {\"methylene_blue_250mgl_bin\": \"low\"},\n          \"weight\": -0.35,\n          \"rationale\": \"Strongly absorbing dye attenuates light before it reaches particles and is itself reduced by conduction-band electrons.\"\n        },\n        {\n          \"rule_id\": \"clean_optical_path_preference\",\n          \"conditions\": {\"dye_presence\": \"dye_free\"},\n          \"weight\": 0.4,\n          \"rationale\": \"Dye-free mixtures leave the semiconductor as sole absorber, avoiding inner-filter losses and parasitic electron sinks.\"\n        }\n      ],\n      \"ridge\": 5.0,\n      \"prior_scale\": 0.2,\n      \"semantic_mass_start\": 0.3,\n      \"semantic_mass_end\": 0.08,\n      \"ucb_weight\": 0.45,\n      \"gp_beta_start\": 2.4,\n      \"gp_beta_end\": 1.2,\n      \"gp_xi\": 0.03,\n      \"confidence\": 0.45,\n      \"hypothesis\": \"Deliberately reverses the uncertain assumption that added dyes sensitize the system, treating them as optical and electron sinks. Fails if any dye genuinely extends visible-light harvesting.\"\n    },\n    {\n      \"skill_id\": \"surfactant_active_site_blocking\",\n      \"rules\": [\n        {\n          \"rule_id\": \"penalize_surfactant_presence\",\n          \"conditions\": {\"surfactant_presence\": \"surfactant_added\"},\n          \"weight\": -0.45,\n          \"rationale\": \"Adsorbed amphiphiles occupy surface sites, hinder proton access, and can scavenge radicals without producing hydrogen.\"\n        },\n        {\n          \"rule_id\": \"anionic_surfactant_adsorption\",\n          \"conditions\": {\"sds_1wt_bin\": \"low\"},\n          \"weight\": -0.35,\n          \"rationale\": \"Anionic sulfate headgroups bind oxide surfaces strongly, forming hydrophobic layers that impede interfacial charge transfer.\"\n        },\n        {\n          \"rule_id\": \"polymer_free_surface\",\n          \"conditions\": {\"pvp_1wt_bin\": \"none\"},\n          \"weight\": 0.3,\n          \"rationale\": \"Omitting polymeric stabilizer leaves the semiconductor interface bare and directly accessible to donor and protons.\"\n        }\n      ],\n      \"ridge\": 4.0,\n      \"prior_scale\": 0.22,\n      \"semantic_mass_start\": 0.35,\n      \"semantic_mass_end\": 0.1,\n      \"ucb_weight\": 0.6,\n      \"gp_beta_start\": 1.8,\n      \"gp_beta_end\": 0.8,\n      \"gp_xi\": 0.02,\n      \"confidence\": 0.5,\n      \"hypothesis\": \"Transfers interfacial site-blocking chemistry for adsorbing amphiphiles and polymers. May fail where surfactant-driven wetting or deagglomeration outweighs the loss of accessible surface sites.\"\n    },\n    {\n      \"skill_id\": \"ionic_strength_colloidal_destabilization\",\n      \"rules\": [\n        {\n          \"rule_id\": \"salt_free_electrostatic_repulsion\",\n          \"conditions\": {\"nacl_3m_bin\": \"none\"},\n          \"weight\": 0.4,\n          \"rationale\": \"Low ionic strength preserves double-layer repulsion, limiting aggregation that shortens optical path and buries active facets.\"\n        },\n        {\n          \"rule_id\": \"high_salt_aggregation_penalty\",\n          \"conditions\": {\"nacl_3m_bin\": \"high\"},\n          \"weight\": -0.5,\n          \"rationale\": \"Concentrated chloride screens surface charge, driving rapid flocculation and sedimentation of the illuminated suspension.\"\n        },\n        {\n          \"rule_id\": \"salt_without_stabilizer\",\n          \"conditions\": {\"nacl_3m_bin\": \"medium\", \"sodium_silicate_1wt_bin\": \"none\"},\n          \"weight\": -0.35,\n          \"rationale\": \"Added salt with no dispersant compresses double layers unchecked, so particles settle out of the irradiated volume.\"\n        }\n      ],\n      \"ridge\": 2.5,\n      \"prior_scale\": 0.28,\n      \"semantic_mass_start\": 0.38,\n      \"semantic_mass_end\": 0.09,\n      \"ucb_weight\": 0.4,\n      \"gp_beta_start\": 2.8,\n      \"gp_beta_end\": 1.3,\n      \"gp_xi\": 0.04,\n      \"confidence\": 0.5,\n      \"hypothesis\": \"Transfers DLVO-style colloidal reasoning: electrolyte addition suppresses suspension stability and effective illumination. Fails if chloride instead improves conductivity or the salt-containing subset is too sparse to inform the surrogate.\"\n    }\n  ]\n}\n```",
+  "parsed_response": {
+    "skills": [
+      {
+        "skill_id": "photocatalyst_scavenger_stoichiometry_match",
+        "rules": [
+          {
+            "rule_id": "dense_catalyst_with_ample_thiol_donor",
+            "conditions": {
+              "p10_mix1_bin": "very_high",
+              "l_cysteine_100gl_bin": "high"
+            },
+            "weight": 0.8,
+            "rationale": "Dense photocatalyst loading needs abundant cysteine hole scavenging to suppress recombination and sustain proton reduction turnover."
+          },
+          {
+            "rule_id": "elevated_catalyst_loading",
+            "conditions": {
+              "p10_mix1_bin": "high"
+            },
+            "weight": 0.45,
+            "rationale": "More semiconductor surface increases photon capture and active sites until optical shielding of the suspension dominates."
+          },
+          {
+            "rule_id": "scavenger_starved_regime",
+            "conditions": {
+              "l_cysteine_100gl_bin": "low"
+            },
+            "weight": -0.5,
+            "rationale": "Insufficient sacrificial donor leaves holes unconsumed, so recombination and photocorrosion limit hydrogen output."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.35,
+        "semantic_mass_start": 0.55,
+        "semantic_mass_end": 0.15,
+        "ucb_weight": 0.65,
+        "gp_beta_start": 2.5,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.01,
+        "confidence": 0.75,
+        "hypothesis": "Transfers the catalyst-donor pairing heuristic: activity rises jointly with photocatalyst and sacrificial-donor levels. May fail if the pool saturates optically at very high solids or cysteine adsorbs competitively."
+      },
+      {
+        "skill_id": "alkaline_activation_of_thiol_donor",
+        "rules": [
+          {
+            "rule_id": "moderate_base_addition",
+            "conditions": {
+              "naoh_1m_bin": "medium"
+            },
+            "weight": 0.55,
+            "rationale": "Alkaline pH deprotonates cysteine thiol to faster-oxidizing thiolate and improves oxide dispersion via surface charging."
+          },
+          {
+            "rule_id": "base_plus_rich_donor",
+            "conditions": {
+              "naoh_1m_bin": "high",
+              "l_cysteine_100gl_bin": "high"
+            },
+            "weight": 0.4,
+            "rationale": "High pH with rich donor maximizes thiolate concentration available for hole capture at the particle interface."
+          },
+          {
+            "rule_id": "unbuffered_acidic_formulation",
+            "conditions": {
+              "naoh_1m_bin": "none"
+            },
+            "weight": -0.35,
+            "rationale": "Without added base, protonated donor oxidizes sluggishly and near-neutral pH favors particle aggregation."
+          }
+        ],
+        "ridge": 2.0,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.45,
+        "semantic_mass_end": 0.12,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 0.9,
+        "gp_xi": 0.02,
+        "confidence": 0.6,
+        "hypothesis": "Transfers pH-dependent scavenger kinetics as a semantic prior. Fails if the pool's base levels shift pH past the point where proton availability for reduction becomes limiting."
+      },
+      {
+        "skill_id": "silicate_dispersant_optimum_window",
+        "rules": [
+          {
+            "rule_id": "dilute_silicate_stabilization",
+            "conditions": {
+              "sodium_silicate_1wt_bin": "low"
+            },
+            "weight": 0.5,
+            "rationale": "Dilute silicate raises particle surface charge, keeping the powder suspended for light capture without coating active sites."
+          },
+          {
+            "rule_id": "silicate_overdose_passivation",
+            "conditions": {
+              "sodium_silicate_1wt_bin": "very_high"
+            },
+            "weight": -0.6,
+            "rationale": "Excess silicate forms gel-like overlayers that block surface sites and scatter incident photons away from the semiconductor."
+          },
+          {
+            "rule_id": "dispersant_matters_at_heavy_loading",
+            "conditions": {
+              "sodium_silicate_1wt_bin": "medium",
+              "p10_mix1_bin": "very_high"
+            },
+            "weight": 0.35,
+            "rationale": "Concentrated suspensions sediment fastest, so moderate dispersant preserves illuminated surface area where loading is highest."
+          }
+        ],
+        "ridge": 3.0,
+        "prior_scale": 0.25,
+        "semantic_mass_start": 0.4,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.55,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 1.1,
+        "gp_xi": 0.015,
+        "confidence": 0.55,
+        "hypothesis": "Encodes a non-monotonic dispersant response: helpful when dilute, passivating when concentrated. May fail if silicate mainly acts as a pH modifier rather than a colloidal stabilizer here."
+      },
+      {
+        "skill_id": "dye_sensitization_counter_hypothesis",
+        "rules": [
+          {
+            "rule_id": "downweight_dye_addition",
+            "conditions": {
+              "dye_presence": "dye_added"
+            },
+            "weight": -0.55,
+            "rationale": "Against sensitization expectations, added dyes compete for photons and holes, and photobleach rather than boosting evolution."
+          },
+          {
+            "rule_id": "inner_filter_from_cationic_dye",
+            "conditions": {
+              "methylene_blue_250mgl_bin": "low"
+            },
+            "weight": -0.35,
+            "rationale": "Strongly absorbing dye attenuates light before it reaches particles and is itself reduced by conduction-band electrons."
+          },
+          {
+            "rule_id": "clean_optical_path_preference",
+            "conditions": {
+              "dye_presence": "dye_free"
+            },
+            "weight": 0.4,
+            "rationale": "Dye-free mixtures leave the semiconductor as sole absorber, avoiding inner-filter losses and parasitic electron sinks."
+          }
+        ],
+        "ridge": 5.0,
+        "prior_scale": 0.2,
+        "semantic_mass_start": 0.3,
+        "semantic_mass_end": 0.08,
+        "ucb_weight": 0.45,
+        "gp_beta_start": 2.4,
+        "gp_beta_end": 1.2,
+        "gp_xi": 0.03,
+        "confidence": 0.45,
+        "hypothesis": "Deliberately reverses the uncertain assumption that added dyes sensitize the system, treating them as optical and electron sinks. Fails if any dye genuinely extends visible-light harvesting."
+      },
+      {
+        "skill_id": "surfactant_active_site_blocking",
+        "rules": [
+          {
+            "rule_id": "penalize_surfactant_presence",
+            "conditions": {
+              "surfactant_presence": "surfactant_added"
+            },
+            "weight": -0.45,
+            "rationale": "Adsorbed amphiphiles occupy surface sites, hinder proton access, and can scavenge radicals without producing hydrogen."
+          },
+          {
+            "rule_id": "anionic_surfactant_adsorption",
+            "conditions": {
+              "sds_1wt_bin": "low"
+            },
+            "weight": -0.35,
+            "rationale": "Anionic sulfate headgroups bind oxide surfaces strongly, forming hydrophobic layers that impede interfacial charge transfer."
+          },
+          {
+            "rule_id": "polymer_free_surface",
+            "conditions": {
+              "pvp_1wt_bin": "none"
+            },
+            "weight": 0.3,
+            "rationale": "Omitting polymeric stabilizer leaves the semiconductor interface bare and directly accessible to donor and protons."
+          }
+        ],
+        "ridge": 4.0,
+        "prior_scale": 0.22,
+        "semantic_mass_start": 0.35,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 1.8,
+        "gp_beta_end": 0.8,
+        "gp_xi": 0.02,
+        "confidence": 0.5,
+        "hypothesis": "Transfers interfacial site-blocking chemistry for adsorbing amphiphiles and polymers. May fail where surfactant-driven wetting or deagglomeration outweighs the loss of accessible surface sites."
+      },
+      {
+        "skill_id": "ionic_strength_colloidal_destabilization",
+        "rules": [
+          {
+            "rule_id": "salt_free_electrostatic_repulsion",
+            "conditions": {
+              "nacl_3m_bin": "none"
+            },
+            "weight": 0.4,
+            "rationale": "Low ionic strength preserves double-layer repulsion, limiting aggregation that shortens optical path and buries active facets."
+          },
+          {
+            "rule_id": "high_salt_aggregation_penalty",
+            "conditions": {
+              "nacl_3m_bin": "high"
+            },
+            "weight": -0.5,
+            "rationale": "Concentrated chloride screens surface charge, driving rapid flocculation and sedimentation of the illuminated suspension."
+          },
+          {
+            "rule_id": "salt_without_stabilizer",
+            "conditions": {
+              "nacl_3m_bin": "medium",
+              "sodium_silicate_1wt_bin": "none"
+            },
+            "weight": -0.35,
+            "rationale": "Added salt with no dispersant compresses double layers unchecked, so particles settle out of the irradiated volume."
+          }
+        ],
+        "ridge": 2.5,
+        "prior_scale": 0.28,
+        "semantic_mass_start": 0.38,
+        "semantic_mass_end": 0.09,
+        "ucb_weight": 0.4,
+        "gp_beta_start": 2.8,
+        "gp_beta_end": 1.3,
+        "gp_xi": 0.04,
+        "confidence": 0.5,
+        "hypothesis": "Transfers DLVO-style colloidal reasoning: electrolyte addition suppresses suspension stability and effective illumination. Fails if chloride instead improves conductivity or the salt-containing subset is too sparse to inform the surrogate."
+      }
+    ]
+  },
+  "normalized_skills": [
+    {
+      "skill_id": "photocatalyst_scavenger_stoichiometry_match",
+      "rules": [
+        {
+          "rule_id": "dense_catalyst_with_ample_thiol_donor",
+          "conditions": [
+            [
+              "l_cysteine_100gl_bin",
+              "high"
+            ],
+            [
+              "p10_mix1_bin",
+              "very_high"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Dense photocatalyst loading needs abundant cysteine hole scavenging to suppress recombination and sustain proton reduction turnover."
+        },
+        {
+          "rule_id": "elevated_catalyst_loading",
+          "conditions": [
+            [
+              "p10_mix1_bin",
+              "high"
+            ]
+          ],
+          "weight": 0.45,
+          "rationale": "More semiconductor surface increases photon capture and active sites until optical shielding of the suspension dominates."
+        },
+        {
+          "rule_id": "scavenger_starved_regime",
+          "conditions": [
+            [
+              "l_cysteine_100gl_bin",
+              "low"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Insufficient sacrificial donor leaves holes unconsumed, so recombination and photocorrosion limit hydrogen output."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.35,
+      "semantic_mass_start": 0.55,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.65,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.75,
+      "hypothesis": "Transfers the catalyst-donor pairing heuristic: activity rises jointly with photocatalyst and sacrificial-donor levels. May fail if the pool saturates optically at very high solids or cysteine adsorbs competitively."
+    },
+    {
+      "skill_id": "alkaline_activation_of_thiol_donor",
+      "rules": [
+        {
+          "rule_id": "moderate_base_addition",
+          "conditions": [
+            [
+              "naoh_1m_bin",
+              "medium"
+            ]
+          ],
+          "weight": 0.55,
+          "rationale": "Alkaline pH deprotonates cysteine thiol to faster-oxidizing thiolate and improves oxide dispersion via surface charging."
+        },
+        {
+          "rule_id": "base_plus_rich_donor",
+          "conditions": [
+            [
+              "l_cysteine_100gl_bin",
+              "high"
+            ],
+            [
+              "naoh_1m_bin",
+              "high"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "High pH with rich donor maximizes thiolate concentration available for hole capture at the particle interface."
+        },
+        {
+          "rule_id": "unbuffered_acidic_formulation",
+          "conditions": [
+            [
+              "naoh_1m_bin",
+              "none"
+            ]
+          ],
+          "weight": -0.35,
+          "rationale": "Without added base, protonated donor oxidizes sluggishly and near-neutral pH favors particle aggregation."
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.45,
+      "semantic_mass_end": 0.12,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 0.9,
+      "gp_xi": 0.02,
+      "confidence": 0.6,
+      "hypothesis": "Transfers pH-dependent scavenger kinetics as a semantic prior. Fails if the pool's base levels shift pH past the point where proton availability for reduction becomes limiting."
+    },
+    {
+      "skill_id": "silicate_dispersant_optimum_window",
+      "rules": [
+        {
+          "rule_id": "dilute_silicate_stabilization",
+          "conditions": [
+            [
+              "sodium_silicate_1wt_bin",
+              "low"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Dilute silicate raises particle surface charge, keeping the powder suspended for light capture without coating active sites."
+        },
+        {
+          "rule_id": "silicate_overdose_passivation",
+          "conditions": [
+            [
+              "sodium_silicate_1wt_bin",
+              "very_high"
+            ]
+          ],
+          "weight": -0.6,
+          "rationale": "Excess silicate forms gel-like overlayers that block surface sites and scatter incident photons away from the semiconductor."
+        },
+        {
+          "rule_id": "dispersant_matters_at_heavy_loading",
+          "conditions": [
+            [
+              "p10_mix1_bin",
+              "very_high"
+            ],
+            [
+              "sodium_silicate_1wt_bin",
+              "medium"
+            ]
+          ],
+          "weight": 0.35,
+          "rationale": "Concentrated suspensions sediment fastest, so moderate dispersant preserves illuminated surface area where loading is highest."
+        }
+      ],
+      "ridge": 3.0,
+      "prior_scale": 0.25,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.55,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.1,
+      "gp_xi": 0.015,
+      "confidence": 0.55,
+      "hypothesis": "Encodes a non-monotonic dispersant response: helpful when dilute, passivating when concentrated. May fail if silicate mainly acts as a pH modifier rather than a colloidal stabilizer here."
+    },
+    {
+      "skill_id": "dye_sensitization_counter_hypothesis",
+      "rules": [
+        {
+          "rule_id": "downweight_dye_addition",
+          "conditions": [
+            [
+              "dye_presence",
+              "dye_added"
+            ]
+          ],
+          "weight": -0.55,
+          "rationale": "Against sensitization expectations, added dyes compete for photons and holes, and photobleach rather than boosting evolution."
+        },
+        {
+          "rule_id": "inner_filter_from_cationic_dye",
+          "conditions": [
+            [
+              "methylene_blue_250mgl_bin",
+              "low"
+            ]
+          ],
+          "weight": -0.35,
+          "rationale": "Strongly absorbing dye attenuates light before it reaches particles and is itself reduced by conduction-band electrons."
+        },
+        {
+          "rule_id": "clean_optical_path_preference",
+          "conditions": [
+            [
+              "dye_presence",
+              "dye_free"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Dye-free mixtures leave the semiconductor as sole absorber, avoiding inner-filter losses and parasitic electron sinks."
+        }
+      ],
+      "ridge": 5.0,
+      "prior_scale": 0.2,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.45,
+      "gp_beta_start": 2.4,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.03,
+      "confidence": 0.45,
+      "hypothesis": "Deliberately reverses the uncertain assumption that added dyes sensitize the system, treating them as optical and electron sinks. Fails if any dye genuinely extends visible-light harvesting."
+    },
+    {
+      "skill_id": "surfactant_active_site_blocking",
+      "rules": [
+        {
+          "rule_id": "penalize_surfactant_presence",
+          "conditions": [
+            [
+              "surfactant_presence",
+              "surfactant_added"
+            ]
+          ],
+          "weight": -0.45,
+          "rationale": "Adsorbed amphiphiles occupy surface sites, hinder proton access, and can scavenge radicals without producing hydrogen."
+        },
+        {
+          "rule_id": "anionic_surfactant_adsorption",
+          "conditions": [
+            [
+              "sds_1wt_bin",
+              "low"
+            ]
+          ],
+          "weight": -0.35,
+          "rationale": "Anionic sulfate headgroups bind oxide surfaces strongly, forming hydrophobic layers that impede interfacial charge transfer."
+        },
+        {
+          "rule_id": "polymer_free_surface",
+          "conditions": [
+            [
+              "pvp_1wt_bin",
+              "none"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Omitting polymeric stabilizer leaves the semiconductor interface bare and directly accessible to donor and protons."
+        }
+      ],
+      "ridge": 4.0,
+      "prior_scale": 0.22,
+      "semantic_mass_start": 0.35,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 1.8,
+      "gp_beta_end": 0.8,
+      "gp_xi": 0.02,
+      "confidence": 0.5,
+      "hypothesis": "Transfers interfacial site-blocking chemistry for adsorbing amphiphiles and polymers. May fail where surfactant-driven wetting or deagglomeration outweighs the loss of accessible surface sites."
+    },
+    {
+      "skill_id": "ionic_strength_colloidal_destabilization",
+      "rules": [
+        {
+          "rule_id": "salt_free_electrostatic_repulsion",
+          "conditions": [
+            [
+              "nacl_3m_bin",
+              "none"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Low ionic strength preserves double-layer repulsion, limiting aggregation that shortens optical path and buries active facets."
+        },
+        {
+          "rule_id": "high_salt_aggregation_penalty",
+          "conditions": [
+            [
+              "nacl_3m_bin",
+              "high"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Concentrated chloride screens surface charge, driving rapid flocculation and sedimentation of the illuminated suspension."
+        },
+        {
+          "rule_id": "salt_without_stabilizer",
+          "conditions": [
+            [
+              "nacl_3m_bin",
+              "medium"
+            ],
+            [
+              "sodium_silicate_1wt_bin",
+              "none"
+            ]
+          ],
+          "weight": -0.35,
+          "rationale": "Added salt with no dispersant compresses double layers unchecked, so particles settle out of the irradiated volume."
+        }
+      ],
+      "ridge": 2.5,
+      "prior_scale": 0.28,
+      "semantic_mass_start": 0.38,
+      "semantic_mass_end": 0.09,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 2.8,
+      "gp_beta_end": 1.3,
+      "gp_xi": 0.04,
+      "confidence": 0.5,
+      "hypothesis": "Transfers DLVO-style colloidal reasoning: electrolyte addition suppresses suspension stability and effective illumination. Fails if chloride instead improves conductivity or the salt-containing subset is too sparse to inform the surrogate."
+    }
+  ],
+  "knowledge_retrieval": {
+    "enabled": false,
+    "db": "",
+    "cutoff": "",
+    "card_ids": []
+  }
+}

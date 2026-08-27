@@ -41,6 +41,20 @@ class SemanticSkill:
 
 
 SEMANTIC_FIELDS: dict[str, tuple[str, ...]] = {
+    "real_photocatalytic_hydrogen_evolution": (
+        "dye_presence",
+        "surfactant_presence",
+        "p10_mix1_bin",
+        "l_cysteine_100gl_bin",
+        "nacl_3m_bin",
+        "naoh_1m_bin",
+        "sodium_silicate_1wt_bin",
+        "acid_red_871_bin",
+        "methylene_blue_250mgl_bin",
+        "rhodamine_b_1gl_bin",
+        "pvp_1wt_bin",
+        "sds_1wt_bin",
+    ),
     "real_buchwald_hartwig": (
         "ligand_ligand_family",
         "ligand_has_phosphine",

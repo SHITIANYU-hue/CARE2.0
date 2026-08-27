@@ -176,6 +176,7 @@ def build_prompt_payload(
         },
         "design_requirements": [
             f"Return exactly {skill_count} diverse {'hypotheses' if proposal_mode == 'hypothesis_only' else 'skills'}.",
+            "Keep each skill to 2-4 rules, each rationale to at most 25 words, and each hypothesis to at most 45 words.",
             "Use only exact field/value pairs in public_semantic_fields.",
             (
                 "Each conditions object must map a real catalog field name directly to one exact "

@@ -1,0 +1,1514 @@
+{
+  "experiment": "care_calibrated_llm_semantic_skill_selector",
+  "source_dataset": "real_buchwald_hartwig",
+  "target_dataset": "real_photocatalytic_hydrogen_evolution",
+  "evidence_mode": "target_only",
+  "llm_model": "claude-opus-5",
+  "llm_generation_call_count": 1,
+  "new_llm_call_count": 0,
+  "rule_prior_enabled": true,
+  "semantic_model_enabled": true,
+  "semantic_field_catalog": {
+    "dye_presence": {
+      "dye_added": 189,
+      "dye_free": 920
+    },
+    "surfactant_presence": {
+      "surfactant_added": 214,
+      "surfactant_free": 895
+    },
+    "p10_mix1_bin": {
+      "high": 413,
+      "low": 100,
+      "medium": 186,
+      "very_high": 410
+    },
+    "l_cysteine_100gl_bin": {
+      "high": 210,
+      "low": 420,
+      "medium": 364,
+      "very_high": 115
+    },
+    "nacl_3m_bin": {
+      "high": 6,
+      "low": 230,
+      "medium": 46,
+      "none": 823,
+      "very_high": 4
+    },
+    "naoh_1m_bin": {
+      "high": 60,
+      "low": 485,
+      "medium": 192,
+      "none": 370,
+      "very_high": 2
+    },
+    "sodium_silicate_1wt_bin": {
+      "high": 86,
+      "low": 369,
+      "medium": 115,
+      "none": 488,
+      "very_high": 51
+    },
+    "acid_red_871_bin": {
+      "high": 1,
+      "low": 105,
+      "medium": 6,
+      "none": 994,
+      "very_high": 3
+    },
+    "methylene_blue_250mgl_bin": {
+      "high": 2,
+      "low": 80,
+      "medium": 12,
+      "none": 1012,
+      "very_high": 3
+    },
+    "rhodamine_b_1gl_bin": {
+      "high": 5,
+      "low": 57,
+      "medium": 31,
+      "none": 1014,
+      "very_high": 2
+    },
+    "pvp_1wt_bin": {
+      "high": 3,
+      "low": 144,
+      "medium": 19,
+      "none": 935,
+      "very_high": 8
+    },
+    "sds_1wt_bin": {
+      "high": 8,
+      "low": 66,
+      "medium": 18,
+      "none": 1015,
+      "very_high": 2
+    }
+  },
+  "skills": [
+    {
+      "skill_id": "photocatalyst_scavenger_stoichiometry_match",
+      "rules": [
+        {
+          "rule_id": "dense_catalyst_with_ample_thiol_donor",
+          "conditions": [
+            [
+              "l_cysteine_100gl_bin",
+              "high"
+            ],
+            [
+              "p10_mix1_bin",
+              "very_high"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Dense photocatalyst loading needs abundant cysteine hole scavenging to suppress recombination and sustain proton reduction turnover."
+        },
+        {
+          "rule_id": "elevated_catalyst_loading",
+          "conditions": [
+            [
+              "p10_mix1_bin",
+              "high"
+            ]
+          ],
+          "weight": 0.45,
+          "rationale": "More semiconductor surface increases photon capture and active sites until optical shielding of the suspension dominates."
+        },
+        {
+          "rule_id": "scavenger_starved_regime",
+          "conditions": [
+            [
+              "l_cysteine_100gl_bin",
+              "low"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Insufficient sacrificial donor leaves holes unconsumed, so recombination and photocorrosion limit hydrogen output."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.35,
+      "semantic_mass_start": 0.55,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.65,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.75,
+      "hypothesis": "Transfers the catalyst-donor pairing heuristic: activity rises jointly with photocatalyst and sacrificial-donor levels. May fail if the pool saturates optically at very high solids or cysteine adsorbs competitively."
+    },
+    {
+      "skill_id": "alkaline_activation_of_thiol_donor",
+      "rules": [
+        {
+          "rule_id": "moderate_base_addition",
+          "conditions": [
+            [
+              "naoh_1m_bin",
+              "medium"
+            ]
+          ],
+          "weight": 0.55,
+          "rationale": "Alkaline pH deprotonates cysteine thiol to faster-oxidizing thiolate and improves oxide dispersion via surface charging."
+        },
+        {
+          "rule_id": "base_plus_rich_donor",
+          "conditions": [
+            [
+              "l_cysteine_100gl_bin",
+              "high"
+            ],
+            [
+              "naoh_1m_bin",
+              "high"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "High pH with rich donor maximizes thiolate concentration available for hole capture at the particle interface."
+        },
+        {
+          "rule_id": "unbuffered_acidic_formulation",
+          "conditions": [
+            [
+              "naoh_1m_bin",
+              "none"
+            ]
+          ],
+          "weight": -0.35,
+          "rationale": "Without added base, protonated donor oxidizes sluggishly and near-neutral pH favors particle aggregation."
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.45,
+      "semantic_mass_end": 0.12,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 0.9,
+      "gp_xi": 0.02,
+      "confidence": 0.6,
+      "hypothesis": "Transfers pH-dependent scavenger kinetics as a semantic prior. Fails if the pool's base levels shift pH past the point where proton availability for reduction becomes limiting."
+    },
+    {
+      "skill_id": "silicate_dispersant_optimum_window",
+      "rules": [
+        {
+          "rule_id": "dilute_silicate_stabilization",
+          "conditions": [
+            [
+              "sodium_silicate_1wt_bin",
+              "low"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Dilute silicate raises particle surface charge, keeping the powder suspended for light capture without coating active sites."
+        },
+        {
+          "rule_id": "silicate_overdose_passivation",
+          "conditions": [
+            [
+              "sodium_silicate_1wt_bin",
+              "very_high"
+            ]
+          ],
+          "weight": -0.6,
+          "rationale": "Excess silicate forms gel-like overlayers that block surface sites and scatter incident photons away from the semiconductor."
+        },
+        {
+          "rule_id": "dispersant_matters_at_heavy_loading",
+          "conditions": [
+            [
+              "p10_mix1_bin",
+              "very_high"
+            ],
+            [
+              "sodium_silicate_1wt_bin",
+              "medium"
+            ]
+          ],
+          "weight": 0.35,
+          "rationale": "Concentrated suspensions sediment fastest, so moderate dispersant preserves illuminated surface area where loading is highest."
+        }
+      ],
+      "ridge": 3.0,
+      "prior_scale": 0.25,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.55,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.1,
+      "gp_xi": 0.015,
+      "confidence": 0.55,
+      "hypothesis": "Encodes a non-monotonic dispersant response: helpful when dilute, passivating when concentrated. May fail if silicate mainly acts as a pH modifier rather than a colloidal stabilizer here."
+    },
+    {
+      "skill_id": "dye_sensitization_counter_hypothesis",
+      "rules": [
+        {
+          "rule_id": "downweight_dye_addition",
+          "conditions": [
+            [
+              "dye_presence",
+              "dye_added"
+            ]
+          ],
+          "weight": -0.55,
+          "rationale": "Against sensitization expectations, added dyes compete for photons and holes, and photobleach rather than boosting evolution."
+        },
+        {
+          "rule_id": "inner_filter_from_cationic_dye",
+          "conditions": [
+            [
+              "methylene_blue_250mgl_bin",
+              "low"
+            ]
+          ],
+          "weight": -0.35,
+          "rationale": "Strongly absorbing dye attenuates light before it reaches particles and is itself reduced by conduction-band electrons."
+        },
+        {
+          "rule_id": "clean_optical_path_preference",
+          "conditions": [
+            [
+              "dye_presence",
+              "dye_free"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Dye-free mixtures leave the semiconductor as sole absorber, avoiding inner-filter losses and parasitic electron sinks."
+        }
+      ],
+      "ridge": 5.0,
+      "prior_scale": 0.2,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.45,
+      "gp_beta_start": 2.4,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.03,
+      "confidence": 0.45,
+      "hypothesis": "Deliberately reverses the uncertain assumption that added dyes sensitize the system, treating them as optical and electron sinks. Fails if any dye genuinely extends visible-light harvesting."
+    },
+    {
+      "skill_id": "surfactant_active_site_blocking",
+      "rules": [
+        {
+          "rule_id": "penalize_surfactant_presence",
+          "conditions": [
+            [
+              "surfactant_presence",
+              "surfactant_added"
+            ]
+          ],
+          "weight": -0.45,
+          "rationale": "Adsorbed amphiphiles occupy surface sites, hinder proton access, and can scavenge radicals without producing hydrogen."
+        },
+        {
+          "rule_id": "anionic_surfactant_adsorption",
+          "conditions": [
+            [
+              "sds_1wt_bin",
+              "low"
+            ]
+          ],
+          "weight": -0.35,
+          "rationale": "Anionic sulfate headgroups bind oxide surfaces strongly, forming hydrophobic layers that impede interfacial charge transfer."
+        },
+        {
+          "rule_id": "polymer_free_surface",
+          "conditions": [
+            [
+              "pvp_1wt_bin",
+              "none"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Omitting polymeric stabilizer leaves the semiconductor interface bare and directly accessible to donor and protons."
+        }
+      ],
+      "ridge": 4.0,
+      "prior_scale": 0.22,
+      "semantic_mass_start": 0.35,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 1.8,
+      "gp_beta_end": 0.8,
+      "gp_xi": 0.02,
+      "confidence": 0.5,
+      "hypothesis": "Transfers interfacial site-blocking chemistry for adsorbing amphiphiles and polymers. May fail where surfactant-driven wetting or deagglomeration outweighs the loss of accessible surface sites."
+    },
+    {
+      "skill_id": "ionic_strength_colloidal_destabilization",
+      "rules": [
+        {
+          "rule_id": "salt_free_electrostatic_repulsion",
+          "conditions": [
+            [
+              "nacl_3m_bin",
+              "none"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Low ionic strength preserves double-layer repulsion, limiting aggregation that shortens optical path and buries active facets."
+        },
+        {
+          "rule_id": "high_salt_aggregation_penalty",
+          "conditions": [
+            [
+              "nacl_3m_bin",
+              "high"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Concentrated chloride screens surface charge, driving rapid flocculation and sedimentation of the illuminated suspension."
+        },
+        {
+          "rule_id": "salt_without_stabilizer",
+          "conditions": [
+            [
+              "nacl_3m_bin",
+              "medium"
+            ],
+            [
+              "sodium_silicate_1wt_bin",
+              "none"
+            ]
+          ],
+          "weight": -0.35,
+          "rationale": "Added salt with no dispersant compresses double layers unchecked, so particles settle out of the irradiated volume."
+        }
+      ],
+      "ridge": 2.5,
+      "prior_scale": 0.28,
+      "semantic_mass_start": 0.38,
+      "semantic_mass_end": 0.09,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 2.8,
+      "gp_beta_end": 1.3,
+      "gp_xi": 0.04,
+      "confidence": 0.5,
+      "hypothesis": "Transfers DLVO-style colloidal reasoning: electrolyte addition suppresses suspension stability and effective illumination. Fails if chloride instead improves conductivity or the salt-containing subset is too sparse to inform the surrogate."
+    }
+  ],
+  "skill_variant_policy": "record",
+  "calibration_seed_start": 62000,
+  "calibration_seed_count": 30,
+  "heldout_seed_start": 63000,
+  "heldout_seed_count": 50,
+  "selection": {
+    "target_anchor_mode": "mixed_kernel_gp_ei",
+    "target_anchor_summary": {
+      "gp_ucb": {
+        "final_best": 22.98135,
+        "best_so_far_auc": 20.60009,
+        "top10_hit": 0.466667,
+        "composite": 43.58144
+      },
+      "mixed_kernel_gp_ei": {
+        "final_best": 23.981487,
+        "best_so_far_auc": 20.79988,
+        "top10_hit": 0.6,
+        "composite": 44.781367
+      },
+      "target_acquisition_portfolio": {
+        "final_best": 23.221673,
+        "best_so_far_auc": 20.876367,
+        "top10_hit": 0.466667,
+        "composite": 44.09804
+      }
+    },
+    "eligible_skill_modes": [],
+    "selected_mode": "mixed_kernel_gp_ei",
+    "selected_llm_skill": false,
+    "skill_diagnostics": {
+      "llm_semantic_photocatalyst_scavenger_stoichiometry_match": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -2.72635,
+          "std": 4.246961,
+          "se": 0.775385,
+          "normal_95ci_low": -4.246105,
+          "normal_95ci_high": -1.206595,
+          "win_rate": 0.233333,
+          "non_loss_rate": 0.266667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -2.1092,
+          "std": 2.773524,
+          "se": 0.506374,
+          "normal_95ci_low": -3.101693,
+          "normal_95ci_high": -1.116707,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.266667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -4.83555,
+          "std": 6.471146,
+          "se": 1.181464,
+          "normal_95ci_low": -7.15122,
+          "normal_95ci_high": -2.51988,
+          "win_rate": 0.2,
+          "non_loss_rate": 0.2
+        },
+        "positive_fold_rate": 0.0,
+        "fold_composite_means": [
+          -6.110133,
+          -0.607467,
+          -6.56665,
+          -2.5057,
+          -8.3878
+        ],
+        "risk_adjusted_composite_gain": -5.426282,
+        "eligible": false
+      },
+      "llm_semantic_alkaline_activation_of_thiol_donor": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -2.116177,
+          "std": 4.242253,
+          "se": 0.774526,
+          "normal_95ci_low": -3.634247,
+          "normal_95ci_high": -0.598106,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.466667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -0.382057,
+          "std": 2.56029,
+          "se": 0.467443,
+          "normal_95ci_low": -1.298245,
+          "normal_95ci_high": 0.534131,
+          "win_rate": 0.5,
+          "non_loss_rate": 0.5
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -2.498233,
+          "std": 6.230165,
+          "se": 1.137467,
+          "normal_95ci_low": -4.727669,
+          "normal_95ci_high": -0.268797,
+          "win_rate": 0.433333,
+          "non_loss_rate": 0.433333
+        },
+        "positive_fold_rate": 0.2,
+        "fold_composite_means": [
+          -5.099967,
+          1.359083,
+          -4.112117,
+          -0.866533,
+          -3.771633
+        ],
+        "risk_adjusted_composite_gain": -3.066966,
+        "eligible": false
+      },
+      "llm_semantic_silicate_dispersant_optimum_window": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -0.816703,
+          "std": 4.661723,
+          "se": 0.85111,
+          "normal_95ci_low": -2.484879,
+          "normal_95ci_high": 0.851473,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.466667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -0.801187,
+          "std": 2.118996,
+          "se": 0.386874,
+          "normal_95ci_low": -1.55946,
+          "normal_95ci_high": -0.042914,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.366667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -1.61789,
+          "std": 6.157155,
+          "se": 1.124137,
+          "normal_95ci_low": -3.821199,
+          "normal_95ci_high": 0.585419,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.366667
+        },
+        "positive_fold_rate": 0.6,
+        "fold_composite_means": [
+          -4.589267,
+          0.465667,
+          -6.14555,
+          2.124467,
+          0.055233
+        ],
+        "risk_adjusted_composite_gain": -2.179959,
+        "eligible": false
+      },
+      "llm_semantic_dye_sensitization_counter_hypothesis": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -2.409113,
+          "std": 4.497005,
+          "se": 0.821037,
+          "normal_95ci_low": -4.018346,
+          "normal_95ci_high": -0.799881,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.366667
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -1.37197,
+          "std": 2.752332,
+          "se": 0.502505,
+          "normal_95ci_low": -2.356879,
+          "normal_95ci_high": -0.387061,
+          "win_rate": 0.333333,
+          "non_loss_rate": 0.333333
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -3.781083,
+          "std": 6.687103,
+          "se": 1.220892,
+          "normal_95ci_low": -6.174032,
+          "normal_95ci_high": -1.388134,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.366667
+        },
+        "positive_fold_rate": 0.2,
+        "fold_composite_means": [
+          -6.147517,
+          0.927133,
+          -7.041567,
+          -2.840433,
+          -3.803033
+        ],
+        "risk_adjusted_composite_gain": -4.391529,
+        "eligible": false
+      },
+      "llm_semantic_surfactant_active_site_blocking": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -2.178817,
+          "std": 4.416212,
+          "se": 0.806286,
+          "normal_95ci_low": -3.759138,
+          "normal_95ci_high": -0.598495,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.333333
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -1.10036,
+          "std": 2.725287,
+          "se": 0.497567,
+          "normal_95ci_low": -2.075591,
+          "normal_95ci_high": -0.125129,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.4
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -3.279177,
+          "std": 6.681243,
+          "se": 1.219822,
+          "normal_95ci_low": -5.670029,
+          "normal_95ci_high": -0.888325,
+          "win_rate": 0.366667,
+          "non_loss_rate": 0.366667
+        },
+        "positive_fold_rate": 0.4,
+        "fold_composite_means": [
+          -5.917217,
+          0.208417,
+          -6.053433,
+          0.399933,
+          -5.033583
+        ],
+        "risk_adjusted_composite_gain": -3.889088,
+        "eligible": false
+      },
+      "llm_semantic_ionic_strength_colloidal_destabilization": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -1.620257,
+          "std": 4.281056,
+          "se": 0.78161,
+          "normal_95ci_low": -3.152213,
+          "normal_95ci_high": -0.088301,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.4
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -0.72041,
+          "std": 2.959977,
+          "se": 0.540415,
+          "normal_95ci_low": -1.779624,
+          "normal_95ci_high": 0.338804,
+          "win_rate": 0.466667,
+          "non_loss_rate": 0.466667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -2.340667,
+          "std": 6.674613,
+          "se": 1.218612,
+          "normal_95ci_low": -4.729146,
+          "normal_95ci_high": 0.047813,
+          "win_rate": 0.4,
+          "non_loss_rate": 0.4
+        },
+        "positive_fold_rate": 0.2,
+        "fold_composite_means": [
+          -0.6741,
+          0.755333,
+          -4.4166,
+          -0.147517,
+          -7.22045
+        ],
+        "risk_adjusted_composite_gain": -2.949973,
+        "eligible": false
+      }
+    },
+    "thresholds": {
+      "min_risk_adjusted_composite_gain": 0.25,
+      "min_positive_fold_rate": 0.8,
+      "min_final_non_loss_rate": 0.55
+    },
+    "rule": "Choose the strongest target-only anchor on calibration composite. Select an LLM semantic skill only when final and AUC means are non-negative, fold stability and non-loss constraints pass, and risk-adjusted composite gain is positive."
+  },
+  "calibration": {
+    "gp_ucb": {
+      "final_best": 22.98135,
+      "best_so_far_auc": 20.60009,
+      "top10_hit": 0.466667,
+      "composite": 43.58144
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 23.981487,
+      "best_so_far_auc": 20.79988,
+      "top10_hit": 0.6,
+      "composite": 44.781367
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 23.221673,
+      "best_so_far_auc": 20.876367,
+      "top10_hit": 0.466667,
+      "composite": 44.09804
+    },
+    "llm_semantic_photocatalyst_scavenger_stoichiometry_match": {
+      "final_best": 21.255137,
+      "best_so_far_auc": 18.69068,
+      "top10_hit": 0.233333,
+      "composite": 39.945817
+    },
+    "llm_semantic_alkaline_activation_of_thiol_donor": {
+      "final_best": 21.86531,
+      "best_so_far_auc": 20.417823,
+      "top10_hit": 0.266667,
+      "composite": 42.283133
+    },
+    "llm_semantic_silicate_dispersant_optimum_window": {
+      "final_best": 23.164783,
+      "best_so_far_auc": 19.998693,
+      "top10_hit": 0.466667,
+      "composite": 43.163476
+    },
+    "llm_semantic_dye_sensitization_counter_hypothesis": {
+      "final_best": 21.572373,
+      "best_so_far_auc": 19.42791,
+      "top10_hit": 0.333333,
+      "composite": 41.000283
+    },
+    "llm_semantic_surfactant_active_site_blocking": {
+      "final_best": 21.80267,
+      "best_so_far_auc": 19.69952,
+      "top10_hit": 0.433333,
+      "composite": 41.50219
+    },
+    "llm_semantic_ionic_strength_colloidal_destabilization": {
+      "final_best": 22.36123,
+      "best_so_far_auc": 20.07947,
+      "top10_hit": 0.366667,
+      "composite": 42.4407
+    },
+    "llm_direct_prior_photocatalyst_scavenger_stoichiometry_match": {
+      "final_best": 19.88822,
+      "best_so_far_auc": 18.285087,
+      "top10_hit": 0.0,
+      "composite": 38.173307
+    },
+    "llm_direct_prior_alkaline_activation_of_thiol_donor": {
+      "final_best": 20.823603,
+      "best_so_far_auc": 19.259577,
+      "top10_hit": 0.033333,
+      "composite": 40.08318
+    },
+    "llm_direct_prior_silicate_dispersant_optimum_window": {
+      "final_best": 20.9425,
+      "best_so_far_auc": 18.851687,
+      "top10_hit": 0.133333,
+      "composite": 39.794187
+    },
+    "llm_direct_prior_dye_sensitization_counter_hypothesis": {
+      "final_best": 19.00494,
+      "best_so_far_auc": 17.573367,
+      "top10_hit": 0.0,
+      "composite": 36.578307
+    },
+    "llm_direct_prior_surfactant_active_site_blocking": {
+      "final_best": 19.41117,
+      "best_so_far_auc": 17.899487,
+      "top10_hit": 0.0,
+      "composite": 37.310657
+    },
+    "llm_direct_prior_ionic_strength_colloidal_destabilization": {
+      "final_best": 19.125713,
+      "best_so_far_auc": 17.62866,
+      "top10_hit": 0.0,
+      "composite": 36.754373
+    },
+    "llambo_warmstart_photocatalyst_scavenger_stoichiometry_match": {
+      "final_best": 23.898427,
+      "best_so_far_auc": 21.399647,
+      "top10_hit": 0.466667,
+      "composite": 45.298074
+    },
+    "llambo_warmstart_alkaline_activation_of_thiol_donor": {
+      "final_best": 24.336977,
+      "best_so_far_auc": 21.652833,
+      "top10_hit": 0.5,
+      "composite": 45.98981
+    },
+    "llambo_warmstart_silicate_dispersant_optimum_window": {
+      "final_best": 24.6077,
+      "best_so_far_auc": 22.663483,
+      "top10_hit": 0.5,
+      "composite": 47.271183
+    },
+    "llambo_warmstart_dye_sensitization_counter_hypothesis": {
+      "final_best": 23.485637,
+      "best_so_far_auc": 20.917397,
+      "top10_hit": 0.466667,
+      "composite": 44.403034
+    },
+    "llambo_warmstart_surfactant_active_site_blocking": {
+      "final_best": 23.42336,
+      "best_so_far_auc": 21.31401,
+      "top10_hit": 0.433333,
+      "composite": 44.73737
+    },
+    "llambo_warmstart_ionic_strength_colloidal_destabilization": {
+      "final_best": 23.752773,
+      "best_so_far_auc": 20.510443,
+      "top10_hit": 0.533333,
+      "composite": 44.263216
+    }
+  },
+  "heldout": {
+    "gp_ucb": {
+      "final_best": 23.385292,
+      "best_so_far_auc": 21.162484,
+      "top10_hit": 0.38,
+      "composite": 44.547776
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": 23.249078,
+      "best_so_far_auc": 20.969458,
+      "top10_hit": 0.42,
+      "composite": 44.218536
+    },
+    "target_acquisition_portfolio": {
+      "final_best": 23.205464,
+      "best_so_far_auc": 21.279532,
+      "top10_hit": 0.42,
+      "composite": 44.484996
+    },
+    "llm_semantic_photocatalyst_scavenger_stoichiometry_match": {
+      "final_best": 21.39821,
+      "best_so_far_auc": 19.906778,
+      "top10_hit": 0.24,
+      "composite": 41.304988
+    },
+    "llm_semantic_alkaline_activation_of_thiol_donor": {
+      "final_best": 22.658578,
+      "best_so_far_auc": 20.92545,
+      "top10_hit": 0.4,
+      "composite": 43.584028
+    },
+    "llm_semantic_silicate_dispersant_optimum_window": {
+      "final_best": 22.808472,
+      "best_so_far_auc": 20.71975,
+      "top10_hit": 0.4,
+      "composite": 43.528222
+    },
+    "llm_semantic_dye_sensitization_counter_hypothesis": {
+      "final_best": 22.616164,
+      "best_so_far_auc": 20.475408,
+      "top10_hit": 0.4,
+      "composite": 43.091572
+    },
+    "llm_semantic_surfactant_active_site_blocking": {
+      "final_best": 21.872476,
+      "best_so_far_auc": 20.121818,
+      "top10_hit": 0.32,
+      "composite": 41.994294
+    },
+    "llm_semantic_ionic_strength_colloidal_destabilization": {
+      "final_best": 22.979294,
+      "best_so_far_auc": 21.246602,
+      "top10_hit": 0.48,
+      "composite": 44.225896
+    },
+    "llm_direct_prior_photocatalyst_scavenger_stoichiometry_match": {
+      "final_best": 20.679708,
+      "best_so_far_auc": 19.646402,
+      "top10_hit": 0.12,
+      "composite": 40.32611
+    },
+    "llm_direct_prior_alkaline_activation_of_thiol_donor": {
+      "final_best": 21.553654,
+      "best_so_far_auc": 20.13592,
+      "top10_hit": 0.12,
+      "composite": 41.689574
+    },
+    "llm_direct_prior_silicate_dispersant_optimum_window": {
+      "final_best": 22.38667,
+      "best_so_far_auc": 20.096398,
+      "top10_hit": 0.3,
+      "composite": 42.483068
+    },
+    "llm_direct_prior_dye_sensitization_counter_hypothesis": {
+      "final_best": 20.287542,
+      "best_so_far_auc": 19.008416,
+      "top10_hit": 0.1,
+      "composite": 39.295958
+    },
+    "llm_direct_prior_surfactant_active_site_blocking": {
+      "final_best": 20.3366,
+      "best_so_far_auc": 19.219598,
+      "top10_hit": 0.1,
+      "composite": 39.556198
+    },
+    "llm_direct_prior_ionic_strength_colloidal_destabilization": {
+      "final_best": 20.016984,
+      "best_so_far_auc": 18.952104,
+      "top10_hit": 0.1,
+      "composite": 38.969088
+    },
+    "llambo_warmstart_photocatalyst_scavenger_stoichiometry_match": {
+      "final_best": 24.3096,
+      "best_so_far_auc": 21.52,
+      "top10_hit": 0.48,
+      "composite": 45.8296
+    },
+    "llambo_warmstart_alkaline_activation_of_thiol_donor": {
+      "final_best": 24.146652,
+      "best_so_far_auc": 21.54409,
+      "top10_hit": 0.52,
+      "composite": 45.690742
+    },
+    "llambo_warmstart_silicate_dispersant_optimum_window": {
+      "final_best": 23.93198,
+      "best_so_far_auc": 21.905446,
+      "top10_hit": 0.42,
+      "composite": 45.837426
+    },
+    "llambo_warmstart_dye_sensitization_counter_hypothesis": {
+      "final_best": 22.576822,
+      "best_so_far_auc": 20.603644,
+      "top10_hit": 0.38,
+      "composite": 43.180466
+    },
+    "llambo_warmstart_surfactant_active_site_blocking": {
+      "final_best": 23.4595,
+      "best_so_far_auc": 20.902256,
+      "top10_hit": 0.52,
+      "composite": 44.361756
+    },
+    "llambo_warmstart_ionic_strength_colloidal_destabilization": {
+      "final_best": 22.652366,
+      "best_so_far_auc": 20.01204,
+      "top10_hit": 0.42,
+      "composite": 42.664406
+    },
+    "llm_direct_prior_selector": {
+      "final_best": 21.553654,
+      "best_so_far_auc": 20.13592,
+      "top10_hit": 0.12,
+      "composite": 41.689574
+    },
+    "llambo_warmstart_selector": {
+      "final_best": 23.93198,
+      "best_so_far_auc": 21.905446,
+      "top10_hit": 0.42,
+      "composite": 45.837426
+    },
+    "llm_calibrated_selector": {
+      "final_best": 23.249078,
+      "best_so_far_auc": 20.969458,
+      "top10_hit": 0.42,
+      "composite": 44.218536
+    },
+    "care_strategy_router": {
+      "final_best": 23.93198,
+      "best_so_far_auc": 21.905446,
+      "top10_hit": 0.42,
+      "composite": 45.837426
+    }
+  },
+  "heldout_strongest_target_mode_descriptive_only": "gp_ucb",
+  "heldout_pairwise": {
+    "gp_ucb": {
+      "final_best": {
+        "n": 50.0,
+        "mean": -0.136214,
+        "std": 4.397431,
+        "se": 0.621891,
+        "normal_95ci_low": -1.35512,
+        "normal_95ci_high": 1.082692,
+        "win_rate": 0.32,
+        "non_loss_rate": 0.6
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": -0.193026,
+        "std": 2.431656,
+        "se": 0.343888,
+        "normal_95ci_low": -0.867047,
+        "normal_95ci_high": 0.480995,
+        "win_rate": 0.4,
+        "non_loss_rate": 0.5
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": 0.04,
+        "std": 0.527636,
+        "se": 0.074619,
+        "normal_95ci_low": -0.106253,
+        "normal_95ci_high": 0.186253,
+        "win_rate": 0.16,
+        "non_loss_rate": 0.88
+      }
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": {
+        "n": 50.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      }
+    },
+    "target_acquisition_portfolio": {
+      "final_best": {
+        "n": 50.0,
+        "mean": 0.043614,
+        "std": 4.113514,
+        "se": 0.581739,
+        "normal_95ci_low": -1.096594,
+        "normal_95ci_high": 1.183822,
+        "win_rate": 0.24,
+        "non_loss_rate": 0.68
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": -0.310074,
+        "std": 2.18285,
+        "se": 0.308702,
+        "normal_95ci_low": -0.915129,
+        "normal_95ci_high": 0.294981,
+        "win_rate": 0.3,
+        "non_loss_rate": 0.56
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": 0.0,
+        "std": 0.489898,
+        "se": 0.069282,
+        "normal_95ci_low": -0.135793,
+        "normal_95ci_high": 0.135793,
+        "win_rate": 0.12,
+        "non_loss_rate": 0.88
+      }
+    }
+  },
+  "external_llm_baselines": {
+    "llm_direct_prior": {
+      "selected_mode": "llm_direct_prior_alkaline_activation_of_thiol_donor",
+      "selector_alias": "llm_direct_prior_selector",
+      "calibration": {
+        "llm_direct_prior_photocatalyst_scavenger_stoichiometry_match": {
+          "final_best": 19.88822,
+          "best_so_far_auc": 18.285087,
+          "top10_hit": 0.0,
+          "composite": 38.173307
+        },
+        "llm_direct_prior_alkaline_activation_of_thiol_donor": {
+          "final_best": 20.823603,
+          "best_so_far_auc": 19.259577,
+          "top10_hit": 0.033333,
+          "composite": 40.08318
+        },
+        "llm_direct_prior_silicate_dispersant_optimum_window": {
+          "final_best": 20.9425,
+          "best_so_far_auc": 18.851687,
+          "top10_hit": 0.133333,
+          "composite": 39.794187
+        },
+        "llm_direct_prior_dye_sensitization_counter_hypothesis": {
+          "final_best": 19.00494,
+          "best_so_far_auc": 17.573367,
+          "top10_hit": 0.0,
+          "composite": 36.578307
+        },
+        "llm_direct_prior_surfactant_active_site_blocking": {
+          "final_best": 19.41117,
+          "best_so_far_auc": 17.899487,
+          "top10_hit": 0.0,
+          "composite": 37.310657
+        },
+        "llm_direct_prior_ionic_strength_colloidal_destabilization": {
+          "final_best": 19.125713,
+          "best_so_far_auc": 17.62866,
+          "top10_hit": 0.0,
+          "composite": 36.754373
+        }
+      },
+      "rule": "Select the strongest llm_direct_prior variant on calibration final_best + AUC; held-out outcomes do not affect this choice."
+    },
+    "llambo_warmstart": {
+      "selected_mode": "llambo_warmstart_silicate_dispersant_optimum_window",
+      "selector_alias": "llambo_warmstart_selector",
+      "calibration": {
+        "llambo_warmstart_photocatalyst_scavenger_stoichiometry_match": {
+          "final_best": 23.898427,
+          "best_so_far_auc": 21.399647,
+          "top10_hit": 0.466667,
+          "composite": 45.298074
+        },
+        "llambo_warmstart_alkaline_activation_of_thiol_donor": {
+          "final_best": 24.336977,
+          "best_so_far_auc": 21.652833,
+          "top10_hit": 0.5,
+          "composite": 45.98981
+        },
+        "llambo_warmstart_silicate_dispersant_optimum_window": {
+          "final_best": 24.6077,
+          "best_so_far_auc": 22.663483,
+          "top10_hit": 0.5,
+          "composite": 47.271183
+        },
+        "llambo_warmstart_dye_sensitization_counter_hypothesis": {
+          "final_best": 23.485637,
+          "best_so_far_auc": 20.917397,
+          "top10_hit": 0.466667,
+          "composite": 44.403034
+        },
+        "llambo_warmstart_surfactant_active_site_blocking": {
+          "final_best": 23.42336,
+          "best_so_far_auc": 21.31401,
+          "top10_hit": 0.433333,
+          "composite": 44.73737
+        },
+        "llambo_warmstart_ionic_strength_colloidal_destabilization": {
+          "final_best": 23.752773,
+          "best_so_far_auc": 20.510443,
+          "top10_hit": 0.533333,
+          "composite": 44.263216
+        }
+      },
+      "rule": "Select the strongest llambo_warmstart variant on calibration final_best + AUC; held-out outcomes do not affect this choice."
+    }
+  },
+  "care_vs_external_llm": {
+    "llm_direct_prior_selector": {
+      "final_best": {
+        "n": 50.0,
+        "mean": 1.695424,
+        "std": 3.992228,
+        "se": 0.564586,
+        "normal_95ci_low": 0.588835,
+        "normal_95ci_high": 2.802013,
+        "win_rate": 0.46,
+        "non_loss_rate": 0.66
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": 0.833538,
+        "std": 2.025373,
+        "se": 0.286431,
+        "normal_95ci_low": 0.272133,
+        "normal_95ci_high": 1.394943,
+        "win_rate": 0.5,
+        "non_loss_rate": 0.6
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": 0.3,
+        "std": 0.5,
+        "se": 0.070711,
+        "normal_95ci_low": 0.161407,
+        "normal_95ci_high": 0.438593,
+        "win_rate": 0.32,
+        "non_loss_rate": 0.98
+      }
+    },
+    "llambo_warmstart_selector": {
+      "final_best": {
+        "n": 50.0,
+        "mean": -0.682902,
+        "std": 5.788372,
+        "se": 0.818599,
+        "normal_95ci_low": -2.287357,
+        "normal_95ci_high": 0.921553,
+        "win_rate": 0.38,
+        "non_loss_rate": 0.44
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": -0.935988,
+        "std": 3.900025,
+        "se": 0.551547,
+        "normal_95ci_low": -2.01702,
+        "normal_95ci_high": 0.145044,
+        "win_rate": 0.34,
+        "non_loss_rate": 0.34
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": 0.0,
+        "std": 0.72111,
+        "se": 0.10198,
+        "normal_95ci_low": -0.199882,
+        "normal_95ci_high": 0.199882,
+        "win_rate": 0.26,
+        "non_loss_rate": 0.74
+      }
+    }
+  },
+  "strategy_router": {
+    "selected_mode": "llambo_warmstart_silicate_dispersant_optimum_window",
+    "selected_llm_strategy": true,
+    "target_anchor_mode": "mixed_kernel_gp_ei",
+    "candidate_modes": [
+      "mixed_kernel_gp_ei",
+      "llm_direct_prior_alkaline_activation_of_thiol_donor",
+      "llambo_warmstart_silicate_dispersant_optimum_window"
+    ],
+    "eligible_modes": [
+      "mixed_kernel_gp_ei",
+      "llambo_warmstart_silicate_dispersant_optimum_window"
+    ],
+    "diagnostics": {
+      "mixed_kernel_gp_ei": {
+        "eligible": true,
+        "risk_adjusted_composite_gain": 0.0,
+        "reason": "target-only fallback"
+      },
+      "llm_direct_prior_alkaline_activation_of_thiol_donor": {
+        "final_best": {
+          "n": 30.0,
+          "mean": -3.157883,
+          "std": 3.82887,
+          "se": 0.699053,
+          "normal_95ci_low": -4.528027,
+          "normal_95ci_high": -1.78774,
+          "win_rate": 0.2,
+          "non_loss_rate": 0.3
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": -1.540303,
+          "std": 2.553193,
+          "se": 0.466147,
+          "normal_95ci_low": -2.453952,
+          "normal_95ci_high": -0.626655,
+          "win_rate": 0.266667,
+          "non_loss_rate": 0.266667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": -4.698187,
+          "std": 5.935998,
+          "se": 1.08376,
+          "normal_95ci_low": -6.822356,
+          "normal_95ci_high": -2.574017,
+          "win_rate": 0.3,
+          "non_loss_rate": 0.3
+        },
+        "positive_fold_rate": 0.0,
+        "fold_composite_means": [
+          -3.662717,
+          -0.938417,
+          -8.144017,
+          -4.949633,
+          -5.79615
+        ],
+        "risk_adjusted_composite_gain": -5.240067,
+        "eligible": false
+      },
+      "llambo_warmstart_silicate_dispersant_optimum_window": {
+        "final_best": {
+          "n": 30.0,
+          "mean": 0.626213,
+          "std": 5.953159,
+          "se": 1.086893,
+          "normal_95ci_low": -1.504097,
+          "normal_95ci_high": 2.756524,
+          "win_rate": 0.566667,
+          "non_loss_rate": 0.6
+        },
+        "best_so_far_auc": {
+          "n": 30.0,
+          "mean": 1.863603,
+          "std": 4.963518,
+          "se": 0.90621,
+          "normal_95ci_low": 0.087431,
+          "normal_95ci_high": 3.639776,
+          "win_rate": 0.566667,
+          "non_loss_rate": 0.566667
+        },
+        "composite": {
+          "n": 30.0,
+          "mean": 2.489817,
+          "std": 10.272857,
+          "se": 1.875559,
+          "normal_95ci_low": -1.186278,
+          "normal_95ci_high": 6.165911,
+          "win_rate": 0.533333,
+          "non_loss_rate": 0.533333
+        },
+        "positive_fold_rate": 1.0,
+        "fold_composite_means": [
+          2.618067,
+          3.743817,
+          0.8856,
+          3.366283,
+          1.835317
+        ],
+        "risk_adjusted_composite_gain": 1.552037,
+        "eligible": true
+      }
+    },
+    "thresholds": {
+      "min_risk_adjusted_composite_gain": 0.25,
+      "min_positive_fold_rate": 0.8,
+      "min_final_non_loss_rate": 0.55
+    },
+    "rule": "Choose among the frozen semantic selector, LLM-direct prior, LLAMBO-style warm-start, and the target-only anchor using calibration seeds only. Require non-negative final-best and AUC deltas, stable folds, and a positive risk-adjusted composite gain; otherwise fall back to the target-only anchor.",
+    "evidence_boundary": "Only calibration outcomes choose the strategy. Held-out outcomes are used once for the frozen comparison."
+  },
+  "strategy_router_strongest_target_mode": "gp_ucb",
+  "strategy_router_pairwise": {
+    "gp_ucb": {
+      "final_best": {
+        "n": 50.0,
+        "mean": 0.546688,
+        "std": 5.559123,
+        "se": 0.786179,
+        "normal_95ci_low": -0.994222,
+        "normal_95ci_high": 2.087598,
+        "win_rate": 0.54,
+        "non_loss_rate": 0.64
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": 0.742962,
+        "std": 4.060567,
+        "se": 0.574251,
+        "normal_95ci_low": -0.38257,
+        "normal_95ci_high": 1.868494,
+        "win_rate": 0.64,
+        "non_loss_rate": 0.64
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": 0.04,
+        "std": 0.72,
+        "se": 0.101823,
+        "normal_95ci_low": -0.159574,
+        "normal_95ci_high": 0.239574,
+        "win_rate": 0.28,
+        "non_loss_rate": 0.76
+      }
+    },
+    "mixed_kernel_gp_ei": {
+      "final_best": {
+        "n": 50.0,
+        "mean": 0.682902,
+        "std": 5.788372,
+        "se": 0.818599,
+        "normal_95ci_low": -0.921553,
+        "normal_95ci_high": 2.287357,
+        "win_rate": 0.56,
+        "non_loss_rate": 0.62
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": 0.935988,
+        "std": 3.900025,
+        "se": 0.551547,
+        "normal_95ci_low": -0.145044,
+        "normal_95ci_high": 2.01702,
+        "win_rate": 0.66,
+        "non_loss_rate": 0.66
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": 0.0,
+        "std": 0.72111,
+        "se": 0.10198,
+        "normal_95ci_low": -0.199882,
+        "normal_95ci_high": 0.199882,
+        "win_rate": 0.26,
+        "non_loss_rate": 0.74
+      }
+    },
+    "target_acquisition_portfolio": {
+      "final_best": {
+        "n": 50.0,
+        "mean": 0.726516,
+        "std": 5.234504,
+        "se": 0.740271,
+        "normal_95ci_low": -0.724415,
+        "normal_95ci_high": 2.177447,
+        "win_rate": 0.54,
+        "non_loss_rate": 0.64
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": 0.625914,
+        "std": 3.945775,
+        "se": 0.558017,
+        "normal_95ci_low": -0.467799,
+        "normal_95ci_high": 1.719627,
+        "win_rate": 0.58,
+        "non_loss_rate": 0.58
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": 0.0,
+        "std": 0.663325,
+        "se": 0.093808,
+        "normal_95ci_low": -0.183864,
+        "normal_95ci_high": 0.183864,
+        "win_rate": 0.22,
+        "non_loss_rate": 0.78
+      }
+    }
+  },
+  "strategy_router_vs_external_llm": {
+    "llm_direct_prior_selector": {
+      "final_best": {
+        "n": 50.0,
+        "mean": 2.378326,
+        "std": 3.802676,
+        "se": 0.53778,
+        "normal_95ci_low": 1.324278,
+        "normal_95ci_high": 3.432374,
+        "win_rate": 0.66,
+        "non_loss_rate": 0.78
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": 1.769526,
+        "std": 3.114095,
+        "se": 0.4404,
+        "normal_95ci_low": 0.906343,
+        "normal_95ci_high": 2.632709,
+        "win_rate": 0.76,
+        "non_loss_rate": 0.76
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": 0.3,
+        "std": 0.538516,
+        "se": 0.076158,
+        "normal_95ci_low": 0.150731,
+        "normal_95ci_high": 0.449269,
+        "win_rate": 0.34,
+        "non_loss_rate": 0.96
+      }
+    },
+    "llambo_warmstart_selector": {
+      "final_best": {
+        "n": 50.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      },
+      "best_so_far_auc": {
+        "n": 50.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      },
+      "top10_hit": {
+        "n": 50.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "se": 0.0,
+        "normal_95ci_low": 0.0,
+        "normal_95ci_high": 0.0,
+        "win_rate": 0.0,
+        "non_loss_rate": 1.0
+      }
+    }
+  },
+  "strategy_router_validation": {
+    "selected_llm_strategy": true,
+    "strongest_target_mode": "gp_ucb",
+    "final_95ci_positive": false,
+    "auc_95ci_positive": false,
+    "top10_95ci_positive": false
+  },
+  "heldout_validation": {
+    "selected_llm_skill": false,
+    "strongest_target_mode": "gp_ucb",
+    "final_95ci_positive": false,
+    "auc_95ci_positive": false,
+    "top10_95ci_positive": false
+  },
+  "evidence_boundary": {
+    "generation": "No source identity, source schema, source outcomes, source effects, or source value priors are provided. The LLM must use the public target schema and its pretrained domain knowledge only.",
+    "evaluation": "Calibration selects a skill before held-out evaluation. Every per-round fit uses only previously revealed target outcomes."
+  }
+}

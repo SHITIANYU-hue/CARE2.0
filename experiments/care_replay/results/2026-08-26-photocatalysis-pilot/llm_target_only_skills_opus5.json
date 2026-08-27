@@ -1,0 +1,255 @@
+{
+  "model": "anthropic/claude-opus-5",
+  "usage": {
+    "prompt_tokens": 1906,
+    "completion_tokens": 6000,
+    "total_tokens": 7906,
+    "tps": 91.74,
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 0,
+      "image_tokens": 0,
+      "text_tokens": 0
+    },
+    "completion_tokens_details": {
+      "audio_tokens": 0,
+      "image_tokens": 0,
+      "reasoning_tokens": 0,
+      "text_tokens": 0
+    }
+  },
+  "llm_generation_call_count": 1,
+  "api_configuration": {
+    "base_url": "https://api.commonstack.ai/v1",
+    "api_mode": "chat",
+    "structured_mode": "json",
+    "temperature": 0.35,
+    "max_tokens": 6000
+  },
+  "source_dataset": "real_buchwald_hartwig",
+  "target_dataset": "real_photocatalytic_hydrogen_evolution",
+  "evidence_mode": "target_only",
+  "proposal_mode": "parametric",
+  "hypothesis_compilation": {
+    "mode": "parametric",
+    "fixed_execution_parameters": false
+  },
+  "prompt_payload": {
+    "task": "Design a diverse library of scientific transfer proposals for finite-pool search. The proposals must be auditable and grounded in the supplied public schema.",
+    "target": {
+      "dataset": "real_photocatalytic_hydrogen_evolution",
+      "title": "Photocatalytic hydrogen-evolution formulation replay",
+      "objective": "maximize_hydrogen_evolution_rate_umol_h",
+      "candidate_count": 1109,
+      "public_semantic_fields": {
+        "dye_presence": {
+          "dye_added": 189,
+          "dye_free": 920
+        },
+        "surfactant_presence": {
+          "surfactant_added": 214,
+          "surfactant_free": 895
+        },
+        "p10_mix1_bin": {
+          "high": 413,
+          "low": 100,
+          "medium": 186,
+          "very_high": 410
+        },
+        "l_cysteine_100gl_bin": {
+          "high": 210,
+          "low": 420,
+          "medium": 364,
+          "very_high": 115
+        },
+        "nacl_3m_bin": {
+          "high": 6,
+          "low": 230,
+          "medium": 46,
+          "none": 823,
+          "very_high": 4
+        },
+        "naoh_1m_bin": {
+          "high": 60,
+          "low": 485,
+          "medium": 192,
+          "none": 370,
+          "very_high": 2
+        },
+        "sodium_silicate_1wt_bin": {
+          "high": 86,
+          "low": 369,
+          "medium": 115,
+          "none": 488,
+          "very_high": 51
+        },
+        "acid_red_871_bin": {
+          "high": 1,
+          "low": 105,
+          "medium": 6,
+          "none": 994,
+          "very_high": 3
+        },
+        "methylene_blue_250mgl_bin": {
+          "high": 2,
+          "low": 80,
+          "medium": 12,
+          "none": 1012,
+          "very_high": 3
+        },
+        "rhodamine_b_1gl_bin": {
+          "high": 5,
+          "low": 57,
+          "medium": 31,
+          "none": 1014,
+          "very_high": 2
+        },
+        "pvp_1wt_bin": {
+          "high": 3,
+          "low": 144,
+          "medium": 19,
+          "none": 935,
+          "very_high": 8
+        },
+        "sds_1wt_bin": {
+          "high": 8,
+          "low": 66,
+          "medium": 18,
+          "none": 1015,
+          "very_high": 2
+        }
+      },
+      "hidden_target": "hydrogen_evolution_rate_umol_h",
+      "boundary": "Field values and counts are public; target outcomes are not included."
+    },
+    "source_transfer_evidence": {
+      "evidence_mode": "target_only",
+      "source_dataset": null,
+      "source_objective": null,
+      "mapped_roles": [],
+      "source_outcome_statistics": null,
+      "shared_value_priors": [],
+      "boundary": "No source identity, source schema, source outcomes, source effects, or source value priors are provided. The LLM must use the public target schema and its pretrained domain knowledge only."
+    },
+    "executor": {
+      "semantic_model": "Rules become binary features. Revealed target outcomes fit a ridge Bayesian linear surrogate whose coefficient prior follows rule weights.",
+      "anchor": "A rank blend of target-only GP-UCB and GP-EI.",
+      "fusion": "semantic_mass_start/end controls the rank mass assigned to the semantic surrogate; the remaining mass stays on the target-only anchor.",
+      "selection": "Independent calibration seeds select one frozen skill. Independent held-out seeds are evaluated only after selection."
+    },
+    "design_requirements": [
+      "Return exactly 8 diverse skills.",
+      "Use only exact field/value pairs in public_semantic_fields.",
+      "Each conditions object must map a real catalog field name directly to one exact catalog value, for example {\"dominant_family\": \"oxide\"}. Never use literal placeholder keys such as exact_field, field_name, field, or value.",
+      "Give every skill a distinct, descriptive scientific skill_id. Never copy schema placeholders such as short_unique_name or add numeric suffixes to a placeholder.",
+      "Use two-condition interactions only when scientifically meaningful.",
+      "Use only target-schema-compatible domain knowledge; do not imply that a source task or source outcomes were observed.",
+      "Include at least one domain-knowledge proposal.",
+      "Include a counter-hypothesis proposal that reverses or downweights an uncertain source relation.",
+      "Prefer mechanistic, chemically or physically interpretable rules over arbitrary coverage rules.",
+      "Do not claim access to target outcomes and do not output candidate identifiers."
+    ],
+    "allowed_ranges": {
+      "rule_weight": "[-1, 1]",
+      "ridge": "[0.05, 20]",
+      "prior_scale": "[0, 1.5]",
+      "semantic_mass_start_end": "[0, 0.85]",
+      "ucb_weight": "[0, 1]; EI weight is 1 - ucb_weight",
+      "gp_beta_start_end": "[0.2, 4]",
+      "gp_xi": "[0, 0.2]",
+      "confidence": "[0.05, 1]"
+    },
+    "output_contract": {
+      "skills": [
+        {
+          "skill_id": "descriptive_scientific_skill_id",
+          "rules": [
+            {
+              "rule_id": "mechanistic_rule",
+              "conditions": {
+                "field_name_from_public_semantic_fields": "exact_catalog_value"
+              },
+              "weight": 0.5,
+              "rationale": "short scientific rationale"
+            }
+          ],
+          "ridge": 1.0,
+          "prior_scale": 0.25,
+          "semantic_mass_start": 0.3,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.7,
+          "hypothesis": "what this skill transfers and when it may fail"
+        }
+      ]
+    },
+    "proposal_mode": "parametric"
+  },
+  "raw_response": "{\n  \"skills\": [\n    {\n      \"skill_id\": \"titania_loading_with_cysteine_hole_scavenger_core\",\n      \"rules\": [\n        {\n          \"rule_id\": \"high_photocatalyst_dispersion_loading\",\n          \"conditions\": {\"p10_mix1_bin\": \"high\"},\n          \"rationale\": \"More suspended TiO2-type photocatalyst increases absorbed photon flux and active surface sites until optical screening sets in.\",\n          \"weight\": 0.62\n        },\n        {\n          \"rule_id\": \"abundant_sacrificial_hole_scavenger\",\n          \"conditions\": {\"l_cysteine_100gl_bin\": \"high\"},\n          \"rationale\": \"L-cysteine thiol scavenges photogenerated holes, suppressing electron-hole recombination and back-oxidation of H2.\",\n          \"weight\": 0.7\n        },\n        {\n          \"rule_id\": \"photocatalyst_scavenger_synergy\",\n          \"conditions\": {\"p10_mix1_bin\": \"high\", \"l_cysteine_100gl_bin\": \"high\"},\n          \"rationale\": \"Surface hole extraction only pays off when enough catalyst surface is present, so loading and scavenger act synergistically.\",\n          \"weight\": 0.55\n        },\n        {\n          \"rule_id\": \"scavenger_starved_regime\",\n          \"conditions\": {\"l_cysteine_100gl_bin\": \"low\"},\n          \"rationale\": \"With little sacrificial donor, holes accumulate and recombination limits hydrogen turnover.\",\n          \"weight\": -0.6\n        },\n        {\n          \"rule_id\": \"catalyst_starved_regime\",\n          \"conditions\": {\"p10_mix1_bin\": \"low\"},\n          \"rationale\": \"Dilute catalyst suspensions transmit most incident light without conversion.\",\n          \"weight\": -0.55\n        }\n      ],\n      \"ridge\": 1.0,\n      \"prior_scale\": 0.4,\n      \"semantic_mass_start\": 0.55,\n      \"semantic_mass_end\": 0.2,\n      \"ucb_weight\": 0.6,\n      \"gp_beta_start\": 2.2,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.01,\n      \"confidence\": 0.78,\n      \"hypothesis\": \"Transfers the canonical sacrificial-donor photocatalysis mechanism: hydrogen rate scales with catalyst loading times hole-scavenger availability. It may fail if the assay is photon-limited at moderate loading, making the very_high loading bin, not high, the true optimum.\"\n    },\n    {\n      \"skill_id\": \"alkaline_ph_activated_thiolate_donor\",\n      \"rules\": [\n        {\n          \"rule_id\": \"moderate_base_addition\",\n          \"conditions\": {\"naoh_1m_bin\": \"medium\"},\n          \"rationale\": \"Raising pH deprotonates cysteine to thiolate, a faster hole acceptor, and shifts band edges to favor proton reduction.\",\n          \"weight\": 0.6\n        },\n        {\n          \"rule_id\": \"mild_base_addition\",\n          \"conditions\": {\"naoh_1m_bin\": \"low\"},\n          \"rationale\": \"Even modest alkalinity improves donor speciation and colloid stability versus unbuffered acidic cysteine solutions.\",\n          \"weight\": 0.35\n        },\n        {\n          \"rule_id\": \"no_base_unbuffered_acidic\",\n          \"conditions\": {\"naoh_1m_bin\": \"none\"},\n          \"rationale\": \"Neat cysteine solution is acidic, keeping the donor protonated and promoting particle aggregation near the isoelectric point.\",\n          \"weight\": -0.45\n        },\n        {\n          \"rule_id\": \"base_scavenger_coupling\",\n          \"conditions\": {\"naoh_1m_bin\": \"medium\", \"l_cysteine_100gl_bin\": \"high\"},\n          \"rationale\": \"Alkalinity only helps when there is enough cysteine to convert into reactive thiolate.\",\n          \"weight\": 0.45\n        },\n        {\n          \"rule_id\": \"excess_base_penalty\",\n          \"conditions\": {\"naoh_1m_bin\": \"high\"},\n          \"rationale\": \"Very strong alkalinity can degrade the donor and lower the proton activity needed for H2 formation.\",\n          \"weight\": -0.2\n        }\n      ],\n      \"ridge\": 1.4,\n      \"prior_scale\": 0.35,\n      \"semantic_mass_start\": 0.5,\n      \"semantic_mass_end\": 0.18,\n      \"ucb_weight\": 0.55,\n      \"gp_beta_start\": 2.4,\n      \"gp_beta_end\": 1.1,\n      \"gp_xi\": 0.02,\n      \"confidence\": 0.68,\n      \"hypothesis\": \"Transfers acid-base speciation control of the sacrificial donor and of colloid stability. It fails if the pool's optimum pH is already reached without added base or if strongly alkaline media dissolve/passivate the catalyst.\"\n    },\n    {\n      \"skill_id\": \"silicate_colloid_stabilizer_and_light_scattering\",\n      \"rules\": [\n        {\n          \"rule_id\": \"moderate_silicate_dispersant\",\n          \"conditions\": {\"sodium_silicate_1wt_bin\": \"medium\"},\n          \"rationale\": \"Silicate adsorbs on oxide surfaces giving electrostatic repulsion, keeping particles suspended and scattering light into the bulk.\",\n          \"weight\": 0.5\n        },\n        {\n          \"rule_id\": \"low_silicate_dispersant\",\n          \"conditions\": {\"sodium_silicate_1wt_bin\": \"low\"},\n          \"rationale\": \"Small silicate additions already suppress sedimentation without blocking surface sites.\",\n          \"weight\": 0.38\n        },\n        {\n          \"rule_id\": \"silicate_rescues_dense_suspensions\",\n          \"conditions\": {\"sodium_silicate_1wt_bin\": \"medium\", \"p10_mix1_bin\": \"very_high\"},\n          \"rationale\": \"Dense particle loadings aggregate fastest, so a dispersant matters most in that regime.\",\n          \"weight\": 0.42\n        },\n        {\n          \"rule_id\": \"excess_silicate_site_blocking\",\n          \"conditions\": {\"sodium_silicate_1wt_bin\": \"very_high\"},\n          \"rationale\": \"High silicate can gel the suspension and coat active sites, throttling interfacial charge transfer.\",\n          \"weight\": -0.4\n        },\n        {\n          \"rule_id\": \"no_dispersant_sedimentation\",\n          \"conditions\": {\"sodium_silicate_1wt_bin\": \"none\"},\n          \"rationale\": \"Without a stabilizer, settled catalyst leaves the illuminated zone.\",\n          \"weight\": -0.25\n        }\n      ],\n      \"ridge\": 1.6,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.45,\n      \"semantic_mass_end\": 0.15,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 2.0,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.03,\n      \"confidence\": 0.6,\n      \"hypothesis\": \"Transfers a non-monotonic dispersant effect: stabilization helps until surface coverage dominates. It fails if the reactor is vigorously stirred so that sedimentation is irrelevant and silicate only blocks sites.\"\n    },\n    {\n      \"skill_id\": \"dye_inner_filter_screening_penalty\",\n      \"rules\": [\n        {\n          \"rule_id\": \"any_dye_present_optical_competition\",\n          \"conditions\": {\"dye_presence\": \"dye_added\"},\n          \"rationale\": \"Strongly absorbing dyes compete with the semiconductor for photons and can quench excited states without injecting electrons.\",\n          \"weight\": -0.55\n        },\n        {\n          \"rule_id\": \"methylene_blue_electron_sink\",\n          \"conditions\": {\"methylene_blue_250mgl_bin\": \"low\"},\n          \"rationale\": \"Methylene blue is an efficient electron acceptor and is itself photoreduced, diverting electrons from proton reduction.\",\n          \"weight\": -0.4\n        },\n        {\n          \"rule_id\": \"rhodamine_b_photobleaching_load\",\n          \"conditions\": {\"rhodamine_b_1gl_bin\": \"low\"},\n          \"rationale\": \"Rhodamine B consumes photons and oxidative equivalents through its own degradation pathway.\",\n          \"weight\": -0.35\n        },\n        {\n          \"rule_id\": \"clean_optical_path_dye_free\",\n          \"conditions\": {\"dye_presence\": \"dye_free\"},\n          \"rationale\": \"Dye-free suspensions keep the full incident spectrum available to the photocatalyst.\",\n          \"weight\": 0.4\n        },\n        {\n          \"rule_id\": \"additive_free_optical_and_interface\",\n          \"conditions\": {\"dye_presence\": \"dye_free\", \"surfactant_presence\": \"surfactant_free\"},\n          \"rationale\": \"Removing both optical and interfacial spectators isolates the intrinsic catalyst-donor system.\",\n          \"weight\": 0.45\n        }\n      ],\n      \"ridge\": 1.2,\n      \"prior_scale\": 0.4,\n      \"semantic_mass_start\": 0.6,\n      \"semantic_mass_end\": 0.22,\n      \"ucb_weight\": 0.65,\n      \"gp_beta_start\": 2.0,\n      \"gp_beta_end\": 0.9,\n      \"gp_xi\": 0.01,\n      \"confidence\": 0.66,\n      \"hypothesis\": \"Transfers the inner-filter and electron-sink liability of molecular dyes in aqueous sacrificial H2 systems. It fails if the light source is visible-dominated and a dye acts as a genuine sensitizer for a wide-gap oxide.\"\n    },\n    {\n      \"skill_id\": \"surfactant_interfacial_blocking_penalty\",\n      \"rules\": [\n        {\n          \"rule_id\": \"surfactant_present_site_masking\",\n          \"conditions\": {\"surfactant_presence\": \"surfactant_added\"},\n          \"rationale\": \"Amphiphiles adsorb on the catalyst surface and hinder donor access and gas release from active sites.\",\n          \"weight\": -0.5\n        },\n        {\n          \"rule_id\": \"anionic_sds_bilayer_barrier\",\n          \"conditions\": {\"sds_1wt_bin\": \"low\"},\n          \"rationale\": \"Anionic SDS forms hemimicelles on oxide surfaces, adding a hydrophobic diffusion barrier for protons and thiolate.\",\n          \"weight\": -0.4\n        },\n        {\n          \"rule_id\": \"pvp_polymer_capping\",\n          \"conditions\": {\"pvp_1wt_bin\": \"medium\"},\n          \"rationale\": \"PVP chains cap particles and can act as a hole scavenger that yields no H2, wasting oxidative equivalents.\",\n          \"weight\": -0.35\n        },\n        {\n          \"rule_id\": \"surfactant_free_open_interface\",\n          \"conditions\": {\"surfactant_presence\": \"surfactant_free\"},\n          \"rationale\": \"An uncoated oxide-water interface maximizes charge transfer to the sacrificial donor and to protons.\",\n          \"weight\": 0.35\n        }\n      ],\n      \"ridge\": 1.8,\n      \"prior_scale\": 0.28,\n      \"semantic_mass_start\": 0.4,\n      \"semantic_mass_end\": 0.12,\n      \"ucb_weight\": 0.45,\n      \"gp_beta_start\": 2.6,\n      \"gp_beta_end\": 1.2,\n      \"gp_xi\": 0.02,\n      \"confidence\": 0.58,\n      \"hypothesis\": \"Transfers surface-masking and foam-related liabilities of surfactants in slurry photocatalysis. It fails if the pool contains poorly wetted powders where a trace surfactant is needed to disperse them at all.\"\n    },\n    {\n      \"skill_id\": \"counter_hypothesis_trace_dye_sensitization_upside\",\n      \"rules\": [\n        {\n          \"rule_id\": \"dilute_dye_may_sensitize\",\n          \"conditions\": {\"dye_presence\": \"dye_added\"},\n          \"rationale\": \"Counter-hypothesis: at low concentration an adsorbed dye can inject electrons into the conduction band and extend the usable spectrum, so a blanket dye penalty may be wrong.\",\n          \"weight\": 0.3\n        },\n        {\n          \"rule_id\": \"trace_acid_red_anionic_anchoring\",\n          \"conditions\": {\"acid_red_871_bin\": \"low\"},\n          \"rationale\": \"Sulfonated anionic dyes anchor on oxide surfaces and can act as visible-light antennae rather than pure filters.\",\n          \"weight\": 0.25\n        },\n        {\n          \"rule_id\": \"downweight_dye_free_advantage\",\n          \"conditions\": {\"dye_presence\": \"dye_free\"},\n          \"rationale\": \"Deliberately near-neutral prior on dye-free formulations so the surrogate can learn the sign of the dye effect from revealed data.\",\n          \"weight\": -0.08\n        },\n        {\n          \"rule_id\": \"concentrated_dye_still_penalized\",\n          \"conditions\": {\"methylene_blue_250mgl_bin\": \"high\"},\n          \"rationale\": \"Even under the sensitization view, heavy dye loading is opaque and self-quenching, so the reversal is confined to trace levels.\",\n          \"weight\": -0.3\n        }\n      ],\n      \"ridge\": 3.0,\n      \"prior_scale\": 0.18,\n      \"semantic_mass_start\": 0.3,\n      \"semantic_mass_end\": 0.08,\n      \"ucb_weight\": 0.75,\n      \"gp_beta_start\": 3.0,\n      \"gp_beta_end\": 1.4,\n      \"gp_xi\": 0.05,\n      \"confidence\": 0.32,\n      \"hypothesis\": \"Explicitly reverses the uncertain dye-is-harmful relation, betting that trace sensitizers help while heavy dye loading hurts. It fails if the target lamp already saturates band-gap absorption, in which case any dye is a pure optical",
+  "parsed_response": {
+    "skill_id": "titania_loading_with_cysteine_hole_scavenger_core",
+    "rules": [
+      {
+        "rule_id": "high_photocatalyst_dispersion_loading",
+        "conditions": {
+          "p10_mix1_bin": "high"
+        },
+        "rationale": "More suspended TiO2-type photocatalyst increases absorbed photon flux and active surface sites until optical screening sets in.",
+        "weight": 0.62
+      },
+      {
+        "rule_id": "abundant_sacrificial_hole_scavenger",
+        "conditions": {
+          "l_cysteine_100gl_bin": "high"
+        },
+        "rationale": "L-cysteine thiol scavenges photogenerated holes, suppressing electron-hole recombination and back-oxidation of H2.",
+        "weight": 0.7
+      },
+      {
+        "rule_id": "photocatalyst_scavenger_synergy",
+        "conditions": {
+          "p10_mix1_bin": "high",
+          "l_cysteine_100gl_bin": "high"
+        },
+        "rationale": "Surface hole extraction only pays off when enough catalyst surface is present, so loading and scavenger act synergistically.",
+        "weight": 0.55
+      },
+      {
+        "rule_id": "scavenger_starved_regime",
+        "conditions": {
+          "l_cysteine_100gl_bin": "low"
+        },
+        "rationale": "With little sacrificial donor, holes accumulate and recombination limits hydrogen turnover.",
+        "weight": -0.6
+      },
+      {
+        "rule_id": "catalyst_starved_regime",
+        "conditions": {
+          "p10_mix1_bin": "low"
+        },
+        "rationale": "Dilute catalyst suspensions transmit most incident light without conversion.",
+        "weight": -0.55
+      }
+    ],
+    "ridge": 1.0,
+    "prior_scale": 0.4,
+    "semantic_mass_start": 0.55,
+    "semantic_mass_end": 0.2,
+    "ucb_weight": 0.6,
+    "gp_beta_start": 2.2,
+    "gp_beta_end": 1.0,
+    "gp_xi": 0.01,
+    "confidence": 0.78,
+    "hypothesis": "Transfers the canonical sacrificial-donor photocatalysis mechanism: hydrogen rate scales with catalyst loading times hole-scavenger availability. It may fail if the assay is photon-limited at moderate loading, making the very_high loading bin, not high, the true optimum."
+  },
+  "normalized_skills": [],
+  "knowledge_retrieval": {
+    "enabled": false,
+    "db": "",
+    "cutoff": "",
+    "card_ids": []
+  }
+}
