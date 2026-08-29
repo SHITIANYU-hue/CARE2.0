@@ -4,6 +4,10 @@ Updated 2026-08-25.
 
 For an evidence-by-evidence rebuttal and writing checklist, see
 [`NATURE_REVIEWER_RESPONSE_MATRIX.md`](NATURE_REVIEWER_RESPONSE_MATRIX.md).
+The frozen external-agent evaluation plan, AstaBench solver, and current
+quality-token audit are documented in
+[`ASTABENCH_NATURE_STRATEGY.md`](ASTABENCH_NATURE_STRATEGY.md). No official
+AstaBench result is claimed before the gated validation and test splits are run.
 
 ## Editorial position
 

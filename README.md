@@ -11,6 +11,9 @@ Current contents:
   and public HTE / molecular-property / materials datasets.
 - `knowledge_base/`: a small SQLite + FTS knowledge-base prototype for CARE 2.0
   task, dataset, mechanism, and skill cards, with optional vector indexing.
+- `experiments/astabench/`: a frozen Inspect/AstaBench solver, DiscoveryBench
+  comparison protocol, and quality-token audit for external scientific-agent
+  evaluation under matched model and tool budgets.
 - `task_tracker/`: current project tasks, owners, blockers, and next actions.
 - `overview.md`: a narrative overview of the current replay experiments,
   datasets, results, and next steps.
@@ -84,6 +87,7 @@ The latest project sync focuses on three workstreams:
 The latest tracked replay output is in:
 
 - `experiments/care_replay/results/2026-08-22-submission-evidence-audit/`
+- `experiments/astabench/results/2026-08-29-internal-quality-cost-audit-v1/`
 - `experiments/care_replay/results/2026-08-24-online-llm-fixed-threshold5-gate-replay-v1/`
 - `experiments/care_replay/results/2026-08-24-online-llm-calibration-gate-audit-v1/`
 - `experiments/care_replay/results/2026-08-24-online-llm-predeclared-baseline-portfolio-v1/`

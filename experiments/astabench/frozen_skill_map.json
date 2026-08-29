@@ -1,0 +1,107 @@
+{
+  "schema_version": "care2.astabench.skill_map.v1",
+  "status": "frozen_before_external_evaluation",
+  "benchmark_outcomes_used": false,
+  "description": "Domain-agnostic analysis skills. These nodes encode procedures and failure checks, not benchmark answers or domain-specific conclusions.",
+  "nodes": [
+    {
+      "id": "schema_audit",
+      "always_include": true,
+      "tags": ["dataset", "column", "schema"],
+      "purpose": "Load every supplied file and identify units, types, missingness, duplicates, keys, and candidate outcomes.",
+      "output": "A compact schema and data-quality record.",
+      "failure_condition": "Any proposed variable is absent, ambiguously encoded, or not actually loaded.",
+      "next": ["leakage_guard", "candidate_hypothesis_sampling"]
+    },
+    {
+      "id": "leakage_guard",
+      "always_include": true,
+      "tags": ["target", "label", "split", "time"],
+      "purpose": "Separate observations available at decision time from labels, post-treatment variables, duplicates, and future information.",
+      "output": "An explicit allowed-variable set and any leakage exclusions.",
+      "failure_condition": "The proposed analysis relies on unavailable, post-outcome, or duplicated information.",
+      "next": ["candidate_hypothesis_sampling"]
+    },
+    {
+      "id": "candidate_hypothesis_sampling",
+      "always_include": true,
+      "tags": ["hypothesis", "relationship", "scientific"],
+      "purpose": "Generate two to four competing, testable hypotheses with variables, direction, context, and a falsification criterion.",
+      "output": "A ranked candidate-path table before outcome-directed selection.",
+      "failure_condition": "A candidate is vague, untestable, or only restates the question.",
+      "next": ["continuous_effect", "group_contrast", "temporal_structure", "multivariate_control"]
+    },
+    {
+      "id": "continuous_effect",
+      "always_include": false,
+      "tags": ["continuous", "numeric", "correlation", "association", "regression", "effect"],
+      "purpose": "Estimate direction and magnitude for continuous relationships with uncertainty and assumption checks.",
+      "output": "Effect estimate, uncertainty, sample size, and diagnostics.",
+      "failure_condition": "The result depends on an unsupported linearity assumption or a few influential observations.",
+      "next": ["multivariate_control", "robustness_and_falsification"]
+    },
+    {
+      "id": "group_contrast",
+      "always_include": false,
+      "tags": ["group", "category", "treatment", "class", "difference", "condition"],
+      "purpose": "Compare groups using effect sizes and uncertainty rather than p-values alone.",
+      "output": "Group counts, effect size, interval, test, and practical interpretation.",
+      "failure_condition": "Groups are too sparse, imbalanced, non-independent, or defined after observing the outcome.",
+      "next": ["multivariate_control", "robustness_and_falsification"]
+    },
+    {
+      "id": "temporal_structure",
+      "always_include": false,
+      "tags": ["time", "year", "date", "trend", "longitudinal", "sequence"],
+      "purpose": "Respect temporal order, autocorrelation, and changing exposure when testing trends or lags.",
+      "output": "Time-aware estimate with ordering and lag assumptions recorded.",
+      "failure_condition": "Random splitting, aggregation, or interpolation leaks future information or erases temporal structure.",
+      "next": ["multivariate_control", "robustness_and_falsification"]
+    },
+    {
+      "id": "multivariate_control",
+      "always_include": false,
+      "tags": ["confound", "covariate", "adjust", "regression", "multivariate", "causal"],
+      "purpose": "Test whether an apparent relationship survives justified covariate adjustment and interaction checks.",
+      "output": "Adjusted and unadjusted estimates with a stated adjustment set.",
+      "failure_condition": "The adjustment set includes descendants, colliders, redundant proxies, or unsupported causal language.",
+      "next": ["robustness_and_falsification"]
+    },
+    {
+      "id": "robustness_and_falsification",
+      "always_include": true,
+      "tags": ["robust", "falsify", "sensitivity", "multiple", "uncertainty"],
+      "purpose": "Challenge the leading hypothesis with an alternative specification, subset, null, or multiple-testing correction.",
+      "output": "A support, mixed, falsified, or unresolved verdict with the decisive evidence.",
+      "failure_condition": "The leading claim disappears under a reasonable check or the data cannot distinguish alternatives.",
+      "next": ["evidence_reroute", "specificity_ranking"]
+    },
+    {
+      "id": "evidence_reroute",
+      "always_include": true,
+      "tags": ["reroute", "revise", "alternative", "failure"],
+      "purpose": "When a path fails, retain the negative evidence and move to the next predeclared candidate instead of rescuing the claim post hoc.",
+      "output": "A short transition record: failed path, barrier, next path, and reason.",
+      "failure_condition": "The replacement hypothesis is invented only after reading the answer or silently changes the scientific question.",
+      "next": ["specificity_ranking"]
+    },
+    {
+      "id": "specificity_ranking",
+      "always_include": true,
+      "tags": ["rank", "specific", "evidence", "result"],
+      "purpose": "Choose the most specific hypothesis fully supported by executed analyses, allowing a negative or unresolved conclusion.",
+      "output": "One selected hypothesis plus rejected alternatives and evidence boundaries.",
+      "failure_condition": "The selected wording is broader or more causal than the analysis supports.",
+      "next": ["workflow_report"]
+    },
+    {
+      "id": "workflow_report",
+      "always_include": true,
+      "tags": ["workflow", "report", "reproduce", "json"],
+      "purpose": "Return the exact data-loading, cleaning, testing, robustness, and selection steps in a reproducible summary.",
+      "output": "Strict JSON with hypothesis and workflow keys.",
+      "failure_condition": "The final numbers cannot be traced to an executed analysis or the JSON schema is invalid.",
+      "next": []
+    }
+  ]
+}
