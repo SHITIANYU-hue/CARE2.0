@@ -414,6 +414,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument(
+        "--dataset",
+        action="append",
+        default=[],
+        help="Run one frozen dataset per flag; omit to run the full suite.",
+    )
     parser.add_argument("--api-key-env", default="COMMONSTACK_API_KEY")
     parser.add_argument(
         "--base-url",
@@ -423,6 +429,17 @@ def main() -> None:
 
     config = json.loads(args.config.read_text(encoding="utf-8"))
     protocol = config["protocol"]
+    available_datasets = {
+        str(spec["dataset_id"]): spec for spec in protocol["datasets"]
+    }
+    unknown_datasets = sorted(set(args.dataset) - set(available_datasets))
+    if unknown_datasets:
+        parser.error(f"Unknown frozen datasets: {unknown_datasets}")
+    dataset_specs = [
+        spec
+        for spec in protocol["datasets"]
+        if not args.dataset or str(spec["dataset_id"]) in set(args.dataset)
+    ]
     api_key = os.environ.get(args.api_key_env, "")
     if not api_key:
         parser.error(f"Environment variable {args.api_key_env} is required")
@@ -444,8 +461,13 @@ def main() -> None:
     rows: list[dict[str, Any]] = []
     usage_totals: defaultdict[str, int] = defaultdict(int)
     dataset_summaries = {}
-    for dataset_offset, dataset_spec in enumerate(protocol["datasets"]):
+    dataset_offsets = {
+        str(spec["dataset_id"]): offset
+        for offset, spec in enumerate(protocol["datasets"])
+    }
+    for dataset_spec in dataset_specs:
         dataset_id = str(dataset_spec["dataset_id"])
+        dataset_offset = dataset_offsets[dataset_id]
         adapter = replay.DATASET_BUILDERS[dataset_id]()
         public_fields = [str(field) for field in dataset_spec["public_fields"]]
         menus = build_menus(
@@ -503,6 +525,9 @@ def main() -> None:
         "schema_version": SCHEMA_VERSION,
         "config_sha256": hashlib.sha256(args.config.read_bytes()).hexdigest(),
         "protocol": protocol,
+        "executed_datasets": [
+            str(spec["dataset_id"]) for spec in dataset_specs
+        ],
         "evidence_boundary": {
             "source_campaigns": False,
             "source_outcomes": False,
@@ -531,6 +556,7 @@ def main() -> None:
             "config_sha256": summary["config_sha256"],
             "runner_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
             "model": protocol["model"],
+            "executed_datasets": summary["executed_datasets"],
             "schema_version": SCHEMA_VERSION,
         },
     )
