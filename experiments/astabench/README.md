@@ -15,11 +15,13 @@ sequence:
 `schema -> candidate hypotheses -> executable tests -> falsification -> reroute -> supported claim`
 
 The current confirmation protocol is
-`configs/discoverybench_protocol_v2.json`. Version 2 was frozen after a
-validation-only efficiency fix: Python work is consolidated into at most three
-calls so the agent must reach a supported or unresolved submission within the
+`configs/discoverybench_protocol_v3.json`. Version 3 was frozen after two
+validation-only execution failures showed that prompt instructions alone did
+not reliably stop repeated Python repairs. The CARE controller now enforces at
+most three Python calls and limits tool output replayed to the model to 2,000
+bytes, so the agent must reach a supported or unresolved submission within the
 matched 60,000-token budget. No gold output or test trajectory was used for
-that change.
+these changes.
 
 The skill map is domain agnostic and contains no benchmark outcomes. The solver
 uses only the tools already provided by AstaBench, so its submission category is
@@ -57,7 +59,7 @@ uv run inspect eval \
 ```
 
 The official ReAct baseline lives in the pinned `allenai/agent-baselines`
-repository recorded in `configs/discoverybench_protocol_v2.json`. Run it with
+repository recorded in `configs/discoverybench_protocol_v3.json`. Run it with
 the same model and limits. Do not inspect the test split until the validation
 comparison and solver code are frozen.
 

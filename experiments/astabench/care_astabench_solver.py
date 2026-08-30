@@ -15,9 +15,13 @@ from typing import Any
 
 from inspect_ai.model import ChatMessageSystem
 from inspect_ai.solver import Generate, Solver, TaskState, basic_agent, solver
+from inspect_ai.tool import Tool, ToolDef
+from inspect_ai.util import store
 
 
 DEFAULT_SKILL_MAP = Path(__file__).with_name("frozen_skill_map.json")
+PYTHON_CALL_COUNT_KEY = "care2.python_call_count"
+PYTHON_CALL_LIMIT_KEY = "care2.python_call_limit"
 
 
 BASE_SYSTEM_MESSAGE = """You are the CARE 2.0 scientific analysis controller.
@@ -44,8 +48,8 @@ Follow this observable workflow:
    {"hypothesis": "...", "workflow": "..."}
 
 Execution budget:
-- Normally use two Python calls and never exceed three. A call may run several
-  related checks; do not spend one call per statistic.
+- Normally use two Python calls. The controller enforces a maximum of three, so
+  each call should run several related checks rather than one statistic.
 - In the first call, combine a compact schema audit with the primary analyses
   needed to compare candidate hypotheses. In the second, run the decisive
   robustness or falsification checks. Use a third call only to repair failed
@@ -125,15 +129,59 @@ def render_skill_map(nodes: list[dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
+def bounded_python_tool(original_tool: Tool, max_calls: int) -> Tool:
+    """Wrap AstaBench's Python tool with an auditable per-sample call limit."""
+
+    if max_calls <= 0:
+        raise ValueError("max_calls must be positive")
+
+    original = ToolDef(original_tool)
+
+    async def execute(code: str) -> Any:
+        current_store = store()
+        call_count = int(current_store.get(PYTHON_CALL_COUNT_KEY, 0))
+        if call_count >= max_calls:
+            return (
+                f"CARE execution budget exhausted after {max_calls} Python calls. "
+                "Do not request another analysis. Submit the narrowest supported "
+                "or explicitly unresolved JSON result now."
+            )
+
+        call_count += 1
+        current_store.set(PYTHON_CALL_COUNT_KEY, call_count)
+        result = await original.tool(code=code)
+        if call_count == max_calls:
+            return (
+                f"{result}\n\n[CARE controller: this was the final allowed Python "
+                "call. Submit the strict JSON result now; no further analysis is "
+                "available.]"
+            )
+        return result
+
+    return ToolDef(
+        execute,
+        name=original.name,
+        description=original.description,
+        parameters=original.parameters,
+        parallel=False,
+        viewer=original.viewer,
+        model_input=original.model_input,
+        options=original.options,
+    ).as_tool()
+
+
 @solver
 def inject_care_skill_map(
     skill_map_path: str | None = None,
     max_skills: int = 9,
     enable_rerouting: bool = True,
+    max_python_calls: int = 3,
 ) -> Solver:
     """Add a task-conditioned frozen map before the first model call."""
 
     skill_map = load_skill_map(skill_map_path)
+    if max_python_calls <= 0:
+        raise ValueError("max_python_calls must be positive")
 
     async def solve(state: TaskState, generate: Generate) -> TaskState:
         nodes = select_skill_nodes(state.input_text, skill_map, max_skills=max_skills)
@@ -143,6 +191,14 @@ def inject_care_skill_map(
         state.store.set("care2.skill_map_schema", skill_map["schema_version"])
         state.store.set("care2.selected_skill_ids", selected_ids)
         state.store.set("care2.rerouting_enabled", enable_rerouting)
+        state.store.set(PYTHON_CALL_COUNT_KEY, 0)
+        state.store.set(PYTHON_CALL_LIMIT_KEY, max_python_calls)
+        state.tools = [
+            bounded_python_tool(tool, max_python_calls)
+            if ToolDef(tool).name == "python_session"
+            else tool
+            for tool in state.tools
+        ]
         state.messages.insert(
             0,
             ChatMessageSystem(
@@ -161,6 +217,8 @@ def care_discovery_agent(
     enable_rerouting: bool = True,
     message_limit: int = 36,
     token_limit: int = 60000,
+    max_python_calls: int = 3,
+    max_tool_output: int = 2000,
 ) -> Solver:
     """Run CARE's evidence-bounded loop with the benchmark's original tools."""
 
@@ -169,9 +227,11 @@ def care_discovery_agent(
             skill_map_path=skill_map_path,
             max_skills=max_skills,
             enable_rerouting=enable_rerouting,
+            max_python_calls=max_python_calls,
         ),
         message_limit=message_limit,
         token_limit=token_limit,
+        max_tool_output=max_tool_output,
         continue_message=(
             "Continue with the next executable CARE stage. Use a provided tool if "
             "evidence is still missing; otherwise submit the strict JSON result."
@@ -184,6 +244,7 @@ def care_discovery_agent(
 
 __all__ = [
     "care_discovery_agent",
+    "bounded_python_tool",
     "inject_care_skill_map",
     "load_skill_map",
     "render_skill_map",

@@ -1,7 +1,11 @@
+import asyncio
 import json
 from pathlib import Path
 
 import care_astabench_solver as solver_module
+import pytest
+from inspect_ai.tool import ToolDef
+from inspect_ai.util import store
 
 
 def test_frozen_skill_map_contains_no_benchmark_outcomes():
@@ -40,14 +44,14 @@ def test_rendered_map_exposes_outputs_and_barriers():
 
 def test_system_message_bounds_tool_calls_and_output_volume():
     message = solver_module.BASE_SYSTEM_MESSAGE
-    assert "never exceed three" in message
+    assert "enforces a maximum of three" in message
     assert "at most 1,500 characters per call" in message
     assert "do not start another analysis path" in message
 
 
 def test_current_protocol_is_frozen_and_matched():
     protocol_path = (
-        Path(__file__).parents[1] / "configs/discoverybench_protocol_v2.json"
+        Path(__file__).parents[1] / "configs/discoverybench_protocol_v3.json"
     )
     protocol = json.loads(protocol_path.read_text(encoding="utf-8"))
     assert (
@@ -60,3 +64,45 @@ def test_current_protocol_is_frozen_and_matched():
     )
     assert protocol["development_history"]["outcome_or_gold_answers_used"] is False
     assert protocol["development_history"]["test_trajectory_used"] is False
+
+
+def test_bounded_python_tool_enforces_call_limit_and_records_count():
+    async def original(code: str) -> str:
+        """Execute code.
+
+        Args:
+            code: Code to execute.
+        """
+
+        return f"result:{code}"
+
+    current_store = store()
+    current_store.set(solver_module.PYTHON_CALL_COUNT_KEY, 0)
+    wrapped = solver_module.bounded_python_tool(
+        ToolDef(original, name="python_session").as_tool(), max_calls=2
+    )
+
+    first = asyncio.run(wrapped(code="one"))
+    second = asyncio.run(wrapped(code="two"))
+    blocked = asyncio.run(wrapped(code="three"))
+
+    assert first == "result:one"
+    assert "final allowed Python call" in second
+    assert "budget exhausted" in blocked
+    assert current_store.get(solver_module.PYTHON_CALL_COUNT_KEY) == 2
+
+
+def test_bounded_python_tool_rejects_nonpositive_limit():
+    async def original(code: str) -> str:
+        """Execute code.
+
+        Args:
+            code: Code to execute.
+        """
+
+        return code
+
+    with pytest.raises(ValueError, match="positive"):
+        solver_module.bounded_python_tool(
+            ToolDef(original, name="python_session").as_tool(), max_calls=0
+        )
