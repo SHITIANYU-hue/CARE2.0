@@ -14,7 +14,7 @@
 | Calibration gate | 同一批在线 LLM 轨迹 | LLM 预测明显失准后是否应继续控制实验 | 固定误差 gate 能减少部分负迁移，定位是权限校准，不是制造正结果 |
 | 光催化产氢 pilot | 1,109 条公开真实配方 | LLM 化学常识在哪个环节有用 | 静态规则持续控制每一轮会变差；用规则做首批 warm-start、随后交给 GP 更合理 |
 | Semantic skill 与随机规则对照 | 反应、材料、分子性质 | 增益来自科学语义，还是任意规则结构 | 两种情况都出现过；因此正式结果必须同时报告 matched random skill 与 strongest target-only baseline |
-| 外部 scientific-agent benchmark | AstaBench DiscoveryBench validation | CARE 的审计流程是否比通用 ReAct 更稳定、更省调用 | 五题配对中 CARE 5/5 正常提交，ReAct 1/5；CARE 少用 42.5% token。官方质量评分器不可用，所以不能据此声称答案更正确 |
+| 外部 scientific-agent benchmark | AstaBench DiscoveryBench 全部 25 道 validation 题 | CARE 的审计流程是否比通用 ReAct 更稳定、更省调用 | CARE 严格提交 23/25，ReAct 12/25；CARE 少用 40.8% token，Python 调用 69 对 165。官方质量评分器不可用，所以不能据此声称答案更正确 |
 | LLM 零经验选点消融 | Lipophilicity、Matbench、Baumgartner Suzuki、光催化产氢 | 不给历史实验、RAG、skill 或 GP 分数时，LLM 靠预训练知识能否选对 | 四个数据集相对菜单随机期望均为正，bootstrap 95% 区间均高于 0；这是一次性选点结果，公开数据的预训练暴露风险仍需保留 |
 
 ## 建议先做的湿实验

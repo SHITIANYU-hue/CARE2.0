@@ -38,6 +38,16 @@ scientific-quality score is reported. The auditable result package and native
 Inspect logs are in
 `results/2026-08-30-validation-paired5-v1/`.
 
+The follow-up run covered all 25 validation samples, again with one epoch and
+the same Opus 5 endpoint and matched resource limits. CARE produced a strict
+two-key JSON result on 23/25 samples and called `submit` on all 25; official
+ReAct produced strict JSON on 12/25 and called `submit` on 12. CARE used 718,084
+tokens versus 1,213,851 for ReAct, a 40.8% reduction, with 69 versus 165 Python
+calls. CARE had no sample errors; ReAct had two. This remains an unscored
+structural-completion and efficiency result because the official quality scorer
+was unavailable. The full native logs and paired audit are in
+`results/2026-08-30-validation-full25-v1/`. The test split remains untouched.
+
 ## Reproducible setup
 
 ```bash
