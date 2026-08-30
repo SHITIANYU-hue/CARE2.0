@@ -22,6 +22,11 @@ from inspect_ai.util import store
 DEFAULT_SKILL_MAP = Path(__file__).with_name("frozen_skill_map.json")
 PYTHON_CALL_COUNT_KEY = "care2.python_call_count"
 PYTHON_CALL_LIMIT_KEY = "care2.python_call_limit"
+PYTHON_OUTPUT_LIMIT_KEY = "care2.python_output_limit_bytes"
+FINAL_PYTHON_CALL_NOTICE = (
+    "\n\n[CARE controller: this was the final allowed Python call. Submit the "
+    "strict JSON result now; no further analysis is available.]"
+)
 
 
 BASE_SYSTEM_MESSAGE = """You are the CARE 2.0 scientific analysis controller.
@@ -129,11 +134,35 @@ def render_skill_map(nodes: list[dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
-def bounded_python_tool(original_tool: Tool, max_calls: int) -> Tool:
+def truncate_text_to_bytes(value: Any, max_bytes: int) -> str:
+    """Return a UTF-8-safe bounded representation for model-visible tool output."""
+
+    if max_bytes <= 0:
+        raise ValueError("max_bytes must be positive")
+    text = str(value)
+    encoded = text.encode("utf-8")
+    if len(encoded) <= max_bytes:
+        return text
+
+    suffix = "\n...[CARE controller: Python output truncated]"
+    suffix_bytes = suffix.encode("utf-8")
+    prefix_bytes = encoded[: max(0, max_bytes - len(suffix_bytes))]
+    return prefix_bytes.decode("utf-8", errors="ignore") + suffix
+
+
+def bounded_python_tool(
+    original_tool: Tool,
+    max_calls: int,
+    max_output_bytes: int = 2000,
+) -> Tool:
     """Wrap AstaBench's Python tool with an auditable per-sample call limit."""
 
     if max_calls <= 0:
         raise ValueError("max_calls must be positive")
+    if max_output_bytes <= 0:
+        raise ValueError("max_output_bytes must be positive")
+    if max_output_bytes <= len(FINAL_PYTHON_CALL_NOTICE.encode("utf-8")):
+        raise ValueError("max_output_bytes must leave room for the final-call notice")
 
     original = ToolDef(original_tool)
 
@@ -151,12 +180,14 @@ def bounded_python_tool(original_tool: Tool, max_calls: int) -> Tool:
         current_store.set(PYTHON_CALL_COUNT_KEY, call_count)
         result = await original.tool(code=code)
         if call_count == max_calls:
-            return (
-                f"{result}\n\n[CARE controller: this was the final allowed Python "
-                "call. Submit the strict JSON result now; no further analysis is "
-                "available.]"
+            result_budget = max_output_bytes - len(
+                FINAL_PYTHON_CALL_NOTICE.encode("utf-8")
             )
-        return result
+            return (
+                truncate_text_to_bytes(result, max_bytes=result_budget)
+                + FINAL_PYTHON_CALL_NOTICE
+            )
+        return truncate_text_to_bytes(result, max_bytes=max_output_bytes)
 
     return ToolDef(
         execute,
@@ -176,12 +207,15 @@ def inject_care_skill_map(
     max_skills: int = 9,
     enable_rerouting: bool = True,
     max_python_calls: int = 3,
+    max_python_output: int = 2000,
 ) -> Solver:
     """Add a task-conditioned frozen map before the first model call."""
 
     skill_map = load_skill_map(skill_map_path)
     if max_python_calls <= 0:
         raise ValueError("max_python_calls must be positive")
+    if max_python_output <= 0:
+        raise ValueError("max_python_output must be positive")
 
     async def solve(state: TaskState, generate: Generate) -> TaskState:
         nodes = select_skill_nodes(state.input_text, skill_map, max_skills=max_skills)
@@ -193,8 +227,9 @@ def inject_care_skill_map(
         state.store.set("care2.rerouting_enabled", enable_rerouting)
         state.store.set(PYTHON_CALL_COUNT_KEY, 0)
         state.store.set(PYTHON_CALL_LIMIT_KEY, max_python_calls)
+        state.store.set(PYTHON_OUTPUT_LIMIT_KEY, max_python_output)
         state.tools = [
-            bounded_python_tool(tool, max_python_calls)
+            bounded_python_tool(tool, max_python_calls, max_python_output)
             if ToolDef(tool).name == "python_session"
             else tool
             for tool in state.tools
@@ -218,7 +253,8 @@ def care_discovery_agent(
     message_limit: int = 36,
     token_limit: int = 60000,
     max_python_calls: int = 3,
-    max_tool_output: int = 2000,
+    max_python_output: int = 2000,
+    max_tool_output: int = 8192,
 ) -> Solver:
     """Run CARE's evidence-bounded loop with the benchmark's original tools."""
 
@@ -228,6 +264,7 @@ def care_discovery_agent(
             max_skills=max_skills,
             enable_rerouting=enable_rerouting,
             max_python_calls=max_python_calls,
+            max_python_output=max_python_output,
         ),
         message_limit=message_limit,
         token_limit=token_limit,
@@ -249,4 +286,5 @@ __all__ = [
     "load_skill_map",
     "render_skill_map",
     "select_skill_nodes",
+    "truncate_text_to_bytes",
 ]

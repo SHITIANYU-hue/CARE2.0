@@ -15,13 +15,13 @@ sequence:
 `schema -> candidate hypotheses -> executable tests -> falsification -> reroute -> supported claim`
 
 The current confirmation protocol is
-`configs/discoverybench_protocol_v3.json`. Version 3 was frozen after two
-validation-only execution failures showed that prompt instructions alone did
-not reliably stop repeated Python repairs. The CARE controller now enforces at
-most three Python calls and limits tool output replayed to the model to 2,000
-bytes, so the agent must reach a supported or unresolved submission within the
-matched 60,000-token budget. No gold output or test trajectory was used for
-these changes.
+`configs/discoverybench_protocol_v4.json`. Validation-only development showed
+that prompt instructions alone did not stop repeated Python repairs and that a
+global 2,000-byte limit also truncated valid final submissions. The CARE
+controller now enforces at most three Python calls, limits Python evidence to
+2,000 bytes, and preserves final submissions up to 8,192 bytes. The agent must
+reach a supported or unresolved submission within the matched 60,000-token
+budget. No gold output or test trajectory was used for these changes.
 
 The skill map is domain agnostic and contains no benchmark outcomes. The solver
 uses only the tools already provided by AstaBench, so its submission category is
@@ -59,7 +59,7 @@ uv run inspect eval \
 ```
 
 The official ReAct baseline lives in the pinned `allenai/agent-baselines`
-repository recorded in `configs/discoverybench_protocol_v3.json`. Run it with
+repository recorded in `configs/discoverybench_protocol_v4.json`. Run it with
 the same model and limits. Do not inspect the test split until the validation
 comparison and solver code are frozen.
 

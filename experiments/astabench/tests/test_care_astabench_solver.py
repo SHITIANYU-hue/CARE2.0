@@ -51,7 +51,7 @@ def test_system_message_bounds_tool_calls_and_output_volume():
 
 def test_current_protocol_is_frozen_and_matched():
     protocol_path = (
-        Path(__file__).parents[1] / "configs/discoverybench_protocol_v3.json"
+        Path(__file__).parents[1] / "configs/discoverybench_protocol_v4.json"
     )
     protocol = json.loads(protocol_path.read_text(encoding="utf-8"))
     assert (
@@ -79,7 +79,9 @@ def test_bounded_python_tool_enforces_call_limit_and_records_count():
     current_store = store()
     current_store.set(solver_module.PYTHON_CALL_COUNT_KEY, 0)
     wrapped = solver_module.bounded_python_tool(
-        ToolDef(original, name="python_session").as_tool(), max_calls=2
+        ToolDef(original, name="python_session").as_tool(),
+        max_calls=2,
+        max_output_bytes=2000,
     )
 
     first = asyncio.run(wrapped(code="one"))
@@ -88,6 +90,7 @@ def test_bounded_python_tool_enforces_call_limit_and_records_count():
 
     assert first == "result:one"
     assert "final allowed Python call" in second
+    assert len(second.encode("utf-8")) <= 2000
     assert "budget exhausted" in blocked
     assert current_store.get(solver_module.PYTHON_CALL_COUNT_KEY) == 2
 
@@ -106,3 +109,9 @@ def test_bounded_python_tool_rejects_nonpositive_limit():
         solver_module.bounded_python_tool(
             ToolDef(original, name="python_session").as_tool(), max_calls=0
         )
+
+
+def test_python_output_is_utf8_safe_and_bounded():
+    bounded = solver_module.truncate_text_to_bytes("data-" + "x" * 5000, 2000)
+    assert len(bounded.encode("utf-8")) <= 2000
+    assert bounded.endswith("[CARE controller: Python output truncated]")

@@ -1,0 +1,95 @@
+{
+  "schema_version": "care2.astabench.protocol.v4",
+  "protocol_status": "frozen_after_validation_development_before_test",
+  "frozen_on": "2026-08-29",
+  "development_history": {
+    "source": "DiscoveryBench validation only",
+    "v1_observation": "The v1 solver exceeded its 60000-token budget by repeatedly requesting narrow Python analyses before submission.",
+    "v2_observation": "The v2 prompt reduced analysis calls, but a third-call code error produced a long tool result and the model requested a fourth repair. Prompt-only stopping was insufficient.",
+    "v3_observation": "The v3 controller completed a validation analysis in three Python calls and generated a valid 5169-byte submission argument, but the global 2000-byte tool-output limit truncated the submit result consumed by the evaluator.",
+    "v4_change": "The solver retains the three-call controller and 2000-byte Python-output cap while raising the outer tool-result limit to 8192 bytes so valid final submissions are not truncated.",
+    "outcome_or_gold_answers_used": false,
+    "test_trajectory_used": false
+  },
+  "primary_question": "Does CARE's hypothesis-sampling, falsification, and evidence-rerouting workflow improve scientific data-analysis quality or the quality-cost frontier relative to plain ReAct under the same model, task tools, and resource limits?",
+  "benchmark": {
+    "suite": "AstaBench 0.5.3",
+    "task": "DiscoveryBench",
+    "development_split": "validation",
+    "confirmation_split": "test",
+    "official_dataset_revision": "a600dc767f850385f4664772e3ba7a7f8be17d5e",
+    "asta_bench_code_revision": "8fbdbbb68a73fe4a47af4ebcf1819b90b608bd36",
+    "agent_baselines_code_revision": "0e32055da8f094e9e71d047d23183064b6ebc9d0"
+  },
+  "model": {
+    "primary": "anthropic/claude-opus-5",
+    "api_transport": "OpenAI-compatible chat completions",
+    "same_model_within_pair": true
+  },
+  "arms": [
+    {
+      "id": "official_react",
+      "description": "Official agent-baselines ReAct solver using the benchmark-provided tools."
+    },
+    {
+      "id": "care_full",
+      "description": "Frozen CARE skill map with competing hypotheses, falsification, evidence rerouting, and the v4 controller-enforced execution policy."
+    },
+    {
+      "id": "care_no_reroute",
+      "description": "CARE ablation with the rerouting node disabled."
+    },
+    {
+      "id": "care_no_skill_map",
+      "description": "Plain ReAct control with no CARE procedural map."
+    }
+  ],
+  "fairness_constraints": {
+    "same_model_within_pair": true,
+    "same_benchmark_tools": true,
+    "same_task_order": true,
+    "same_message_limit": 36,
+    "same_token_limit": 60000,
+    "same_outer_tool_output_bytes": 8192,
+    "target_or_gold_outcomes_in_skills": false,
+    "validation_tasks_used_for_development_only": true,
+    "test_trajectories_used_for_development": false
+  },
+  "care_execution_policy": {
+    "max_python_calls": 3,
+    "recommended_python_calls": 2,
+    "max_python_output_bytes": 2000,
+    "max_submit_result_bytes": 8192,
+    "blocked_calls_count_as_executed_analysis": false,
+    "policy_role": "Ablatable CARE controller component; benchmark tools and outer model budget remain matched across arms."
+  },
+  "repetitions": {
+    "validation_epochs": 3,
+    "test_primary_epochs": 1,
+    "additional_test_epochs": 2,
+    "report_primary_test_epoch_separately": true
+  },
+  "primary_endpoint": "paired per-task difference in official DiscoveryBench HMS score: care_full minus official_react",
+  "secondary_endpoints": [
+    "model tokens per task",
+    "frozen AstaBench model cost per task",
+    "valid final JSON rate",
+    "tool-execution success rate",
+    "negative or unresolved conclusion rate",
+    "quality-cost Pareto membership"
+  ],
+  "success_rules": {
+    "quality_superiority": "mean paired HMS difference > 0 and task-bootstrap 95% confidence interval lower bound > 0 on the untouched test split",
+    "cost_adjusted_noninferiority": "HMS difference lower bound >= -1.0 point and median frozen cost <= 80% of official_react",
+    "no_claim_before_completion": true
+  },
+  "reporting": {
+    "retain_all_eval_logs": true,
+    "retain_model_usage": true,
+    "retain_failures": true,
+    "report_validation_and_test_separately": true,
+    "report_all_arms": true,
+    "leaderboard_toolset": "standard",
+    "openness": "open source and closed weights when an API model is used"
+  }
+}
