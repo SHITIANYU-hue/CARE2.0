@@ -38,13 +38,25 @@ def test_rendered_map_exposes_outputs_and_barriers():
     assert "Allowed next nodes:" in rendered
 
 
-def test_protocol_is_frozen_and_matched():
+def test_system_message_bounds_tool_calls_and_output_volume():
+    message = solver_module.BASE_SYSTEM_MESSAGE
+    assert "never exceed three" in message
+    assert "at most 1,500 characters per call" in message
+    assert "do not start another analysis path" in message
+
+
+def test_current_protocol_is_frozen_and_matched():
     protocol_path = (
-        Path(__file__).parents[1] / "configs/discoverybench_protocol_v1.json"
+        Path(__file__).parents[1] / "configs/discoverybench_protocol_v2.json"
     )
     protocol = json.loads(protocol_path.read_text(encoding="utf-8"))
-    assert protocol["protocol_status"] == "frozen_before_official_benchmark_access"
+    assert (
+        protocol["protocol_status"]
+        == "frozen_after_validation_development_before_test"
+    )
     assert protocol["fairness_constraints"]["same_model_within_pair"] is True
     assert (
         protocol["fairness_constraints"]["target_or_gold_outcomes_in_skills"] is False
     )
+    assert protocol["development_history"]["outcome_or_gold_answers_used"] is False
+    assert protocol["development_history"]["test_trajectory_used"] is False

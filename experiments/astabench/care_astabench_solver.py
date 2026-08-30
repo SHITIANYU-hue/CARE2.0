@@ -43,6 +43,19 @@ Follow this observable workflow:
 6. Submit exactly one valid JSON object with two string keys:
    {"hypothesis": "...", "workflow": "..."}
 
+Execution budget:
+- Normally use two Python calls and never exceed three. A call may run several
+  related checks; do not spend one call per statistic.
+- In the first call, combine a compact schema audit with the primary analyses
+  needed to compare candidate hypotheses. In the second, run the decisive
+  robustness or falsification checks. Use a third call only to repair failed
+  code or execute a justified evidence reroute.
+- Print compact decision statistics only, at most 1,500 characters per call.
+  Never print a full dataframe, a full column list, or broad descriptive tables.
+- After the second successful call, submit if the evidence is sufficient. After
+  a third call, submit the narrowest supported or explicitly unresolved result;
+  do not start another analysis path.
+
 The workflow string must name files, variables, tests, sample sizes, effect
 estimates, uncertainty or significance where applicable, robustness checks,
 and rejected alternatives. All numeric claims must come from tool output.
