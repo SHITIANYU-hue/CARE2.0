@@ -1,0 +1,162 @@
+{
+  "schema_version": "care.llm_zero_experience_point_selection/v1",
+  "config_sha256": "787602df25f0f5328ca4f0877fe7078308ad79fe6cb21963a26f7838108b6fe0",
+  "protocol": {
+    "version": "care2_llm_zero_experience_point_selection_v1",
+    "status": "frozen_before_execution",
+    "purpose": "Test whether an LLM can choose high-value experimental points using only intrinsic pretrained knowledge and public candidate conditions.",
+    "model": "anthropic/claude-opus-5",
+    "temperature": 0.0,
+    "max_tokens": 6000,
+    "seed_start": 81000,
+    "menus_per_dataset": 30,
+    "menu_size": 12,
+    "batch_size": 5,
+    "bootstrap_samples": 100000,
+    "bootstrap_seed": 20260830,
+    "constraints": {
+      "no_source_campaign_identity": true,
+      "no_source_outcomes": true,
+      "no_target_outcomes_in_prompt": true,
+      "no_target_history": true,
+      "no_gp_scores": true,
+      "no_rag_or_knowledge_base": true,
+      "no_retrieved_or_frozen_skills": true,
+      "opaque_menu_local_candidate_ids": true,
+      "dataset_sharding_changes_execution_only": true,
+      "same_random_menu_for_llm_and_controls": true,
+      "hidden_outcome_read_only_after_selection": true
+    },
+    "primary_endpoint": "selected hidden objective minus the exact random-choice expectation within the same menu",
+    "secondary_endpoints": [
+      "selected-candidate percentile within menu",
+      "top-quartile hit rate",
+      "top-one hit rate",
+      "selected hidden objective minus an outcome-blind space-filling choice"
+    ],
+    "datasets": [
+      {
+        "dataset_id": "real_moleculenet_lipophilicity",
+        "domain": "molecular_property",
+        "public_fields": [
+          "smiles",
+          "smiles_length_bin",
+          "hetero_atom_bin",
+          "halogen_bin",
+          "aromatic_bin",
+          "ring_token_bin",
+          "branch_bin",
+          "double_bond_bin"
+        ]
+      },
+      {
+        "dataset_id": "real_matbench_expt_gap",
+        "domain": "materials_property",
+        "public_fields": [
+          "composition",
+          "anion_family",
+          "element_count_bin",
+          "dominant_element",
+          "dominant_family",
+          "transition_metal_flag",
+          "lanthanide_flag",
+          "mean_atomic_number_bin",
+          "max_element_fraction_bin"
+        ]
+      },
+      {
+        "dataset_id": "real_baumgartner_suzuki_minlp2",
+        "domain": "reaction_optimization",
+        "public_fields": [
+          "substrate",
+          "precatalyst",
+          "temperature_celsius",
+          "residence_time_seconds",
+          "precatalyst_fraction"
+        ]
+      },
+      {
+        "dataset_id": "real_photocatalytic_hydrogen_evolution",
+        "domain": "photocatalysis",
+        "public_fields": [
+          "p10_mix1",
+          "l_cysteine_100gl",
+          "nacl_3m",
+          "naoh_1m",
+          "sodium_silicate_1wt",
+          "acid_red_871",
+          "methylene_blue_250mgl",
+          "rhodamine_b_1gl",
+          "pvp_1wt",
+          "sds_1wt",
+          "dye_presence",
+          "surfactant_presence"
+        ]
+      }
+    ],
+    "claim_boundary": "This is an outcome-blind one-step choice ablation. It does not test source-to-target transfer or online learning from target feedback."
+  },
+  "executed_datasets": [
+    "real_photocatalytic_hydrogen_evolution"
+  ],
+  "evidence_boundary": {
+    "source_campaigns": false,
+    "source_outcomes": false,
+    "target_outcomes_in_prompt": false,
+    "target_history": false,
+    "gp_scores": false,
+    "rag_or_knowledge_base": false,
+    "retrieved_or_frozen_skills": false,
+    "candidate_conditions_only": true
+  },
+  "dataset_summaries": {
+    "real_photocatalytic_hydrogen_evolution": {
+      "menu_count": 30,
+      "mean_selected_value": 15.22794,
+      "mean_random_expected_value": 9.90005583266667,
+      "mean_llm_minus_random_expected": 5.327884167333333,
+      "bootstrap_95ci_llm_minus_random_expected": [
+        3.731743612,
+        6.977965000666666
+      ],
+      "mean_llm_minus_space_filling": 13.89189333333333,
+      "bootstrap_95ci_llm_minus_space_filling": [
+        12.279769999999997,
+        15.607716666666667
+      ],
+      "mean_percentile": 0.757575758,
+      "top_quartile_hit_rate": 0.6333333333333333,
+      "top_one_hit_rate": 0.16666666666666666,
+      "above_random_expected_count": 26,
+      "equal_random_expected_count": 0,
+      "below_random_expected_count": 4
+    }
+  },
+  "overall_pooled_menu_summary": {
+    "menu_count": 30,
+    "mean_selected_value": 15.22794,
+    "mean_random_expected_value": 9.90005583266667,
+    "mean_llm_minus_random_expected": 5.327884167333333,
+    "bootstrap_95ci_llm_minus_random_expected": [
+      3.738346112,
+      6.972216945333334
+    ],
+    "mean_llm_minus_space_filling": 13.89189333333333,
+    "bootstrap_95ci_llm_minus_space_filling": [
+      12.267050000000001,
+      15.598943333333331
+    ],
+    "mean_percentile": 0.757575758,
+    "top_quartile_hit_rate": 0.6333333333333333,
+    "top_one_hit_rate": 0.16666666666666666,
+    "above_random_expected_count": 26,
+    "equal_random_expected_count": 0,
+    "below_random_expected_count": 4
+  },
+  "llm_usage": {
+    "prompt_tokens": 136551,
+    "completion_tokens": 22742,
+    "total_tokens": 159293
+  },
+  "claim_boundary": "This tests one-step outcome-blind point choice from matched random menus. It is not sequential transfer, sample-efficiency evidence, or an estimate over arbitrary LLM generations."
+}
