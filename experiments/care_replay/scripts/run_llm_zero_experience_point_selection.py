@@ -33,6 +33,12 @@ Do not claim that an outcome was measured or observed.
 """
 
 
+class SelectionBatchFailure(RuntimeError):
+    def __init__(self, message: str, trace: Mapping[str, Any]) -> None:
+        super().__init__(message)
+        self.trace = dict(trace)
+
+
 def canonical_json(payload: Any) -> bytes:
     return json.dumps(
         payload,
@@ -217,7 +223,7 @@ def call_selection_batch(
         },
     ]
     attempts = []
-    for attempt in range(2):
+    for attempt in range(3):
         content, metadata = replay.chat_completion_text(llm_config, messages)
         record = {
             "attempt": attempt + 1,
@@ -229,14 +235,25 @@ def call_selection_batch(
             parsed = replay.extract_json_object(content)
             normalized = normalize_selections(parsed, menus)
             return normalized, {
+                "status": "success",
                 "prompt": prompt,
                 "prompt_sha256": sha256_payload(prompt),
                 "attempts": attempts,
                 "normalized_selections": normalized,
             }
         except (TypeError, ValueError, json.JSONDecodeError) as exc:
-            if attempt == 1:
-                raise
+            if attempt == 2:
+                raise SelectionBatchFailure(
+                    f"LLM response failed schema validation: {exc}",
+                    {
+                        "status": "failed",
+                        "prompt": prompt,
+                        "prompt_sha256": sha256_payload(prompt),
+                        "attempts": attempts,
+                        "error_type": type(exc).__name__,
+                        "error": str(exc),
+                    },
+                ) from exc
             messages.extend(
                 [
                     {"role": "assistant", "content": content},
@@ -420,6 +437,11 @@ def main() -> None:
         default=[],
         help="Run one frozen dataset per flag; omit to run the full suite.",
     )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Reuse successful batches already present in the trace file.",
+    )
     parser.add_argument("--api-key-env", default="COMMONSTACK_API_KEY")
     parser.add_argument(
         "--base-url",
@@ -455,11 +477,32 @@ def main() -> None:
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     trace_path = args.output_dir / "llm_trace.jsonl"
-    if trace_path.exists():
+    if trace_path.exists() and not args.resume:
         raise FileExistsError(f"Refusing to overwrite existing trace: {trace_path}")
+
+    existing_records = []
+    if trace_path.exists():
+        existing_records = [
+            json.loads(line)
+            for line in trace_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+    completed_batches = {
+        (str(record["dataset_id"]), int(record["batch_start"])): record[
+            "normalized_selections"
+        ]
+        for record in existing_records
+        if record.get("status") == "success"
+        and isinstance(record.get("normalized_selections"), list)
+    }
 
     rows: list[dict[str, Any]] = []
     usage_totals: defaultdict[str, int] = defaultdict(int)
+    for record in existing_records:
+        for attempt in record.get("attempts", []):
+            usage = attempt.get("metadata", {}).get("usage", {})
+            for key in ("prompt_tokens", "completion_tokens", "total_tokens"):
+                usage_totals[key] += int(usage.get(key, 0) or 0)
     dataset_summaries = {}
     dataset_offsets = {
         str(spec["dataset_id"]): offset
@@ -481,9 +524,35 @@ def main() -> None:
         selections_by_menu = {}
         for start in range(0, len(menus), batch_size):
             batch = menus[start : start + batch_size]
-            selections, trace = call_selection_batch(
-                llm_config, adapter, public_fields, batch
-            )
+            batch_key = (dataset_id, start)
+            if batch_key in completed_batches:
+                selections = completed_batches[batch_key]
+                selections_by_menu.update(
+                    {
+                        str(selection["menu_id"]): selection
+                        for selection in selections
+                    }
+                )
+                continue
+            try:
+                selections, trace = call_selection_batch(
+                    llm_config, adapter, public_fields, batch
+                )
+            except SelectionBatchFailure as exc:
+                with trace_path.open("a", encoding="utf-8") as handle:
+                    handle.write(
+                        json.dumps(
+                            {
+                                "schema_version": SCHEMA_VERSION,
+                                "dataset_id": dataset_id,
+                                "batch_start": start,
+                                **exc.trace,
+                            },
+                            ensure_ascii=False,
+                        )
+                        + "\n"
+                    )
+                raise
             for attempt in trace["attempts"]:
                 usage = attempt.get("metadata", {}).get("usage", {})
                 for key in ("prompt_tokens", "completion_tokens", "total_tokens"):
