@@ -27,6 +27,17 @@ The skill map is domain agnostic and contains no benchmark outcomes. The solver
 uses only the tools already provided by AstaBench, so its submission category is
 `standard` rather than a custom information-access toolset.
 
+## Frozen validation check
+
+The first frozen paired check used five DiscoveryBench validation samples and
+one epoch per arm. CARE produced a strict two-key JSON submission on 5/5
+samples, compared with 1/5 for stock ReAct, while using 176,412 versus 306,728
+total tokens. This is a structural-completion and efficiency result only: the
+official scorer model was unavailable on the configured endpoint, so no
+scientific-quality score is reported. The auditable result package and native
+Inspect logs are in
+`results/2026-08-30-validation-paired5-v1/`.
+
 ## Reproducible setup
 
 ```bash
