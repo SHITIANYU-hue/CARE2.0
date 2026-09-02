@@ -43,10 +43,40 @@ the same Opus 5 endpoint and matched resource limits. CARE produced a strict
 two-key JSON result on 23/25 samples and called `submit` on all 25; official
 ReAct produced strict JSON on 12/25 and called `submit` on 12. CARE used 718,084
 tokens versus 1,213,851 for ReAct, a 40.8% reduction, with 69 versus 165 Python
-calls. CARE had no sample errors; ReAct had two. This remains an unscored
-structural-completion and efficiency result because the official quality scorer
-was unavailable. The full native logs and paired audit are in
-`results/2026-08-30-validation-full25-v1/`. The test split remains untouched.
+calls. CARE had no sample errors; ReAct had two. Direct OpenAI rescoring with
+the required `gpt-4o-2024-08-06` judge subsequently produced mean HMS 0.1827
+for CARE and 0.1683 for ReAct. The paired difference was +0.0143 with bootstrap
+95% interval [-0.1260, +0.1563], so quality superiority is not established.
+The generation audit is in `results/2026-08-30-validation-full25-v1/`; the
+official HMS package is in
+`results/2026-09-01-validation-full25-official-hms-v1/`. The test split remains
+untouched.
+
+### Rescoring existing logs
+
+Generation and judging are separate. Existing native logs can be rescored
+without rerunning either agent. The configurable wrapper retains AstaBench's
+official HMS implementation and defaults to its required
+`gpt-4o-2024-08-06` judge:
+
+```bash
+uv run inspect score results/2026-08-30-validation-full25-v1/raw_logs/care.eval \
+  --scorer configurable_discoverybench_scorer.py@score_discoverybench_configurable \
+  --output-file care-scored-official.eval
+```
+
+For endpoint testing, a different judge can be passed explicitly:
+
+```bash
+uv run inspect score results/2026-08-30-validation-full25-v1/raw_logs/care.eval \
+  --scorer configurable_discoverybench_scorer.py@score_discoverybench_configurable \
+  -S judge_model=openai/gpt-4.1 \
+  --output-file care-scored-gpt41.eval
+```
+
+Only the frozen `gpt-4o-2024-08-06` run is an official AstaBench HMS score.
+Other judges use the same HMS prompts and arithmetic but must be reported as
+compatible sensitivity analyses, with the judge model named in every artifact.
 
 ## Reproducible setup
 
