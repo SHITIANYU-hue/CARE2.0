@@ -1,0 +1,588 @@
+{
+  "model": "openai/gpt-4o-mini",
+  "usage": {
+    "prompt_tokens": 1587,
+    "completion_tokens": 1568,
+    "total_tokens": 3155,
+    "tps": 93.79,
+    "prompt_tokens_details": {
+      "audio_tokens": 0,
+      "cached_tokens": 0
+    },
+    "completion_tokens_details": {
+      "accepted_prediction_tokens": 0,
+      "audio_tokens": 0,
+      "reasoning_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "llm_generation_call_count": 1,
+  "api_configuration": {
+    "base_url": "https://api.commonstack.ai/v1",
+    "api_mode": "chat",
+    "structured_mode": "json",
+    "temperature": 0.0,
+    "max_tokens": 5000
+  },
+  "source_dataset": "real_moleculenet_esol",
+  "target_dataset": "real_moleculenet_freesolv",
+  "evidence_mode": "full",
+  "prompt_payload": {
+    "task": "Design a diverse library of executable semantic optimization skills for finite-pool scientific search. Each skill defines interpretable rule features plus a conservative Bayesian linear surrogate blended with strong target-only GP-UCB and GP-EI anchors.",
+    "target": {
+      "dataset": "real_moleculenet_freesolv",
+      "title": "MoleculeNet FreeSolv hydration free-energy replay",
+      "objective": "maximize_hydration_affinity_score",
+      "candidate_count": 642,
+      "public_semantic_fields": {
+        "smiles_length_bin": {
+          "smiles_long": 13,
+          "smiles_mid": 122,
+          "smiles_short": 506,
+          "smiles_very_long": 1
+        },
+        "hetero_atom_bin": {
+          "hetero_high": 28,
+          "hetero_low": 316,
+          "hetero_mid": 91,
+          "hetero_none": 207
+        },
+        "halogen_bin": {
+          "halogen_high": 43,
+          "halogen_low": 73,
+          "halogen_mid": 59,
+          "halogen_none": 467
+        },
+        "aromatic_bin": {
+          "aromatic_high": 3,
+          "aromatic_low": 203,
+          "aromatic_mid": 61,
+          "aromatic_none": 375
+        },
+        "ring_token_bin": {
+          "ring_token_high": 2,
+          "ring_token_low": 247,
+          "ring_token_mid": 73,
+          "ring_token_none": 320
+        },
+        "branch_bin": {
+          "branch_high": 20,
+          "branch_low": 311,
+          "branch_mid": 116,
+          "branch_none": 195
+        },
+        "double_bond_bin": {
+          "double_bond_low": 179,
+          "double_bond_mid": 71,
+          "double_bond_none": 392
+        }
+      },
+      "hidden_target": "hydration_affinity_score",
+      "boundary": "Field values and counts are public; target outcomes are not included."
+    },
+    "source_transfer_evidence": {
+      "source_dataset": "real_moleculenet_esol",
+      "source_objective": "maximize_normalized_solubility",
+      "source_observation_count": 512,
+      "roles": [
+        {
+          "source_field": "smiles_length_bin",
+          "target_field": "smiles_length_bin",
+          "source_support_count": 3,
+          "source_mean_abs_effect": 8.322,
+          "source_max_abs_effect": 11.4573,
+          "confidence": 0.2236,
+          "transfer_weight": 0.5736
+        },
+        {
+          "source_field": "hbond_donor_bin",
+          "target_field": "hetero_atom_bin",
+          "source_support_count": 4,
+          "source_mean_abs_effect": 4.8005,
+          "source_max_abs_effect": 7.0201,
+          "confidence": 0.1591,
+          "transfer_weight": 0.5091
+        },
+        {
+          "source_field": "ring_bin",
+          "target_field": "ring_token_bin",
+          "source_support_count": 4,
+          "source_mean_abs_effect": 9.9419,
+          "source_max_abs_effect": 21.9901,
+          "confidence": 0.4079,
+          "transfer_weight": 0.7579
+        },
+        {
+          "source_field": "rotatable_bond_bin",
+          "target_field": "branch_bin",
+          "source_support_count": 4,
+          "source_mean_abs_effect": 6.9595,
+          "source_max_abs_effect": 21.3794,
+          "confidence": 0.4079,
+          "transfer_weight": 0.7579
+        }
+      ],
+      "shared_value_priors": [
+        {
+          "source_field": "smiles_length_bin",
+          "target_field": "smiles_length_bin",
+          "value": "smiles_short",
+          "source_support_count": 261,
+          "source_effect": 6.8942,
+          "confidence": 0.2801,
+          "transfer_weight": 0.039545
+        },
+        {
+          "source_field": "smiles_length_bin",
+          "target_field": "smiles_length_bin",
+          "value": "smiles_mid",
+          "source_support_count": 226,
+          "source_effect": -6.6146,
+          "confidence": 0.2687,
+          "transfer_weight": 0.037941
+        },
+        {
+          "source_field": "smiles_length_bin",
+          "target_field": "smiles_length_bin",
+          "value": "smiles_long",
+          "source_support_count": 24,
+          "source_effect": -11.4573,
+          "confidence": 0.4655,
+          "transfer_weight": 0.065719
+        }
+      ],
+      "boundary": "Only source outcomes and public source/target descriptors are summarized. No target outcomes are present.",
+      "evidence_mode": "full"
+    },
+    "executor": {
+      "semantic_model": "Rules become binary features. Revealed target outcomes fit a ridge Bayesian linear surrogate whose coefficient prior follows rule weights.",
+      "anchor": "A rank blend of target-only GP-UCB and GP-EI.",
+      "fusion": "semantic_mass_start/end controls the rank mass assigned to the semantic surrogate; the remaining mass stays on the target-only anchor.",
+      "selection": "Independent calibration seeds select one frozen skill. Independent held-out seeds are evaluated only after selection."
+    },
+    "design_requirements": [
+      "Return exactly 8 diverse skills.",
+      "Use only exact field/value pairs in public_semantic_fields.",
+      "Each conditions object must map a real catalog field name directly to one exact catalog value, for example {\"dominant_family\": \"oxide\"}. Never use literal placeholder keys such as exact_field, field_name, field, or value.",
+      "Give every skill a distinct, descriptive scientific skill_id. Never copy schema placeholders such as short_unique_name or add numeric suffixes to a placeholder.",
+      "Give every skill 3-10 rules; use two-condition interactions only when scientifically meaningful.",
+      "Include at least one conservative low-semantic-mass skill.",
+      "Include at least one skill explicitly grounded in the supplied source outcome evidence.",
+      "Include at least one domain-knowledge skill.",
+      "Include a counter-hypothesis skill that reverses or downweights an uncertain source relation.",
+      "Prefer mechanistic, chemically or physically interpretable rules over arbitrary coverage rules.",
+      "Use positive weights for conditions expected to improve the target objective and negative weights for risks.",
+      "Do not claim access to target outcomes and do not output candidate identifiers."
+    ],
+    "allowed_ranges": {
+      "rule_weight": "[-1, 1]",
+      "ridge": "[0.05, 20]",
+      "prior_scale": "[0, 1.5]",
+      "semantic_mass_start_end": "[0, 0.85]",
+      "ucb_weight": "[0, 1]; EI weight is 1 - ucb_weight",
+      "gp_beta_start_end": "[0.2, 4]",
+      "gp_xi": "[0, 0.2]",
+      "confidence": "[0.05, 1]"
+    },
+    "output_contract": {
+      "skills": [
+        {
+          "skill_id": "descriptive_scientific_skill_id",
+          "rules": [
+            {
+              "rule_id": "mechanistic_rule",
+              "conditions": {
+                "field_name_from_public_semantic_fields": "exact_catalog_value"
+              },
+              "weight": 0.5,
+              "rationale": "short scientific rationale"
+            }
+          ],
+          "ridge": 1.0,
+          "prior_scale": 0.25,
+          "semantic_mass_start": 0.3,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.7,
+          "hypothesis": "what this skill transfers and when it may fail"
+        }
+      ]
+    }
+  },
+  "raw_response": "```json\n{\n  \"skills\": [\n    {\n      \"skill_id\": \"maximize_hydration_affinity_with_short_smiles\",\n      \"rules\": [\n        {\n          \"rule_id\": \"short_smiles_rule\",\n          \"conditions\": {\n            \"smiles_length_bin\": \"smiles_short\"\n          },\n          \"weight\": 0.7,\n          \"rationale\": \"Short SMILES are associated with higher hydration affinity.\"\n        }\n      ],\n      \"ridge\": 1.5,\n      \"prior_scale\": 0.5,\n      \"semantic_mass_start\": 0.4,\n      \"semantic_mass_end\": 0.2,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 1.5,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.1,\n      \"confidence\": 0.8,\n      \"hypothesis\": \"Short SMILES contribute positively to hydration affinity.\"\n    },\n    {\n      \"skill_id\": \"downweight_high_hetero_atoms\",\n      \"rules\": [\n        {\n          \"rule_id\": \"high_hetero_atoms_rule\",\n          \"conditions\": {\n            \"hetero_atom_bin\": \"hetero_high\"\n          },\n          \"weight\": -0.6,\n          \"rationale\": \"High heteroatom count may negatively impact hydration affinity.\"\n        }\n      ],\n      \"ridge\": 1.0,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.5,\n      \"semantic_mass_end\": 0.1,\n      \"ucb_weight\": 0.4,\n      \"gp_beta_start\": 2.0,\n      \"gp_beta_end\": 1.5,\n      \"gp_xi\": 0.05,\n      \"confidence\": 0.75,\n      \"hypothesis\": \"High heteroatom count is detrimental to hydration affinity.\"\n    },\n    {\n      \"skill_id\": \"optimize_for_aromatic_compounds\",\n      \"rules\": [\n        {\n          \"rule_id\": \"aromatic_low_rule\",\n          \"conditions\": {\n            \"aromatic_bin\": \"aromatic_low\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Lower aromaticity is linked to better hydration properties.\"\n        }\n      ],\n      \"ridge\": 1.2,\n      \"prior_scale\": 0.4,\n      \"semantic_mass_start\": 0.3,\n      \"semantic_mass_end\": 0.2,\n      \"ucb_weight\": 0.6,\n      \"gp_beta_start\": 1.8,\n      \"gp_beta_end\": 1.2,\n      \"gp_xi\": 0.1,\n      \"confidence\": 0.7,\n      \"hypothesis\": \"Lower aromaticity enhances hydration affinity.\"\n    },\n    {\n      \"skill_id\": \"branching_effect_on_hydration\",\n      \"rules\": [\n        {\n          \"rule_id\": \"branch_low_rule\",\n          \"conditions\": {\n            \"branch_bin\": \"branch_low\"\n          },\n          \"weight\": 0.4,\n          \"rationale\": \"Less branching is favorable for hydration.\"\n        }\n      ],\n      \"ridge\": 1.0,\n      \"prior_scale\": 0.2,\n      \"semantic_mass_start\": 0.3,\n      \"semantic_mass_end\": 0.1,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 1.5,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.1,\n      \"confidence\": 0.65,\n      \"hypothesis\": \"Reduced branching improves hydration affinity.\"\n    },\n    {\n      \"skill_id\": \"grounded_in_solubility_evidence\",\n      \"rules\": [\n        {\n          \"rule_id\": \"hbond_donor_to_hetero_atoms\",\n          \"conditions\": {\n            \"hbond_donor_bin\": \"hbond_donor_bin\"\n          },\n          \"weight\": 0.6,\n          \"rationale\": \"Hydrogen bonding donors correlate with hydration affinity.\"\n        }\n      ],\n      \"ridge\": 1.3,\n      \"prior_scale\": 0.4,\n      \"semantic_mass_start\": 0.5,\n      \"semantic_mass_end\": 0.2,\n      \"ucb_weight\": 0.4,\n      \"gp_beta_start\": 1.7,\n      \"gp_beta_end\": 1.2,\n      \"gp_xi\": 0.1,\n      \"confidence\": 0.7,\n      \"hypothesis\": \"Hydrogen bonding donors enhance hydration affinity.\"\n    },\n    {\n      \"skill_id\": \"counter_hypothesis_on_double_bonds\",\n      \"rules\": [\n        {\n          \"rule_id\": \"double_bond_none_rule\",\n          \"conditions\": {\n            \"double_bond_bin\": \"double_bond_none\"\n          },\n          \"weight\": -0.5,\n          \"rationale\": \"Absence of double bonds may be beneficial for hydration.\"\n        }\n      ],\n      \"ridge\": 1.0,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.4,\n      \"semantic_mass_end\": 0.1,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 1.5,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.1,\n      \"confidence\": 0.6,\n      \"hypothesis\": \"Absence of double bonds is favorable for hydration.\"\n    },\n    {\n      \"skill_id\": \"maximize_hydration_with_ring_structures\",\n      \"rules\": [\n        {\n          \"rule_id\": \"ring_token_low_rule\",\n          \"conditions\": {\n            \"ring_token_bin\": \"ring_token_low\"\n          },\n          \"weight\": 0.5,\n          \"rationale\": \"Fewer ring structures may enhance hydration properties.\"\n        }\n      ],\n      \"ridge\": 1.2,\n      \"prior_scale\": 0.4,\n      \"semantic_mass_start\": 0.3,\n      \"semantic_mass_end\": 0.2,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 1.8,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.1,\n      \"confidence\": 0.7,\n      \"hypothesis\": \"Fewer ring structures correlate with better hydration affinity.\"\n    },\n    {\n      \"skill_id\": \"low_semantic_mass_for_hydration\",\n      \"rules\": [\n        {\n          \"rule_id\": \"smiles_mid_rule\",\n          \"conditions\": {\n            \"smiles_length_bin\": \"smiles_mid\"\n          },\n          \"weight\": -0.3,\n          \"rationale\": \"Mid-length SMILES may not be optimal for hydration.\"\n        }\n      ],\n      \"ridge\": 0.8,\n      \"prior_scale\": 0.2,\n      \"semantic_mass_start\": 0.1,\n      \"semantic_mass_end\": 0.1,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 1.0,\n      \"gp_beta_end\": 0.8,\n      \"gp_xi\": 0.1,\n      \"confidence\": 0.5,\n      \"hypothesis\": \"Mid-length SMILES are less favorable for hydration.\"\n    }\n  ]\n}\n```",
+  "parsed_response": {
+    "skills": [
+      {
+        "skill_id": "maximize_hydration_affinity_with_short_smiles",
+        "rules": [
+          {
+            "rule_id": "short_smiles_rule",
+            "conditions": {
+              "smiles_length_bin": "smiles_short"
+            },
+            "weight": 0.7,
+            "rationale": "Short SMILES are associated with higher hydration affinity."
+          }
+        ],
+        "ridge": 1.5,
+        "prior_scale": 0.5,
+        "semantic_mass_start": 0.4,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 1.5,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.1,
+        "confidence": 0.8,
+        "hypothesis": "Short SMILES contribute positively to hydration affinity."
+      },
+      {
+        "skill_id": "downweight_high_hetero_atoms",
+        "rules": [
+          {
+            "rule_id": "high_hetero_atoms_rule",
+            "conditions": {
+              "hetero_atom_bin": "hetero_high"
+            },
+            "weight": -0.6,
+            "rationale": "High heteroatom count may negatively impact hydration affinity."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.5,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.4,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.5,
+        "gp_xi": 0.05,
+        "confidence": 0.75,
+        "hypothesis": "High heteroatom count is detrimental to hydration affinity."
+      },
+      {
+        "skill_id": "optimize_for_aromatic_compounds",
+        "rules": [
+          {
+            "rule_id": "aromatic_low_rule",
+            "conditions": {
+              "aromatic_bin": "aromatic_low"
+            },
+            "weight": 0.5,
+            "rationale": "Lower aromaticity is linked to better hydration properties."
+          }
+        ],
+        "ridge": 1.2,
+        "prior_scale": 0.4,
+        "semantic_mass_start": 0.3,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 1.8,
+        "gp_beta_end": 1.2,
+        "gp_xi": 0.1,
+        "confidence": 0.7,
+        "hypothesis": "Lower aromaticity enhances hydration affinity."
+      },
+      {
+        "skill_id": "branching_effect_on_hydration",
+        "rules": [
+          {
+            "rule_id": "branch_low_rule",
+            "conditions": {
+              "branch_bin": "branch_low"
+            },
+            "weight": 0.4,
+            "rationale": "Less branching is favorable for hydration."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.2,
+        "semantic_mass_start": 0.3,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 1.5,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.1,
+        "confidence": 0.65,
+        "hypothesis": "Reduced branching improves hydration affinity."
+      },
+      {
+        "skill_id": "grounded_in_solubility_evidence",
+        "rules": [
+          {
+            "rule_id": "hbond_donor_to_hetero_atoms",
+            "conditions": {
+              "hbond_donor_bin": "hbond_donor_bin"
+            },
+            "weight": 0.6,
+            "rationale": "Hydrogen bonding donors correlate with hydration affinity."
+          }
+        ],
+        "ridge": 1.3,
+        "prior_scale": 0.4,
+        "semantic_mass_start": 0.5,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.4,
+        "gp_beta_start": 1.7,
+        "gp_beta_end": 1.2,
+        "gp_xi": 0.1,
+        "confidence": 0.7,
+        "hypothesis": "Hydrogen bonding donors enhance hydration affinity."
+      },
+      {
+        "skill_id": "counter_hypothesis_on_double_bonds",
+        "rules": [
+          {
+            "rule_id": "double_bond_none_rule",
+            "conditions": {
+              "double_bond_bin": "double_bond_none"
+            },
+            "weight": -0.5,
+            "rationale": "Absence of double bonds may be beneficial for hydration."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.4,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 1.5,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.1,
+        "confidence": 0.6,
+        "hypothesis": "Absence of double bonds is favorable for hydration."
+      },
+      {
+        "skill_id": "maximize_hydration_with_ring_structures",
+        "rules": [
+          {
+            "rule_id": "ring_token_low_rule",
+            "conditions": {
+              "ring_token_bin": "ring_token_low"
+            },
+            "weight": 0.5,
+            "rationale": "Fewer ring structures may enhance hydration properties."
+          }
+        ],
+        "ridge": 1.2,
+        "prior_scale": 0.4,
+        "semantic_mass_start": 0.3,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 1.8,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.1,
+        "confidence": 0.7,
+        "hypothesis": "Fewer ring structures correlate with better hydration affinity."
+      },
+      {
+        "skill_id": "low_semantic_mass_for_hydration",
+        "rules": [
+          {
+            "rule_id": "smiles_mid_rule",
+            "conditions": {
+              "smiles_length_bin": "smiles_mid"
+            },
+            "weight": -0.3,
+            "rationale": "Mid-length SMILES may not be optimal for hydration."
+          }
+        ],
+        "ridge": 0.8,
+        "prior_scale": 0.2,
+        "semantic_mass_start": 0.1,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 1.0,
+        "gp_beta_end": 0.8,
+        "gp_xi": 0.1,
+        "confidence": 0.5,
+        "hypothesis": "Mid-length SMILES are less favorable for hydration."
+      }
+    ]
+  },
+  "normalized_skills": [
+    {
+      "skill_id": "maximize_hydration_affinity_with_short_smiles",
+      "rules": [
+        {
+          "rule_id": "short_smiles_rule",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Short SMILES are associated with higher hydration affinity."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.5,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.1,
+      "confidence": 0.8,
+      "hypothesis": "Short SMILES contribute positively to hydration affinity."
+    },
+    {
+      "skill_id": "downweight_high_hetero_atoms",
+      "rules": [
+        {
+          "rule_id": "high_hetero_atoms_rule",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": -0.6,
+          "rationale": "High heteroatom count may negatively impact hydration affinity."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.4,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.5,
+      "gp_xi": 0.05,
+      "confidence": 0.75,
+      "hypothesis": "High heteroatom count is detrimental to hydration affinity."
+    },
+    {
+      "skill_id": "optimize_for_aromatic_compounds",
+      "rules": [
+        {
+          "rule_id": "aromatic_low_rule",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_low"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Lower aromaticity is linked to better hydration properties."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 1.8,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.1,
+      "confidence": 0.7,
+      "hypothesis": "Lower aromaticity enhances hydration affinity."
+    },
+    {
+      "skill_id": "branching_effect_on_hydration",
+      "rules": [
+        {
+          "rule_id": "branch_low_rule",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_low"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Less branching is favorable for hydration."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.2,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.1,
+      "confidence": 0.65,
+      "hypothesis": "Reduced branching improves hydration affinity."
+    },
+    {
+      "skill_id": "counter_hypothesis_on_double_bonds",
+      "rules": [
+        {
+          "rule_id": "double_bond_none_rule",
+          "conditions": [
+            [
+              "double_bond_bin",
+              "double_bond_none"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Absence of double bonds may be beneficial for hydration."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 1.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.1,
+      "confidence": 0.6,
+      "hypothesis": "Absence of double bonds is favorable for hydration."
+    },
+    {
+      "skill_id": "maximize_hydration_with_ring_structures",
+      "rules": [
+        {
+          "rule_id": "ring_token_low_rule",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_low"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Fewer ring structures may enhance hydration properties."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 1.8,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.1,
+      "confidence": 0.7,
+      "hypothesis": "Fewer ring structures correlate with better hydration affinity."
+    },
+    {
+      "skill_id": "low_semantic_mass_for_hydration",
+      "rules": [
+        {
+          "rule_id": "smiles_mid_rule",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "Mid-length SMILES may not be optimal for hydration."
+        }
+      ],
+      "ridge": 0.8,
+      "prior_scale": 0.2,
+      "semantic_mass_start": 0.1,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 1.0,
+      "gp_beta_end": 0.8,
+      "gp_xi": 0.1,
+      "confidence": 0.5,
+      "hypothesis": "Mid-length SMILES are less favorable for hydration."
+    }
+  ]
+}

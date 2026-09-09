@@ -1151,3 +1151,21 @@ python3 scripts/build_online_llm_generalization_figures.py \
   --metrics results/2026-08-15-opus5-generalization-study/aggregate/generalization_metrics.csv \
   --output-dir results/2026-08-15-opus5-generalization-study/figures
 ```
+
+
+## Offline RSI memory-component audit (2026-09-09)
+
+The [RSI audit and measured component experiment](results/2026-09-09-rsi-memory-component-v1/README.md)
+adds three generations of persistent archived-skill selection and evaluates all
+skills on 40 held-out seeds per task, with fixed, first-update, same-feedback
+batch, shuffled-feedback, and target-only GP controls. All 1,660 measured-data
+replay trajectories, version states, frozen configurations, failure records,
+source LLM traces, numerical validation and hashes are retained.
+
+Versus the initial fixed archived skill, mean AUC changes are +13.7255 on
+FreeSolv, 0 on lipophilicity, and +16.6413 on experimental band gap. The cumulative
+update and same-feedback batch selection have identical final performance; this
+does not establish a distinct benefit of recursion. This is a retrospective,
+same-task seed-disjoint selection component, not a new KB-to-LLM experiment or
+confirmation against the separate fixed CARE-v2 warmstart controller. No new LLM
+calls were made because this process had no environment-configured credentials.
