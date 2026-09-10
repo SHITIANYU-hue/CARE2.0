@@ -1,0 +1,176 @@
+{
+  "attempt": 0,
+  "request": {
+    "model": "anthropic/claude-opus-5",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a scientific optimization researcher revising executable semantic skills. Use only the evidence explicitly supplied. Never claim model-weight training or unseen target measurements. Return one valid JSON object with exactly two distinct skills. Every rule conditions value must exactly match the supplied public catalog. You may retain a successful skill and propose a counter-hypothesis. Select exactly one skill for deployment using selected_skill_id. Use short lowercase snake_case skill IDs. Include lesson and revision_summary strings. Use at most four rules per skill. Keep rationale and lesson concise."
+      },
+      {
+        "role": "user",
+        "content": "{\"task\": \"Revise the preceding executable skills for the same scientific search task. Return two skills and select one for deployment.\", \"target\": {\"dataset\": \"real_moleculenet_freesolv\", \"title\": \"MoleculeNet FreeSolv hydration free-energy replay\", \"objective\": \"maximize_hydration_affinity_score\", \"candidate_count\": 642, \"public_semantic_fields\": {\"smiles_length_bin\": {\"smiles_long\": 13, \"smiles_mid\": 122, \"smiles_short\": 506, \"smiles_very_long\": 1}, \"hetero_atom_bin\": {\"hetero_high\": 28, \"hetero_low\": 316, \"hetero_mid\": 91, \"hetero_none\": 207}, \"halogen_bin\": {\"halogen_high\": 43, \"halogen_low\": 73, \"halogen_mid\": 59, \"halogen_none\": 467}, \"aromatic_bin\": {\"aromatic_high\": 3, \"aromatic_low\": 203, \"aromatic_mid\": 61, \"aromatic_none\": 375}, \"ring_token_bin\": {\"ring_token_high\": 2, \"ring_token_low\": 247, \"ring_token_mid\": 73, \"ring_token_none\": 320}, \"branch_bin\": {\"branch_high\": 20, \"branch_low\": 311, \"branch_mid\": 116, \"branch_none\": 195}, \"double_bond_bin\": {\"double_bond_low\": 179, \"double_bond_mid\": 71, \"double_bond_none\": 392}}, \"hidden_target\": \"hydration_affinity_score\", \"boundary\": \"Field values and counts are public; target outcomes are not included.\"}, \"source_transfer_evidence\": {\"source_dataset\": \"real_moleculenet_esol\", \"source_objective\": \"maximize_normalized_solubility\", \"source_observation_count\": 512, \"roles\": [{\"source_field\": \"smiles_length_bin\", \"target_field\": \"smiles_length_bin\", \"source_support_count\": 3, \"source_mean_abs_effect\": 8.322, \"source_max_abs_effect\": 11.4573, \"confidence\": 0.2236, \"transfer_weight\": 0.5736}, {\"source_field\": \"hbond_donor_bin\", \"target_field\": \"hetero_atom_bin\", \"source_support_count\": 4, \"source_mean_abs_effect\": 4.8005, \"source_max_abs_effect\": 7.0201, \"confidence\": 0.1591, \"transfer_weight\": 0.5091}, {\"source_field\": \"ring_bin\", \"target_field\": \"ring_token_bin\", \"source_support_count\": 4, \"source_mean_abs_effect\": 9.9419, \"source_max_abs_effect\": 21.9901, \"confidence\": 0.4079, \"transfer_weight\": 0.7579}, {\"source_field\": \"rotatable_bond_bin\", \"target_field\": \"branch_bin\", \"source_support_count\": 4, \"source_mean_abs_effect\": 6.9595, \"source_max_abs_effect\": 21.3794, \"confidence\": 0.4079, \"transfer_weight\": 0.7579}], \"shared_value_priors\": [{\"source_field\": \"smiles_length_bin\", \"target_field\": \"smiles_length_bin\", \"value\": \"smiles_short\", \"source_support_count\": 261, \"source_effect\": 6.8942, \"confidence\": 0.2801, \"transfer_weight\": 0.039545}, {\"source_field\": \"smiles_length_bin\", \"target_field\": \"smiles_length_bin\", \"value\": \"smiles_mid\", \"source_support_count\": 226, \"source_effect\": -6.6146, \"confidence\": 0.2687, \"transfer_weight\": 0.037941}, {\"source_field\": \"smiles_length_bin\", \"target_field\": \"smiles_length_bin\", \"value\": \"smiles_long\", \"source_support_count\": 24, \"source_effect\": -11.4573, \"confidence\": 0.4655, \"transfer_weight\": 0.065719}], \"boundary\": \"Only source outcomes and public source/target descriptors are summarized. No target outcomes are present.\", \"evidence_mode\": \"full\"}, \"executor\": {\"semantic_model\": \"Rules become binary features. Revealed target outcomes fit a ridge Bayesian linear surrogate whose coefficient prior follows rule weights.\", \"anchor\": \"A rank blend of target-only GP-UCB and GP-EI.\", \"fusion\": \"semantic_mass_start/end controls the rank mass assigned to the semantic surrogate; the remaining mass stays on the target-only anchor.\", \"selection\": \"Independent calibration seeds select one frozen skill. Independent held-out seeds are evaluated only after selection.\"}, \"design_requirements\": [\"Return exactly 2 diverse skills.\", \"Keep each skill to 2-4 rules, each rationale to at most 25 words, and each hypothesis to at most 45 words.\", \"Use only exact field/value pairs in public_semantic_fields.\", \"Each conditions object must map a real catalog field name directly to one exact catalog value, for example {\\\"dominant_family\\\": \\\"oxide\\\"}. Never use literal placeholder keys such as exact_field, field_name, field, or value.\", \"Give every skill a distinct, descriptive scientific skill_id. Never copy schema placeholders such as short_unique_name or add numeric suffixes to a placeholder.\", \"Use two-condition interactions only when scientifically meaningful.\", \"Include at least one skill explicitly grounded in the supplied source outcome evidence.\", \"Include at least one domain-knowledge proposal.\", \"Include a counter-hypothesis proposal that reverses or downweights an uncertain source relation.\", \"Prefer mechanistic, chemically or physically interpretable rules over arbitrary coverage rules.\", \"Do not claim access to target outcomes and do not output candidate identifiers.\"], \"allowed_ranges\": {\"rule_weight\": \"[-1, 1]\", \"ridge\": \"[0.05, 20]\", \"prior_scale\": \"[0, 1.5]\", \"semantic_mass_start_end\": \"[0, 0.85]\", \"ucb_weight\": \"[0, 1]; EI weight is 1 - ucb_weight\", \"gp_beta_start_end\": \"[0.2, 4]\", \"gp_xi\": \"[0, 0.2]\", \"confidence\": \"[0.05, 1]\"}, \"output_contract\": {\"skills\": [{\"skill_id\": \"descriptive_scientific_skill_id\", \"rules\": [{\"rule_id\": \"mechanistic_rule\", \"conditions\": {\"field_name_from_public_semantic_fields\": \"exact_catalog_value\"}, \"weight\": 0.5, \"rationale\": \"short scientific rationale\"}], \"ridge\": 1.0, \"prior_scale\": 0.25, \"semantic_mass_start\": 0.3, \"semantic_mass_end\": 0.1, \"ucb_weight\": 0.6, \"gp_beta_start\": 2.0, \"gp_beta_end\": 1.0, \"gp_xi\": 0.01, \"confidence\": 0.7, \"hypothesis\": \"what this skill transfers and when it may fail\"}]}, \"proposal_mode\": \"parametric\", \"deployment_requirement\": \"Also output selected_skill_id matching one of the two skill IDs, lesson, and revision_summary. Deployment is frozen before evaluation.\", \"previous_skills\": {\"skills\": [{\"skill_id\": \"esol_length_ring_branch_transfer\", \"rules\": [{\"rule_id\": \"short_smiles_favorable\", \"conditions\": [[\"smiles_length_bin\", \"smiles_short\"]], \"weight\": 0.55, \"rationale\": \"Source ESOL prior gives smiles_short a positive effect (+6.89); small solutes solvate readily.\"}, {\"rule_id\": \"mid_length_penalty\", \"conditions\": [[\"smiles_length_bin\", \"smiles_mid\"]], \"weight\": -0.45, \"rationale\": \"Source prior for smiles_mid is negative (-6.61); added nonpolar surface costs solvation free energy.\"}, {\"rule_id\": \"ring_free_scaffold\", \"conditions\": [[\"ring_token_bin\", \"ring_token_none\"]], \"weight\": 0.3, \"rationale\": \"Ring role carried the largest transfer weight (0.76); acyclic solutes lack rigid hydrophobic ring surface.\"}, {\"rule_id\": \"unbranched_chain\", \"conditions\": [[\"branch_bin\", \"branch_none\"]], \"weight\": 0.2, \"rationale\": \"Rotatable-bond role maps to branching (transfer weight 0.76); minimal branching reduces buried nonpolar volume.\"}], \"ridge\": 1.0, \"prior_scale\": 0.3, \"semantic_mass_start\": 0.35, \"semantic_mass_end\": 0.12, \"ucb_weight\": 0.6, \"gp_beta_start\": 2.0, \"gp_beta_end\": 1.0, \"gp_xi\": 0.01, \"confidence\": 0.45, \"hypothesis\": \"Transfers signed ESOL size priors plus ring and branching roles to FreeSolv, assuming solubility and hydration share size-driven mechanisms. Fails if hydration is dominated by polarity rather than molecular size.\"}, {\"skill_id\": \"polar_hydration_counter_hypothesis\", \"rules\": [{\"rule_id\": \"heteroatom_rich_polarity\", \"conditions\": [[\"hetero_atom_bin\", \"hetero_high\"]], \"weight\": 0.65, \"rationale\": \"Hydration free energy is dominated by polar N/O hydrogen bonding with water, not chain length.\"}, {\"rule_id\": \"pure_hydrocarbon_penalty\", \"conditions\": [[\"hetero_atom_bin\", \"hetero_none\"]], \"weight\": -0.55, \"rationale\": \"Hydrocarbon-only solutes incur hydrophobic cavity-formation cost and poor water hydrogen bonding.\"}, {\"rule_id\": \"halogen_hydrophobicity_penalty\", \"conditions\": [[\"halogen_bin\", \"halogen_high\"]], \"weight\": -0.4, \"rationale\": \"Heavy halogenation raises nonpolar surface and lowers water affinity despite modest polarizability.\"}, {\"rule_id\": \"downweight_short_length_prior\", \"conditions\": [[\"smiles_length_bin\", \"smiles_short\"]], \"weight\": -0.15, \"rationale\": \"Counter to low-confidence ESOL length prior (0.28); many short candidates are nonpolar alkanes.\"}], \"ridge\": 1.5, \"prior_scale\": 0.35, \"semantic_mass_start\": 0.3, \"semantic_mass_end\": 0.08, \"ucb_weight\": 0.5, \"gp_beta_start\": 2.2, \"gp_beta_end\": 0.9, \"gp_xi\": 0.02, \"confidence\": 0.5, \"hypothesis\": \"Reverses the weak ESOL length prior and asserts heteroatom polarity drives hydration affinity. Fails if the score rewards nonpolar compactness or if hetero_high (28 candidates) is too sparse to inform the surrogate.\"}], \"selected_skill_id\": \"polar_hydration_counter_hypothesis\", \"lesson\": \"Source ESOL role confidences were low (0.16-0.41) and the size prior was weakest; hydration free energy is mechanistically a polarity phenomenon, so a polarity-led counter-hypothesis with fast semantic decay is safer than direct size transfer.\", \"revision_summary\": \"Kept a faithful source-grounded transfer using the signed smiles_length priors plus the high-weight ring and branch roles, and added a counter-hypothesis that downweights the low-confidence short-length prior in favor of heteroatom polarity and halogen hydrophobicity. Both skills use only catalog field-value pairs, decay semantic mass toward the target-only anchor, and the polarity skill was frozen for deployment.\"}, \"persistent_experimental_memory\": [{\"generation_observed\": 0, \"previous_skills\": {\"skills\": [{\"skill_id\": \"esol_length_ring_branch_transfer\", \"rules\": [{\"rule_id\": \"short_smiles_favorable\", \"conditions\": [[\"smiles_length_bin\", \"smiles_short\"]], \"weight\": 0.55, \"rationale\": \"Source ESOL prior gives smiles_short a positive effect (+6.89); small solutes solvate readily.\"}, {\"rule_id\": \"mid_length_penalty\", \"conditions\": [[\"smiles_length_bin\", \"smiles_mid\"]], \"weight\": -0.45, \"rationale\": \"Source prior for smiles_mid is negative (-6.61); added nonpolar surface costs solvation free energy.\"}, {\"rule_id\": \"ring_free_scaffold\", \"conditions\": [[\"ring_token_bin\", \"ring_token_none\"]], \"weight\": 0.3, \"rationale\": \"Ring role carried the largest transfer weight (0.76); acyclic solutes lack rigid hydrophobic ring surface.\"}, {\"rule_id\": \"unbranched_chain\", \"conditions\": [[\"branch_bin\", \"branch_none\"]], \"weight\": 0.2, \"rationale\": \"Rotatable-bond role maps to branching (transfer weight 0.76); minimal branching reduces buried nonpolar volume.\"}], \"ridge\": 1.0, \"prior_scale\": 0.3, \"semantic_mass_start\": 0.35, \"semantic_mass_end\": 0.12, \"ucb_weight\": 0.6, \"gp_beta_start\": 2.0, \"gp_beta_end\": 1.0, \"gp_xi\": 0.01, \"confidence\": 0.45, \"hypothesis\": \"Transfers signed ESOL size priors plus ring and branching roles to FreeSolv, assuming solubility and hydration share size-driven mechanisms. Fails if hydration is dominated by polarity rather than molecular size.\"}, {\"skill_id\": \"polar_hydration_counter_hypothesis\", \"rules\": [{\"rule_id\": \"heteroatom_rich_polarity\", \"conditions\": [[\"hetero_atom_bin\", \"hetero_high\"]], \"weight\": 0.65, \"rationale\": \"Hydration free energy is dominated by polar N/O hydrogen bonding with water, not chain length.\"}, {\"rule_id\": \"pure_hydrocarbon_penalty\", \"conditions\": [[\"hetero_atom_bin\", \"hetero_none\"]], \"weight\": -0.55, \"rationale\": \"Hydrocarbon-only solutes incur hydrophobic cavity-formation cost and poor water hydrogen bonding.\"}, {\"rule_id\": \"halogen_hydrophobicity_penalty\", \"conditions\": [[\"halogen_bin\", \"halogen_high\"]], \"weight\": -0.4, \"rationale\": \"Heavy halogenation raises nonpolar surface and lowers water affinity despite modest polarizability.\"}, {\"rule_id\": \"downweight_short_length_prior\", \"conditions\": [[\"smiles_length_bin\", \"smiles_short\"]], \"weight\": -0.15, \"rationale\": \"Counter to low-confidence ESOL length prior (0.28); many short candidates are nonpolar alkanes.\"}], \"ridge\": 1.5, \"prior_scale\": 0.35, \"semantic_mass_start\": 0.3, \"semantic_mass_end\": 0.08, \"ucb_weight\": 0.5, \"gp_beta_start\": 2.2, \"gp_beta_end\": 0.9, \"gp_xi\": 0.02, \"confidence\": 0.5, \"hypothesis\": \"Reverses the weak ESOL length prior and asserts heteroatom polarity drives hydration affinity. Fails if the score rewards nonpolar compactness or if hetero_high (28 candidates) is too sparse to inform the surrogate.\"}], \"selected_skill_id\": \"polar_hydration_counter_hypothesis\", \"lesson\": \"Source ESOL role confidences were low (0.16-0.41) and the size prior was weakest; hydration free energy is mechanistically a polarity phenomenon, so a polarity-led counter-hypothesis with fast semantic decay is safer than direct size transfer.\", \"revision_summary\": \"Kept a faithful source-grounded transfer using the signed smiles_length priors plus the high-weight ring and branch roles, and added a counter-hypothesis that downweights the low-confidence short-length prior in favor of heteroatom polarity and halogen hydrophobicity. Both skills use only catalog field-value pairs, decay semantic mass toward the target-only anchor, and the polarity skill was frozen for deployment.\"}, \"feedback\": {\"development_only\": true, \"skill_results\": [{\"skill_id\": \"esol_length_ring_branch_transfer\", \"seeds\": [229100, 229101, 229102, 229103, 229104, 229105, 229106, 229107], \"mean_auc\": 74.5145625, \"mean_final_best\": 83.94166249999999, \"per_seed\": [{\"seed\": 229100, \"auc\": 53.41, \"final_best\": 53.8}, {\"seed\": 229101, \"auc\": 93.7733, \"final_best\": 100.0}, {\"seed\": 229102, \"auc\": 94.2567, \"final_best\": 100.0}, {\"seed\": 229103, \"auc\": 62.4466, \"final_best\": 69.4333}, {\"seed\": 229104, \"auc\": 69.8167, \"final_best\": 76.8667}, {\"seed\": 229105, \"auc\": 69.7866, \"final_best\": 100.0}, {\"seed\": 229106, \"auc\": 99.08, \"final_best\": 100.0}, {\"seed\": 229107, \"auc\": 53.5466, \"final_best\": 71.4333}]}, {\"skill_id\": \"polar_hydration_counter_hypothesis\", \"seeds\": [229100, 229101, 229102, 229103, 229104, 229105, 229106, 229107], \"mean_auc\": 53.86665, \"mean_final_best\": 70.6624875, \"per_seed\": [{\"seed\": 229100, \"auc\": 53.7, \"final_best\": 77.2333}, {\"seed\": 229101, \"auc\": 57.4333, \"final_best\": 77.2333}, {\"seed\": 229102, \"auc\": 44.9434, \"final_best\": 58.8}, {\"seed\": 229103, \"auc\": 62.7233, \"final_best\": 77.2333}, {\"seed\": 229104, \"auc\": 62.1533, \"final_best\": 77.2333}, {\"seed\": 229105, \"auc\": 48.78, \"final_best\": 49.2}, {\"seed\": 229106, \"auc\": 54.6066, \"final_best\": 100.0}, {\"seed\": 229107, \"auc\": 46.5933, \"final_best\": 48.3667}]}]}}], \"feedback_boundary\": \"Only completed development-seed summaries may appear here. Held-out evaluation outcomes are unavailable. No global KB retrieval or promotion is performed.\", \"revision_instruction\": \"Use the supplied feedback to identify failures and improve the next skill generation. Do not infer causal mechanisms from a small set of seeds alone.\"}"
+      }
+    ],
+    "temperature": 0.4,
+    "max_tokens": 3500,
+    "response_format": {
+      "type": "json_object"
+    }
+  },
+  "request_sha256": "66ea7d6a2a054c4f5906d77f761538f2be71c6e9ec473c7f8daa1c2c292583bd",
+  "started_at": "2026-09-10T01:16:05.443228+00:00",
+  "credential_included_in_archive": false,
+  "response": {
+    "id": "msg_011CetsjY1yO5Q4xymLHZZVM",
+    "object": "chat.completion",
+    "created": 1789002994,
+    "model": "claude-opus-5",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\n  \"skills\": [\n    {\n      \"skill_id\": \"esol_size_prior_reweighted_scaffold\",\n      \"rules\": [\n        {\n          \"rule_id\": \"short_smiles_favorable_damped\",\n          \"conditions\": {\"smiles_length_bin\": \"smiles_short\"},\n          \"weight\": 0.35,\n          \"rationale\": \"Source prior favors smiles_short (+6.89) but confidence is only 0.28, so keep the sign with reduced magnitude.\"\n        },\n        {\n          \"rule_id\": \"long_smiles_penalty\",\n          \"conditions\": {\"smiles_length_bin\": \"smiles_long\"},\n          \"weight\": -0.4,\n          \"rationale\": \"Source smiles_long effect (-11.46) is the strongest and most confident length signal; large solutes pay cavity cost.\"\n        },\n        {\n          \"rule_id\": \"acyclic_scaffold_favorable\",\n          \"conditions\": {\"ring_token_bin\": \"ring_token_none\"},\n          \"weight\": 0.25,\n          \"rationale\": \"Ring role had the largest transfer weight (0.76) and positive source effect; flexible acyclic solutes hydrate more easily.\"\n        },\n        {\n          \"rule_id\": \"unbranched_chain_favorable\",\n          \"conditions\": {\"branch_bin\": \"branch_none\"},\n          \"weight\": 0.2,\n          \"rationale\": \"Branched analogue of the rotatable-bond role (transfer weight 0.76); branching buries nonpolar surface.\"\n        }\n      ],\n      \"ridge\": 1.0,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.35,\n      \"semantic_mass_end\": 0.08,\n      \"ucb_weight\": 0.6,\n      \"gp_beta_start\": 2.0,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.01,\n      \"confidence\": 0.45,\n      \"hypothesis\": \"Damped, sign-faithful ESOL size and topology priors generalize to FreeSolv hydration because solute size drives both solubility and cavity-formation cost. Fails if hydration is dominated by heteroatom polarity instead of size.\"\n    },\n    {\n      \"skill_id\": \"polarity_dominant_hydration_with_sparse_hetero_guard\",\n      \"rules\": [\n        {\n          \"rule_id\": \"heteroatom_high_boost\",\n          \"conditions\": {\"hetero_atom_bin\": \"hetero_high\"},\n          \"weight\": 0.5,\n          \"rationale\": \"Hydration free energy is dominated by polar N/O hydrogen bonding; hetero_high marks strongly polar solutes.\"\n        },\n        {\n          \"rule_id\": \"heteroatom_mid_boost\",\n          \"conditions\": {\"hetero_atom_bin\": \"hetero_mid\"},\n          \"weight\": 0.25,\n          \"rationale\": \"Moderate heteroatom content gives partial polar solvation without the sparse coverage of hetero_high (28 candidates).\"\n        },\n        {\n          \"rule_id\": \"hydrocarbon_penalty\",\n          \"conditions\": {\"hetero_atom_bin\": \"hetero_none\"},\n          \"weight\": -0.45,\n          \"rationale\": \"Hydrocarbon-only solutes pay the hydrophobic cavity cost with no compensating water hydrogen bonding.\"\n        },\n        {\n          \"rule_id\": \"halogenated_hydrophobic_penalty\",\n          \"conditions\": {\"halogen_bin\": \"halogen_high\"},\n          \"weight\": -0.3,\n          \"rationale\": \"Heavy halogenation adds nonpolar surface area that lowers water affinity more than polarizability compensates.\"\n        }\n      ],\n      \"ridge\": 1.5,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.25,\n      \"semantic_mass_end\": 0.06,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 2.2,\n      \"gp_beta_end\": 0.9,\n      \"gp_xi\": 0.02,\n      \"confidence\": 0.4,\n      \"hypothesis\": \"Polarity, not chain length, sets hydration affinity, so heteroatom class beats the weak ESOL length prior. The earlier version failed, so hetero coverage is spread to the mid bin and semantic mass starts lower. Fails if the score rewards nonpolar compactness.\"\n    }\n  ],\n  \"selected_skill_id\": \"esol_size_prior_reweighted_scaffold\",\n  \"lesson\": \"The prior polarity-only skill underperformed across all eight development seeds (mean AUC 53.9 vs 74.5) and its hetero_high condition covered only 28 candidates, so a sparse high-polarity bin could not carry the surrogate; the source-grounded size and topology transfer should be retained instead, with the length rules damped and made internally consistent rather than sign-flipped.\",\n  \"revision_summary\": \"Replaced the selecting counter-hypothesis with a reweighted, sign-faithful source transfer: the last generation's direct-transfer skill keeps its four rules but drops the short-length weight to 0.35, adds the strongly confident smiles_long penalty, and lets semantic mass decay further to 0.08. The counter-hypothesis is kept as a distinct second skill but made less brittle by adding a hetero_mid rule and a lower semantic_mass_start, since hetero_high covers only 28 of 642 candidates. Only catalog field-value pairs are used, no target outcomes are assumed, and deployment is frozen on the source-grounded size/topology skill.\"\n}"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 6825,
+      "completion_tokens": 1875,
+      "total_tokens": 8700,
+      "tps": 78.05
+    },
+    "data": null,
+    "task_usage": null
+  },
+  "elapsed_seconds": 29.188685042000003,
+  "raw_model_content": "{\n  \"skills\": [\n    {\n      \"skill_id\": \"esol_size_prior_reweighted_scaffold\",\n      \"rules\": [\n        {\n          \"rule_id\": \"short_smiles_favorable_damped\",\n          \"conditions\": {\"smiles_length_bin\": \"smiles_short\"},\n          \"weight\": 0.35,\n          \"rationale\": \"Source prior favors smiles_short (+6.89) but confidence is only 0.28, so keep the sign with reduced magnitude.\"\n        },\n        {\n          \"rule_id\": \"long_smiles_penalty\",\n          \"conditions\": {\"smiles_length_bin\": \"smiles_long\"},\n          \"weight\": -0.4,\n          \"rationale\": \"Source smiles_long effect (-11.46) is the strongest and most confident length signal; large solutes pay cavity cost.\"\n        },\n        {\n          \"rule_id\": \"acyclic_scaffold_favorable\",\n          \"conditions\": {\"ring_token_bin\": \"ring_token_none\"},\n          \"weight\": 0.25,\n          \"rationale\": \"Ring role had the largest transfer weight (0.76) and positive source effect; flexible acyclic solutes hydrate more easily.\"\n        },\n        {\n          \"rule_id\": \"unbranched_chain_favorable\",\n          \"conditions\": {\"branch_bin\": \"branch_none\"},\n          \"weight\": 0.2,\n          \"rationale\": \"Branched analogue of the rotatable-bond role (transfer weight 0.76); branching buries nonpolar surface.\"\n        }\n      ],\n      \"ridge\": 1.0,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.35,\n      \"semantic_mass_end\": 0.08,\n      \"ucb_weight\": 0.6,\n      \"gp_beta_start\": 2.0,\n      \"gp_beta_end\": 1.0,\n      \"gp_xi\": 0.01,\n      \"confidence\": 0.45,\n      \"hypothesis\": \"Damped, sign-faithful ESOL size and topology priors generalize to FreeSolv hydration because solute size drives both solubility and cavity-formation cost. Fails if hydration is dominated by heteroatom polarity instead of size.\"\n    },\n    {\n      \"skill_id\": \"polarity_dominant_hydration_with_sparse_hetero_guard\",\n      \"rules\": [\n        {\n          \"rule_id\": \"heteroatom_high_boost\",\n          \"conditions\": {\"hetero_atom_bin\": \"hetero_high\"},\n          \"weight\": 0.5,\n          \"rationale\": \"Hydration free energy is dominated by polar N/O hydrogen bonding; hetero_high marks strongly polar solutes.\"\n        },\n        {\n          \"rule_id\": \"heteroatom_mid_boost\",\n          \"conditions\": {\"hetero_atom_bin\": \"hetero_mid\"},\n          \"weight\": 0.25,\n          \"rationale\": \"Moderate heteroatom content gives partial polar solvation without the sparse coverage of hetero_high (28 candidates).\"\n        },\n        {\n          \"rule_id\": \"hydrocarbon_penalty\",\n          \"conditions\": {\"hetero_atom_bin\": \"hetero_none\"},\n          \"weight\": -0.45,\n          \"rationale\": \"Hydrocarbon-only solutes pay the hydrophobic cavity cost with no compensating water hydrogen bonding.\"\n        },\n        {\n          \"rule_id\": \"halogenated_hydrophobic_penalty\",\n          \"conditions\": {\"halogen_bin\": \"halogen_high\"},\n          \"weight\": -0.3,\n          \"rationale\": \"Heavy halogenation adds nonpolar surface area that lowers water affinity more than polarizability compensates.\"\n        }\n      ],\n      \"ridge\": 1.5,\n      \"prior_scale\": 0.3,\n      \"semantic_mass_start\": 0.25,\n      \"semantic_mass_end\": 0.06,\n      \"ucb_weight\": 0.5,\n      \"gp_beta_start\": 2.2,\n      \"gp_beta_end\": 0.9,\n      \"gp_xi\": 0.02,\n      \"confidence\": 0.4,\n      \"hypothesis\": \"Polarity, not chain length, sets hydration affinity, so heteroatom class beats the weak ESOL length prior. The earlier version failed, so hetero coverage is spread to the mid bin and semantic mass starts lower. Fails if the score rewards nonpolar compactness.\"\n    }\n  ],\n  \"selected_skill_id\": \"esol_size_prior_reweighted_scaffold\",\n  \"lesson\": \"The prior polarity-only skill underperformed across all eight development seeds (mean AUC 53.9 vs 74.5) and its hetero_high condition covered only 28 candidates, so a sparse high-polarity bin could not carry the surrogate; the source-grounded size and topology transfer should be retained instead, with the length rules damped and made internally consistent rather than sign-flipped.\",\n  \"revision_summary\": \"Replaced the selecting counter-hypothesis with a reweighted, sign-faithful source transfer: the last generation's direct-transfer skill keeps its four rules but drops the short-length weight to 0.35, adds the strongly confident smiles_long penalty, and lets semantic mass decay further to 0.08. The counter-hypothesis is kept as a distinct second skill but made less brittle by adding a hetero_mid rule and a lower semantic_mass_start, since hetero_high covers only 28 of 642 candidates. Only catalog field-value pairs are used, no target outcomes are assumed, and deployment is frozen on the source-grounded size/topology skill.\"\n}",
+  "normalized": {
+    "skills": [
+      {
+        "skill_id": "esol_size_prior_reweighted_scaffold",
+        "rules": [
+          {
+            "rule_id": "short_smiles_favorable_damped",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_short"
+              ]
+            ],
+            "weight": 0.35,
+            "rationale": "Source prior favors smiles_short (+6.89) but confidence is only 0.28, so keep the sign with reduced magnitude."
+          },
+          {
+            "rule_id": "long_smiles_penalty",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_long"
+              ]
+            ],
+            "weight": -0.4,
+            "rationale": "Source smiles_long effect (-11.46) is the strongest and most confident length signal; large solutes pay cavity cost."
+          },
+          {
+            "rule_id": "acyclic_scaffold_favorable",
+            "conditions": [
+              [
+                "ring_token_bin",
+                "ring_token_none"
+              ]
+            ],
+            "weight": 0.25,
+            "rationale": "Ring role had the largest transfer weight (0.76) and positive source effect; flexible acyclic solutes hydrate more easily."
+          },
+          {
+            "rule_id": "unbranched_chain_favorable",
+            "conditions": [
+              [
+                "branch_bin",
+                "branch_none"
+              ]
+            ],
+            "weight": 0.2,
+            "rationale": "Branched analogue of the rotatable-bond role (transfer weight 0.76); branching buries nonpolar surface."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.35,
+        "semantic_mass_end": 0.08,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.01,
+        "confidence": 0.45,
+        "hypothesis": "Damped, sign-faithful ESOL size and topology priors generalize to FreeSolv hydration because solute size drives both solubility and cavity-formation cost. Fails if hydration is dominated by heteroatom polarity instead of size."
+      },
+      {
+        "skill_id": "polarity_dominant_hydration_with_sparse_hetero_guard",
+        "rules": [
+          {
+            "rule_id": "heteroatom_high_boost",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_high"
+              ]
+            ],
+            "weight": 0.5,
+            "rationale": "Hydration free energy is dominated by polar N/O hydrogen bonding; hetero_high marks strongly polar solutes."
+          },
+          {
+            "rule_id": "heteroatom_mid_boost",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_mid"
+              ]
+            ],
+            "weight": 0.25,
+            "rationale": "Moderate heteroatom content gives partial polar solvation without the sparse coverage of hetero_high (28 candidates)."
+          },
+          {
+            "rule_id": "hydrocarbon_penalty",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_none"
+              ]
+            ],
+            "weight": -0.45,
+            "rationale": "Hydrocarbon-only solutes pay the hydrophobic cavity cost with no compensating water hydrogen bonding."
+          },
+          {
+            "rule_id": "halogenated_hydrophobic_penalty",
+            "conditions": [
+              [
+                "halogen_bin",
+                "halogen_high"
+              ]
+            ],
+            "weight": -0.3,
+            "rationale": "Heavy halogenation adds nonpolar surface area that lowers water affinity more than polarizability compensates."
+          }
+        ],
+        "ridge": 1.5,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.25,
+        "semantic_mass_end": 0.06,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 0.9,
+        "gp_xi": 0.02,
+        "confidence": 0.4,
+        "hypothesis": "Polarity, not chain length, sets hydration affinity, so heteroatom class beats the weak ESOL length prior. The earlier version failed, so hetero coverage is spread to the mid bin and semantic mass starts lower. Fails if the score rewards nonpolar compactness."
+      }
+    ],
+    "selected_skill_id": "esol_size_prior_reweighted_scaffold",
+    "lesson": "The prior polarity-only skill underperformed across all eight development seeds (mean AUC 53.9 vs 74.5) and its hetero_high condition covered only 28 candidates, so a sparse high-polarity bin could not carry the surrogate; the source-grounded size and topology transfer should be retained instead, with the length rules damped and made internally consistent rather than sign-flipped.",
+    "revision_summary": "Replaced the selecting counter-hypothesis with a reweighted, sign-faithful source transfer: the last generation's direct-transfer skill keeps its four rules but drops the short-length weight to 0.35, adds the strongly confident smiles_long penalty, and lets semantic mass decay further to 0.08. The counter-hypothesis is kept as a distinct second skill but made less brittle by adding a hetero_mid rule and a lower semantic_mass_start, since hetero_high covers only 28 of 642 candidates. Only catalog field-value pairs are used, no target outcomes are assumed, and deployment is frozen on the source-grounded size/topology skill."
+  },
+  "status": "valid"
+}

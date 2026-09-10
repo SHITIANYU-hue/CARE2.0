@@ -1,0 +1,129 @@
+{
+  "skills": [
+    {
+      "skill_id": "heavy_cation_ionic_wide_gap",
+      "rules": [
+        {
+          "rule_id": "heavy_mean_z_ionic_insulator",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_high"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Development seeds favored heavy-Z positives; heavy cations here co-occur with ionic oxides and halides that stay wide-gap."
+        },
+        {
+          "rule_id": "lanthanide_localized_f_wide_gap",
+          "conditions": [
+            [
+              "lanthanide_flag",
+              "has_lanthanide"
+            ]
+          ],
+          "weight": 0.45,
+          "rationale": "Localized 4f manifolds lie far from the gap edge, so lanthanide ionic compounds retain large experimental gaps."
+        },
+        {
+          "rule_id": "transition_metal_d_state_penalty",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": -0.6,
+          "rationale": "Partially filled d manifolds create low-lying conduction states that systematically narrow measured band gaps."
+        },
+        {
+          "rule_id": "halide_anion_wide_gap",
+          "conditions": [
+            [
+              "anion_family",
+              "halide"
+            ]
+          ],
+          "weight": 0.55,
+          "rationale": "Halide anions are the most electronegative, pushing valence-band maxima deep and producing the widest gaps."
+        }
+      ],
+      "ridge": 3.0,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.55,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.55,
+      "gp_beta_start": 2.4,
+      "gp_beta_end": 1.1,
+      "gp_xi": 0.02,
+      "confidence": 0.62,
+      "hypothesis": "Bets that heavy-cation ionic chemistry and halide ionicity dominate this pool's gap ordering, while d-state occupancy narrows gaps. Fails if heavy-Z compounds are chiefly polarizable tellurides or intermetallic semimetals."
+    },
+    {
+      "skill_id": "closed_shell_balanced_wide_gap",
+      "rules": [
+        {
+          "rule_id": "closed_shell_oxide_wide_gap",
+          "conditions": [
+            [
+              "anion_family",
+              "oxide"
+            ],
+            [
+              "transition_metal_flag",
+              "no_transition_metal"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Closed-shell oxides keep a wide O 2p to cation s separation with no d-derived states inside the gap."
+        },
+        {
+          "rule_id": "balanced_stoichiometry_covalent_gap",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "balanced"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Balanced compositions mean directional covalent bonding and well-separated bonding/antibonding manifolds, favoring larger gaps."
+        },
+        {
+          "rule_id": "metalloid_polarizable_narrow_gap",
+          "conditions": [
+            [
+              "dominant_family",
+              "metalloid"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Largest source index gain (+9.23) marks polarizable covalent metalloid chemistry, which under Moss scaling implies small gaps."
+        },
+        {
+          "rule_id": "chalcogenide_covalency_penalty",
+          "conditions": [
+            [
+              "anion_family",
+              "chalcogenide"
+            ]
+          ],
+          "weight": -0.45,
+          "rationale": "Chalcogenides are covalent with high-lying p valence bands, giving small or zero experimental gaps."
+        }
+      ],
+      "ridge": 1.4,
+      "prior_scale": 0.5,
+      "semantic_mass_start": 0.45,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.015,
+      "confidence": 0.55,
+      "hypothesis": "Counter-hypothesis that downweights the weak-confidence heavy-Z transfer and instead trusts closed-shell oxide and balanced-stoichiometry covalent chemistry. Fails if chalcogenides and polarizable metalloids supply the wide-gap tail here."
+    }
+  ],
+  "selected_skill_id": "heavy_cation_ionic_wide_gap",
+  "lesson": "Development seeds reversed the earlier ranking: the halide/metalloid hybrid led on AUC in generation-0 seeds but underperformed in generation-1 (mean AUC 48.2 vs 70.6 for the heavy-cation counter), while the previously lower-ranked ionicity skill led final best earlier. Both signals are unstable across eight seeds, so deployment keeps the halide ionicity prior that both generations support, but shifts the mean_z and lanthanide terms to positive and raises ridge to shrink variance.",
+  "revision_summary": "This generation keeps the source-grounded halide anion rule that both prior variants agreed on, adds the d-state narrowing penalty that the original source-transfer skill carried, and follows the generation-1 development evidence by treating heavy-Z and lanthanide chemistry as wide-gap rather than inverted. Semantic mass and ridge were raised to damp seed-to-seed swings. The second skill is an explicit counter-hypothesis that downweights the low-confidence heavy-Z and lanthanide transfers in favor of closed-shell oxide and balanced-stoichiometry chemistry. All conditions use exact public catalog fields and values; no target outcomes were consulted."
+}

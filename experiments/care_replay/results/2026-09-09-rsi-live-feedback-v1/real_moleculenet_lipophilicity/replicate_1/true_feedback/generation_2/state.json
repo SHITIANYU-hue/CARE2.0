@@ -1,0 +1,133 @@
+{
+  "parent_state_sha256": "6b4ebfccd499c7277d4e15cb31ddd4f149aaed393069b885f02b13a49ddeca30",
+  "new_state_sha256": "fb6df88f277ae104ae760a849031d51c768e442315cae65319bd57b2af07e374",
+  "generation": 2,
+  "arm": "true_feedback",
+  "state": {
+    "skills": [
+      {
+        "skill_id": "nonpolar_surface_lipophilicity_core",
+        "rules": [
+          {
+            "rule_id": "halogen_rich_partitioning",
+            "conditions": [
+              [
+                "halogen_bin",
+                "halogen_high"
+              ]
+            ],
+            "weight": 0.6,
+            "rationale": "Halogens add hydrophobic surface and polarizability, a classic driver of higher octanol-water partitioning."
+          },
+          {
+            "rule_id": "aromatic_pi_surface",
+            "conditions": [
+              [
+                "aromatic_bin",
+                "aromatic_high"
+              ]
+            ],
+            "weight": 0.45,
+            "rationale": "Extended aromatic pi systems present nonpolar surface that partitions favorably into octanol."
+          },
+          {
+            "rule_id": "heteroatom_rich_penalty",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_high"
+              ]
+            ],
+            "weight": -0.4,
+            "rationale": "High heteroatom density raises hydrogen bonding and desolvation cost, suppressing measured logD."
+          },
+          {
+            "rule_id": "ring_rich_scaffold",
+            "conditions": [
+              [
+                "ring_token_bin",
+                "ring_token_high"
+              ]
+            ],
+            "weight": 0.35,
+            "rationale": "Ring role carried the strongest source transfer weight (0.758); fused rings add rigid hydrophobic surface."
+          }
+        ],
+        "ridge": 0.8,
+        "prior_scale": 0.4,
+        "semantic_mass_start": 0.5,
+        "semantic_mass_end": 0.16,
+        "ucb_weight": 0.55,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.02,
+        "confidence": 0.62,
+        "hypothesis": "Merges the two development families: hydrophobic surface from halogen and aromatic content plus the high-transfer ring role, penalized by heteroatom density. Fails if halogen_high (98 candidates) is too sparse to inform the surrogate."
+      },
+      {
+        "skill_id": "polarity_dominant_counter_hypothesis",
+        "rules": [
+          {
+            "rule_id": "low_heteroatom_nonpolar",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_low"
+              ]
+            ],
+            "weight": 0.5,
+            "rationale": "Counter-hypothesis: polarity, not bulk size, sets lipophilicity; few heteroatoms means weak hydration."
+          },
+          {
+            "rule_id": "length_relation_downweighted",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_long"
+              ]
+            ],
+            "weight": 0.15,
+            "rationale": "Length transfer is low confidence (0.224, prior weight 0.040), so its reversed sign is kept but heavily downweighted."
+          },
+          {
+            "rule_id": "flexible_branch_penalty",
+            "conditions": [
+              [
+                "branch_bin",
+                "branch_high"
+              ]
+            ],
+            "weight": -0.3,
+            "rationale": "Rotatable-bond role transferred at 0.758; flexible polar branches add hydration without nonpolar surface."
+          },
+          {
+            "rule_id": "aromatic_halogen_synergy",
+            "conditions": [
+              [
+                "aromatic_bin",
+                "aromatic_mid"
+              ]
+            ],
+            "weight": 0.2,
+            "rationale": "Moderate aromaticity covers a large pool (1619) with meaningful nonpolar surface but less polar substitution."
+          }
+        ],
+        "ridge": 1.2,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.4,
+        "semantic_mass_end": 0.12,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.01,
+        "confidence": 0.48,
+        "hypothesis": "Reverses emphasis: polarity and flexibility dominate while the uncertain size relation is nearly zeroed. Fails if bulk molecular size, not polarity, actually orders lipophilicity in this pool."
+      }
+    ],
+    "selected_skill_id": "nonpolar_surface_lipophilicity_core",
+    "lesson": "Across two generations of eight development seeds the two families converged (89.04/88.93 vs 85.73/89.26 mean AUC), so the earlier apparent advantage of hydrophobic-surface rules was not stable; seed-level noise exceeds the between-skill gap, and the shared ring/heteroatom terms are the most defensible components.",
+    "revision_summary": "Because the two prior families performed indistinguishably in generation 1, I merged their overlapping mechanistic rules (halogen, aromatic, heteroatom penalty, high-transfer ring role) into one deployed skill and dropped the low-transfer extreme-length rule. The second skill is an explicit counter-hypothesis that nearly zeroes the uncertain length relation and instead emphasizes polarity and flexibility, with higher ridge and lower semantic mass to reduce variance. Deployment is frozen before held-out evaluation; no target outcomes were observed."
+  },
+  "memory_sha256": "0b530207cd9fdb404945ed05136b268ac4a70f9e25e464d6e878146bc9c9501a",
+  "experimental_only": true
+}

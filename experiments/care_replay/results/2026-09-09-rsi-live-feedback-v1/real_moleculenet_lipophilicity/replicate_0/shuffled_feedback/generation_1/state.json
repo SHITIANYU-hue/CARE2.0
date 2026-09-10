@@ -1,0 +1,133 @@
+{
+  "parent_state_sha256": "260cd1efe974aa4af4ac7cd8be9a5dadc9835dbd8dbb8937dbcea1acf39f44ee",
+  "new_state_sha256": "e0b15669901db59cf6344089a5987057abba7a316f35728857f0e05f6847829a",
+  "generation": 1,
+  "arm": "shuffled_feedback",
+  "state": {
+    "skills": [
+      {
+        "skill_id": "inverted_solubility_hydrophobic_core",
+        "rules": [
+          {
+            "rule_id": "large_scaffold_partition",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_long"
+              ]
+            ],
+            "weight": 0.55,
+            "rationale": "ESOL: long SMILES lowered solubility (-11.46); inverting gives higher logD for large carbon-rich scaffolds."
+          },
+          {
+            "rule_id": "compact_polar_penalty",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_short"
+              ]
+            ],
+            "weight": -0.55,
+            "rationale": "Source prior: short SMILES raised solubility (+6.89); small molecules are hydrophilic, low partition coefficient."
+          },
+          {
+            "rule_id": "ring_rich_nonpolar_surface",
+            "conditions": [
+              [
+                "ring_token_bin",
+                "ring_token_high"
+              ]
+            ],
+            "weight": 0.5,
+            "rationale": "Ring role had highest transfer weight (0.758); fused ring surface resists hydration and favors octanol."
+          },
+          {
+            "rule_id": "heteroatom_polarity_penalty",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_high"
+              ]
+            ],
+            "weight": -0.3,
+            "rationale": "Donor-to-heteroatom mapping implies hydrogen bonding and polar solvation, reducing octanol-water partitioning."
+          }
+        ],
+        "ridge": 1.2,
+        "prior_scale": 0.35,
+        "semantic_mass_start": 0.4,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.55,
+        "gp_beta_start": 2.4,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.015,
+        "confidence": 0.6,
+        "hypothesis": "Retains the source-grounded solubility inversion on size and ring roles with faster hand-off to the target anchor. Fails if large target molecules are polar or ionizable, breaking the inversion."
+      },
+      {
+        "skill_id": "aromatic_branch_shielding_counter",
+        "rules": [
+          {
+            "rule_id": "aromatic_pi_surface",
+            "conditions": [
+              [
+                "aromatic_bin",
+                "aromatic_high"
+              ]
+            ],
+            "weight": 0.55,
+            "rationale": "Extended aromatic systems bury large nonpolar surface, a dominant positive term in logD models."
+          },
+          {
+            "rule_id": "aromatic_free_polar_penalty",
+            "conditions": [
+              [
+                "aromatic_bin",
+                "aromatic_none"
+              ]
+            ],
+            "weight": -0.45,
+            "rationale": "Fully aliphatic, non-aromatic molecules here are typically small polar solutes with low partitioning."
+          },
+          {
+            "rule_id": "branch_shielding_of_polarity",
+            "conditions": [
+              [
+                "branch_bin",
+                "branch_high"
+              ]
+            ],
+            "weight": 0.3,
+            "rationale": "Branch role transferred strongly (0.758); alkyl branching shields polar centers and adds hydrophobic bulk."
+          },
+          {
+            "rule_id": "very_long_length_counter",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_very_long"
+              ]
+            ],
+            "weight": -0.25,
+            "rationale": "Counter-hypothesis: low-confidence (0.22) length role may not invert; very long molecules are often multi-polar."
+          }
+        ],
+        "ridge": 1.6,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.35,
+        "semantic_mass_end": 0.08,
+        "ucb_weight": 0.45,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 0.9,
+        "gp_xi": 0.02,
+        "confidence": 0.5,
+        "hypothesis": "Uses broad-coverage aromatic and branch descriptors instead of the rare halogen_high bin, while downweighting the uncertain length transfer. Fails if aromatic bulk here co-occurs with strongly polar substituents."
+      }
+    ],
+    "selected_skill_id": "inverted_solubility_hydrophobic_core",
+    "lesson": "Both prior skills reached similar mean AUC, but the inversion skill gave higher mean final best; rare-bin rules (halogen_high, 98 of 4200) contribute little surrogate signal, so replacing them with broad-coverage aromatic and branch features is a safer counter-hypothesis.",
+    "revision_summary": "Kept the source-grounded inversion skill with mildly reduced semantic mass and prior scale to hand off sooner to the target-only anchor. Rebuilt the counter-hypothesis around high-coverage aromatic and branch bins, dropping the sparse halogen rules that could not inform the surrogate, while retaining the explicit downweight of the low-confidence length transfer. All conditions map exact catalog fields to exact catalog values; deployment frozen on the inversion skill."
+  },
+  "memory_sha256": "8f0b54426f971997af59bb11625b2ef6a4e24b25a4043e30704fe7dd23689a58",
+  "experimental_only": true
+}

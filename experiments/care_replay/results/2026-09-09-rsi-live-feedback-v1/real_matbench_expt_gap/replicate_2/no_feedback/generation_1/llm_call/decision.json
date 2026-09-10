@@ -1,0 +1,129 @@
+{
+  "skills": [
+    {
+      "skill_id": "wide_gap_ionic_closed_shell_prior",
+      "rules": [
+        {
+          "rule_id": "halide_deep_valence_band",
+          "conditions": [
+            [
+              "anion_family",
+              "halide"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Electronegative halide p states sit deep below the Fermi level, giving strongly ionic solids the widest experimental gaps."
+        },
+        {
+          "rule_id": "main_group_oxide_no_d_manifold",
+          "conditions": [
+            [
+              "anion_family",
+              "oxide"
+            ],
+            [
+              "transition_metal_flag",
+              "no_transition_metal"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Main-group oxides lack partially filled d bands, so conduction edges stay high and measured gaps remain wide."
+        },
+        {
+          "rule_id": "chalcogenide_polarizable_valence_edge",
+          "conditions": [
+            [
+              "anion_family",
+              "chalcogenide"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Polarizable S, Se, Te p states raise the valence-band edge, systematically narrowing gaps relative to oxides and halides."
+        },
+        {
+          "rule_id": "light_element_compact_orbitals",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_low"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Low mean atomic number implies compact orbitals, weak spin-orbit splitting, and low polarizability, all widening band gaps."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.5,
+      "semantic_mass_start": 0.45,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.55,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 0.9,
+      "gp_xi": 0.03,
+      "confidence": 0.62,
+      "hypothesis": "Target-native ionic wide-gap chemistry: electronegative closed-shell anions with light main-group cations, penalizing polarizable chalcogenides. Fails if halide and light-oxide subsets are too small or if d0 transition-metal oxides dominate the extreme top."
+    },
+    {
+      "skill_id": "moss_inverted_source_transfer",
+      "rules": [
+        {
+          "rule_id": "metalloid_polarizability_gap_penalty",
+          "conditions": [
+            [
+              "dominant_family",
+              "metalloid"
+            ]
+          ],
+          "weight": -0.65,
+          "rationale": "Largest source refractive-index effect (+9.23); Moss relation implies high polarizability accompanies narrow experimental gaps."
+        },
+        {
+          "rule_id": "halogen_dominant_sign_reversal",
+          "conditions": [
+            [
+              "dominant_family",
+              "halogen"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Halogen dominance depressed source refractive index (-3.74), which under Moss inversion predicts wide ionic band gaps."
+        },
+        {
+          "rule_id": "heavy_mean_z_edge_penalty",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_high"
+            ]
+          ],
+          "weight": -0.45,
+          "rationale": "Heavy elements gave the top mean_z source effect (+6.07); larger polarizability and spin-orbit splitting shrink gaps."
+        },
+        {
+          "rule_id": "pnictide_covalent_gap_penalty",
+          "conditions": [
+            [
+              "anion_family",
+              "pnictide"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "Pnictides raised source refractive index (+3.97); their covalent, less ionic bonding usually yields narrow measured gaps."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.32,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.4,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.02,
+      "confidence": 0.42,
+      "hypothesis": "Counter-hypothesis reversing source refractive-index signs via the Moss relation while dropping near-zero-confidence lanthanide and transition-metal transfers. Fails if experimental gaps here reflect structure or reporting bias rather than composition-driven polarizability."
+    }
+  ],
+  "selected_skill_id": "wide_gap_ionic_closed_shell_prior",
+  "lesson": "Source evidence is refractive index, physically anti-correlated with band gap through the Moss relation, and its per-field confidences are weak (0.006-0.37). Same-sign transfer would chase narrow-gap polarizable chemistries, so the target-native ionic wide-gap prior carries higher confidence and larger early semantic mass, while the inverted-transfer skill remains the low-confidence counter-hypothesis.",
+  "revision_summary": "Corrected the schema violation: conditions are now objects mapping catalog fields directly to exact catalog values instead of list-of-lists. Kept the domain-knowledge wide-gap ionic skill but replaced the weaker transition-metal-flag rule with an explicit chalcogenide valence-edge penalty covering the largest anion subset. Trimmed the Moss-inverted transfer skill to the highest-support source signals (metalloid, halogen, mean_z_high, pnictide) and explicitly dropped the near-zero-confidence lanthanide and transition-metal transfers. All weights, ridge, prior scale, semantic masses, betas, xi, and confidences remain inside the allowed ranges; source effects were used only for sign and emphasis reasoning."
+}

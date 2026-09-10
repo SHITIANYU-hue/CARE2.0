@@ -1,0 +1,129 @@
+{
+  "skills": [
+    {
+      "skill_id": "esol_size_ring_transfer",
+      "rules": [
+        {
+          "rule_id": "short_smiles_favored",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "ESOL value prior: smiles_short gave +6.89 effect; compact solutes pay a smaller water cavity-formation cost."
+        },
+        {
+          "rule_id": "mid_smiles_penalized",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "Source prior for smiles_mid was -6.61; added nonpolar bulk raises the hydrophobic hydration penalty."
+        },
+        {
+          "rule_id": "long_smiles_penalized",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Strongest source value prior (-11.46) at smiles_long; a large hydrophobic surface dominates unfavorable solvation."
+        },
+        {
+          "rule_id": "acyclic_bonus",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_none"
+            ]
+          ],
+          "weight": 0.28,
+          "rationale": "Ring field had the highest transfer weight (0.758); acyclic solutes are typically less hydrophobic than ring-rich analogs."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.28,
+      "semantic_mass_start": 0.32,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.4,
+      "hypothesis": "Transfers ESOL size and ring-structure effects to hydration, assuming both properties share hydrophobic-bulk mechanics. Fails if hydration affinity is driven by polar hydrogen-bonding groups rather than molecular size."
+    },
+    {
+      "skill_id": "polar_hbond_hydration_counter",
+      "rules": [
+        {
+          "rule_id": "heteroatom_rich_hbonding",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": 0.75,
+          "rationale": "Abundant N/O centers give strong solute-water hydrogen bonding, the dominant favorable term in hydration free energy."
+        },
+        {
+          "rule_id": "halogen_rich_hydrophobic_penalty",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_high"
+            ]
+          ],
+          "weight": -0.6,
+          "rationale": "Heavily halogenated surfaces are weakly polar, hydrogen-bond poor, and incur large cavity costs in water."
+        },
+        {
+          "rule_id": "polar_nonhalogenated_regime",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_none"
+            ],
+            [
+              "hetero_atom_bin",
+              "hetero_mid"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Moderate polarity without halogens is the classic hydrophilic small-solute regime in aqueous solvation data."
+        },
+        {
+          "rule_id": "counter_mid_length_not_penalized",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": 0.18,
+          "rationale": "Counter-hypothesis reversing the low-confidence ESOL size prior: longer chains often carry extra hydrating functional groups."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.35,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.02,
+      "confidence": 0.55,
+      "hypothesis": "Assumes hydration affinity tracks polar hydrogen-bonding capacity and penalizes halogenated hydrophobes, downweighting the uncertain ESOL size prior. Fails if the score instead rewards small nonpolar solutes."
+    }
+  ],
+  "selected_skill_id": "polar_hbond_hydration_counter",
+  "lesson": "Cross-property ESOL transfer carries low source confidence (0.16-0.41) and mostly field-level roles, so mechanistic hydrogen-bonding rules are a safer prior than borrowed size effects.",
+  "revision_summary": "No development feedback was available, so both skills were re-derived from the supplied source evidence and schema. The ESOL size/ring arm is retained as the source-grounded transfer hypothesis, and the polarity arm combines domain knowledge (heteroatom hydrogen bonding versus halogen hydrophobicity) with a counter-hypothesis reversing the smiles_mid penalty. The polarity skill is selected for deployment; both decay semantic mass so the target-only GP anchor dominates in later rounds."
+}

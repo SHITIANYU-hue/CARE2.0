@@ -1,0 +1,137 @@
+{
+  "parent_state_sha256": "8e4e5a4b60e96d1f295aedf755130da58a95d2e54293156daff8deda224eeeb4",
+  "new_state_sha256": "a6d8353a4623c8944c4dab6d33b9423ab60365dab23992191c5765438b89dcd5",
+  "generation": 2,
+  "arm": "true_feedback",
+  "state": {
+    "skills": [
+      {
+        "skill_id": "ionic_wide_gap_anion_chemistry",
+        "rules": [
+          {
+            "rule_id": "halogen_dominated_ionic_insulator",
+            "conditions": [
+              [
+                "dominant_family",
+                "halogen"
+              ]
+            ],
+            "weight": 0.8,
+            "rationale": "Highly electronegative halogen anions give deep localized valence bands and the widest experimental gaps among known compounds."
+          },
+          {
+            "rule_id": "d0_main_group_oxide_wide_gap",
+            "conditions": [
+              [
+                "anion_family",
+                "oxide"
+              ],
+              [
+                "transition_metal_flag",
+                "no_transition_metal"
+              ]
+            ],
+            "weight": 0.6,
+            "rationale": "Main-group oxides lack partially filled d bands, so no mid-gap d states narrow the O 2p to cation s separation."
+          },
+          {
+            "rule_id": "chalcogenide_covalent_narrow_gap",
+            "conditions": [
+              [
+                "anion_family",
+                "chalcogenide"
+              ]
+            ],
+            "weight": -0.5,
+            "rationale": "Sulfides, selenides and tellurides are polarizable covalent semiconductors clustering at the narrow-gap end of the pool."
+          },
+          {
+            "rule_id": "light_element_compact_valence_gain",
+            "conditions": [
+              [
+                "mean_atomic_number_bin",
+                "mean_z_low"
+              ]
+            ],
+            "weight": 0.4,
+            "rationale": "Low mean Z implies compact valence orbitals, weak spin-orbit coupling, and larger bonding-antibonding splitting."
+          }
+        ],
+        "ridge": 1.3,
+        "prior_scale": 0.5,
+        "semantic_mass_start": 0.5,
+        "semantic_mass_end": 0.15,
+        "ucb_weight": 0.55,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.01,
+        "confidence": 0.72,
+        "hypothesis": "Ionicity and closed d shells rank wide-gap insulators; the large chalcogenide penalty replaces the narrow pnictide rule to steer away from a bigger narrow-gap block. Fails if pool oxides are mixed-valence."
+      },
+      {
+        "skill_id": "moss_inverted_source_transfer_shrunk",
+        "rules": [
+          {
+            "rule_id": "halide_source_index_penalty_inverted",
+            "conditions": [
+              [
+                "anion_family",
+                "halide"
+              ]
+            ],
+            "weight": 0.7,
+            "rationale": "Source halides suppress refractive index (-3.33); under the Moss relation low polarizability implies wide experimental gaps."
+          },
+          {
+            "rule_id": "metalloid_largest_source_gain_inverted",
+            "conditions": [
+              [
+                "dominant_family",
+                "metalloid"
+              ]
+            ],
+            "weight": -0.6,
+            "rationale": "Metalloid dominance carried the largest source index effect (+9.23), inverting to polarizable narrow-gap semiconducting chemistry."
+          },
+          {
+            "rule_id": "high_mean_z_polarizability_inverted",
+            "conditions": [
+              [
+                "mean_atomic_number_bin",
+                "mean_z_high"
+              ]
+            ],
+            "weight": -0.45,
+            "rationale": "Heavy-atom source index gain (+6.07) reflects loose valence electrons, which shrink the fundamental band gap."
+          },
+          {
+            "rule_id": "transition_metal_lowest_confidence_shrink",
+            "conditions": [
+              [
+                "transition_metal_flag",
+                "has_transition_metal"
+              ]
+            ],
+            "weight": -0.2,
+            "rationale": "Source confidence only 0.024, so this uncertain relation is downweighted to a near-neutral guard."
+          }
+        ],
+        "ridge": 3.0,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.32,
+        "semantic_mass_end": 0.08,
+        "ucb_weight": 0.65,
+        "gp_beta_start": 2.4,
+        "gp_beta_end": 1.1,
+        "gp_xi": 0.02,
+        "confidence": 0.45,
+        "hypothesis": "Transfers source refractive-index effects with reversed sign under the Moss relation while shrinking the lowest-confidence relations. Fails if source signs carry no transferable information or target gaps are defect- and structure-driven."
+      }
+    ],
+    "selected_skill_id": "ionic_wide_gap_anion_chemistry",
+    "lesson": "Across two development generations the domain-chemistry skill held a higher mean AUC (70.3 then 69.8) than the Moss-inverted transfer (65.2 then 61.4), though the inverted skill reached higher mean final best, suggesting it explores usefully but ranks poorly early. Both skills still collapse on a minority of seeds, so no causal claim is made from eight-seed summaries; the revision keeps first-principles ionicity as the deployed ranking and trims the weakest source relations rather than discarding the transfer.",
+    "revision_summary": "Reformatted every conditions block as a field-to-value object to satisfy the schema. Deployed skill keeps halogen and d0-oxide rules, replaces the small pnictide penalty with a broader chalcogenide covalency penalty covering a much larger narrow-gap block, and slightly lowers semantic mass and prior scale to reduce seed collapses. The counter-hypothesis retains Moss-inverted source effects (halide positive, metalloid and high mean Z negative) with the lowest-confidence transition-metal relation shrunk to -0.2. Source evidence values are unchanged; no target outcomes or candidate identifiers are used."
+  },
+  "memory_sha256": "aa3c0497afcf67641b99e05a5fa5221fc8ec1820dbc2d484ff224e917dfc8433",
+  "experimental_only": true
+}

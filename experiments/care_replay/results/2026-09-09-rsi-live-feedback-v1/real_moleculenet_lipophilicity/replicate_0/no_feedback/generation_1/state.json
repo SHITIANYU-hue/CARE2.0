@@ -1,0 +1,133 @@
+{
+  "parent_state_sha256": "260cd1efe974aa4af4ac7cd8be9a5dadc9835dbd8dbb8937dbcea1acf39f44ee",
+  "new_state_sha256": "06b3bc9f413e4cdd68236117a9f618a5f948b83f140bd648efc238c070bbb1e4",
+  "generation": 1,
+  "arm": "no_feedback",
+  "state": {
+    "skills": [
+      {
+        "skill_id": "solubility_inversion_polar_surface",
+        "rules": [
+          {
+            "rule_id": "long_smiles_hydrophobic",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_long"
+              ]
+            ],
+            "weight": 0.6,
+            "rationale": "ESOL long SMILES lowered solubility (-11.46); larger scaffold means less hydration and higher logD."
+          },
+          {
+            "rule_id": "short_smiles_polar_penalty",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_short"
+              ]
+            ],
+            "weight": -0.5,
+            "rationale": "Source prior: short SMILES raised solubility (+6.89); compact polar molecules partition poorly into octanol."
+          },
+          {
+            "rule_id": "ring_token_hydrophobic_surface",
+            "conditions": [
+              [
+                "ring_token_bin",
+                "ring_token_high"
+              ]
+            ],
+            "weight": 0.45,
+            "rationale": "Ring role carried the top transfer weight (0.758); ring-dense carbon surface disfavors aqueous solvation."
+          },
+          {
+            "rule_id": "heteroatom_polarity_penalty",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_high"
+              ]
+            ],
+            "weight": -0.3,
+            "rationale": "Donor-to-heteroatom role mapping implies hydrogen bonding; polar groups lower octanol-water partition coefficients."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.4,
+        "semantic_mass_start": 0.45,
+        "semantic_mass_end": 0.15,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.01,
+        "confidence": 0.6,
+        "hypothesis": "Transfers ESOL size, ring, and heteroatom effects with sign inversion, assuming aqueous solubility and lipophilicity are anti-correlated. Fails if the pool's large molecules are already polar or ionizable, breaking the inversion."
+      },
+      {
+        "skill_id": "halogen_aromatic_partition_counter",
+        "rules": [
+          {
+            "rule_id": "very_long_length_counter",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_very_long"
+              ]
+            ],
+            "weight": -0.25,
+            "rationale": "Counter-hypothesis: the low-confidence (0.22) length role may not invert; very long molecules are often polar and multifunctional."
+          },
+          {
+            "rule_id": "halogen_rich_partition",
+            "conditions": [
+              [
+                "halogen_bin",
+                "halogen_high"
+              ]
+            ],
+            "weight": 0.7,
+            "rationale": "Halogens add polarizable nonpolar surface with weak hydration, a classic strong positive logP contribution."
+          },
+          {
+            "rule_id": "aromatic_pi_surface",
+            "conditions": [
+              [
+                "aromatic_bin",
+                "aromatic_high"
+              ]
+            ],
+            "weight": 0.45,
+            "rationale": "Extended aromatic pi systems bury nonpolar surface, favoring the octanol phase over water."
+          },
+          {
+            "rule_id": "no_halogen_baseline_penalty",
+            "conditions": [
+              [
+                "halogen_bin",
+                "halogen_none"
+              ]
+            ],
+            "weight": -0.3,
+            "rationale": "Unhalogenated majority lacks that hydrophobic substituent boost, giving a mechanistically interpretable low-lipophilicity baseline."
+          }
+        ],
+        "ridge": 1.5,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.35,
+        "semantic_mass_end": 0.08,
+        "ucb_weight": 0.45,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 0.9,
+        "gp_xi": 0.02,
+        "confidence": 0.5,
+        "hypothesis": "Substituent-level domain knowledge drives lipophilicity while explicitly downweighting the uncertain size transfer. Fails if halogen_high coverage (98) is too sparse for the surrogate to learn from early."
+      }
+    ],
+    "selected_skill_id": "solubility_inversion_polar_surface",
+    "lesson": "Cross-assay transfer from ESOL to lipophilicity needs sign inversion, not direct reuse; the high-transfer-weight ring role and broad-coverage length, heteroatom, and ring bins give more usable surrogate features than the sparse halogen bins.",
+    "revision_summary": "Retained the source-grounded inversion skill, relaxing the size rules to use the better-covered long and short bins and trimming heteroatom weight and the semantic mass floor, and paired it with the domain-knowledge halogen/aromatic counter-hypothesis that downweights the low-confidence length transfer. All conditions use exact catalog field-value pairs; deployment is frozen on the inversion skill for broader pool coverage."
+  },
+  "memory_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "experimental_only": true
+}

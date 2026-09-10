@@ -1,0 +1,137 @@
+{
+  "parent_state_sha256": "8c93907fca2ae2a36bd4c2a0b7fca4da16d10ce2d7d0e677b2aa7f7540a0daca",
+  "new_state_sha256": "920ce1ffd59cdf10837d5281f23fbdbcb00f60db4c970b72adf5894d2281ba1e",
+  "generation": 1,
+  "arm": "no_feedback",
+  "state": {
+    "skills": [
+      {
+        "skill_id": "moss_inverted_dielectric_transfer",
+        "rules": [
+          {
+            "rule_id": "halide_low_polarizability_wide_gap",
+            "conditions": [
+              [
+                "anion_family",
+                "halide"
+              ]
+            ],
+            "weight": 0.6,
+            "rationale": "Halides carried the most negative source refractive-index effect; the Moss relation inverts low polarizability into wide band gaps."
+          },
+          {
+            "rule_id": "chalcogenide_polarizable_p_states",
+            "conditions": [
+              [
+                "anion_family",
+                "chalcogenide"
+              ]
+            ],
+            "weight": -0.45,
+            "rationale": "Chalcogenides raised source index; polarizable S/Se/Te p-states lift the valence band and shrink measured gaps."
+          },
+          {
+            "rule_id": "metalloid_covalent_semiconductor_penalty",
+            "conditions": [
+              [
+                "dominant_family",
+                "metalloid"
+              ]
+            ],
+            "weight": -0.55,
+            "rationale": "Largest source effect on refractive index; covalent metalloid networks are classic narrow-gap semiconductors under Moss inversion."
+          },
+          {
+            "rule_id": "heavy_mean_z_bandwidth_penalty",
+            "conditions": [
+              [
+                "mean_atomic_number_bin",
+                "mean_z_high"
+              ]
+            ],
+            "weight": -0.4,
+            "rationale": "High mean-Z boosted source index; diffuse heavy-atom orbitals broaden bands and reduce experimental gaps."
+          }
+        ],
+        "ridge": 1.2,
+        "prior_scale": 0.45,
+        "semantic_mass_start": 0.45,
+        "semantic_mass_end": 0.15,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.02,
+        "confidence": 0.5,
+        "hypothesis": "Transfers the four highest-effect source fields with reversed sign via the Moss index-gap inversion. Fails where high index and wide gap coexist, such as ionic heavy oxides, or when low source confidence makes inversion unreliable."
+      },
+      {
+        "skill_id": "ionicity_ladder_wide_gap_chemistry",
+        "rules": [
+          {
+            "rule_id": "closed_shell_main_group_halide",
+            "conditions": [
+              [
+                "anion_family",
+                "halide"
+              ],
+              [
+                "transition_metal_flag",
+                "no_transition_metal"
+              ]
+            ],
+            "weight": 0.75,
+            "rationale": "Main-group halides are maximally ionic with closed-shell cations and no d-states in the gap, giving the widest experimental gaps."
+          },
+          {
+            "rule_id": "oxide_deep_o2p_valence_band",
+            "conditions": [
+              [
+                "anion_family",
+                "oxide"
+              ]
+            ],
+            "weight": 0.45,
+            "rationale": "Strong ionicity and a deep O 2p valence band place oxides high on the electronegativity-difference gap ladder."
+          },
+          {
+            "rule_id": "partially_filled_d_band_narrowing",
+            "conditions": [
+              [
+                "transition_metal_flag",
+                "has_transition_metal"
+              ]
+            ],
+            "weight": -0.3,
+            "rationale": "Partially filled d bands add states near the Fermi level, narrowing gaps; this source relation had near-zero confidence, so it is downweighted and reversed."
+          },
+          {
+            "rule_id": "pnictide_weak_ionicity_penalty",
+            "conditions": [
+              [
+                "anion_family",
+                "pnictide"
+              ]
+            ],
+            "weight": -0.35,
+            "rationale": "Pnictides are weakly ionic covalent semiconductors; small electronegativity contrast yields small experimental gaps."
+          }
+        ],
+        "ridge": 0.8,
+        "prior_scale": 0.6,
+        "semantic_mass_start": 0.55,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.55,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 0.9,
+        "gp_xi": 0.03,
+        "confidence": 0.65,
+        "hypothesis": "Ranks anion chemistry by cation-anion electronegativity contrast and reverses the near-zero-confidence transition-metal source relation. Fails for d0 transition-metal oxides and defect-dominated measurements that deviate from the ionicity ordering."
+      }
+    ],
+    "selected_skill_id": "ionicity_ladder_wide_gap_chemistry",
+    "lesson": "The source study maximized refractive index, which couples inversely to band gap through the Moss relation, and its field confidences are low (0.006-0.30). Naive transfer would steer the search toward narrow-gap chalcogenides and metalloids. Ionicity-based domain chemistry reproduces the correct ordering with independent mechanistic support, making it the safer frozen choice while the inverted-transfer skill stays as diagnostic contrast.",
+    "revision_summary": "Reformatted every conditions block from pair-lists into direct field-to-value objects using only exact catalog entries (anion_family, dominant_family, mean_atomic_number_bin, transition_metal_flag), keeping one mechanistically justified two-condition interaction. Retained the source-grounded Moss-inverted transfer skill and the domain ionicity skill that also serves as the counter-hypothesis by reversing the low-confidence transition-metal relation. Slightly strengthened the oxide, halide-interaction, and pnictide weights, kept all parameters within allowed ranges, and referenced no target outcomes or candidate identifiers."
+  },
+  "memory_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "experimental_only": true
+}

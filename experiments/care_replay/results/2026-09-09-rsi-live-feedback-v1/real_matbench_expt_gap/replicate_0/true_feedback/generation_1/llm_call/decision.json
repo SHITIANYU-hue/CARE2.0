@@ -1,0 +1,129 @@
+{
+  "skills": [
+    {
+      "skill_id": "ionicity_ladder_wide_gap_chemistry_v2",
+      "rules": [
+        {
+          "rule_id": "closed_shell_ionic_halide",
+          "conditions": [
+            [
+              "anion_family",
+              "halide"
+            ],
+            [
+              "transition_metal_flag",
+              "no_transition_metal"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Main-group halides are maximally ionic with closed-shell cations; no d-states in gap, giving the widest experimental gaps."
+        },
+        {
+          "rule_id": "oxide_deep_o2p_valence_band",
+          "conditions": [
+            [
+              "anion_family",
+              "oxide"
+            ]
+          ],
+          "weight": 0.45,
+          "rationale": "Strong ionicity and deep O 2p valence band place oxides high on the electronegativity-difference gap ladder."
+        },
+        {
+          "rule_id": "partially_filled_d_band_narrowing",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "Partially filled d bands introduce states near the Fermi level, narrowing or closing gaps."
+        },
+        {
+          "rule_id": "chalcogenide_polarizable_narrow_gap",
+          "conditions": [
+            [
+              "anion_family",
+              "chalcogenide"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "Polarizable S/Se/Te p-states raise the valence band and shrink gaps; the largest anion population needs an explicit penalty."
+        }
+      ],
+      "ridge": 0.9,
+      "prior_scale": 0.55,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.55,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 0.9,
+      "gp_xi": 0.03,
+      "confidence": 0.65,
+      "hypothesis": "Ranks anion chemistry by cation-anion electronegativity difference, rewarding ionic halides and oxides while penalizing polarizable chalcogenides and d-band metals. Fails for d0 transition-metal oxides and defect-dominated experimental structures deviating from ionicity ordering."
+    },
+    {
+      "skill_id": "ionic_halide_with_moss_penalties_hybrid",
+      "rules": [
+        {
+          "rule_id": "ionic_halide_wide_gap",
+          "conditions": [
+            [
+              "anion_family",
+              "halide"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Halides had the most negative source refractive-index effect; low polarizability inverts to wide experimental band gaps via Moss."
+        },
+        {
+          "rule_id": "metalloid_covalent_semiconductor_penalty",
+          "conditions": [
+            [
+              "dominant_family",
+              "metalloid"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Largest source refractive-index effect; covalent metalloid networks are classic narrow-gap semiconductors under Moss inversion."
+        },
+        {
+          "rule_id": "heavy_mean_z_diffuse_orbital_penalty",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_high"
+            ]
+          ],
+          "weight": -0.35,
+          "rationale": "High mean-Z boosted source refractive index; diffuse heavy-atom orbitals increase bandwidth and reduce band gap."
+        },
+        {
+          "rule_id": "oxide_ionicity_support",
+          "conditions": [
+            [
+              "anion_family",
+              "oxide"
+            ]
+          ],
+          "weight": 0.35,
+          "rationale": "Independent ionicity support: deep O 2p valence band and large electronegativity difference favor wide gaps."
+        }
+      ],
+      "ridge": 1.1,
+      "prior_scale": 0.45,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.1,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.02,
+      "confidence": 0.5,
+      "hypothesis": "Counter-hypothesis blending Moss-inverted source penalties on metalloids and heavy-Z with domain ionicity rewards, dropping the low-confidence chalcogenide inversion. Fails where high index and wide gap coexist in ionic heavy oxides, or low source confidence misleads inversion."
+    }
+  ],
+  "selected_skill_id": "ionicity_ladder_wide_gap_chemistry_v2",
+  "lesson": "Development seeds gave the ionicity skill a higher mean AUC (72.7 vs 65.3) with comparable final-best, and both shared a hard seed (229102/229104) reflecting task variance rather than skill flaws. I keep ionicity chemistry as deployment, strengthen it by adding an explicit chalcogenide penalty for the largest anion population, and preserve the Moss-inverted transfer as a hybrid counter-hypothesis. Source per-field confidences remain low (0.006-0.30), so domain-grounded ordering stays the safer frozen choice.",
+  "revision_summary": "Converted conditions to catalog-field-to-value maps, kept exactly two skills with four rules each. Deployed skill v2 adds a chalcogenide narrow-gap penalty (the 1485-count anion family) to the previously stronger ionicity ladder and slightly reduces its d-band and semantic mass reliance. The second skill is a hybrid counter-hypothesis retaining Moss-inverted metalloid and heavy-Z penalties but dropping the near-zero-confidence chalcogenide inversion and adding an independent oxide ionicity reward. All parameters stay within allowed ranges; no target outcomes or candidate identifiers are referenced, and feedback was used only for relative ranking, not causal mechanism claims from few seeds."
+}

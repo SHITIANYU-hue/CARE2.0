@@ -1,0 +1,129 @@
+{
+  "skills": [
+    {
+      "skill_id": "esol_sign_reversed_bulk_ring_transfer",
+      "rules": [
+        {
+          "rule_id": "long_scaffold_hydrophobic_bulk",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Source: smiles_long lowered solubility (-11.46); logD opposes logS, so larger carbon scaffolds raise lipophilicity."
+        },
+        {
+          "rule_id": "short_scaffold_polar_penalty",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Source: smiles_short raised solubility (+6.89); small compact molecules expose little nonpolar surface."
+        },
+        {
+          "rule_id": "low_heteroatom_weak_hydration",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_low"
+            ]
+          ],
+          "weight": 0.45,
+          "rationale": "Heteroatom role maps from H-bond donor evidence (weight 0.509); fewer polar atoms lowers desolvation cost."
+        },
+        {
+          "rule_id": "ring_rich_fused_scaffold",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Ring role carried the strongest source transfer weight (0.758); fused hydrophobic rings favor octanol partitioning."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.35,
+      "semantic_mass_start": 0.45,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.6,
+      "hypothesis": "Transfers ESOL size, heteroatom, and ring effects with reversed sign, treating logD as anti-correlated with logS. Fails if lipophilicity here is size-saturated or driven by polar-group placement rather than bulk hydrophobic surface."
+    },
+    {
+      "skill_id": "polarity_burden_size_saturation_counterview",
+      "rules": [
+        {
+          "rule_id": "heteroatom_rich_desolvation_penalty",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": -0.55,
+          "rationale": "High heteroatom density raises hydrogen bonding and aqueous stabilization, so desolvation cost suppresses measured lipophilicity."
+        },
+        {
+          "rule_id": "nonpolar_aromatic_surface",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ],
+            [
+              "hetero_atom_bin",
+              "hetero_mid"
+            ]
+          ],
+          "weight": 0.45,
+          "rationale": "Extended pi surface with only moderate polarity yields large nonpolar contact area; chemically meaningful interaction for octanol partitioning."
+        },
+        {
+          "rule_id": "moderate_halogenation_lipophilic",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_mid"
+            ]
+          ],
+          "weight": 0.35,
+          "rationale": "Moderate halogenation raises polarizability and hydrophobic surface; halogen_mid (743) is far better supported than halogen_high (98)."
+        },
+        {
+          "rule_id": "very_long_size_saturation_counterweight",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_very_long"
+            ]
+          ],
+          "weight": -0.35,
+          "rationale": "Counter-hypothesis reversing the low-confidence (0.224) length transfer: extreme-length molecules often carry polar solubilizing groups, saturating or inverting the size effect."
+        }
+      ],
+      "ridge": 0.8,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.55,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.02,
+      "confidence": 0.5,
+      "hypothesis": "Domain-knowledge counter-view: polarity penalty plus aromatic and halogen hydrophobic surface drives lipophilicity, and the uncertain length relation reverses at extreme lengths. Fails if bulk molecular size dominates partitioning in this pool."
+    }
+  ],
+  "selected_skill_id": "esol_sign_reversed_bulk_ring_transfer",
+  "lesson": "Across two independent eight-seed development blocks the sign-reversed ESOL transfer skill led on mean AUC (89.59 vs 89.26 this generation; 89.04 vs 85.73 previously) and on mean final best, and it never trailed. The second-generation counterview narrowed the gap to roughly 0.3 AUC points, but the difference sits inside seed noise, so the honest read is that the source-grounded bulk and ring rules are at least as good and cheaper to justify. Eight seeds per generation cannot establish mechanism; they only justify keeping the simpler, source-grounded hypothesis in front.",
+  "revision_summary": "Kept the proven source-transfer skill nearly frozen: raised the ring_token_high weight from 0.35 to 0.40, since the source ring role carried the highest transfer weight (0.758) and both generation blocks favored this skill, while leaving ridge, prior_scale, semantic mass, and the anchor blend untouched to avoid overfitting sixteen total development seeds. Rebuilt the counter-hypothesis skill around well-supported bins: dropped the sparse halogen_high anchor in favor of halogen_mid, kept the aromatic_high x hetero_mid interaction, and reformulated the very-long-length rule as an explicit size-saturation reversal of the 0.224-confidence length transfer. All conditions objects are direct field-to-value mappings drawn verbatim from the public catalog. Deployed the source-evidence-grounded transfer skill."
+}

@@ -1,0 +1,129 @@
+{
+  "skills": [
+    {
+      "skill_id": "moss_inverted_dielectric_to_gap_transfer",
+      "rules": [
+        {
+          "rule_id": "halide_low_polarizability_wide_gap",
+          "conditions": [
+            [
+              "anion_family",
+              "halide"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Halides showed the most negative source refractive-index effect; Moss relation inverts low polarizability into wide band gaps."
+        },
+        {
+          "rule_id": "chalcogenide_high_index_narrow_gap",
+          "conditions": [
+            [
+              "anion_family",
+              "chalcogenide"
+            ]
+          ],
+          "weight": -0.45,
+          "rationale": "Chalcogenides raised source refractive index; polarizable S/Se/Te p-states raise valence band and shrink the gap."
+        },
+        {
+          "rule_id": "metalloid_covalent_semiconductor_penalty",
+          "conditions": [
+            [
+              "dominant_family",
+              "metalloid"
+            ]
+          ],
+          "weight": -0.55,
+          "rationale": "Largest source effect on refractive index; covalent metalloid networks are classic narrow-gap semiconductors under the Moss inversion."
+        },
+        {
+          "rule_id": "heavy_mean_z_diffuse_orbital_penalty",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_high"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "High mean-Z boosted source refractive index; diffuse heavy-atom orbitals increase bandwidth and reduce band gap."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.45,
+      "semantic_mass_start": 0.45,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.02,
+      "confidence": 0.5,
+      "hypothesis": "Transfers the dielectric source effects with reversed sign via the Moss/Ravindra inverse index-gap relation. Fails where high index and wide gap coexist, e.g. ionic heavy oxides, or where source field confidence is too low to invert reliably."
+    },
+    {
+      "skill_id": "ionicity_ladder_wide_gap_chemistry",
+      "rules": [
+        {
+          "rule_id": "closed_shell_ionic_halide",
+          "conditions": [
+            [
+              "anion_family",
+              "halide"
+            ],
+            [
+              "transition_metal_flag",
+              "no_transition_metal"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Main-group halides are maximally ionic with closed-shell cations; no d-states in gap, giving the widest experimental gaps."
+        },
+        {
+          "rule_id": "oxide_deep_o2p_valence_band",
+          "conditions": [
+            [
+              "anion_family",
+              "oxide"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Strong ionicity and deep O 2p valence band place oxides high on the electronegativity-difference gap ladder."
+        },
+        {
+          "rule_id": "partially_filled_d_band_narrowing",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "Partially filled d bands introduce states near the Fermi level, narrowing or closing gaps; source evidence here was near-zero confidence."
+        },
+        {
+          "rule_id": "pnictide_covalent_narrow_gap",
+          "conditions": [
+            [
+              "anion_family",
+              "pnictide"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "Pnictides are weakly ionic covalent semiconductors; small electronegativity difference yields small experimental gaps."
+        }
+      ],
+      "ridge": 0.8,
+      "prior_scale": 0.6,
+      "semantic_mass_start": 0.55,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.55,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 0.9,
+      "gp_xi": 0.03,
+      "confidence": 0.65,
+      "hypothesis": "Ranks anion chemistry by cation-anion electronegativity difference and downweights the near-zero-confidence transition-metal source relation. Fails for d0 transition-metal oxides and heavily distorted or defect-dominated experimental structures where measured gaps deviate from ionicity ordering."
+    }
+  ],
+  "selected_skill_id": "ionicity_ladder_wide_gap_chemistry",
+  "lesson": "The source study optimized refractive index, an objective inversely coupled to band gap through the Moss relation, and its per-field confidences are low (0.006-0.30). Direct transfer would push search toward narrow-gap chalcogenides and metalloids, exactly the wrong direction. Domain ionicity chemistry supplies the same ordering with independent mechanistic support, so it is the safer frozen deployment while the inverted-transfer skill remains the diagnostic alternative.",
+  "revision_summary": "Rebuilt the output to satisfy the schema: exactly two skills with distinct descriptive IDs, every conditions object mapping a real catalog field directly to an exact catalog value (anion_family, dominant_family, mean_atomic_number_bin, transition_metal_flag), no placeholder keys or numeric suffixes, all parameters inside allowed ranges, one two-condition interaction used only where mechanistically justified, rationales under 25 words and hypotheses under 45 words, plus selected_skill_id, lesson, and revision_summary. Source transfer evidence was used unchanged and no target outcomes or candidate identifiers are referenced."
+}

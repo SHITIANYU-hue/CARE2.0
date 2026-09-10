@@ -1,0 +1,129 @@
+{
+  "skills": [
+    {
+      "skill_id": "moss_inverted_polarizability_gap_transfer",
+      "rules": [
+        {
+          "rule_id": "metalloid_metallic_edge_penalty",
+          "conditions": [
+            [
+              "dominant_family",
+              "metalloid"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Strongest source refractive-index driver; Moss relation links its high polarizability to narrow experimental gaps."
+        },
+        {
+          "rule_id": "heavy_mean_z_soft_lattice_penalty",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_high"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "Heavy polarizable ions lower conduction-band edges, shrinking gaps despite their source refractive-index gain."
+        },
+        {
+          "rule_id": "chalcogen_p_valence_penalty",
+          "conditions": [
+            [
+              "anion_family",
+              "chalcogenide"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "Chalcogen p states raise the valence-band maximum, yielding smaller measured gaps than oxides."
+        },
+        {
+          "rule_id": "halogen_dominant_ionic_reversal",
+          "conditions": [
+            [
+              "dominant_family",
+              "halogen"
+            ]
+          ],
+          "weight": 0.35,
+          "rationale": "Halogen dominance depressed source refractive index, but its ionicity and deep anion states widen gaps."
+        }
+      ],
+      "ridge": 1.6,
+      "prior_scale": 0.35,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.4,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.02,
+      "confidence": 0.6,
+      "hypothesis": "Sign-reversed transfer of the source refractive-index effects via the Moss relation: polarizable, heavy, metalloid or chalcogen chemistries raise n yet narrow gaps. Weakens if experimental gaps here are set by structure or measurement rather than composition."
+    },
+    {
+      "skill_id": "counter_heavy_wide_gap_ionic_hypothesis",
+      "rules": [
+        {
+          "rule_id": "heavy_quaternary_balanced_wide_gap",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "balanced"
+            ],
+            [
+              "mean_atomic_number_bin",
+              "mean_z_very_high"
+            ]
+          ],
+          "weight": 0.45,
+          "rationale": "Balanced heavy compositions favor wide-gap insulating ordered phases rather than narrow-gap intermetallics."
+        },
+        {
+          "rule_id": "halide_electronegative_deep_anion",
+          "conditions": [
+            [
+              "anion_family",
+              "halide"
+            ]
+          ],
+          "weight": 0.55,
+          "rationale": "Fluoride and chloride anions are highly electronegative, deepening valence bands and enlarging ionic gaps."
+        },
+        {
+          "rule_id": "alkali_or_alkaline_s_block_gap",
+          "conditions": [
+            [
+              "dominant_family",
+              "alkaline_earth"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Closed-shell s-block cations donate weakly and form ionic insulators with wide experimental gaps."
+        },
+        {
+          "rule_id": "lanthanide_f_band_penalty",
+          "conditions": [
+            [
+              "lanthanide_flag",
+              "has_lanthanide"
+            ]
+          ],
+          "weight": -0.35,
+          "rationale": "Localized f manifolds add mid-gap transitions and narrow measured optical gaps in lanthanide compounds."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.55,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.03,
+      "confidence": 0.4,
+      "hypothesis": "Counter-hypothesis to the inverted-Moss skill: among the high mean-Z population, balanced and s-block ionic chemistries still yield wide gaps rather than narrow ones. Fails if heavy narrow-gap intermetallics dominate the top of the target distribution."
+    }
+  ],
+  "selected_skill_id": "moss_inverted_polarizability_gap_transfer",
+  "lesson": "The same-sign domain skill underperformed badly (mean AUC 58.0 versus 82.5), losing on five of eight seeds, so the sign-reversed Moss transfer from the source refractive-index evidence is the better bet. Its scale-free rules survived the halide-dominant pool here, though its components remain uncertain because the source confidences are low.",
+  "revision_summary": "Retained and sharpened the source-grounded inverted-transfer skill and made it the deployment choice based on the development-seed feedback; downgraded the previous same-sign wide-gap skill into a counter-hypothesis with weakened weights. Each skill uses four rules over exact catalog field/value pairs, with one mechanistically justified two-condition interaction. Two-condition rules were limited to one per skill. All parameters stay inside the allowed ranges, rationales under 25 words and hypotheses under 45 words. No target outcomes were accessed."
+}

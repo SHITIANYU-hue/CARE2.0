@@ -1,0 +1,125 @@
+{
+  "skills": [
+    {
+      "skill_id": "heteroatom_polarity_hydration_core",
+      "rules": [
+        {
+          "rule_id": "hetero_rich_hydrogen_bonding",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": 0.68,
+          "rationale": "Multiple N/O centers donate and accept water hydrogen bonds, the dominant favorable hydration term."
+        },
+        {
+          "rule_id": "moderate_polarity_support",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_mid"
+            ]
+          ],
+          "weight": 0.38,
+          "rationale": "Intermediate heteroatom content (91 candidates) extends the polarity gradient with denser coverage than hetero_high."
+        },
+        {
+          "rule_id": "pure_hydrocarbon_cavity_cost",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_none"
+            ]
+          ],
+          "weight": -0.55,
+          "rationale": "Hydrocarbon-only solutes pay cavity-formation cost without compensating water hydrogen bonds."
+        },
+        {
+          "rule_id": "heavy_halogen_hydrophobicity",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_high"
+            ]
+          ],
+          "weight": -0.38,
+          "rationale": "Dense halogenation raises nonpolar surface area and weakens water affinity despite polarizability."
+        }
+      ],
+      "ridge": 1.3,
+      "prior_scale": 0.38,
+      "semantic_mass_start": 0.38,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 0.9,
+      "gp_xi": 0.02,
+      "confidence": 0.6,
+      "hypothesis": "Counter-hypothesis: downweight the low-confidence ESOL smiles_length role and order candidates by heteroatom polarity with a halogen hydrophobicity penalty. Fails if the score rewards compact nonpolar solutes."
+    },
+    {
+      "skill_id": "polarity_anchored_scaffold_transfer",
+      "rules": [
+        {
+          "rule_id": "polar_solute_anchor",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Polarity anchor retained because the hydrocarbon-versus-heteroatom contrast is mechanistically central to hydration."
+        },
+        {
+          "rule_id": "acyclic_scaffold_role",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_none"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Source ring role carried the highest transfer weight (0.76); acyclic solutes lack rigid hydrophobic ring surface."
+        },
+        {
+          "rule_id": "low_branching_role",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_none"
+            ]
+          ],
+          "weight": 0.22,
+          "rationale": "Rotatable-bond role maps to branching (transfer weight 0.76); low branching limits buried nonpolar volume."
+        },
+        {
+          "rule_id": "mid_length_source_penalty",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "Signed source prior for smiles_mid is negative (-6.61); larger solutes add nonpolar solvation cost."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.28,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.4,
+      "hypothesis": "Source-grounded transfer of the high-weight ring and branch roles plus the signed mid-length prior, now anchored by polarity. Fails if scaffold shape is irrelevant once heteroatom content is modeled."
+    }
+  ],
+  "selected_skill_id": "heteroatom_polarity_hydration_core",
+  "lesson": "On development seeds the polarity-led counter-hypothesis reached a markedly higher mean AUC (74.5) than the pure size/scaffold transfer (53.9), so polarity structure is the better semantic prior here; the size prior alone was the weakest source signal and should not drive ranking.",
+  "revision_summary": "Refined the deployed polarity skill by removing the low-value short-length downweight and replacing it with a hetero_mid rule that gives denser, monotonic polarity coverage; slightly raised prior_scale, semantic_mass_start, and confidence while keeping fast decay to the target-only anchor. The second skill now anchors the source-grounded ring, branch, and signed mid-length roles on a polarity term rather than transferring size alone, so the source evidence is retested under a fairer configuration. Only catalog field-value pairs are used and no target outcomes are claimed."
+}

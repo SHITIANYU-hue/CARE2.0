@@ -1,0 +1,133 @@
+{
+  "parent_state_sha256": "9690fb54dbefa8356c09ba1ed7a36972ce41fe1fed440baaa84911a043a97014",
+  "new_state_sha256": "01214aa9e189e25b282dafc12cbfddf809e4fb4334c76dc31706f5f252590697",
+  "generation": 1,
+  "arm": "no_feedback",
+  "state": {
+    "skills": [
+      {
+        "skill_id": "solubility_inverted_size_transfer",
+        "rules": [
+          {
+            "rule_id": "long_smiles_promoted",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_long"
+              ]
+            ],
+            "weight": 0.55,
+            "rationale": "ESOL's strongest prior penalized long SMILES for solubility; logD is anti-correlated with logS, so large scaffolds should gain."
+          },
+          {
+            "rule_id": "short_smiles_penalized",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_short"
+              ]
+            ],
+            "weight": -0.7,
+            "rationale": "Short strings were the most soluble source bin; small polar molecules typically carry low lipophilicity."
+          },
+          {
+            "rule_id": "halogen_mid_lipophilic",
+            "conditions": [
+              [
+                "halogen_bin",
+                "halogen_mid"
+              ]
+            ],
+            "weight": 0.45,
+            "rationale": "Halogen substitution raises logP by adding hydrophobic, polarizable surface without hydrogen-bond donors."
+          },
+          {
+            "rule_id": "aromatic_high_lipophilic",
+            "conditions": [
+              [
+                "aromatic_bin",
+                "aromatic_high"
+              ]
+            ],
+            "weight": 0.5,
+            "rationale": "Dense aromatic carbon surface is the classic driver of partition coefficient in drug-like molecules."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.35,
+        "semantic_mass_end": 0.12,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.01,
+        "confidence": 0.66,
+        "hypothesis": "Source solubility effects transfer with inverted sign: molecular size that hurt solubility should help lipophilicity, reinforced by halogen and aromatic surface. Fails if long SMILES mainly encode polar heteroatom chains rather than hydrophobic bulk."
+      },
+      {
+        "skill_id": "heteroatom_polarity_counter_hypothesis",
+        "rules": [
+          {
+            "rule_id": "hetero_high_penalized",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_high"
+              ]
+            ],
+            "weight": -0.5,
+            "rationale": "Abundant N/O heteroatoms add hydrogen bonding and desolvation cost, directly suppressing measured logD."
+          },
+          {
+            "rule_id": "hetero_low_promoted",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_low"
+              ]
+            ],
+            "weight": 0.6,
+            "rationale": "Carbon-rich, heteroatom-poor frameworks maximize nonpolar surface and partition strongly into octanol."
+          },
+          {
+            "rule_id": "halogen_high_promoted",
+            "conditions": [
+              [
+                "halogen_bin",
+                "halogen_high"
+              ]
+            ],
+            "weight": 0.7,
+            "rationale": "Heavy halogenation is a robust, mechanistic lipophilicity enhancer independent of the source solubility evidence."
+          },
+          {
+            "rule_id": "branch_high_reversed",
+            "conditions": [
+              [
+                "branch_bin",
+                "branch_high"
+              ]
+            ],
+            "weight": 0.25,
+            "rationale": "Counter to the uncertain rotatable-bond transfer: branched alkyl substitution usually adds hydrophobic bulk, not polarity."
+          }
+        ],
+        "ridge": 1.6,
+        "prior_scale": 0.25,
+        "semantic_mass_start": 0.28,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 2.5,
+        "gp_beta_end": 1.2,
+        "gp_xi": 0.02,
+        "confidence": 0.55,
+        "hypothesis": "Polarity composition, not string length or ring count, controls logD; the donor-to-heteroatom and rotatable-to-branch transfers are downweighted or reversed. Fails if hetero_low molecules are small and volatile with modest partitioning."
+      }
+    ],
+    "selected_skill_id": "solubility_inverted_size_transfer",
+    "lesson": "Solubility-to-lipophilicity transfer requires sign inversion: bins that reduced aqueous solubility (large, low-polarity scaffolds) should raise logD, so the earlier long-SMILES penalty likely had the wrong sign.",
+    "revision_summary": "Corrected the size transfer to positive for long SMILES and negative for short SMILES, kept aromatic/halogen domain terms, and replaced the ring/branch skill with a heteroatom-polarity counter-hypothesis that reverses the uncertain rotatable-bond-to-branch relation; deployed the corrected inversion skill."
+  },
+  "memory_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "experimental_only": true
+}

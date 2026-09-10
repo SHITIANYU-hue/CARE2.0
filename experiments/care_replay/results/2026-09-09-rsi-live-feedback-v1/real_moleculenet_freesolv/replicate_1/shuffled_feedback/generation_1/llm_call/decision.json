@@ -1,0 +1,125 @@
+{
+  "skills": [
+    {
+      "skill_id": "compact_acyclic_solute_transfer",
+      "rules": [
+        {
+          "rule_id": "short_smiles_favored",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Source value prior +6.89 for smiles_short; small solutes pay little cavity-formation cost in water."
+        },
+        {
+          "rule_id": "mid_smiles_penalized",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "Source prior -6.61 for smiles_mid; added nonpolar surface raises hydration cost relative to gains."
+        },
+        {
+          "rule_id": "long_smiles_penalized",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": -0.55,
+          "rationale": "Strongest source prior (-11.46) at smiles_long; bulky hydrophobic solutes are poorly hydrated."
+        },
+        {
+          "rule_id": "acyclic_bonus",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_none"
+            ]
+          ],
+          "weight": 0.35,
+          "rationale": "Ring role carried the top transfer weight (0.758); acyclic small solutes expose less hydrophobic ring surface."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.35,
+      "semantic_mass_start": 0.45,
+      "semantic_mass_end": 0.14,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.6,
+      "hypothesis": "Transfers ESOL size and ring-structure roles to hydration, treating molecular bulk as the main penalty. May fail on seeds where top solutes are polar yet mid-length, and seed variance remains high."
+    },
+    {
+      "skill_id": "cavity_cost_unbranched_counter",
+      "rules": [
+        {
+          "rule_id": "short_smiles_small_cavity",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Cavity-formation work scales with solute volume, so the smallest solutes retain the most favorable hydration terms."
+        },
+        {
+          "rule_id": "unbranched_backbone_bonus",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_none"
+            ]
+          ],
+          "weight": 0.35,
+          "rationale": "Branch role transferred strongly (0.758); unbranched chains give compact, well-solvated geometries with less buried nonpolar surface."
+        },
+        {
+          "rule_id": "counter_mid_length_neutralized",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": 0.12,
+          "rationale": "Counter-hypothesis: the smiles_mid prior had lowest confidence (0.27), so its penalty is neutralized rather than trusted."
+        },
+        {
+          "rule_id": "heavy_halogenation_penalty",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_high"
+            ]
+          ],
+          "weight": -0.35,
+          "rationale": "Perhalogenated surfaces are weakly polarizable hydrogen-bond non-donors, giving unfavorable aqueous solvation despite modest size."
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.28,
+      "semantic_mass_start": 0.28,
+      "semantic_mass_end": 0.06,
+      "ucb_weight": 0.45,
+      "gp_beta_start": 2.4,
+      "gp_beta_end": 1.1,
+      "gp_xi": 0.02,
+      "confidence": 0.45,
+      "hypothesis": "Keeps the compact-solute signal but downweights the weak mid-length penalty and adds halogen hydrophobicity, leaning harder on target-only GP evidence. Fails if mid-length penalty is genuinely strong."
+    }
+  ],
+  "selected_skill_id": "compact_acyclic_solute_transfer",
+  "lesson": "Development seeds favored the source-grounded size/ring transfer (mean AUC 72.9) over the polarity-driven counter skill (54.3), so the low-confidence ESOL priors still carried usable signal and should not have been discarded on mechanistic intuition alone.",
+  "revision_summary": "Reinstated and slightly strengthened the size/ring transfer skill (higher short-SMILES weight, larger and slower-decaying semantic mass, more early exploration to address the wide per-seed spread) and made it the deployed skill. Replaced the underperforming heteroatom-polarity skill with a milder counter-hypothesis that keeps the compact-solute term, neutralizes only the lowest-confidence smiles_mid prior, adds an unbranched-backbone and halogen-hydrophobicity rule, and shifts more rank mass to the target-only anchor. Mechanism claims remain hypotheses; eight development seeds cannot establish causality."
+}

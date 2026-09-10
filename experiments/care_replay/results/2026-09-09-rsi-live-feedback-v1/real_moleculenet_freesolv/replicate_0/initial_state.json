@@ -1,0 +1,125 @@
+{
+  "skills": [
+    {
+      "skill_id": "esol_length_ring_branch_transfer",
+      "rules": [
+        {
+          "rule_id": "short_smiles_favorable",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": 0.55,
+          "rationale": "Source ESOL prior gives smiles_short a positive effect (+6.89); small solutes solvate readily."
+        },
+        {
+          "rule_id": "mid_length_penalty",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": -0.45,
+          "rationale": "Source prior for smiles_mid is negative (-6.61); added nonpolar surface costs solvation free energy."
+        },
+        {
+          "rule_id": "ring_free_scaffold",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_none"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Ring role carried the largest transfer weight (0.76); acyclic solutes lack rigid hydrophobic ring surface."
+        },
+        {
+          "rule_id": "unbranched_chain",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_none"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Rotatable-bond role maps to branching (transfer weight 0.76); minimal branching reduces buried nonpolar volume."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.35,
+      "semantic_mass_end": 0.12,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.45,
+      "hypothesis": "Transfers signed ESOL size priors plus ring and branching roles to FreeSolv, assuming solubility and hydration share size-driven mechanisms. Fails if hydration is dominated by polarity rather than molecular size."
+    },
+    {
+      "skill_id": "polar_hydration_counter_hypothesis",
+      "rules": [
+        {
+          "rule_id": "heteroatom_rich_polarity",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": 0.65,
+          "rationale": "Hydration free energy is dominated by polar N/O hydrogen bonding with water, not chain length."
+        },
+        {
+          "rule_id": "pure_hydrocarbon_penalty",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_none"
+            ]
+          ],
+          "weight": -0.55,
+          "rationale": "Hydrocarbon-only solutes incur hydrophobic cavity-formation cost and poor water hydrogen bonding."
+        },
+        {
+          "rule_id": "halogen_hydrophobicity_penalty",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_high"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "Heavy halogenation raises nonpolar surface and lowers water affinity despite modest polarizability."
+        },
+        {
+          "rule_id": "downweight_short_length_prior",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": -0.15,
+          "rationale": "Counter to low-confidence ESOL length prior (0.28); many short candidates are nonpolar alkanes."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.35,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 0.9,
+      "gp_xi": 0.02,
+      "confidence": 0.5,
+      "hypothesis": "Reverses the weak ESOL length prior and asserts heteroatom polarity drives hydration affinity. Fails if the score rewards nonpolar compactness or if hetero_high (28 candidates) is too sparse to inform the surrogate."
+    }
+  ],
+  "selected_skill_id": "polar_hydration_counter_hypothesis",
+  "lesson": "Source ESOL role confidences were low (0.16-0.41) and the size prior was weakest; hydration free energy is mechanistically a polarity phenomenon, so a polarity-led counter-hypothesis with fast semantic decay is safer than direct size transfer.",
+  "revision_summary": "Kept a faithful source-grounded transfer using the signed smiles_length priors plus the high-weight ring and branch roles, and added a counter-hypothesis that downweights the low-confidence short-length prior in favor of heteroatom polarity and halogen hydrophobicity. Both skills use only catalog field-value pairs, decay semantic mass toward the target-only anchor, and the polarity skill was frozen for deployment."
+}

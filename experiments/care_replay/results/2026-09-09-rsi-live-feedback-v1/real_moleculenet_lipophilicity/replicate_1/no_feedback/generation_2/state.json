@@ -1,0 +1,137 @@
+{
+  "parent_state_sha256": "d1cee26001e7f4096faf9796b2b070329f280f9e1988bed6775f8e2deb5bab26",
+  "new_state_sha256": "d12be4637ca9a3b79f07202acff82dc80e21c303ba55a80e2eb87df5d91b904e",
+  "generation": 2,
+  "arm": "no_feedback",
+  "state": {
+    "skills": [
+      {
+        "skill_id": "hydrophobic_surface_partitioning",
+        "rules": [
+          {
+            "rule_id": "halogenated_aromatic_core",
+            "conditions": [
+              [
+                "aromatic_bin",
+                "aromatic_high"
+              ],
+              [
+                "halogen_bin",
+                "halogen_mid"
+              ]
+            ],
+            "weight": 0.6,
+            "rationale": "Halogenated aromatics are the classic high-logD motif: polarizable nonpolar surface on a rigid pi scaffold."
+          },
+          {
+            "rule_id": "aromatic_pi_surface",
+            "conditions": [
+              [
+                "aromatic_bin",
+                "aromatic_high"
+              ]
+            ],
+            "weight": 0.45,
+            "rationale": "Extended aromatic systems add nonpolar surface area that partitions preferentially into octanol; 1982 candidates give firm support."
+          },
+          {
+            "rule_id": "heteroatom_hydration_penalty",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_high"
+              ]
+            ],
+            "weight": -0.55,
+            "rationale": "Dense heteroatoms increase hydrogen bonding and desolvation cost, suppressing measured logD across 2661 candidates."
+          },
+          {
+            "rule_id": "low_heteroatom_nonpolar",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_low"
+              ]
+            ],
+            "weight": 0.45,
+            "rationale": "Few polar atoms means weak hydration; mirrors the source H-bond-donor role mapped onto heteroatom count."
+          }
+        ],
+        "ridge": 0.9,
+        "prior_scale": 0.4,
+        "semantic_mass_start": 0.45,
+        "semantic_mass_end": 0.15,
+        "ucb_weight": 0.55,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.02,
+        "confidence": 0.6,
+        "hypothesis": "Domain prior: lipophilicity equals nonpolar surface (halogen, aromatic) minus polar hydration burden (heteroatoms). Fails if logD variance here is dominated by ionization state or scaffold size rather than atomic composition."
+      },
+      {
+        "skill_id": "ring_anchored_length_skeptic",
+        "rules": [
+          {
+            "rule_id": "fused_ring_scaffold",
+            "conditions": [
+              [
+                "ring_token_bin",
+                "ring_token_high"
+              ]
+            ],
+            "weight": 0.5,
+            "rationale": "Ring role carried the strongest transfer weight (0.758); rigid fused hydrophobic rings favor octanol partitioning."
+          },
+          {
+            "rule_id": "damped_length_transfer",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_long"
+              ]
+            ],
+            "weight": 0.15,
+            "rationale": "Source length effect had lowest role confidence (0.224), so its sign-reversed bulk bonus is kept deliberately weak."
+          },
+          {
+            "rule_id": "very_long_saturation_reversal",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_very_long"
+              ]
+            ],
+            "weight": -0.35,
+            "rationale": "Counter-hypothesis: size benefit saturates; very long molecules typically carry solubilizing chains that lower logD."
+          },
+          {
+            "rule_id": "branch_transfer_reversal",
+            "conditions": [
+              [
+                "branch_bin",
+                "branch_high"
+              ]
+            ],
+            "weight": -0.3,
+            "rationale": "Reverses the uncertain rotatable-bond role: heavy branching often marks polar substituents, not added hydrophobic bulk."
+          }
+        ],
+        "ridge": 1.3,
+        "prior_scale": 0.28,
+        "semantic_mass_start": 0.35,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.015,
+        "confidence": 0.45,
+        "hypothesis": "Keeps only the high-weight ring transfer, damps the low-confidence length transfer, and reverses the branch role. Fails if ESOL size and flexibility effects do transfer cleanly with inverted sign to logD."
+      }
+    ],
+    "selected_skill_id": "hydrophobic_surface_partitioning",
+    "lesson": "With no target feedback, cross-endpoint transfer stays hypothetical: low-confidence roles deserve damping, while mechanistic composition descriptors with large bin support are the safer deployment prior.",
+    "revision_summary": "Reformatted conditions as field:value objects per schema. In the domain skill, promoted the halogen-plus-aromatic interaction to an explicit two-condition rule (a mechanistically justified halogenated-aromatic motif) and dropped the standalone halogen rule, keeping the symmetric heteroatom pair. Rebuilt the second skill as a cleaner counter-hypothesis: retain only the highest-weight ring transfer, sharply damp the low-confidence length transfer, and reverse the uncertain rotatable-bond-to-branch relation. Lowered its semantic mass and confidence accordingly, and deployed the composition-driven prior."
+  },
+  "memory_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "experimental_only": true
+}

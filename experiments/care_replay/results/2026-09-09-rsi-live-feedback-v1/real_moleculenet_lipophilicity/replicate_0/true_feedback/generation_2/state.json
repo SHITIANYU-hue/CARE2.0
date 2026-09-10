@@ -1,0 +1,133 @@
+{
+  "parent_state_sha256": "485285dfaccf0c48344da2a9dd272c1456aacb966bbbc717bbb5b3ff012940e0",
+  "new_state_sha256": "caa18e1291e90b8986e7fcd88b5b98bd7053e3af990495592a435290f15f37b8",
+  "generation": 2,
+  "arm": "true_feedback",
+  "state": {
+    "skills": [
+      {
+        "skill_id": "ring_branch_polarity_partition",
+        "rules": [
+          {
+            "rule_id": "ring_rich_hydrophobic_surface",
+            "conditions": [
+              [
+                "ring_token_bin",
+                "ring_token_high"
+              ]
+            ],
+            "weight": 0.5,
+            "rationale": "Ring role carried the highest transfer weight (0.758, effect 9.94); fused ring carbon adds poorly hydrated nonpolar surface."
+          },
+          {
+            "rule_id": "hetero_high_polarity_penalty",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_high"
+              ]
+            ],
+            "weight": -0.4,
+            "rationale": "Donor-to-heteroatom role maps hydrogen bonding capacity; polar contacts retain water solvation and lower logD."
+          },
+          {
+            "rule_id": "branch_flexibility_penalty",
+            "conditions": [
+              [
+                "branch_bin",
+                "branch_high"
+              ]
+            ],
+            "weight": -0.22,
+            "rationale": "Rotatable-bond role (weight 0.758): flexible branching exposes polar groups and costs conformational entropy on octanol transfer."
+          },
+          {
+            "rule_id": "hetero_low_hydrocarbon_baseline",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_low"
+              ]
+            ],
+            "weight": 0.3,
+            "rationale": "Heteroatom-sparse scaffolds approach pure hydrocarbon, the classic high-logP extreme of drug-like chemical space."
+          }
+        ],
+        "ridge": 1.2,
+        "prior_scale": 0.32,
+        "semantic_mass_start": 0.5,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.55,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.015,
+        "confidence": 0.6,
+        "hypothesis": "Retains the higher-scoring generation-1 skill built on the two strongest transfer roles (ring and branch, weight 0.758) plus heteroatom polarity; fails if ring-rich molecules here are heavily oxygenated or ionizable."
+      },
+      {
+        "skill_id": "aromatic_core_length_agnostic",
+        "rules": [
+          {
+            "rule_id": "aromatic_pi_surface",
+            "conditions": [
+              [
+                "aromatic_bin",
+                "aromatic_high"
+              ]
+            ],
+            "weight": 0.5,
+            "rationale": "Extended aromatic pi surface is poorly hydrated and strongly favors the octanol phase, raising partition coefficients."
+          },
+          {
+            "rule_id": "aromatic_poor_polar_penalty",
+            "conditions": [
+              [
+                "aromatic_bin",
+                "aromatic_low"
+              ]
+            ],
+            "weight": -0.35,
+            "rationale": "Aliphatic, aromatic-poor scaffolds in this pool tend to be polar aliphatic chains with lower octanol-water partitioning."
+          },
+          {
+            "rule_id": "length_role_downweight",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_long"
+              ]
+            ],
+            "weight": 0.12,
+            "rationale": "Counter-hypothesis: the length role is the least confident transfer (0.22); size effect is retained only weakly, not as a driver."
+          },
+          {
+            "rule_id": "halogen_substituent_lift",
+            "conditions": [
+              [
+                "halogen_bin",
+                "halogen_mid"
+              ]
+            ],
+            "weight": 0.28,
+            "rationale": "Halogen substituents add polarizable, weakly hydrated surface; the mid bin (743 molecules) gives usable coverage unlike halogen_high."
+          }
+        ],
+        "ridge": 1.4,
+        "prior_scale": 0.28,
+        "semantic_mass_start": 0.38,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 2.1,
+        "gp_beta_end": 0.95,
+        "gp_xi": 0.02,
+        "confidence": 0.5,
+        "hypothesis": "Domain-knowledge aromatic and halogen substituent surface drives lipophilicity while explicitly downweighting the uncertain size transfer; fails if aromatic_high molecules in this pool carry dominant polar heterocycles."
+      }
+    ],
+    "selected_skill_id": "ring_branch_polarity_partition",
+    "lesson": "Across two generations the ring/branch/heteroatom skill scored 89.3 mean AUC versus 88.0 for the length-inversion skill, and the earlier generation showed the same ordering direction, but both gaps sit inside the 83-93 per-seed spread, so the ordering is suggestive rather than established. The consistent signal is that broad-coverage bins grounded in the highest transfer weights (ring and branch, 0.758) behave at least as well as the low-confidence length role (0.22), which never separated from noise.",
+    "revision_summary": "Promoted the previously non-deployed flexible_ring_balance_partition core to deployment as ring_branch_polarity_partition, since it led on development AUC in generation 1 and rests on the two highest transfer-weight roles with broad bin coverage; the branch penalty was softened slightly to reduce over-shrinkage of a 1183-molecule bin. The counter-hypothesis skill now demotes the low-confidence length role to a near-zero weight instead of using it as a driver, and replaces the sparse halogen_high bin (98 candidates) with halogen_mid (743) so the substituent feature can actually inform the surrogate. Deployment frozen on ring_branch_polarity_partition."
+  },
+  "memory_sha256": "ea121aa922d0a2b59a6d513c4070d030072d84a3886fb606c5f08697398133c8",
+  "experimental_only": true
+}

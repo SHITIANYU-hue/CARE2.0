@@ -1,0 +1,141 @@
+{
+  "parent_state_sha256": "47a67ba1a48a01c32517172ab06089bc9283b2c1eb0325d567da964b59575e4d",
+  "new_state_sha256": "d04933f309526950591bfcb353af8560425ef689f92e98063d2e1203323771b9",
+  "generation": 2,
+  "arm": "true_feedback",
+  "state": {
+    "skills": [
+      {
+        "skill_id": "ionicity_ladder_wide_gap_chemistry_v3",
+        "rules": [
+          {
+            "rule_id": "closed_shell_ionic_halide",
+            "conditions": [
+              [
+                "anion_family",
+                "halide"
+              ],
+              [
+                "transition_metal_flag",
+                "no_transition_metal"
+              ]
+            ],
+            "weight": 0.75,
+            "rationale": "Main-group halides are maximally ionic with closed-shell cations; no d-states in the gap, giving the widest experimental gaps."
+          },
+          {
+            "rule_id": "oxide_deep_o2p_valence_band",
+            "conditions": [
+              [
+                "anion_family",
+                "oxide"
+              ]
+            ],
+            "weight": 0.45,
+            "rationale": "Large electronegativity difference and deep O 2p valence band place oxides high on the ionicity gap ladder."
+          },
+          {
+            "rule_id": "chalcogenide_polarizable_narrow_gap",
+            "conditions": [
+              [
+                "anion_family",
+                "chalcogenide"
+              ]
+            ],
+            "weight": -0.45,
+            "rationale": "Polarizable S/Se/Te p-states raise the valence band and shrink gaps across the largest anion population."
+          },
+          {
+            "rule_id": "partially_filled_d_band_narrowing",
+            "conditions": [
+              [
+                "transition_metal_flag",
+                "has_transition_metal"
+              ]
+            ],
+            "weight": -0.22,
+            "rationale": "Partially filled d bands add states near the Fermi level and narrow gaps, but many d0 oxides are exceptions, so the penalty is mild."
+          }
+        ],
+        "ridge": 0.9,
+        "prior_scale": 0.55,
+        "semantic_mass_start": 0.5,
+        "semantic_mass_end": 0.18,
+        "ucb_weight": 0.55,
+        "gp_beta_start": 2.1,
+        "gp_beta_end": 0.9,
+        "gp_xi": 0.03,
+        "confidence": 0.68,
+        "hypothesis": "Domain proposal ordering candidates by cation-anion electronegativity difference: reward ionic halides and oxides, penalize polarizable chalcogenides, mildly penalize d-band metals. Fails for d0/d10 transition-metal oxides and defect-dominated measurements."
+      },
+      {
+        "skill_id": "moss_inverted_d0_oxide_counter_hypothesis",
+        "rules": [
+          {
+            "rule_id": "halide_low_polarizability_wide_gap",
+            "conditions": [
+              [
+                "anion_family",
+                "halide"
+              ]
+            ],
+            "weight": 0.6,
+            "rationale": "Halides carried the most negative source refractive-index effect; low polarizability inverts to wide gaps through the Moss relation."
+          },
+          {
+            "rule_id": "transition_metal_oxide_reversal",
+            "conditions": [
+              [
+                "anion_family",
+                "oxide"
+              ],
+              [
+                "transition_metal_flag",
+                "has_transition_metal"
+              ]
+            ],
+            "weight": 0.35,
+            "rationale": "Reverses the lowest-confidence source relation: d0/d10 transition-metal oxides are classic wide-gap ionic insulators, not narrow-gap metals."
+          },
+          {
+            "rule_id": "chalcogen_dominant_narrow_gap",
+            "conditions": [
+              [
+                "dominant_family",
+                "chalcogen"
+              ]
+            ],
+            "weight": -0.45,
+            "rationale": "Chalcogen-dominated compositions raised source refractive index; polarizable p-states imply small experimental gaps under Moss inversion."
+          },
+          {
+            "rule_id": "very_heavy_z_band_broadening_penalty",
+            "conditions": [
+              [
+                "mean_atomic_number_bin",
+                "mean_z_very_high"
+              ]
+            ],
+            "weight": -0.35,
+            "rationale": "Very heavy mean-Z increased source index; diffuse relativistic orbitals broaden bands and reduce measured gaps."
+          }
+        ],
+        "ridge": 1.1,
+        "prior_scale": 0.45,
+        "semantic_mass_start": 0.4,
+        "semantic_mass_end": 0.15,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.1,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.02,
+        "confidence": 0.5,
+        "hypothesis": "Source-grounded counter-hypothesis: invert dielectric effects (halide, chalcogen, heavy-Z) while reversing the near-zero-confidence transition-metal penalty toward wide-gap d0 oxides. Fails if index and gap co-vary positively or if inversion misreads weak source signals."
+      }
+    ],
+    "selected_skill_id": "ionicity_ladder_wide_gap_chemistry_v3",
+    "lesson": "Across two independent development generations the ionicity ladder led on mean AUC (72.7 vs 65.3, then 81.3 vs 73.5) with comparable final-best, so domain electronegativity ordering remains the safer frozen choice given source per-field confidences of only 0.006-0.30. Weak seeds appeared for both skills, indicating task variance rather than a specific rule defect, so I only softened the broad transition-metal penalty that conflicts with wide-gap d0 oxides instead of restructuring the skill.",
+    "revision_summary": "Deployed skill v3 keeps the winning ionicity ladder, slightly strengthens the closed-shell halide interaction, deepens the chalcogenide penalty, and reduces the blanket transition-metal penalty from -0.30 to -0.22 because d0 oxides are wide-gap counterexamples; semantic mass end was trimmed to hand more late mass to the target-only anchor. The alternative is rebuilt as a sharper counter-hypothesis that keeps Moss-inverted source evidence (halide, chalcogen-dominant, very-high mean-Z) but explicitly reverses the lowest-confidence transition-metal relation via a d0-oxide interaction and switches the polarizability penalty from anion_family to the dominant_family chalcogen axis for diversity. All conditions map catalog fields to exact catalog values, each skill uses four rules, and all parameters lie inside the allowed ranges; feedback informed only relative ranking, not causal claims."
+  },
+  "memory_sha256": "c69c3b3d0ffa41f60ef2b8d75d2f32403cab513cd90fca4de1ba1a308517c6c7",
+  "experimental_only": true
+}

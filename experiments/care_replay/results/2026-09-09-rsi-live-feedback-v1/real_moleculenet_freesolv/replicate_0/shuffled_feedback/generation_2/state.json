@@ -1,0 +1,133 @@
+{
+  "parent_state_sha256": "0e2a294ac86fbf6c54805ec195a1153b9e55155e98761a9501f505584114626c",
+  "new_state_sha256": "142934e06e37882ceaeada954307666d3039b0901a97a30b6d1e15c26b7d5d24",
+  "generation": 2,
+  "arm": "shuffled_feedback",
+  "state": {
+    "skills": [
+      {
+        "skill_id": "small_acyclic_solute_size_transfer",
+        "rules": [
+          {
+            "rule_id": "short_smiles_favorable",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_short"
+              ]
+            ],
+            "weight": 0.45,
+            "rationale": "Source ESOL prior favors smiles_short (+6.89); small solutes pay low cavity-formation cost in water."
+          },
+          {
+            "rule_id": "mid_length_penalty",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_mid"
+              ]
+            ],
+            "weight": -0.3,
+            "rationale": "Source prior for smiles_mid is negative (-6.61); added nonpolar surface raises solvation cost."
+          },
+          {
+            "rule_id": "long_smiles_penalty",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_long"
+              ]
+            ],
+            "weight": -0.4,
+            "rationale": "Largest and most confident source length effect (-11.46); bulky solutes are penalized."
+          },
+          {
+            "rule_id": "acyclic_scaffold_favorable",
+            "conditions": [
+              [
+                "ring_token_bin",
+                "ring_token_none"
+              ]
+            ],
+            "weight": 0.3,
+            "rationale": "Ring role carried the highest transfer weight (0.76); acyclic solutes lack rigid hydrophobic ring surface."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.35,
+        "semantic_mass_start": 0.4,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.01,
+        "confidence": 0.5,
+        "hypothesis": "Restores the full signed ESOL length ladder plus the high-transfer-weight ring role, dropping the weak branch rule. Fails if hydration ranking is driven by heteroatom polarity rather than solute size and ring content."
+      },
+      {
+        "skill_id": "polar_small_solute_interaction_counter",
+        "rules": [
+          {
+            "rule_id": "short_polar_solute",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_low"
+              ]
+            ],
+            "weight": 0.35,
+            "rationale": "Broad hetero_low bin (316 candidates) carries modest polarity without the sparsity that crippled hetero_high rules."
+          },
+          {
+            "rule_id": "short_length_support",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_short"
+              ]
+            ],
+            "weight": 0.25,
+            "rationale": "Keeps the source length sign but downweighted, since its confidence is only 0.28."
+          },
+          {
+            "rule_id": "heavy_halogen_penalty",
+            "conditions": [
+              [
+                "halogen_bin",
+                "halogen_high"
+              ]
+            ],
+            "weight": -0.25,
+            "rationale": "Heavy halogenation adds nonpolar surface area, typically reducing water affinity despite polarizability."
+          },
+          {
+            "rule_id": "branched_bulk_penalty",
+            "conditions": [
+              [
+                "branch_bin",
+                "branch_high"
+              ]
+            ],
+            "weight": -0.2,
+            "rationale": "Branch role transferred strongly (0.76); highly branched solutes bury nonpolar volume and resist hydration."
+          }
+        ],
+        "ridge": 1.2,
+        "prior_scale": 0.25,
+        "semantic_mass_start": 0.22,
+        "semantic_mass_end": 0.05,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 0.9,
+        "gp_xi": 0.02,
+        "confidence": 0.35,
+        "hypothesis": "Counter-hypothesis downweighting the pure size story: moderate polarity in a well-populated bin plus mild hydrophobic penalties should track hydration. Fails if hydration favors highly polar or purely nonpolar extremes instead of moderate mixed solutes."
+      }
+    ],
+    "selected_skill_id": "small_acyclic_solute_size_transfer",
+    "lesson": "Across sixteen development seeds the source-grounded size and topology transfer outperformed every polarity-led variant (mean AUC ~74.5 and ~66.8 versus ~53.9 and ~52.7), and both polarity skills relied on the sparse hetero_high bin; the remaining weakness of the size skill was its diluted four-rule set, so the length ladder is restored in full and the low-weight branch rule dropped rather than switching families again.",
+    "revision_summary": "Deployed skill sharpens the surviving size transfer: the full signed length ladder (short +0.45, mid -0.30, long -0.40) is restored, the ring_token_none rule is strengthened to 0.30, the weak branch rule is removed, and semantic mass starts slightly higher at 0.40 with decay to 0.10 since the semantic signal has been consistently useful. The counter-hypothesis is rebuilt to avoid the repeatedly failing hetero_high condition, instead using the broad hetero_low bin with mild halogen and branching penalties and a low semantic_mass_start so the target-only anchor dominates if it is wrong. Only exact catalog field-value pairs are used and no target outcomes are assumed."
+  },
+  "memory_sha256": "2d8d7f46d558d924e675510ab1a2ad11152c02ed9ac5ff86aea83e5f764dbab5",
+  "experimental_only": true
+}

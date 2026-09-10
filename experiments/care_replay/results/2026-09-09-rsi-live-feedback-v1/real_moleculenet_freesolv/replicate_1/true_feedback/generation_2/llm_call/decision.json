@@ -1,0 +1,125 @@
+{
+  "skills": [
+    {
+      "skill_id": "polar_hbond_hydration_core",
+      "rules": [
+        {
+          "rule_id": "hetero_rich_polar_favored",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": 0.75,
+          "rationale": "Multiple N/O sites both donate and accept water hydrogen bonds, the dominant favorable hydration term."
+        },
+        {
+          "rule_id": "hetero_mid_polar_favored",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_mid"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Moderate heteroatom content still supplies hydrogen-bonding functionality without excessive nonpolar bulk."
+        },
+        {
+          "rule_id": "bare_hydrocarbon_penalized",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_none"
+            ]
+          ],
+          "weight": -0.45,
+          "rationale": "Pure hydrocarbons hydrate poorly; cavity formation in water's network dominates with no compensating hydrogen bonds."
+        },
+        {
+          "rule_id": "halogen_rich_penalized",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_high"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Heavily halogenated surfaces are polarizable but weak hydrogen bonders, raising net desolvation cost."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.35,
+      "semantic_mass_start": 0.35,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.55,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.02,
+      "confidence": 0.65,
+      "hypothesis": "Hydration affinity tracks hydrogen-bonding capacity minus hydrophobic cavity cost, so heteroatom-rich, weakly halogenated solutes rank highest. Fails if the score rewards halogen bonding or nonpolar burial."
+    },
+    {
+      "skill_id": "acyclic_flexible_counter_transfer",
+      "rules": [
+        {
+          "rule_id": "ring_token_none_favored",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_none"
+            ]
+          ],
+          "weight": 0.35,
+          "rationale": "Acyclic solutes expose less rigid nonpolar surface; source ring role carried the highest transfer weight, 0.758."
+        },
+        {
+          "rule_id": "aromatic_none_favored",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_none"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Flat aromatic faces are hydrophobic; their absence reduces cavity work in aqueous solvation."
+        },
+        {
+          "rule_id": "counter_mid_length_not_penalized",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": 0.15,
+          "rationale": "Counter-hypothesis: reverses the low-confidence 0.22 ESOL size prior, since longer chains can add hydrating groups."
+        },
+        {
+          "rule_id": "branch_high_penalized",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_high"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "Heavy branching builds compact nonpolar cores that shield polar sites from water contact."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.25,
+      "semantic_mass_start": 0.28,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.4,
+      "hypothesis": "Scaffold topology, not size, drives hydration: acyclic non-aromatic low-branch solutes gain while the weak ESOL size penalty is reversed. Fails if polar functionality dominates topology."
+    }
+  ],
+  "selected_skill_id": "polar_hbond_hydration_core",
+  "lesson": "Across two development generations the polarity/hydrogen-bonding skill led on mean rank AUC (72.9 then 67.9) while size-transfer and scaffold-shape variants stayed near 54-56; sparse bins like aromatic_high and ring_token_high (2-3 candidates) contributed almost no usable signal. Evidence is directional from few seeds, not causal.",
+  "revision_summary": "Kept the winning polar mechanism but replaced the sparse two-condition interaction with a broader hetero_mid main effect, so rules cover well-populated bins (28/91/207/43 candidates) instead of rare ones. The second skill drops the near-empty aromatic_high and ring_token_high penalties that underperformed and instead rewards the large acyclic and non-aromatic populations while explicitly reversing the low-confidence 0.22 ESOL size prior. Both keep decaying semantic mass; the polar skill is frozen for deployment."
+}

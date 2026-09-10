@@ -1,0 +1,141 @@
+{
+  "parent_state_sha256": "dd7aee6a8862546369d196b94086b399fe61b413a40b9770d7c8a8f5df80c7c5",
+  "new_state_sha256": "3a98aa86773c57efa45755d9c7ee55adef137275a38427ff122d407080f87bc4",
+  "generation": 1,
+  "arm": "shuffled_feedback",
+  "state": {
+    "skills": [
+      {
+        "skill_id": "halide_ionicity_moss_hybrid",
+        "rules": [
+          {
+            "rule_id": "halide_anion_wide_gap",
+            "conditions": [
+              [
+                "anion_family",
+                "halide"
+              ]
+            ],
+            "weight": 0.85,
+            "rationale": "Halides are maximally ionic with deep p valence bands; source shows they suppress refractive index, implying wide gaps."
+          },
+          {
+            "rule_id": "halogen_dominant_insulator",
+            "conditions": [
+              [
+                "dominant_family",
+                "halogen"
+              ]
+            ],
+            "weight": 0.7,
+            "rationale": "Halogen-dominated stoichiometries give large electronegativity contrast and the widest experimental gaps among known compounds."
+          },
+          {
+            "rule_id": "metalloid_polarizable_narrow_gap",
+            "conditions": [
+              [
+                "dominant_family",
+                "metalloid"
+              ]
+            ],
+            "weight": -0.65,
+            "rationale": "Largest source index gain (+9.23) marks polarizable covalent metalloid chemistry, which under Moss scaling implies small gaps."
+          },
+          {
+            "rule_id": "d_band_chalcogenide_narrowing",
+            "conditions": [
+              [
+                "anion_family",
+                "chalcogenide"
+              ],
+              [
+                "transition_metal_flag",
+                "has_transition_metal"
+              ]
+            ],
+            "weight": -0.6,
+            "rationale": "Transition-metal chalcogenides add partially filled d states above covalent S/Se/Te p bands, collapsing the gap."
+          }
+        ],
+        "ridge": 1.6,
+        "prior_scale": 0.45,
+        "semantic_mass_start": 0.5,
+        "semantic_mass_end": 0.15,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.015,
+        "confidence": 0.65,
+        "hypothesis": "Merges the ionicity rules and the Moss-inverted source signals that each performed acceptably on development seeds. Fails if the halide subset is small and atypical or if gaps here track defect and structural chemistry instead of bonding ionicity."
+      },
+      {
+        "skill_id": "heavy_ionic_lanthanide_counter_hypothesis",
+        "rules": [
+          {
+            "rule_id": "heavy_mean_z_not_inverted",
+            "conditions": [
+              [
+                "mean_atomic_number_bin",
+                "mean_z_high"
+              ]
+            ],
+            "weight": 0.4,
+            "rationale": "Counter to Moss inversion: heavy-Z here often means ionic lanthanide oxides and halides, which remain wide-gap insulators."
+          },
+          {
+            "rule_id": "lanthanide_localized_f_states",
+            "conditions": [
+              [
+                "lanthanide_flag",
+                "has_lanthanide"
+              ]
+            ],
+            "weight": 0.35,
+            "rationale": "Source lanthanide relation had near-zero confidence (0.006); domain view is localized 4f with ionic bonding favouring wide gaps."
+          },
+          {
+            "rule_id": "transition_metal_d_state_penalty",
+            "conditions": [
+              [
+                "transition_metal_flag",
+                "has_transition_metal"
+              ]
+            ],
+            "weight": -0.5,
+            "rationale": "Partially filled d manifolds introduce mid-gap conduction states, systematically narrowing experimental band gaps."
+          },
+          {
+            "rule_id": "oxide_without_d_states",
+            "conditions": [
+              [
+                "anion_family",
+                "oxide"
+              ],
+              [
+                "transition_metal_flag",
+                "no_transition_metal"
+              ]
+            ],
+            "weight": 0.55,
+            "rationale": "Closed-shell oxides keep a wide O 2p to cation s separation with no d-derived states inside the gap."
+          }
+        ],
+        "ridge": 4.0,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.35,
+        "semantic_mass_end": 0.08,
+        "ucb_weight": 0.45,
+        "gp_beta_start": 2.6,
+        "gp_beta_end": 1.2,
+        "gp_xi": 0.03,
+        "confidence": 0.4,
+        "hypothesis": "Counter-hypothesis that refuses the mean_z sign inversion and the near-zero-confidence lanthanide transfer, betting on ionic heavy-cation insulators. Fails if heavy-Z compounds in this pool are chiefly polarizable tellurides and intermetallic-like semimetals."
+      }
+    ],
+    "selected_skill_id": "halide_ionicity_moss_hybrid",
+    "lesson": "The prior generation failed schema validation because conditions were emitted as pair lists rather than field-to-value objects; evidence choices were sound but transport was invalid. Development seeds showed the Moss-inverted transfer led on AUC while the ionicity skill led on final best, so the strongest signals shared by both (halide/halogen ionicity, metalloid and d-state penalties) are the most defensible to deploy, without over-reading eight seeds.",
+    "revision_summary": "Reissued both skills with contract-valid conditions objects mapping exact catalog fields to exact catalog values. Deployed skill fuses the rules common to both prior variants: halide anion and halogen-dominant positives, metalloid negative, and a chemically meaningful two-condition transition-metal chalcogenide penalty, with mid-range semantic mass and a UCB-leaning anchor. The second skill is an explicit counter-hypothesis that declines to invert the mean_z_high source effect and declines to ignore the low-confidence lanthanide relation, run with higher ridge and more exploration. Supplied source evidence values were not modified."
+  },
+  "memory_sha256": "73c232682f1cc3f162d428c4e0dc2891d4462267c9916cca3def24c6ccf2ae30",
+  "experimental_only": true
+}

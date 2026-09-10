@@ -1,0 +1,137 @@
+{
+  "parent_state_sha256": "a8582927905abeb899bbc317ce251951e001bd9bb4316f9bd6ec1a6adb06b785",
+  "new_state_sha256": "9cb8d8a39f2738a54e668e555c9749407dc2812b45108eec80b529b7dc7d4300",
+  "generation": 1,
+  "arm": "true_feedback",
+  "state": {
+    "skills": [
+      {
+        "skill_id": "wide_gap_ionic_closed_shell_prior",
+        "rules": [
+          {
+            "rule_id": "halide_ionic_wide_gap",
+            "conditions": [
+              [
+                "anion_family",
+                "halide"
+              ]
+            ],
+            "weight": 0.7,
+            "rationale": "Electronegative halide anions give deep valence bands and large ionic gaps in experimental compounds."
+          },
+          {
+            "rule_id": "main_group_oxide_no_d_states",
+            "conditions": [
+              [
+                "anion_family",
+                "oxide"
+              ],
+              [
+                "transition_metal_flag",
+                "no_transition_metal"
+              ]
+            ],
+            "weight": 0.6,
+            "rationale": "Main-group oxides lack partially filled d bands, so gaps stay wide unlike transition-metal oxides."
+          },
+          {
+            "rule_id": "light_element_deep_valence_band",
+            "conditions": [
+              [
+                "mean_atomic_number_bin",
+                "mean_z_low"
+              ]
+            ],
+            "weight": 0.45,
+            "rationale": "Light elements have compact orbitals, weak spin-orbit coupling, and low polarizability, all favoring wider gaps."
+          },
+          {
+            "rule_id": "transition_metal_d_band_penalty",
+            "conditions": [
+              [
+                "transition_metal_flag",
+                "has_transition_metal"
+              ]
+            ],
+            "weight": -0.45,
+            "rationale": "Partially filled d manifolds add mid-gap and low conduction states, reducing measured band gaps."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.5,
+        "semantic_mass_start": 0.45,
+        "semantic_mass_end": 0.18,
+        "ucb_weight": 0.55,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.03,
+        "confidence": 0.68,
+        "hypothesis": "Retained target-physics prior: electronegative closed-shell anions with light, d0 main-group cations mark wide gaps. Fails if halide and light-oxide subsets are thin or d0 transition-metal oxides top the distribution."
+      },
+      {
+        "skill_id": "polarizable_narrowgap_exclusion_counterprior",
+        "rules": [
+          {
+            "rule_id": "chalcogenide_valence_edge_penalty",
+            "conditions": [
+              [
+                "anion_family",
+                "chalcogenide"
+              ]
+            ],
+            "weight": -0.6,
+            "rationale": "Source scored chalcogenides positively for refractive index; polarizable S/Se/Te p states instead raise valence edges, shrinking gaps."
+          },
+          {
+            "rule_id": "pnictide_covalent_narrow_gap",
+            "conditions": [
+              [
+                "anion_family",
+                "pnictide"
+              ]
+            ],
+            "weight": -0.55,
+            "rationale": "Covalent pnictides show small ionicity and strong band dispersion, giving narrow experimental gaps despite positive source effect."
+          },
+          {
+            "rule_id": "metalloid_downweighted_penalty",
+            "conditions": [
+              [
+                "dominant_family",
+                "metalloid"
+              ]
+            ],
+            "weight": -0.35,
+            "rationale": "Largest source effect but low confidence; Moss relation implies modest negative, not strong positive, gap transfer."
+          },
+          {
+            "rule_id": "halogen_dominant_ionic_bonus",
+            "conditions": [
+              [
+                "dominant_family",
+                "halogen"
+              ]
+            ],
+            "weight": 0.5,
+            "rationale": "Halogen-dominant ionic solids depressed source refractive index yet typically carry the widest experimental gaps."
+          }
+        ],
+        "ridge": 1.2,
+        "prior_scale": 0.4,
+        "semantic_mass_start": 0.38,
+        "semantic_mass_end": 0.12,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 2.4,
+        "gp_beta_end": 0.9,
+        "gp_xi": 0.04,
+        "confidence": 0.5,
+        "hypothesis": "Counter-hypothesis: reverse and shrink the weak, low-confidence positive source effects for chalcogenide, pnictide, and metalloid chemistries, pruning polarizable narrow-gap bulk. Fails if gap ordering is set by structure or measurement bias rather than anion polarizability."
+      }
+    ],
+    "selected_skill_id": "wide_gap_ionic_closed_shell_prior",
+    "lesson": "Development seeds showed the target-physics prior clearly ahead of sign-flipped source transfer (mean AUC 82.5 vs 58.0, final best 95.0 vs 75.0), so the validated skill is retained nearly unchanged with only a slightly higher late semantic mass; the counter-hypothesis now prunes polarizable narrow-gap families instead of relying on the low-confidence source signs.",
+    "revision_summary": "Kept the winning wide_gap_ionic_closed_shell_prior rules and weights identical, raising semantic_mass_end 0.15 to 0.18 and gp_beta_end 0.9 to 1.0 for slightly sustained guidance and exploration on weaker seeds. Replaced the losing Moss-inversion skill with an exclusion-style counter-hypothesis that reverses and downweights the uncertain positive chalcogenide, pnictide, and metalloid source relations while keeping the halogen reversal. All conditions use exact catalog field/value pairs, rules are at most four per skill, rationales stay under 25 words, hypotheses under 45 words, and all parameters lie inside the allowed ranges. Source effects and confidences informed only sign and emphasis; no target outcomes were used."
+  },
+  "memory_sha256": "8df2fd4ccac2d8c47a93c5cbdcf14a8f65a8dc279610f3a5765e22994d92a1d6",
+  "experimental_only": true
+}

@@ -1,0 +1,137 @@
+{
+  "parent_state_sha256": "8baac75388d710cfa4b7be8d74d334ee7876d103d5c6b2016a4681fb1125c90b",
+  "new_state_sha256": "7c7537879f643b3e0eb91dfd89246036894246b337aa65eec6bccb972c70e23b",
+  "generation": 1,
+  "arm": "true_feedback",
+  "state": {
+    "skills": [
+      {
+        "skill_id": "polar_halogen_hydration_balance",
+        "rules": [
+          {
+            "rule_id": "hetero_rich_polar_favored",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_high"
+              ]
+            ],
+            "weight": 0.7,
+            "rationale": "Multiple N/O sites donate and accept water hydrogen bonds, the leading favorable term in hydration free energy."
+          },
+          {
+            "rule_id": "halogen_rich_penalized",
+            "conditions": [
+              [
+                "halogen_bin",
+                "halogen_high"
+              ]
+            ],
+            "weight": -0.55,
+            "rationale": "Halogen-rich surfaces are polarizable but weak hydrogen bonders, raising cavity-formation cost in water."
+          },
+          {
+            "rule_id": "nonpolar_bare_carbon_penalized",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_none"
+              ]
+            ],
+            "weight": -0.4,
+            "rationale": "Hydrocarbon-only solutes hydrate poorly; the dominant cost is creating a cavity in water's hydrogen-bond network."
+          },
+          {
+            "rule_id": "polar_moderate_no_halogen_bonus",
+            "conditions": [
+              [
+                "halogen_bin",
+                "halogen_none"
+              ],
+              [
+                "hetero_atom_bin",
+                "hetero_mid"
+              ]
+            ],
+            "weight": 0.3,
+            "rationale": "Moderate polarity without halogen quenching is the classic favorable hydration regime for small organic solutes."
+          }
+        ],
+        "ridge": 1.5,
+        "prior_scale": 0.35,
+        "semantic_mass_start": 0.35,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.55,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.02,
+        "confidence": 0.6,
+        "hypothesis": "Hydration affinity is set by polar hydrogen-bonding capacity minus hydrophobic cavity cost, so heteroatom-rich and halogen-free solutes rank highest. Fails if the target score rewards burial of polar groups or halogen bonding."
+      },
+      {
+        "skill_id": "aromatic_ring_hydrophobicity_penalty",
+        "rules": [
+          {
+            "rule_id": "aromatic_high_penalized",
+            "conditions": [
+              [
+                "aromatic_bin",
+                "aromatic_high"
+              ]
+            ],
+            "weight": -0.6,
+            "rationale": "Highly aromatic scaffolds present flat nonpolar faces; desolvation of these faces dominates the hydration penalty."
+          },
+          {
+            "rule_id": "ring_token_high_penalized",
+            "conditions": [
+              [
+                "ring_token_bin",
+                "ring_token_high"
+              ]
+            ],
+            "weight": -0.45,
+            "rationale": "Rigid polycyclic topology is bulky and poorly matched to water's hydrogen-bond network, raising cavity work."
+          },
+          {
+            "rule_id": "acyclic_low_branch_favored",
+            "conditions": [
+              [
+                "branch_bin",
+                "branch_none"
+              ]
+            ],
+            "weight": 0.3,
+            "rationale": "Unbranched acyclic solutes pack compactly, minimizing exposed hydrophobic surface per unit of polar functionality."
+          },
+          {
+            "rule_id": "counter_short_smiles_downweighted",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_short"
+              ]
+            ],
+            "weight": 0.15,
+            "rationale": "Counter-hypothesis: the ESOL size prior had only 0.22 confidence, so its short-SMILES bonus is heavily damped."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.25,
+        "semantic_mass_start": 0.3,
+        "semantic_mass_end": 0.08,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.01,
+        "confidence": 0.45,
+        "hypothesis": "Hydrophobic scaffold exposure, not molecular size, governs hydration ranking: aromatic and ring-rich topologies are penalized while acyclic low-branch solutes gain. Fails if polar functionalization outweighs scaffold shape."
+      }
+    ],
+    "selected_skill_id": "polar_halogen_hydration_balance",
+    "lesson": "Across the eight development seeds the polarity/hydrogen-bonding skill roughly doubled mean rank AUC versus the size-and-ring transfer (72.9 vs 54.3), with the size skill collapsing on some seeds; scaffold-shape rules were retained only as a lower-confidence complement. The evidence is directional, not causal, from a small seed set.",
+    "revision_summary": "Retained the winning polar mechanism but hardened it: added an explicit hetero_none penalty and kept the halogen and halogen-free/moderate-polarity interactions, dropping the near-inert smiles_mid counter rule. The second skill replaces the source-heavy size transfer with a distinct hydrophobic-scaffold hypothesis that penalizes aromatic and ring-rich topology, and it downweights instead of honoring the weak 0.22-confidence short-SMILES prior. Both skills decay semantic mass so target-only GP evidence takes over late; the polar skill is frozen for deployment."
+  },
+  "memory_sha256": "8196c60ef215e8641d7790d804a0750f06e9ae50350956cffb21124e05cd3f27",
+  "experimental_only": true
+}

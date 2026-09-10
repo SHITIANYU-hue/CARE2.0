@@ -1,0 +1,129 @@
+{
+  "skills": [
+    {
+      "skill_id": "moss_inverted_dielectric_to_gap_transfer",
+      "rules": [
+        {
+          "rule_id": "halide_negative_in_source_implies_wide_gap",
+          "conditions": [
+            [
+              "anion_family",
+              "halide"
+            ]
+          ],
+          "weight": 0.75,
+          "rationale": "Source shows halides suppress refractive index; Moss relation n^4*Eg~const implies halides sit at wide-gap end."
+        },
+        {
+          "rule_id": "metalloid_strongest_source_gain_implies_narrow_gap",
+          "conditions": [
+            [
+              "dominant_family",
+              "metalloid"
+            ]
+          ],
+          "weight": -0.7,
+          "rationale": "Largest source effect (+9.23) was metalloid-dominated high-index chemistry; inverted, these are polarizable narrow-gap semiconductors."
+        },
+        {
+          "rule_id": "high_mean_z_polarizability_penalty",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_high"
+            ]
+          ],
+          "weight": -0.55,
+          "rationale": "Heavy-atom source positive index effect (+6.07) reflects loose valence electrons, which shrink the fundamental gap."
+        },
+        {
+          "rule_id": "chalcogenide_covalency_penalty",
+          "conditions": [
+            [
+              "anion_family",
+              "chalcogenide"
+            ]
+          ],
+          "weight": -0.45,
+          "rationale": "Source chalcogenide index gain (+3.51) maps to reduced ionicity and smaller experimental band gaps."
+        }
+      ],
+      "ridge": 3.0,
+      "prior_scale": 0.35,
+      "semantic_mass_start": 0.35,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.65,
+      "gp_beta_start": 2.4,
+      "gp_beta_end": 1.1,
+      "gp_xi": 0.02,
+      "confidence": 0.42,
+      "hypothesis": "Transfers source refractive-index effects with reversed sign under the Moss relation. Fails if the target pool's gaps are driven by structural or defect chemistry rather than valence polarizability, or if source confidences (0.02-0.30) are too weak to carry sign information."
+    },
+    {
+      "skill_id": "ionicity_and_d_state_wide_gap_chemistry",
+      "rules": [
+        {
+          "rule_id": "halogen_dominated_ionic_insulators",
+          "conditions": [
+            [
+              "dominant_family",
+              "halogen"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Strongly electronegative halogen anions give deep, localized valence bands and the widest experimental gaps among known compounds."
+        },
+        {
+          "rule_id": "closed_shell_oxide_without_d_states",
+          "conditions": [
+            [
+              "anion_family",
+              "oxide"
+            ],
+            [
+              "transition_metal_flag",
+              "no_transition_metal"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Oxides lacking partially filled d bands avoid mid-gap d-derived conduction states, preserving wide O 2p to s-band separation."
+        },
+        {
+          "rule_id": "light_element_deep_valence",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_low"
+            ]
+          ],
+          "weight": 0.45,
+          "rationale": "Low mean atomic number implies compact valence orbitals, weak spin-orbit splitting, and larger bonding-antibonding separation."
+        },
+        {
+          "rule_id": "covalent_pnictide_narrow_gap",
+          "conditions": [
+            [
+              "anion_family",
+              "pnictide"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Pnictides are predominantly covalent semiconductors or semimetals with small gaps, independent of the uncertain lanthanide source relation."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.55,
+      "semantic_mass_start": 0.55,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.55,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.72,
+      "hypothesis": "Encodes ionicity and d-band occupancy as the primary band-gap drivers, deliberately ignoring the near-zero-confidence lanthanide transfer. Fails if the halide subset is small and atypical, or if oxides here are dominated by narrow-gap mixed-valence compounds."
+    }
+  ],
+  "selected_skill_id": "ionicity_and_d_state_wide_gap_chemistry",
+  "lesson": "The source study optimizes refractive index, which is physically anti-correlated with band gap through the Moss relation, so raw transfer weights must not be applied with their original signs. Since every source field carries low confidence (0.006-0.30) and the sign flip is itself an assumption, the safer deployment leans on first-principles band-gap chemistry (ionicity, d-state occupancy, valence-orbital compactness) and uses the source evidence only as corroboration where it agrees with the inverted expectation.",
+  "revision_summary": "Rebuilt the response to satisfy the JSON contract exactly: two skills with distinct descriptive skill_ids, every conditions object mapping a real catalog field to an exact catalog value (no placeholder keys), 4 rules per skill, rationales under 25 words, hypotheses under 45 words, and all parameters inside the allowed ranges. Skill one is grounded in the supplied source effects and serves as the counter-hypothesis by reversing them under the Moss relation; skill two is the domain-knowledge proposal and downweights the near-zero-confidence lanthanide relation. Source evidence values were not altered."
+}

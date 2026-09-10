@@ -1,0 +1,137 @@
+{
+  "parent_state_sha256": "4ee525d55c627fa4de3dcc8a10014bc2891b6e464a05618c71417940ad4d3f6c",
+  "new_state_sha256": "24850190ab1ac3ba5f327dc8de7ab95001c8bfd6c8269cdcf335cc9636820a45",
+  "generation": 1,
+  "arm": "true_feedback",
+  "state": {
+    "skills": [
+      {
+        "skill_id": "polarity_core_halogen_penalty_refined",
+        "rules": [
+          {
+            "rule_id": "heteroatom_rich_bonus",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_high"
+              ]
+            ],
+            "weight": 0.85,
+            "rationale": "Multiple N/O sites donate and accept hydrogen bonds to water, the dominant favorable term in hydration free energy."
+          },
+          {
+            "rule_id": "moderate_heteroatom_bonus",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_mid"
+              ]
+            ],
+            "weight": 0.4,
+            "rationale": "Few polar sites still add favorable solute-water contacts without burying them under a large apolar scaffold."
+          },
+          {
+            "rule_id": "halogen_heavy_penalty",
+            "conditions": [
+              [
+                "halogen_bin",
+                "halogen_high"
+              ]
+            ],
+            "weight": -0.65,
+            "rationale": "Halogen-rich solutes are apolar and poorly solvated; polarizability alone does not offset the loss of hydrogen bonding."
+          },
+          {
+            "rule_id": "aromatic_apolar_penalty",
+            "conditions": [
+              [
+                "aromatic_bin",
+                "aromatic_high"
+              ]
+            ],
+            "weight": -0.45,
+            "rationale": "Fused aromatic scaffolds are flat and hydrophobic; pi density is weakly hydrating versus polar substituent groups."
+          }
+        ],
+        "ridge": 0.9,
+        "prior_scale": 0.45,
+        "semantic_mass_start": 0.5,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.55,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 0.9,
+        "gp_xi": 0.02,
+        "confidence": 0.7,
+        "hypothesis": "Retains the polarity mechanism that won on development seeds, adding an aromatic-apolar penalty to sharpen the low end. It fails if aromatic species with polar substituents occupy the top of the hydration pool."
+      },
+      {
+        "skill_id": "ring_topology_hbond_proxy_counter",
+        "rules": [
+          {
+            "rule_id": "ring_high_penalty",
+            "conditions": [
+              [
+                "ring_token_bin",
+                "ring_token_high"
+              ]
+            ],
+            "weight": -0.6,
+            "rationale": "Reverses the uncertain source ring prior: rigid polycyclic solutes pack apolar surface and solvate poorly in water."
+          },
+          {
+            "rule_id": "polar_ring_strain_reversal",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_none"
+              ],
+              [
+                "ring_token_bin",
+                "ring_token_none"
+              ]
+            ],
+            "weight": -0.5,
+            "rationale": "Acyclic and heteroatom-free together mark pure hydrocarbons, whose hydration is entropically costly despite the acyclic bonus."
+          },
+          {
+            "rule_id": "branched_mid_apolar_penalty",
+            "conditions": [
+              [
+                "branch_bin",
+                "branch_high"
+              ]
+            ],
+            "weight": -0.4,
+            "rationale": "Highly branched skeletons raise hydrophobic surface area and reduce favorable water contact per heavy atom."
+          },
+          {
+            "rule_id": "double_bond_polarity_bonus",
+            "conditions": [
+              [
+                "double_bond_bin",
+                "double_bond_mid"
+              ]
+            ],
+            "weight": 0.3,
+            "rationale": "Unsaturated centers often accompany carbonyl and imine groups, which are strong hydration acceptors."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.4,
+        "semantic_mass_start": 0.4,
+        "semantic_mass_end": 0.12,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.1,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.015,
+        "confidence": 0.5,
+        "hypothesis": "Tests whether ring topology and unsaturation proxy hydrogen-bonding capacity, downweighting the high-transfer-weight source ring relation. It fails if ring presence genuinely tracks favorable hydration in the top pool."
+      }
+    ],
+    "selected_skill_id": "polarity_core_halogen_penalty_refined",
+    "lesson": "The polarity mechanism generalized strongly across all eight development seeds (mean AUC ~83 versus ~51 for the transferred ESOL size prior), so refinements should keep heteroatom and halogen polarity terms central and treat source length and ring relations as low-confidence priors.",
+    "revision_summary": "Kept the deployed polarity core, replacing the short-plus-apolar interaction term with an aromatic-apolar penalty and slightly relaxing semantic mass decay. Proposes a complementary counter-skill that reverses the high-transfer-weight ring relation and adds branch, ring, and unsaturation topology terms as hydrogen-bonding proxies, and retains the polarity core for deployment."
+  },
+  "memory_sha256": "e99077a734608cc548f4fe7f30e80954351bf7f5d99b73768d4664ddafd7ac63",
+  "experimental_only": true
+}

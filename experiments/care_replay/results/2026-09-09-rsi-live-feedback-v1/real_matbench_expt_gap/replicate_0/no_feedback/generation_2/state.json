@@ -1,0 +1,137 @@
+{
+  "parent_state_sha256": "920ce1ffd59cdf10837d5281f23fbdbcb00f60db4c970b72adf5894d2281ba1e",
+  "new_state_sha256": "7938160d097ab63b8ca48be41b8bdf4e7f91796292e26059645b7f12751abb05",
+  "generation": 2,
+  "arm": "no_feedback",
+  "state": {
+    "skills": [
+      {
+        "skill_id": "moss_inverted_heavy_anion_gap_penalty",
+        "rules": [
+          {
+            "rule_id": "chalcogenide_valence_band_rise",
+            "conditions": [
+              [
+                "anion_family",
+                "chalcogenide"
+              ]
+            ],
+            "weight": -0.5,
+            "rationale": "Chalcogenides gave the largest positive source index effect; polarizable S/Se/Te p-states raise the valence band and shrink gaps under Moss inversion."
+          },
+          {
+            "rule_id": "metalloid_covalent_narrow_gap",
+            "conditions": [
+              [
+                "dominant_family",
+                "metalloid"
+              ]
+            ],
+            "weight": -0.6,
+            "rationale": "Metalloids produced the strongest source effect (9.23); covalent metalloid networks are textbook narrow-gap semiconductors, so the inverted sign is strongly negative."
+          },
+          {
+            "rule_id": "halide_wide_gap_ionic_reversal",
+            "conditions": [
+              [
+                "anion_family",
+                "halide"
+              ]
+            ],
+            "weight": 0.5,
+            "rationale": "Halides gave the most negative source index effect; low anion polarizability inverts via Moss into wide experimental gaps, a source-grounded positive rule."
+          },
+          {
+            "rule_id": "high_mean_z_band_broadening",
+            "conditions": [
+              [
+                "mean_atomic_number_bin",
+                "mean_z_high"
+              ]
+            ],
+            "weight": -0.35,
+            "rationale": "Mean-Z-high was a top source index driver (6.07); diffuse heavy-atom orbitals broaden bands, so the inverted gap penalty is retained."
+          }
+        ],
+        "ridge": 1.2,
+        "prior_scale": 0.4,
+        "semantic_mass_start": 0.45,
+        "semantic_mass_end": 0.15,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.02,
+        "confidence": 0.55,
+        "hypothesis": "Reverses the sign of the four highest-effect source fields through the Moss index-gap inversion. It should fail where source confidence is lowest, and for heavy ionic oxides where high index and wide gap coexist."
+      },
+      {
+        "skill_id": "ionicity_contrast_gap_ladder",
+        "rules": [
+          {
+            "rule_id": "main_group_halide_max_ionicity",
+            "conditions": [
+              [
+                "anion_family",
+                "halide"
+              ],
+              [
+                "transition_metal_flag",
+                "no_transition_metal"
+              ]
+            ],
+            "weight": 0.8,
+            "rationale": "Main-group halides combine maximal electronegativity contrast with closed-shell cations and no d-states in the gap, the widest-gap configuration."
+          },
+          {
+            "rule_id": "oxide_deep_oxygen_2p",
+            "conditions": [
+              [
+                "anion_family",
+                "oxide"
+              ]
+            ],
+            "weight": 0.5,
+            "rationale": "Deep O 2p valence bands plus strong ionicity place oxides high on the cation-anion electronegativity-contrast ladder."
+          },
+          {
+            "rule_id": "pnictide_weak_contrast",
+            "conditions": [
+              [
+                "anion_family",
+                "pnictide"
+              ]
+            ],
+            "weight": -0.3,
+            "rationale": "Pnictides are weakly ionic covalent semiconductors; small electronegativity contrast and dispersive bands keep measured gaps modest."
+          },
+          {
+            "rule_id": "d_band_counter_hypothesis",
+            "conditions": [
+              [
+                "lanthanide_flag",
+                "has_lanthanide"
+              ]
+            ],
+            "weight": -0.25,
+            "rationale": "Reverses the near-zero-confidence transition-metal source relation: localized 4f and d-derived states near the Fermi level tend to narrow measured gaps."
+          }
+        ],
+        "ridge": 0.9,
+        "prior_scale": 0.55,
+        "semantic_mass_start": 0.55,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.55,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 0.9,
+        "gp_xi": 0.03,
+        "confidence": 0.65,
+        "hypothesis": "Orders families by cation-anion electronegativity contrast and downweights the lowest-confidence source relation (lanthanide, 0.006) instead of reversing it. Fails for d0 and f0 wide-gap oxides and for defect-dominated measurements that break ionicity ordering."
+      }
+    ],
+    "selected_skill_id": "ionicity_contrast_gap_ladder",
+    "lesson": "The source task maximized refractive index, which couples inversely to gap through the Moss relation, but its per-field confidences are low (0.006-0.30) and the metalloid and mean-Z effects are the only high-confidence ones. A flat sign reversal therefore risks over-rotating the search toward covalent chalcogenides. Ionicity-contrast chemistry reproduces the expected wide-gap ordering from independent physics, while the lanthanide rule tests the least-confident source relation without assuming its sign, making it the safer frozen deployment choice.",
+    "revision_summary": "No measured development feedback was available, so both skills were re-derived from the original source effects and catalog values only. The inverted-transfer skill keeps the Moss logic but drops the weak light-nonmetal and alkaline-earth source signals and trims to the four highest-confidence relations. The domain skill replaces the reversed transition-metal term with a lanthanide downweight, which targets the single lowest-confidence source relation directly, and keeps one chemically meaningful halide/main-group interaction. All conditions use exact catalog field-value pairs, all parameters sit inside allowed ranges, and no target outcomes or candidate identifiers are referenced."
+  },
+  "memory_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "experimental_only": true
+}

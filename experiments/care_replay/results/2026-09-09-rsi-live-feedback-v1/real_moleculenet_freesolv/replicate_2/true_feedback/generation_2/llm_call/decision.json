@@ -1,0 +1,133 @@
+{
+  "skills": [
+    {
+      "skill_id": "polarity_hbond_core_restored",
+      "rules": [
+        {
+          "rule_id": "heteroatom_rich_bonus",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": 0.9,
+          "rationale": "Multiple N/O sites donate and accept hydrogen bonds to water, the dominant favorable term in hydration free energy."
+        },
+        {
+          "rule_id": "moderate_heteroatom_bonus",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_mid"
+            ]
+          ],
+          "weight": 0.45,
+          "rationale": "Intermediate polar counts keep hydration sites exposed without a large apolar scaffold burying them."
+        },
+        {
+          "rule_id": "halogen_heavy_penalty",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_high"
+            ]
+          ],
+          "weight": -0.7,
+          "rationale": "Halogen-rich solutes are weakly polar; polarizability does not compensate for lost hydrogen bonding with water."
+        },
+        {
+          "rule_id": "small_hydrocarbon_reversal",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_none"
+            ],
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": -0.6,
+          "rationale": "Reverses the low-confidence source short-SMILES bonus: short heteroatom-free strings are alkanes with entropically costly hydration."
+        }
+      ],
+      "ridge": 0.8,
+      "prior_scale": 0.5,
+      "semantic_mass_start": 0.55,
+      "semantic_mass_end": 0.25,
+      "ucb_weight": 0.55,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 0.9,
+      "gp_xi": 0.02,
+      "confidence": 0.7,
+      "hypothesis": "Restores the heteroatom/halogen polarity core plus the short-apolar reversal that scored highest on development seeds. It fails if top hydration candidates are small polar-free species or halogenated polar solutes."
+    },
+    {
+      "skill_id": "hydrophobic_surface_ring_prior_reversal",
+      "rules": [
+        {
+          "rule_id": "heteroatom_rich_bonus",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Dense N/O functionality maximizes solute-water hydrogen bonds, the leading favorable hydration contribution."
+        },
+        {
+          "rule_id": "pure_hydrocarbon_penalty",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_none"
+            ],
+            [
+              "hetero_atom_bin",
+              "hetero_none"
+            ]
+          ],
+          "weight": -0.7,
+          "rationale": "Heteroatom-free and halogen-free solutes are pure hydrocarbons with cavity-formation costs and no hydrogen bonding."
+        },
+        {
+          "rule_id": "ring_prior_reversal_bonus",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_low"
+            ]
+          ],
+          "weight": 0.35,
+          "rationale": "Downweights the source acyclic bonus: single rings frequently carry polar or heterocyclic substituents that hydrate favorably."
+        },
+        {
+          "rule_id": "moderate_halogen_penalty",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_mid"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "Partial halogenation already shifts surface toward apolar character and reduces water-accessible hydrogen-bond sites."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.45,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.1,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.015,
+      "confidence": 0.55,
+      "hypothesis": "Tests a hydrophobic-surface framing while reversing the high-transfer-weight source acyclic prior toward mildly cyclic polar scaffolds. It fails if rings mainly mark apolar aromatics that hydrate poorly."
+    }
+  ],
+  "selected_skill_id": "polarity_hbond_core_restored",
+  "lesson": "Across two generations the heteroatom/halogen polarity core carried performance, while replacing the short-plus-apolar interaction with a rare aromatic_high penalty (only 3 candidates) coincided with a drop from ~83 to ~75 mean development AUC; low-coverage rules add little signal, though seed variation limits causal claims.",
+  "revision_summary": "Restored the generation-0 polarity skill's high-coverage rule set, dropping the rare aromatic_high term and slightly strengthening the heteroatom bonus, with its original moderate decaying semantic mass. Paired it with a counter-hypothesis that reverses the high-transfer-weight source acyclic prior and frames hydration via hydrophobic surface (pure-hydrocarbon and partial-halogen penalties). Deployed the restored polarity core."
+}

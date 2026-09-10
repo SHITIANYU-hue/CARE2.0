@@ -1,0 +1,125 @@
+{
+  "skills": [
+    {
+      "skill_id": "hydrophobic_burden_transfer",
+      "rules": [
+        {
+          "rule_id": "long_string_penalized",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": -0.7,
+          "rationale": "Long SMILES tracks large polar surface and H-bonding burden, lowering lipophilicity in the ESOL transfer prior."
+        },
+        {
+          "rule_id": "very_long_string_penalized",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_very_long"
+            ]
+          ],
+          "weight": -0.9,
+          "rationale": "Very long strings indicate extended polar functionality that should depress logD more strongly than the long bin."
+        },
+        {
+          "rule_id": "hetero_atom_mid_relief",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_mid"
+            ]
+          ],
+          "weight": 0.25,
+          "rationale": "Moderate hetero atom count is compatible with retained hydrophobic surface, so penalty is partly offset."
+        },
+        {
+          "rule_id": "aromatic_high_hydrophobic",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Aromatic ring density raises LogP, the dominant driver of the lipophilicity objective here."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.35,
+      "semantic_mass_start": 0.35,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.68,
+      "hypothesis": "Source size and donor effects invert onto lipophilicity: long, hetero-rich strings lose logD while aromatic, halogen-rich scaffolds gain. Fails if aromatic_high co-occurs with heavy hetero loading."
+    },
+    {
+      "skill_id": "ring_rigidity_counter_hypothesis",
+      "rules": [
+        {
+          "rule_id": "ring_high_rigid_promoted",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": 0.65,
+          "rationale": "Source ring_bin gave the strongest effect; high ring token density should raise lipophilicity."
+        },
+        {
+          "rule_id": "ring_mid_moderate",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_mid"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Intermediate ring count carries weaker positive signal consistent with partial source transfer."
+        },
+        {
+          "rule_id": "branch_high_penalized",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_high"
+            ]
+          ],
+          "weight": -0.45,
+          "rationale": "Counter to source rotatable-bond transfer: heavy branching often adds polar substituents that reduce logD here."
+        },
+        {
+          "rule_id": "halogen_absent_penalized",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_none"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Absence of halogens removes a known lipophilicity contributor, so such molecules are downweighted."
+        }
+      ],
+      "ridge": 1.8,
+      "prior_scale": 0.22,
+      "semantic_mass_start": 0.25,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.55,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.3,
+      "gp_xi": 0.02,
+      "confidence": 0.55,
+      "hypothesis": "Ring rigidity transfer is positive but branching transfer may reverse under lipophilicity, where polar branch groups are common. Fails if halogen-free polar aromatics are actually high logD."
+    }
+  ],
+  "selected_skill_id": "hydrophobic_burden_transfer",
+  "lesson": "Source solubility effects on size and donor count invert sign for lipophilicity; aromatic and halogen content transfer positively, so size and hetero penalties must be paired with scaffold-hydrophobicity gains.",
+  "revision_summary": "Kept the successful size/donor transfer as hydrophobic_burden_transfer and added ring_rigidity_counter_hypothesis reversing the uncertain branch/rotatable-bond relation; selected the transferred size-driven skill for deployment."
+}

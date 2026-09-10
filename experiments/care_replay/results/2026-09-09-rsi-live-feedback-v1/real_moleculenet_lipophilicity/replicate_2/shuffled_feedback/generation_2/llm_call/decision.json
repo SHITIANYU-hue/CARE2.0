@@ -1,0 +1,133 @@
+{
+  "skills": [
+    {
+      "skill_id": "halogen_aromatic_ring_scaffold",
+      "rules": [
+        {
+          "rule_id": "dense_ring_scaffold_promoted",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Fused ring density adds rigid hydrophobic surface; the source ring role also carried the largest transfer weight."
+        },
+        {
+          "rule_id": "halogen_free_penalized",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_none"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Halogens add polarizable, weakly solvated surface; their absence removes a standard logD contributor."
+        },
+        {
+          "rule_id": "halogen_substituted_aromatic",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ],
+            [
+              "halogen_bin",
+              "halogen_mid"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Halogenated aromatics are the classic high-logD motif, combining ring hydrophobicity with halogen surface effects."
+        },
+        {
+          "rule_id": "hetero_rich_desolvation_penalty",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "Dense heteroatoms raise hydrogen bonding and desolvation cost, the usual mechanism depressing measured logD."
+        }
+      ],
+      "ridge": 1.4,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.34,
+      "semantic_mass_end": 0.12,
+      "ucb_weight": 0.55,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.02,
+      "confidence": 0.66,
+      "hypothesis": "Rigid halogenated aromatic scaffolds with few heteroatoms maximize lipophilicity. Fails if halogen bins mark polar heteroaryl halides or if ring-dense candidates are simultaneously hetero-saturated, collapsing the two positive rules."
+    },
+    {
+      "skill_id": "alkyl_surface_counter_hypothesis",
+      "rules": [
+        {
+          "rule_id": "branch_rich_alkyl_surface",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_high"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Reverses the source rotatable-bond transfer: branch tokens often mark alkyl substituents adding hydrophobic surface."
+        },
+        {
+          "rule_id": "hydrocarbon_rich_aromatic",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ],
+            [
+              "hetero_atom_bin",
+              "hetero_low"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Aromatic carbon frameworks with few heteroatoms are the most hydrophobic combination available in this catalog."
+        },
+        {
+          "rule_id": "hetero_rich_penalized",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": -0.45,
+          "rationale": "Heteroatom loading adds polarity and desolvation penalty, the dominant loss channel for logD."
+        },
+        {
+          "rule_id": "halogen_absence_downweighted",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_none"
+            ]
+          ],
+          "weight": -0.12,
+          "rationale": "Downweights the uncertain halogen relation: halogen_none covers over half the library and may carry little signal."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.28,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.03,
+      "confidence": 0.45,
+      "hypothesis": "Tests that carbon-rich, low-heteroatom aromatics with alkyl branching drive logD while halogen absence is near-neutral. Fails if branching mostly marks polar amide or sulfonamide side chains."
+    }
+  ],
+  "selected_skill_id": "halogen_aromatic_ring_scaffold",
+  "lesson": "Across two development generations the ring/halogen scaffold family scored highest, while inverted source size priors underperformed; heteroatom density looks like a more defensible penalty than branching, but sixteen seeds cannot establish mechanism.",
+  "revision_summary": "Retained the leading scaffold skill but replaced its weak branching penalty with a heteroatom-density penalty shared by the runner-up, and slightly raised semantic mass. The counter-hypothesis now reverses the branching relation and explicitly downweights the broad halogen_none penalty. Deployed the scaffold skill."
+}

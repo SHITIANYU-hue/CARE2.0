@@ -1,0 +1,562 @@
+{
+  "selected": {
+    "fixed_initial": "hydrophobic_burden_transfer",
+    "true_feedback": "aromatic_halogen_lipophilicity_transfer_v3",
+    "no_feedback": "esol_inverted_size_lipophilicity",
+    "shuffled_feedback": "halogen_aromatic_ring_scaffold"
+  },
+  "states": {
+    "fixed_initial": {
+      "skills": [
+        {
+          "skill_id": "hydrophobic_burden_transfer",
+          "rules": [
+            {
+              "rule_id": "long_string_penalized",
+              "conditions": [
+                [
+                  "smiles_length_bin",
+                  "smiles_long"
+                ]
+              ],
+              "weight": -0.7,
+              "rationale": "Long SMILES tracks large polar surface and H-bonding burden, lowering lipophilicity in the ESOL transfer prior."
+            },
+            {
+              "rule_id": "very_long_string_penalized",
+              "conditions": [
+                [
+                  "smiles_length_bin",
+                  "smiles_very_long"
+                ]
+              ],
+              "weight": -0.9,
+              "rationale": "Very long strings indicate extended polar functionality that should depress logD more strongly than the long bin."
+            },
+            {
+              "rule_id": "hetero_atom_mid_relief",
+              "conditions": [
+                [
+                  "hetero_atom_bin",
+                  "hetero_mid"
+                ]
+              ],
+              "weight": 0.25,
+              "rationale": "Moderate hetero atom count is compatible with retained hydrophobic surface, so penalty is partly offset."
+            },
+            {
+              "rule_id": "aromatic_high_hydrophobic",
+              "conditions": [
+                [
+                  "aromatic_bin",
+                  "aromatic_high"
+                ]
+              ],
+              "weight": 0.6,
+              "rationale": "Aromatic ring density raises LogP, the dominant driver of the lipophilicity objective here."
+            }
+          ],
+          "ridge": 1.2,
+          "prior_scale": 0.35,
+          "semantic_mass_start": 0.35,
+          "semantic_mass_end": 0.15,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.68,
+          "hypothesis": "Source size and donor effects invert onto lipophilicity: long, hetero-rich strings lose logD while aromatic, halogen-rich scaffolds gain. Fails if aromatic_high co-occurs with heavy hetero loading."
+        },
+        {
+          "skill_id": "ring_rigidity_counter_hypothesis",
+          "rules": [
+            {
+              "rule_id": "ring_high_rigid_promoted",
+              "conditions": [
+                [
+                  "ring_token_bin",
+                  "ring_token_high"
+                ]
+              ],
+              "weight": 0.65,
+              "rationale": "Source ring_bin gave the strongest effect; high ring token density should raise lipophilicity."
+            },
+            {
+              "rule_id": "ring_mid_moderate",
+              "conditions": [
+                [
+                  "ring_token_bin",
+                  "ring_token_mid"
+                ]
+              ],
+              "weight": 0.2,
+              "rationale": "Intermediate ring count carries weaker positive signal consistent with partial source transfer."
+            },
+            {
+              "rule_id": "branch_high_penalized",
+              "conditions": [
+                [
+                  "branch_bin",
+                  "branch_high"
+                ]
+              ],
+              "weight": -0.45,
+              "rationale": "Counter to source rotatable-bond transfer: heavy branching often adds polar substituents that reduce logD here."
+            },
+            {
+              "rule_id": "halogen_absent_penalized",
+              "conditions": [
+                [
+                  "halogen_bin",
+                  "halogen_none"
+                ]
+              ],
+              "weight": -0.5,
+              "rationale": "Absence of halogens removes a known lipophilicity contributor, so such molecules are downweighted."
+            }
+          ],
+          "ridge": 1.8,
+          "prior_scale": 0.22,
+          "semantic_mass_start": 0.25,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.55,
+          "gp_beta_start": 2.5,
+          "gp_beta_end": 1.3,
+          "gp_xi": 0.02,
+          "confidence": 0.55,
+          "hypothesis": "Ring rigidity transfer is positive but branching transfer may reverse under lipophilicity, where polar branch groups are common. Fails if halogen-free polar aromatics are actually high logD."
+        }
+      ],
+      "selected_skill_id": "hydrophobic_burden_transfer",
+      "lesson": "Source solubility effects on size and donor count invert sign for lipophilicity; aromatic and halogen content transfer positively, so size and hetero penalties must be paired with scaffold-hydrophobicity gains.",
+      "revision_summary": "Kept the successful size/donor transfer as hydrophobic_burden_transfer and added ring_rigidity_counter_hypothesis reversing the uncertain branch/rotatable-bond relation; selected the transferred size-driven skill for deployment."
+    },
+    "true_feedback": {
+      "skills": [
+        {
+          "skill_id": "aromatic_halogen_lipophilicity_transfer_v3",
+          "rules": [
+            {
+              "rule_id": "very_long_string_penalized",
+              "conditions": [
+                [
+                  "smiles_length_bin",
+                  "smiles_very_long"
+                ]
+              ],
+              "weight": -0.75,
+              "rationale": "Longest SMILES in the ESOL transfer carried the largest negative size effect; heavy polar appendages depress logD."
+            },
+            {
+              "rule_id": "aromatic_high_hydrophobic",
+              "conditions": [
+                [
+                  "aromatic_bin",
+                  "aromatic_high"
+                ]
+              ],
+              "weight": 0.7,
+              "rationale": "Dense aromatic carbocyclic surface adds nonpolar pi area, the most reliable positive lipophilicity driver."
+            },
+            {
+              "rule_id": "halogen_any_relief",
+              "conditions": [
+                [
+                  "halogen_bin",
+                  "halogen_mid"
+                ]
+              ],
+              "weight": 0.45,
+              "rationale": "Moderate halogenation enlarges hydrophobic surface and lowers desolvation cost, raising logD."
+            },
+            {
+              "rule_id": "hetero_high_polar_penalty",
+              "conditions": [
+                [
+                  "hetero_atom_bin",
+                  "hetero_high"
+                ]
+              ],
+              "weight": -0.35,
+              "rationale": "Heavy heteroatom loading adds hydrogen-bonding and desolvation cost that opposes lipophilicity."
+            }
+          ],
+          "ridge": 1.1,
+          "prior_scale": 0.3,
+          "semantic_mass_start": 0.34,
+          "semantic_mass_end": 0.12,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.68,
+          "hypothesis": "Retains the well-calibrated size penalty and aromatic gain, adds a mild polarity penalty. The smiles_long penalty is dropped entirely because it covered most of the pool and dragged on weak seeds. Fails if long scaffolds dominate the top tail."
+        },
+        {
+          "skill_id": "branch_desolvation_counter_hypothesis_v2",
+          "rules": [
+            {
+              "rule_id": "aromatic_high_hydrophobic",
+              "conditions": [
+                [
+                  "aromatic_bin",
+                  "aromatic_high"
+                ]
+              ],
+              "weight": 0.6,
+              "rationale": "Aromatic carbon surface stays the mechanistically safest positive term across chemotypes."
+            },
+            {
+              "rule_id": "halogen_high_promoted",
+              "conditions": [
+                [
+                  "halogen_bin",
+                  "halogen_high"
+                ]
+              ],
+              "weight": 0.75,
+              "rationale": "Heavily halogenated scaffolds are the classic high-logD chemotype, a small distinctive subset."
+            },
+            {
+              "rule_id": "branch_high_penalized",
+              "conditions": [
+                [
+                  "branch_bin",
+                  "branch_high"
+                ]
+              ],
+              "weight": -0.45,
+              "rationale": "Reverses the positive rotatable-bond transfer: heavy branching often adds polar substituents that lower logD."
+            },
+            {
+              "rule_id": "double_bond_low_polar_penalty",
+              "conditions": [
+                [
+                  "double_bond_bin",
+                  "double_bond_low"
+                ]
+              ],
+              "weight": -0.3,
+              "rationale": "Few double bonds co-occur with saturated polar functionality, weakly opposing measured lipophilicity."
+            }
+          ],
+          "ridge": 1.5,
+          "prior_scale": 0.24,
+          "semantic_mass_start": 0.28,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.5,
+          "gp_beta_start": 2.4,
+          "gp_beta_end": 1.2,
+          "gp_xi": 0.02,
+          "confidence": 0.56,
+          "hypothesis": "Counter-hypothesis: the low-confidence smiles_length and ring/branch transfers are downweighted in favor of halogen and heteroatom polarity balance. Fails if heteroatom-rich aromatics still score highest."
+        }
+      ],
+      "selected_skill_id": "aromatic_halogen_lipophilicity_transfer_v3",
+      "lesson": "Across both generations the size-penalty-plus-aromatic skill calibrated more consistently than counter-hypotheses, but the broad smiles_long penalty was the main drag on its weakest seeds and the polarity terms were better folded into a single mild negative.",
+      "revision_summary": "Kept the transfer family but dropped the over-broad smiles_long penalty, folding polarity into one hetero_high term so only the extremely long bin is penalized. Replaced the counter-hypothesis with a branch-reversal and double-bond-polarity variant grounded in the rotatable-bond transfer, and deployed the refined transfer skill on its better mean calibration AUC."
+    },
+    "no_feedback": {
+      "skills": [
+        {
+          "skill_id": "esol_inverted_size_lipophilicity",
+          "rules": [
+            {
+              "rule_id": "short_smiles_polar_penalty",
+              "conditions": [
+                [
+                  "smiles_length_bin",
+                  "smiles_short"
+                ]
+              ],
+              "weight": -0.65,
+              "rationale": "Short SMILES were the most soluble ESOL bin; small polar molecules partition poorly into octanol, so invert that sign."
+            },
+            {
+              "rule_id": "long_scaffold_hydrophobic_bulk",
+              "conditions": [
+                [
+                  "smiles_length_bin",
+                  "smiles_long"
+                ]
+              ],
+              "weight": 0.32,
+              "rationale": "Long strings carried the largest negative solubility effect; logD is anti-correlated with logS, so bulk should raise lipophilicity."
+            },
+            {
+              "rule_id": "aromatic_surface_promoted",
+              "conditions": [
+                [
+                  "aromatic_bin",
+                  "aromatic_high"
+                ]
+              ],
+              "weight": 0.5,
+              "rationale": "Dense aromatic carbon surface is the classic mechanistic driver of octanol-water partitioning in drug-like molecules."
+            },
+            {
+              "rule_id": "halogen_substitution_promoted",
+              "conditions": [
+                [
+                  "halogen_bin",
+                  "halogen_mid"
+                ]
+              ],
+              "weight": 0.45,
+              "rationale": "Halogens add polarizable hydrophobic surface without hydrogen-bond donors, reliably increasing measured logD."
+            }
+          ],
+          "ridge": 1.0,
+          "prior_scale": 0.3,
+          "semantic_mass_start": 0.35,
+          "semantic_mass_end": 0.12,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.62,
+          "hypothesis": "Source solubility effects transfer with inverted sign: size bins that hurt solubility should help lipophilicity, reinforced by aromatic and halogen surface. Fails if long SMILES encode polar heteroatom chains rather than hydrophobic bulk."
+        },
+        {
+          "skill_id": "polarity_composition_counter_hypothesis",
+          "rules": [
+            {
+              "rule_id": "hetero_rich_desolvation_penalty",
+              "conditions": [
+                [
+                  "hetero_atom_bin",
+                  "hetero_high"
+                ]
+              ],
+              "weight": -0.5,
+              "rationale": "Abundant N/O heteroatoms add hydrogen bonding and desolvation cost, directly suppressing octanol-water partitioning."
+            },
+            {
+              "rule_id": "carbon_rich_framework_promoted",
+              "conditions": [
+                [
+                  "hetero_atom_bin",
+                  "hetero_low"
+                ]
+              ],
+              "weight": 0.6,
+              "rationale": "Heteroatom-poor, carbon-rich frameworks maximize nonpolar surface and partition strongly into the organic phase."
+            },
+            {
+              "rule_id": "heavy_halogenation_promoted",
+              "conditions": [
+                [
+                  "halogen_bin",
+                  "halogen_high"
+                ]
+              ],
+              "weight": 0.65,
+              "rationale": "Heavy halogenation is a robust lipophilicity enhancer, independent of any source solubility evidence."
+            },
+            {
+              "rule_id": "branch_transfer_reversed",
+              "conditions": [
+                [
+                  "branch_bin",
+                  "branch_high"
+                ]
+              ],
+              "weight": 0.3,
+              "rationale": "Counter to the low-support rotatable-bond-to-branch transfer: branched alkyl substitution adds hydrophobic bulk, not polarity."
+            }
+          ],
+          "ridge": 1.6,
+          "prior_scale": 0.25,
+          "semantic_mass_start": 0.26,
+          "semantic_mass_end": 0.08,
+          "ucb_weight": 0.5,
+          "gp_beta_start": 2.5,
+          "gp_beta_end": 1.2,
+          "gp_xi": 0.02,
+          "confidence": 0.55,
+          "hypothesis": "Polarity composition, not string length, controls logD; the donor-to-heteroatom and rotatable-to-branch transfers are downweighted or reversed. Fails if hetero_low and halogen_high bins are too small and structurally atypical."
+        }
+      ],
+      "selected_skill_id": "esol_inverted_size_lipophilicity",
+      "lesson": "ESOL-to-lipophilicity transfer needs sign inversion because logD opposes logS; also, conditions must be plain field-to-value maps, and weight should not be spent on bins covering half the pool.",
+      "revision_summary": "Rewrote both skills into the required single-field conditions format, trimmed the dominant smiles_long weight while keeping the inverted short-SMILES penalty grounded in source evidence, retained mechanistic aromatic/halogen domain terms, kept the polarity counter-hypothesis that reverses the low-support rotatable-bond-to-branch relation with lower semantic mass, and deployed the inversion skill."
+    },
+    "shuffled_feedback": {
+      "skills": [
+        {
+          "skill_id": "halogen_aromatic_ring_scaffold",
+          "rules": [
+            {
+              "rule_id": "dense_ring_scaffold_promoted",
+              "conditions": [
+                [
+                  "ring_token_bin",
+                  "ring_token_high"
+                ]
+              ],
+              "weight": 0.6,
+              "rationale": "Fused ring density adds rigid hydrophobic surface; the source ring role also carried the largest transfer weight."
+            },
+            {
+              "rule_id": "halogen_free_penalized",
+              "conditions": [
+                [
+                  "halogen_bin",
+                  "halogen_none"
+                ]
+              ],
+              "weight": -0.5,
+              "rationale": "Halogens add polarizable, weakly solvated surface; their absence removes a standard logD contributor."
+            },
+            {
+              "rule_id": "halogen_substituted_aromatic",
+              "conditions": [
+                [
+                  "aromatic_bin",
+                  "aromatic_high"
+                ],
+                [
+                  "halogen_bin",
+                  "halogen_mid"
+                ]
+              ],
+              "weight": 0.5,
+              "rationale": "Halogenated aromatics are the classic high-logD motif, combining ring hydrophobicity with halogen surface effects."
+            },
+            {
+              "rule_id": "hetero_rich_desolvation_penalty",
+              "conditions": [
+                [
+                  "hetero_atom_bin",
+                  "hetero_high"
+                ]
+              ],
+              "weight": -0.4,
+              "rationale": "Dense heteroatoms raise hydrogen bonding and desolvation cost, the usual mechanism depressing measured logD."
+            }
+          ],
+          "ridge": 1.4,
+          "prior_scale": 0.3,
+          "semantic_mass_start": 0.34,
+          "semantic_mass_end": 0.12,
+          "ucb_weight": 0.55,
+          "gp_beta_start": 2.5,
+          "gp_beta_end": 1.2,
+          "gp_xi": 0.02,
+          "confidence": 0.66,
+          "hypothesis": "Rigid halogenated aromatic scaffolds with few heteroatoms maximize lipophilicity. Fails if halogen bins mark polar heteroaryl halides or if ring-dense candidates are simultaneously hetero-saturated, collapsing the two positive rules."
+        },
+        {
+          "skill_id": "alkyl_surface_counter_hypothesis",
+          "rules": [
+            {
+              "rule_id": "branch_rich_alkyl_surface",
+              "conditions": [
+                [
+                  "branch_bin",
+                  "branch_high"
+                ]
+              ],
+              "weight": 0.4,
+              "rationale": "Reverses the source rotatable-bond transfer: branch tokens often mark alkyl substituents adding hydrophobic surface."
+            },
+            {
+              "rule_id": "hydrocarbon_rich_aromatic",
+              "conditions": [
+                [
+                  "aromatic_bin",
+                  "aromatic_high"
+                ],
+                [
+                  "hetero_atom_bin",
+                  "hetero_low"
+                ]
+              ],
+              "weight": 0.6,
+              "rationale": "Aromatic carbon frameworks with few heteroatoms are the most hydrophobic combination available in this catalog."
+            },
+            {
+              "rule_id": "hetero_rich_penalized",
+              "conditions": [
+                [
+                  "hetero_atom_bin",
+                  "hetero_high"
+                ]
+              ],
+              "weight": -0.45,
+              "rationale": "Heteroatom loading adds polarity and desolvation penalty, the dominant loss channel for logD."
+            },
+            {
+              "rule_id": "halogen_absence_downweighted",
+              "conditions": [
+                [
+                  "halogen_bin",
+                  "halogen_none"
+                ]
+              ],
+              "weight": -0.12,
+              "rationale": "Downweights the uncertain halogen relation: halogen_none covers over half the library and may carry little signal."
+            }
+          ],
+          "ridge": 1.0,
+          "prior_scale": 0.3,
+          "semantic_mass_start": 0.28,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.5,
+          "gp_beta_start": 2.2,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.03,
+          "confidence": 0.45,
+          "hypothesis": "Tests that carbon-rich, low-heteroatom aromatics with alkyl branching drive logD while halogen absence is near-neutral. Fails if branching mostly marks polar amide or sulfonamide side chains."
+        }
+      ],
+      "selected_skill_id": "halogen_aromatic_ring_scaffold",
+      "lesson": "Across two development generations the ring/halogen scaffold family scored highest, while inverted source size priors underperformed; heteroatom density looks like a more defensible penalty than branching, but sixteen seeds cannot establish mechanism.",
+      "revision_summary": "Retained the leading scaffold skill but replaced its weak branching penalty with a heteroatom-density penalty shared by the runner-up, and slightly raised semantic mass. The counter-hypothesis now reverses the branching relation and explicitly downweights the broad halogen_none penalty. Deployed the scaffold skill."
+    }
+  },
+  "frozen_at": "2026-09-10T01:24:21.187584+00:00",
+  "evaluation_feedback_permitted": false,
+  "heldout_seeds": [
+    239100,
+    239101,
+    239102,
+    239103,
+    239104,
+    239105,
+    239106,
+    239107,
+    239108,
+    239109,
+    239110,
+    239111,
+    239112,
+    239113,
+    239114,
+    239115,
+    239116,
+    239117,
+    239118,
+    239119,
+    239120,
+    239121,
+    239122,
+    239123,
+    239124,
+    239125,
+    239126,
+    239127,
+    239128,
+    239129,
+    239130,
+    239131,
+    239132,
+    239133,
+    239134,
+    239135,
+    239136,
+    239137,
+    239138,
+    239139
+  ]
+}

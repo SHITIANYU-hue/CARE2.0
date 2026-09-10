@@ -1,0 +1,137 @@
+{
+  "parent_state_sha256": "927fd204b6daed24af84ab62958ef1711d8ad592d2d00d8b9f26b113fe4826b4",
+  "new_state_sha256": "4bba8190519d89c00c862b6c56e032238b85eb51074d4fb3de7e098ba4c97f53",
+  "generation": 2,
+  "arm": "true_feedback",
+  "state": {
+    "skills": [
+      {
+        "skill_id": "polar_acyclic_hydration_hybrid",
+        "rules": [
+          {
+            "rule_id": "heteroatom_rich_water_hbonding",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_high"
+              ]
+            ],
+            "weight": 0.62,
+            "rationale": "Dense N/O centers donate and accept water hydrogen bonds, the dominant favorable hydration free-energy term."
+          },
+          {
+            "rule_id": "hydrocarbon_cavity_penalty",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_none"
+              ]
+            ],
+            "weight": -0.55,
+            "rationale": "Apolar solutes pay cavity-formation cost with no compensating solute-water hydrogen bonding."
+          },
+          {
+            "rule_id": "acyclic_scaffold_transfer",
+            "conditions": [
+              [
+                "ring_token_bin",
+                "ring_token_none"
+              ]
+            ],
+            "weight": 0.3,
+            "rationale": "Source ring role had the highest transfer weight (0.76); acyclic solutes expose less rigid hydrophobic ring surface."
+          },
+          {
+            "rule_id": "heavy_halogen_hydrophobicity",
+            "conditions": [
+              [
+                "halogen_bin",
+                "halogen_high"
+              ]
+            ],
+            "weight": -0.35,
+            "rationale": "Dense halogenation increases nonpolar surface area and weakens water affinity despite added polarizability."
+          }
+        ],
+        "ridge": 1.2,
+        "prior_scale": 0.35,
+        "semantic_mass_start": 0.36,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.55,
+        "gp_beta_start": 2.1,
+        "gp_beta_end": 0.9,
+        "gp_xi": 0.02,
+        "confidence": 0.65,
+        "hypothesis": "Combines the polarity contrast that led generation 0 with the source-grounded acyclic ring role that led generation 1, plus a halogen penalty. Fails if scaffold shape is redundant once polarity is modeled."
+      },
+      {
+        "skill_id": "polar_aromatic_ring_counter",
+        "rules": [
+          {
+            "rule_id": "polar_substituted_aromatic",
+            "conditions": [
+              [
+                "aromatic_bin",
+                "aromatic_low"
+              ],
+              [
+                "hetero_atom_bin",
+                "hetero_mid"
+              ]
+            ],
+            "weight": 0.5,
+            "rationale": "Phenol- and aniline-like substituted aromatics hydrate strongly, contradicting a blanket penalty on ring-containing solutes."
+          },
+          {
+            "rule_id": "heteroatom_rich_anchor",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_high"
+              ]
+            ],
+            "weight": 0.55,
+            "rationale": "Multiple polar centers retain the mechanistically central hydrogen-bonding advantage in aqueous solvation."
+          },
+          {
+            "rule_id": "apolar_backbone_penalty",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_none"
+              ]
+            ],
+            "weight": -0.5,
+            "rationale": "Pure hydrocarbons remain the hydrophobic tail of the hydration distribution."
+          },
+          {
+            "rule_id": "halogen_free_preference",
+            "conditions": [
+              [
+                "halogen_bin",
+                "halogen_none"
+              ]
+            ],
+            "weight": 0.24,
+            "rationale": "Broad halogen-free set (467) avoids the nonpolar surface penalty of perhalogenated solutes."
+          }
+        ],
+        "ridge": 1.5,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.3,
+        "semantic_mass_end": 0.08,
+        "ucb_weight": 0.45,
+        "gp_beta_start": 2.4,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.03,
+        "confidence": 0.45,
+        "hypothesis": "Counter-hypothesis: reverses the uncertain source ring role by rewarding polar-substituted aromatics instead of acyclic scaffolds. Fails if ring surface truly dominates and aromatic_low is chemically heterogeneous."
+      }
+    ],
+    "selected_skill_id": "polar_acyclic_hydration_hybrid",
+    "lesson": "Across both development generations, heteroatom polarity was the consistently useful prior, while the pure size/length transfer was weakest; the polarity-plus-scaffold hybrid scored highest in generation 1, but seed variance was large, so the hybrid is adopted cautiously with fast decay to the target-only anchor.",
+    "revision_summary": "Merged the two best development configurations into one deployed skill: the polarity contrast (hetero_high positive, hetero_none negative) from the generation-0 leader plus the source-grounded acyclic ring role and halogen penalty from the generation-1 leader, dropping the hetero_mid rule that coincided with the weaker generation-1 core run. The second skill is a fresh counter-hypothesis that reverses the uncertain ring transfer by rewarding polar-substituted aromatics via a single chemically meaningful two-condition interaction. All conditions use exact catalog field-value pairs, semantic mass decays toward the target-only anchor, and no target outcomes are claimed."
+  },
+  "memory_sha256": "9c1469f3b288df00f203e58e83e0e0aab98c39bfebf7452591d8750a91b2e6a6",
+  "experimental_only": true
+}

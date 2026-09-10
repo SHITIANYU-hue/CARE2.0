@@ -1,0 +1,133 @@
+{
+  "skills": [
+    {
+      "skill_id": "ring_halogen_lipophilic_scaffold",
+      "rules": [
+        {
+          "rule_id": "dense_ring_scaffold_promoted",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Fused ring density adds rigid hydrophobic surface; source ring role also carried the strongest transfer weight."
+        },
+        {
+          "rule_id": "halogen_free_penalized",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_none"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Halogens raise logD via polarizable, weakly solvated surface; their absence removes a major lipophilicity contributor."
+        },
+        {
+          "rule_id": "halogen_substituted_aromatic",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ],
+            [
+              "halogen_bin",
+              "halogen_mid"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Halogenated aromatic rings are the classic high-logD motif, combining ring hydrophobicity with halogen surface effects."
+        },
+        {
+          "rule_id": "heavy_branching_penalized",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_high"
+            ]
+          ],
+          "weight": -0.35,
+          "rationale": "Heavy branching in this library usually marks polar side chains and flexible solvated groups that depress logD."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.28,
+      "semantic_mass_start": 0.32,
+      "semantic_mass_end": 0.12,
+      "ucb_weight": 0.55,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.02,
+      "confidence": 0.62,
+      "hypothesis": "Rigid halogenated aromatic scaffolds maximize lipophilicity while branching signals polar substitution. Fails if halogen bins mostly mark polar heteroaryl chlorides or if ring-dense candidates are also hetero-saturated."
+    },
+    {
+      "skill_id": "size_inversion_counter_hypothesis",
+      "rules": [
+        {
+          "rule_id": "long_string_reversed_positive",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": 0.35,
+          "rationale": "Counter to the assumed sign flip: larger molecules often add hydrophobic carbon surface rather than polar burden."
+        },
+        {
+          "rule_id": "short_fragment_penalized",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Small fragments lack accumulated hydrophobic surface; source evidence favored short strings for solubility, opposing lipophilicity."
+        },
+        {
+          "rule_id": "hetero_rich_penalized",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": -0.45,
+          "rationale": "Dense heteroatoms add hydrogen bonding and desolvation cost, the standard mechanism lowering measured logD."
+        },
+        {
+          "rule_id": "hydrocarbon_rich_aromatic",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ],
+            [
+              "hetero_atom_bin",
+              "hetero_low"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Aromatic carbon frameworks with few heteroatoms are the most hydrophobic combination available in this catalog."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.32,
+      "semantic_mass_start": 0.28,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.03,
+      "confidence": 0.45,
+      "hypothesis": "Reverses the length penalty: molecular size may raise lipophilicity while heteroatom density, not string length, drives losses. Fails if long candidates are peptide-like or heavily heteroatom-substituted."
+    }
+  ],
+  "selected_skill_id": "ring_halogen_lipophilic_scaffold",
+  "lesson": "Development seeds favored the ring/halogen scaffold skill over the length-penalty transfer, suggesting scaffold hydrophobicity descriptors carry more usable signal than inverted source size priors, though eight seeds cannot confirm mechanism.",
+  "revision_summary": "Refined the better-performing ring/halogen skill by replacing the weak ring_mid rule with a halogenated-aromatic interaction and softening the branching penalty; added size_inversion_counter_hypothesis that reverses the smiles_length prior and shifts blame to heteroatom density. Deployed the scaffold skill."
+}

@@ -1,0 +1,137 @@
+{
+  "parent_state_sha256": "9cb8d8a39f2738a54e668e555c9749407dc2812b45108eec80b529b7dc7d4300",
+  "new_state_sha256": "31eab5dc2abaee75d67a2efb8703826a4a197f8cd0eb04cec475c035948b526d",
+  "generation": 2,
+  "arm": "true_feedback",
+  "state": {
+    "skills": [
+      {
+        "skill_id": "wide_gap_ionic_with_chalcogenide_pruning",
+        "rules": [
+          {
+            "rule_id": "halide_ionic_wide_gap",
+            "conditions": [
+              [
+                "anion_family",
+                "halide"
+              ]
+            ],
+            "weight": 0.65,
+            "rationale": "Electronegative halide anions give deep valence bands and large ionic gaps in experimental compounds."
+          },
+          {
+            "rule_id": "main_group_oxide_no_d_states",
+            "conditions": [
+              [
+                "anion_family",
+                "oxide"
+              ],
+              [
+                "transition_metal_flag",
+                "no_transition_metal"
+              ]
+            ],
+            "weight": 0.6,
+            "rationale": "Main-group oxides lack partially filled d bands, so gaps stay wide unlike transition-metal oxides."
+          },
+          {
+            "rule_id": "chalcogenide_polarizable_valence_penalty",
+            "conditions": [
+              [
+                "anion_family",
+                "chalcogenide"
+              ]
+            ],
+            "weight": -0.55,
+            "rationale": "Polarizable S/Se/Te p states raise the valence edge, shrinking gaps across the largest anion subset."
+          },
+          {
+            "rule_id": "light_element_deep_valence_band",
+            "conditions": [
+              [
+                "mean_atomic_number_bin",
+                "mean_z_low"
+              ]
+            ],
+            "weight": 0.4,
+            "rationale": "Light elements have compact orbitals, weak spin-orbit coupling, and low polarizability, all favoring wider gaps."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.5,
+        "semantic_mass_start": 0.45,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.55,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.03,
+        "confidence": 0.7,
+        "hypothesis": "Combines the validated ionic wide-gap positives with explicit pruning of the large polarizable chalcogenide bulk. Fails if halide and main-group oxide subsets are thin, or if wide-gap chalcogenides such as ZnS-type sulfides top the distribution."
+      },
+      {
+        "skill_id": "polarizability_sign_reversal_counterprior",
+        "rules": [
+          {
+            "rule_id": "chalcogenide_source_sign_reversal",
+            "conditions": [
+              [
+                "anion_family",
+                "chalcogenide"
+              ]
+            ],
+            "weight": -0.6,
+            "rationale": "Source gave chalcogenides positive refractive-index effect; via Moss scaling that implies narrower experimental gaps."
+          },
+          {
+            "rule_id": "pnictide_covalent_narrow_gap",
+            "conditions": [
+              [
+                "anion_family",
+                "pnictide"
+              ]
+            ],
+            "weight": -0.5,
+            "rationale": "Positive source effect reversed: low-ionicity, strongly dispersing pnictides typically show narrow measured gaps."
+          },
+          {
+            "rule_id": "heavy_mean_z_band_edge_penalty",
+            "conditions": [
+              [
+                "mean_atomic_number_bin",
+                "mean_z_high"
+              ]
+            ],
+            "weight": -0.45,
+            "rationale": "Largest confident source effect reversed: heavy, polarizable elements lower conduction edges and shrink gaps."
+          },
+          {
+            "rule_id": "halogen_dominant_ionic_bonus",
+            "conditions": [
+              [
+                "dominant_family",
+                "halogen"
+              ]
+            ],
+            "weight": 0.55,
+            "rationale": "Halogen-dominant solids depressed source refractive index yet usually carry the widest experimental band gaps."
+          }
+        ],
+        "ridge": 1.2,
+        "prior_scale": 0.45,
+        "semantic_mass_start": 0.42,
+        "semantic_mass_end": 0.16,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 2.4,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.04,
+        "confidence": 0.55,
+        "hypothesis": "Counter-hypothesis: systematically reverse the uncertain positive source refractive-index relations (chalcogenide, pnictide, high mean Z) and keep the halogen reversal. Fails if gap ranking is set by structure or measurement bias rather than polarizability."
+      }
+    ],
+    "selected_skill_id": "wide_gap_ionic_with_chalcogenide_pruning",
+    "lesson": "Across two development generations the ionic wide-gap prior averaged higher AUC (82.5 then 73.3) but the exclusion counterprior reached better final best on the second batch (95.0 vs 84.0), suggesting the positive ionic rules find good regions early while explicit pruning of the dominant polarizable chalcogenide bulk protects weak seeds; the deployed skill merges both signals rather than trusting either seed batch alone.",
+    "revision_summary": "Merged the two development skills: the deployed skill keeps the validated halide, main-group-oxide, and light-mean-Z positives but swaps the broad transition-metal penalty for the chalcogenide penalty that appeared in the higher-final-best counterprior, and raises semantic_mass_end 0.18 to 0.20 for slightly longer guidance. The counter-hypothesis was sharpened to a pure source-sign reversal, replacing the low-confidence metalloid rule with the better-supported mean_z_high reversal (source effect +6.07, confidence 0.246). All conditions map real catalog fields to exact catalog values, at most four rules per skill, rationales under 25 words, hypotheses under 45 words, and all parameters inside allowed ranges. Source effects and confidences informed sign and emphasis only; no target outcomes were used."
+  },
+  "memory_sha256": "ac0c2fe6610367e211905c84dc59910951dd015554a9df8dcb371e17aec27d5b",
+  "experimental_only": true
+}

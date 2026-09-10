@@ -1,0 +1,129 @@
+{
+  "skills": [
+    {
+      "skill_id": "wide_gap_ionic_insulator_chemistry",
+      "rules": [
+        {
+          "rule_id": "halogen_dominated_ionic_wide_gap",
+          "conditions": [
+            [
+              "dominant_family",
+              "halogen"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Halogen-dominated compositions are strongly ionic insulators with deep valence bands, giving the widest measured gaps."
+        },
+        {
+          "rule_id": "closed_shell_d0_oxide_wide_gap",
+          "conditions": [
+            [
+              "anion_family",
+              "oxide"
+            ],
+            [
+              "transition_metal_flag",
+              "no_transition_metal"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "d0/sp main-group oxides lack mid-gap d states, so the O 2p to cation s separation stays large."
+        },
+        {
+          "rule_id": "light_element_compact_valence_gain",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_low"
+            ]
+          ],
+          "weight": 0.45,
+          "rationale": "Low mean Z means compact valence orbitals, weak spin-orbit coupling, and larger bonding-antibonding splitting."
+        },
+        {
+          "rule_id": "pnictide_covalent_narrow_gap",
+          "conditions": [
+            [
+              "anion_family",
+              "pnictide"
+            ]
+          ],
+          "weight": -0.45,
+          "rationale": "Pnictides are mostly covalent small-gap semiconductors or semimetals, so they sit near the low end of the pool."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.55,
+      "semantic_mass_start": 0.55,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.55,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.75,
+      "hypothesis": "Ranking by ionicity and d-shell closure recovers wide-gap insulators and transfers best when the pool is dominated by main-group oxides and halides; it degrades if narrow-gap mixed-valence or defect-dominated oxides are numerous."
+    },
+    {
+      "skill_id": "source_effect_gated_moss_repair",
+      "rules": [
+        {
+          "rule_id": "source_high_index_heavy_narrow_gap",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_high"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Source gives +6.07 index effect for high mean Z; by Moss inversion their loose valence electrons shrink the gap."
+        },
+        {
+          "rule_id": "source_metalloid_index_penalty_inverted",
+          "conditions": [
+            [
+              "dominant_family",
+              "metalloid"
+            ]
+          ],
+          "weight": -0.6,
+          "rationale": "Metalloid dominance carried the largest source index gain (+9.23), inverted here to polarizable narrow-gap chemistry."
+        },
+        {
+          "rule_id": "source_balanced_fraction_wide_gap_guard",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "balanced"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Balanced stoichiometry gave a modest source index gain but no strong covalency; retained as a weakly positive guard."
+        },
+        {
+          "rule_id": "transition_metal_low_confidence_shrink",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "Only the second-lowest-confidence source relation (0.024), so applied at reduced magnitude to limit its influence."
+        }
+      ],
+      "ridge": 3.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.35,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.65,
+      "gp_beta_start": 2.4,
+      "gp_beta_end": 1.1,
+      "gp_xi": 0.02,
+      "confidence": 0.45,
+      "hypothesis": "Low-confidence source index effects invert to band-gap effects under the Moss relation and enrich the surrogate only where they agree with known chemistry; the inversion fails if the source sign carries no transferable information."
+    }
+  ],
+  "selected_skill_id": "wide_gap_ionic_insulator_chemistry",
+  "lesson": "Development seeds showed the domain-chemistry skill reaching a higher mean AUC (70.3 vs 65.2) with lower seed-to-seed dispersion, while the Moss-inversion skill matched it on final best but was more volatile and underperformed on several seeds. Since both remain single-digit-sample summaries, the revision keeps first-principles ionicity and d-shell chemistry as the deployed skill and retains the inverted source transfer only as a reduced-weight, lower-mass counter-hypothesis rather than discarding it.",
+  "revision_summary": "Deployed wide_gap_ionic_insulator_chemistry, which won on mean development AUC with fewer collapses, keeping the halogen, d0-oxide, low-Z and pnictide rules intact. The counter-hypothesis skill now applies source-inverted effects at smaller magnitudes and lower confidence, drops the weakest-confidence lanthanide relation, and swaps the chalcogenide penalty for a balanced-stoichiometry guard. All conditions use exact public catalog field/value pairs; no target outcomes or candidate identifiers are used."
+}

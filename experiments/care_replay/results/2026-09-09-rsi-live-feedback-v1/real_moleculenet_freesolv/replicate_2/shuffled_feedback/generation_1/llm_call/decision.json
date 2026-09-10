@@ -1,0 +1,129 @@
+{
+  "skills": [
+    {
+      "skill_id": "compact_solute_size_transfer",
+      "rules": [
+        {
+          "rule_id": "short_smiles_prior",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": 0.62,
+          "rationale": "Source ESOL value prior favored smiles_short (+6.89); compact solutes need little cavity formation work in water."
+        },
+        {
+          "rule_id": "mid_smiles_penalty",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": -0.45,
+          "rationale": "Source effect for smiles_mid was negative (-6.61); added carbon skeleton raises hydrophobic cavity cost."
+        },
+        {
+          "rule_id": "long_smiles_penalty",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": -0.65,
+          "rationale": "Largest negative source effect (-11.46, confidence 0.47); long chains increase nonpolar surface and desolvation penalty."
+        },
+        {
+          "rule_id": "acyclic_bonus",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_none"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Ring role carried highest transfer weight (0.758); acyclic solutes expose polar groups without rigid hydrophobic cores."
+        }
+      ],
+      "ridge": 1.1,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.18,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.6,
+      "hypothesis": "Transfers ESOL size and ring priors, which led development-seed search, with slightly stronger weight and semantic mass. It may fail if the top hydration pool shifts toward larger polyfunctional solutes."
+    },
+    {
+      "skill_id": "small_nonpolar_cavity_counterprior",
+      "rules": [
+        {
+          "rule_id": "short_nonpolar_reversal",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_none"
+            ],
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Reverses the prior generation's penalty: tiny heteroatom-free solutes pay minimal cavity cost and may rank high."
+        },
+        {
+          "rule_id": "polarity_downweight",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "Downweights the assumed hydrogen-bond bonus; heteroatom-rich solutes are often large with high internal desolvation cost."
+        },
+        {
+          "rule_id": "long_chain_penalty",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Retains the strongest, best-supported source effect (-11.46): extended skeletons disfavor aqueous accommodation."
+        },
+        {
+          "rule_id": "aromatic_core_penalty",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ]
+          ],
+          "weight": -0.35,
+          "rationale": "Extended aromatic surfaces are weakly polar and hydrophobic, disfavoring hydration relative to small aliphatic solutes."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.35,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.55,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 0.9,
+      "gp_xi": 0.02,
+      "confidence": 0.45,
+      "hypothesis": "Counter-hypothesis that cavity size, not heteroatom polarity, dominates ranking; it inverts the prior polarity assumption. It fails if hydrogen-bond-rich polar solutes actually occupy the top of the target scale."
+    }
+  ],
+  "selected_skill_id": "compact_solute_size_transfer",
+  "lesson": "Development seeds showed the size/ring source transfer far outperformed the polarity counter-hypothesis (83.1 vs 51.0 mean AUC), so the low-confidence source priors were more useful than the assumed heteroatom mechanism; treat this as directional, not causal, evidence.",
+  "revision_summary": "Retained the successful ESOL-grounded size and ring transfer with modestly stronger weights and slightly higher persistent semantic mass, and replaced the failed polarity skill with a counter-hypothesis that reverses its short-nonpolar penalty and downweights the heteroatom-high bonus while keeping the well-supported long-SMILES penalty. Deployed the source-evidence transfer skill."
+}

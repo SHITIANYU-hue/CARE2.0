@@ -1,0 +1,129 @@
+{
+  "skills": [
+    {
+      "skill_id": "compact_acyclic_hydration_transfer",
+      "rules": [
+        {
+          "rule_id": "short_smiles_prior",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Source value prior favored short SMILES (+6.89); small solutes need minimal cavity work in water."
+        },
+        {
+          "rule_id": "mid_smiles_penalty",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Source effect for mid length was negative (-6.61); larger nonpolar surface raises cavity cost."
+        },
+        {
+          "rule_id": "long_smiles_penalty",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": -0.7,
+          "rationale": "Largest, best-supported source effect (-11.46, confidence 0.47): extended skeletons bury polar groups."
+        },
+        {
+          "rule_id": "acyclic_bonus",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_none"
+            ]
+          ],
+          "weight": 0.35,
+          "rationale": "Ring role held highest transfer weight (0.758); flexible acyclic solutes expose polar groups freely."
+        }
+      ],
+      "ridge": 1.1,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.55,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.62,
+      "hypothesis": "Reuses the only source-grounded signal that led two development generations: size and ring priors dominate hydration ranking. It may fail if the top pool shifts toward larger polyfunctional polar solutes."
+    },
+    {
+      "skill_id": "halogen_ring_hydration_counterprobe",
+      "rules": [
+        {
+          "rule_id": "halogen_heavy_penalty",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_high"
+            ]
+          ],
+          "weight": -0.45,
+          "rationale": "Heavily halogenated solutes are weakly polar and bulky, adding hydrophobic surface without hydrogen bonding."
+        },
+        {
+          "rule_id": "unbranched_bonus",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_none"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Branch role transferred at high weight (0.758); unbranched skeletons pack with less buried nonpolar surface."
+        },
+        {
+          "rule_id": "long_chain_retained_penalty",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": -0.55,
+          "rationale": "Retains the strongest source effect; the downweighted-relation hypothesis still concedes extended chains."
+        },
+        {
+          "rule_id": "hetero_rich_ring_penalty",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ],
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "Rigid polyheteroatom rings preorganize polar groups poorly, raising internal desolvation cost over polar gain."
+        }
+      ],
+      "ridge": 0.9,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.35,
+      "semantic_mass_end": 0.12,
+      "ucb_weight": 0.55,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 0.9,
+      "gp_xi": 0.02,
+      "confidence": 0.42,
+      "hypothesis": "Counter-hypothesis downweighting the transferred size relation in favor of halogen and branching shape terms. It fails if hydrogen-bond-rich polar solutes actually dominate the target ranking."
+    }
+  ],
+  "selected_skill_id": "compact_acyclic_hydration_transfer",
+  "lesson": "Across two development generations the size/ring source transfer beat every polarity- or halogen-framed alternative (83.1 then 60.5 AUC versus 51.0 then 49.5), so the low-confidence ESOL length priors remain the most useful directional signal; the weaker alternatives are still worth carrying as a hedge at reduced semantic mass.",
+  "revision_summary": "Retained the ESOL-grounded size and ring transfer, raising short-SMILES and long-SMILES weights slightly and lifting persistent semantic mass, and replaced the failed cavity counterprior with a halogen/branching counter-hypothesis that downweights the transferred size relation while conceding the long-chain penalty."
+}

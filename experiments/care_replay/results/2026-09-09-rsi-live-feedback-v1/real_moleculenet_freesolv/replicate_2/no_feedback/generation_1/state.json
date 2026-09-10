@@ -1,0 +1,137 @@
+{
+  "parent_state_sha256": "4ee525d55c627fa4de3dcc8a10014bc2891b6e464a05618c71417940ad4d3f6c",
+  "new_state_sha256": "30b38aced2d964fb498d13691e87168b52950703849dabe3d815a5db7ea5bc77",
+  "generation": 1,
+  "arm": "no_feedback",
+  "state": {
+    "skills": [
+      {
+        "skill_id": "esol_size_ring_transfer",
+        "rules": [
+          {
+            "rule_id": "short_smiles_source_prior",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_short"
+              ]
+            ],
+            "weight": 0.5,
+            "rationale": "Source ESOL value prior gave smiles_short +6.89; small solutes expose little hydrophobic surface."
+          },
+          {
+            "rule_id": "mid_smiles_source_penalty",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_mid"
+              ]
+            ],
+            "weight": -0.4,
+            "rationale": "Source effect for smiles_mid was -6.61; growing carbon skeleton adds cavity-formation cost."
+          },
+          {
+            "rule_id": "long_smiles_source_penalty",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_long"
+              ]
+            ],
+            "weight": -0.6,
+            "rationale": "Largest negative source effect (-11.46, confidence 0.47); long chains bury polar groups."
+          },
+          {
+            "rule_id": "acyclic_scaffold_bonus",
+            "conditions": [
+              [
+                "ring_token_bin",
+                "ring_token_none"
+              ]
+            ],
+            "weight": 0.3,
+            "rationale": "Ring role carried the highest transfer weight (0.758); acyclic solutes were favored in the source task."
+          }
+        ],
+        "ridge": 1.2,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.35,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.01,
+        "confidence": 0.35,
+        "hypothesis": "Transfers ESOL size and ring roles to hydration ranking, assuming solubility and hydration share a cavity-cost mechanism. Fails if hydration is polarity-dominated, since short SMILES here include nonpolar alkanes and halocarbons."
+      },
+      {
+        "skill_id": "polarity_dominant_hydration",
+        "rules": [
+          {
+            "rule_id": "heteroatom_rich_hbonding",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_high"
+              ]
+            ],
+            "weight": 0.85,
+            "rationale": "N/O-rich solutes donate and accept multiple water hydrogen bonds, giving strongly favorable hydration free energies."
+          },
+          {
+            "rule_id": "moderate_polarity_bonus",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_mid"
+              ]
+            ],
+            "weight": 0.45,
+            "rationale": "Intermediate heteroatom counts keep polar hydration sites without a large hydrophobic scaffold."
+          },
+          {
+            "rule_id": "polyhalogen_hydrophobic_penalty",
+            "conditions": [
+              [
+                "halogen_bin",
+                "halogen_high"
+              ]
+            ],
+            "weight": -0.65,
+            "rationale": "Heavily halogenated solutes are weakly polar and hydrophobic despite polarizability, hydrating poorly."
+          },
+          {
+            "rule_id": "short_nonpolar_prior_reversal",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_none"
+              ],
+              [
+                "smiles_length_bin",
+                "smiles_short"
+              ]
+            ],
+            "weight": -0.6,
+            "rationale": "Reverses the low-confidence short-SMILES source prior: short heteroatom-free strings are hydrocarbons with unfavorable hydration."
+          }
+        ],
+        "ridge": 0.9,
+        "prior_scale": 0.5,
+        "semantic_mass_start": 0.5,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.55,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 0.9,
+        "gp_xi": 0.02,
+        "confidence": 0.6,
+        "hypothesis": "Asserts hydrogen-bonding capacity, not chain length, controls hydration, and downweights the uncertain short-SMILES source prior. Fails if the score rewards small nonpolar solutes or if polar halogenated species dominate the top pool."
+      }
+    ],
+    "selected_skill_id": "polarity_dominant_hydration",
+    "lesson": "The transferable source roles are size and ring counts from a solubility task with low role confidence (0.22 for length), while hydration free energy is mechanistically dominated by solute-water hydrogen bonding, so a heteroatom/halogen polarity contrast is the safer prior.",
+    "revision_summary": "Rewrote both skills to the required field:value conditions format. Kept the faithful source-evidence transfer (smiles_length_bin value priors plus the high-transfer-weight ring role) but lowered its semantic mass and confidence to reflect weak role confidence. Kept the polarity counter-hypothesis, softened the halogen penalty slightly, and trimmed its starting semantic mass so the target-only GP anchor retains more rank mass. Deployed the polarity skill."
+  },
+  "memory_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "experimental_only": true
+}

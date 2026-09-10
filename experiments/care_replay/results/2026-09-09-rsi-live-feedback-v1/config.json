@@ -1,0 +1,67 @@
+{
+  "schema_version": "care.rsi_live_feedback_config/v1",
+  "experiment_class": "retrospective_same_task_seed_disjoint_live_llm_skill_revision",
+  "model": "anthropic/claude-opus-5",
+  "base_url": "https://api.commonstack.ai/v1",
+  "temperature": 0.4,
+  "max_tokens": 3500,
+  "max_attempts_per_generation": 2,
+  "model_replicates": [
+    0,
+    1,
+    2
+  ],
+  "updates": 2,
+  "skills_per_generation": 2,
+  "development_seed_start": 229100,
+  "development_seeds_per_generation": 8,
+  "evaluation_seed_start": 239100,
+  "evaluation_seed_count": 40,
+  "initial_observations": 5,
+  "reveal_rounds": 10,
+  "bootstrap_seed": 20260910,
+  "bootstrap_draws": 20000,
+  "shuffle_seed": 20260911,
+  "source_observations": 512,
+  "discount": 0.65,
+  "kernel": {
+    "numeric_length_scale": 0.35,
+    "categorical_length_scale": 3.0,
+    "gp_noise": 0.05
+  },
+  "arms": [
+    "true_feedback",
+    "no_feedback",
+    "shuffled_feedback"
+  ],
+  "deployment_selection": "LLM-selected skill ID in final valid response, frozen before held-out evaluation",
+  "primary_comparison": "true_feedback_minus_fixed_initial",
+  "mechanism_comparisons": [
+    "true_feedback_minus_no_feedback",
+    "true_feedback_minus_shuffled_feedback"
+  ],
+  "constraints": {
+    "initial_llm_draw_shared_across_arms": true,
+    "same_initial_observations_within_seed": true,
+    "same_deployment_reveal_budget": true,
+    "evaluation_feedback_excluded": true,
+    "all_generation_attempts_retained": true,
+    "no_global_kb_promotion": true,
+    "no_model_weight_training": true
+  },
+  "claim_boundary": "Live LLM revision of executable skills using accumulated development results. This is not task-disjoint confirmation, a wet-lab experiment, or a benchmark of global KB retrieval. Finite target pools and source pairs appeared in earlier development; only evaluation seed IDs are held out. Three model draws give limited call-level uncertainty. Model seed determinism is not assumed.",
+  "tasks": [
+    {
+      "id": "real_moleculenet_freesolv",
+      "source": "real_moleculenet_esol"
+    },
+    {
+      "id": "real_moleculenet_lipophilicity",
+      "source": "real_moleculenet_esol"
+    },
+    {
+      "id": "real_matbench_expt_gap",
+      "source": "real_matbench_dielectric"
+    }
+  ]
+}

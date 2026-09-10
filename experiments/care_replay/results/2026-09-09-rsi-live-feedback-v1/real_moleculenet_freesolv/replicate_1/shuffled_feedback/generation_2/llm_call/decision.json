@@ -1,0 +1,125 @@
+{
+  "skills": [
+    {
+      "skill_id": "size_dominant_hydration_prior",
+      "rules": [
+        {
+          "rule_id": "short_smiles_favored",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Source prior for smiles_short was +6.89 with the largest support (261); small solutes pay the least cavity-formation work."
+        },
+        {
+          "rule_id": "long_smiles_penalized",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "Source prior -11.46 at smiles_long; large nonpolar volume adds cavity cost faster than it adds favorable contacts."
+        },
+        {
+          "rule_id": "hetero_rich_polar_hydration",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Dense N/O substitution supports hydrogen bonding that partly offsets cavity cost, so polarity marks hydratable solutes."
+        },
+        {
+          "rule_id": "aromatic_surface_penalty",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ]
+          ],
+          "weight": -0.25,
+          "rationale": "Aromatic-rich solutes expose extended flat nonpolar surfaces with poor water contacts, matching the weak hydrophilic regime."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.12,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.6,
+      "hypothesis": "Transfers the ESOL size ordering plus a mild polarity and aromatic-surface correction, assuming hydration is dominated by solute bulk with a secondary polar term. Fails if top candidates are polar and mid-length, or if the smiles_long prior reflects solubility mechanics that do not carry over."
+    },
+    {
+      "skill_id": "cavity_cost_over_midlength_prior",
+      "rules": [
+        {
+          "rule_id": "short_smiles_small_cavity",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Retained compact-solute term: cavity work scales with molecular volume, the most transferable physical driver."
+        },
+        {
+          "rule_id": "counter_mid_length_neutralized",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": 0.1,
+          "rationale": "Counter-hypothesis: smiles_mid carried the lowest source confidence (0.27), so its penalty is neutralized rather than trusted."
+        },
+        {
+          "rule_id": "hetero_none_penalty",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_none"
+            ]
+          ],
+          "weight": -0.35,
+          "rationale": "Hydrocarbon-only solutes have no hydrogen-bonding term to offset cavity cost, the least favorable hydration regime."
+        },
+        {
+          "rule_id": "unbranched_chain_bonus",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_none"
+            ]
+          ],
+          "weight": 0.25,
+          "rationale": "Branch role transferred strongly (0.758); unbranched solutes bury less nonpolar surface and solvate more favorably."
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.25,
+      "semantic_mass_start": 0.25,
+      "semantic_mass_end": 0.06,
+      "ucb_weight": 0.45,
+      "gp_beta_start": 2.4,
+      "gp_beta_end": 1.1,
+      "gp_xi": 0.02,
+      "confidence": 0.45,
+      "hypothesis": "Downweights the mid-length prior and scores polarity absence against unbranched geometry, leaning harder on target-only GP rank evidence. Fails if the mid-length penalty is genuinely strong or if apolar hydrocarbon solutes are actually favored."
+    }
+  ],
+  "selected_skill_id": "size_dominant_hydration_prior",
+  "lesson": "Across both development blocks the size-grounded skill beat its counter-hypothesis partner (72.9 vs 54.3, then 57.9 vs 50.8), but the second block dropped roughly 15 AUC points, so the transfer signal is real yet seed-fragile and should be paired with a target-only fallback rather than trusted outright.",
+  "revision_summary": "Kept one source-grounded skill on the high-support smiles_short prior while trimming the least-supported smiles_long penalty from -0.55 to -0.4, and added two mechanistic rules with no source counterpart (hetero_high polar hydration, aromatic_high nonpolar surface penalty) drawn from aqueous solvation theory. The counter skill now retains the compact-solute term, neutralizes only the lowest-confidence smiles_mid prior, and replaces the halogen rule with a hetero_none apolar penalty plus an unbranched bonus, while shifting more rank mass to the target-only anchor mid-run. All mechanism statements remain hypotheses; two eight-seed blocks cannot establish causality."
+}
