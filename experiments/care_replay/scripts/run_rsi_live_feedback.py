@@ -26,6 +26,14 @@ ROOT = Path(__file__).resolve().parents[1]
 REPO = ROOT.parents[1]
 
 
+class ProviderAccessError(RuntimeError):
+    """A provider response that cannot recover without an account/config change."""
+
+    def __init__(self, details):
+        super().__init__(details.get('message') or 'Non-retryable provider error')
+        self.details = details
+
+
 def clean_text(text):
     secret = os.environ.get('COMMONSTACK_API_KEY', '')
     return text.replace(secret, '[REDACTED_CREDENTIAL]') if secret else text
@@ -58,6 +66,10 @@ def validate_config(config):
         raise ValueError('Duplicate task')
     if any(s['id'] == s['source'] for s in config['tasks']):
         raise ValueError('Source and target must differ')
+    if config['max_attempts_per_generation'] < 1:
+        raise ValueError('At least one generation attempt is required')
+    if any(float(value) < 0 for value in config.get('retry_backoff_seconds', [])):
+        raise ValueError('Retry backoff values must be nonnegative')
     return dev, heldout
 
 
@@ -101,6 +113,49 @@ def normalize_response(content, catalog, count):
             'revision_summary': str(parsed.get('revision_summary', ''))}
 
 
+def classify_provider_error(http_status, body, retry_after=None):
+    """Return a serializable error record and whether another call is justified."""
+    try:
+        payload = json.loads(body)
+    except (TypeError, json.JSONDecodeError):
+        payload = {}
+    error = payload.get('error', {}) if isinstance(payload, dict) else {}
+    code = str(error.get('code', '')) if isinstance(error, dict) else ''
+    message = str(error.get('message', '')) if isinstance(error, dict) else ''
+    lowered = f'{code} {message}'.lower()
+    permanent_markers = (
+        'max cost limit exceeded', 'insufficient_quota', 'insufficient quota',
+        'billing', 'invalid api key', 'invalid_api_key', 'model_not_found',
+    )
+    terminal = (
+        http_status in (400, 401, 403, 404, 422)
+        or any(marker in lowered for marker in permanent_markers)
+    )
+    retryable = not terminal and (http_status in (408, 409, 429) or http_status >= 500)
+    return {
+        'http_status': int(http_status),
+        'code': code or None,
+        'message': message or body[:1000],
+        'retry_after': retry_after,
+        'retryable': retryable,
+        'terminal': terminal,
+        'response_body': body[:4000],
+    }
+
+
+def retry_delay(config, attempt, provider_error=None):
+    retry_after = (provider_error or {}).get('retry_after')
+    try:
+        if retry_after is not None:
+            return max(0.0, float(retry_after))
+    except (TypeError, ValueError):
+        pass
+    schedule = config.get('retry_backoff_seconds', [2, 10, 30])
+    if not schedule:
+        return 0.0
+    return float(schedule[min(attempt, len(schedule) - 1)])
+
+
 def generate(config, prompt, catalog, directory):
     """First valid response wins; never select model attempts using target performance."""
     key = os.environ['COMMONSTACK_API_KEY']
@@ -141,14 +196,29 @@ def generate(config, prompt, catalog, directory):
         except Exception as exc:
             record['status'] = 'failed'
             record['error_type'] = type(exc).__name__
+            record['elapsed_seconds'] = time.monotonic() - started
+            provider_error = None
             if isinstance(exc, urllib.error.HTTPError):
+                response_body = exc.read().decode('utf-8', errors='replace')
+                provider_error = classify_provider_error(
+                    exc.code, response_body,
+                    exc.headers.get('Retry-After') if exc.headers else None)
                 record['http_status'] = exc.code
+                record['provider_error'] = provider_error
             elif isinstance(exc, ValueError):
                 record['validation_error'] = str(exc)
+            if attempt + 1 < config['max_attempts_per_generation'] and (
+                    provider_error is None or provider_error['retryable']):
+                delay = retry_delay(config, attempt, provider_error)
+                record['retry_delay_seconds'] = delay
             save(directory / f'attempt_{attempt}_response.json', record)
+            if provider_error and provider_error['terminal']:
+                raise ProviderAccessError(provider_error) from exc
             if attempt + 1 < config['max_attempts_per_generation']:
-                messages = [*messages, {'role':'user','content':
-                    'The prior attempt failed transport or schema validation. Return exactly the requested JSON with valid public fields, values, and selected_skill_id. Do not change the experimental evidence.'}]
+                if isinstance(exc, ValueError):
+                    messages = [*messages, {'role':'user','content':
+                        'The prior attempt failed schema validation. Return exactly the requested JSON with valid public fields, values, and selected_skill_id. Do not change the experimental evidence.'}]
+                time.sleep(retry_delay(config, attempt, provider_error))
     raise RuntimeError('No valid response after retained generation attempts')
 
 
@@ -257,6 +327,12 @@ def run_case(spec, replicate, config, output):
              [{k:r[k] for k in ('task','seed','arm','replicate','skill_id','metrics')} for r in heldout])
         save(directory/'status.json',{'status':'complete','replicate':replicate,'task':spec['id']})
         return {'status':'complete','task':spec['id'],'replicate':replicate}
+    except ProviderAccessError as exc:
+        status={'status':'failed','task':spec['id'],'replicate':replicate,
+                'error_type':type(exc).__name__,'terminal_provider_error':True,
+                'provider_error':exc.details}
+        save(directory/'status.json',status)
+        return status
     except Exception as exc:
         status={'status':'failed','task':spec['id'],'replicate':replicate,'error_type':type(exc).__name__}
         save(directory/'status.json',status)
@@ -265,6 +341,9 @@ def run_case(spec, replicate, config, output):
 
 def run(config_path,output,workers):
     config=json.loads(config_path.read_text());validate_config(config)
+    workers=int(workers if workers is not None else config.get('recommended_workers',3))
+    if workers < 1:
+        raise ValueError('workers must be positive')
     if not os.environ.get('COMMONSTACK_API_KEY'):
         raise RuntimeError('Configure COMMONSTACK_API_KEY in the environment')
     if output.exists() and any(output.iterdir()):
@@ -277,23 +356,33 @@ def run(config_path,output,workers):
         'implementation_hashes':{str(p.relative_to(REPO)):hashlib.sha256(p.read_bytes()).hexdigest()
                                  for p in (ROOT/'scripts').glob('*.py')},
         'python':platform.python_version(),'numpy':np.__version__,
+        'workers':workers,
         'planned_valid_generation_calls':len(config['tasks'])*len(config['model_replicates'])*(1+len(config['arms'])*config['updates']),
         'model_rng_seed_supported':False,'claim_boundary':config['claim_boundary']})
     jobs=[(spec,rep) for spec in config['tasks'] for rep in config['model_replicates']]
-    results=[]
+    results=[];aborted=False
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
-        futures=[pool.submit(run_case,spec,rep,config,output) for spec,rep in jobs]
-        for future in concurrent.futures.as_completed(futures):
-            result=future.result();results.append(result)
-            save(output/'run_status.json',{'cases':results,'planned_cases':len(jobs)})
-            print(json.dumps(result),flush=True)
-    save(output/'run_status.json',{'cases':results,'planned_cases':len(jobs),'complete':all(r['status']=='complete' for r in results)})
-    if any(r['status'] != 'complete' for r in results):
+        for start in range(0,len(jobs),workers):
+            batch=jobs[start:start+workers]
+            futures=[pool.submit(run_case,spec,rep,config,output) for spec,rep in batch]
+            for future in concurrent.futures.as_completed(futures):
+                result=future.result();results.append(result)
+                aborted=aborted or result.get('terminal_provider_error',False)
+                save(output/'run_status.json',{'cases':results,'planned_cases':len(jobs),
+                                               'aborted':aborted})
+                print(json.dumps(result),flush=True)
+            if aborted:
+                break
+    complete=len(results)==len(jobs) and all(r['status']=='complete' for r in results)
+    save(output/'run_status.json',{'cases':results,'planned_cases':len(jobs),'complete':complete,
+                                   'aborted':aborted,
+                                   'cases_not_started':len(jobs)-len(results)})
+    if not complete:
         raise SystemExit(1)
 
 
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--config',type=Path,required=True);p.add_argument('--output-dir',type=Path,required=True)
-    p.add_argument('--workers',type=int,default=3)
+    p.add_argument('--workers',type=int,default=None)
     args=p.parse_args();run(args.config,args.output_dir,args.workers)

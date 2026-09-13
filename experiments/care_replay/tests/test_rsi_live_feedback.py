@@ -2,6 +2,7 @@ import json
 import os
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 from dataclasses import replace
 from unittest.mock import patch
@@ -61,6 +62,38 @@ class LiveRSITest(unittest.TestCase):
         result=live.normalize_response(json.dumps({'skills':[skill('a'),skill('b')],'selected_skill_id':'b'}),{'x':{'good':1}},2)
         self.assertEqual(result['selected_skill_id'],'b')
         self.assertEqual(len(result['skills']),2)
+
+    def test_cost_cap_is_terminal_and_preserved(self):
+        body=json.dumps({'error':{'code':'rate_limit_exceeded',
+                                  'message':'Access key max cost limit exceeded (cap 100)'}})
+        result=live.classify_provider_error(429,body)
+        self.assertTrue(result['terminal'])
+        self.assertFalse(result['retryable'])
+        self.assertEqual(result['code'],'rate_limit_exceeded')
+
+    def test_transient_rate_limit_honors_retry_after(self):
+        body=json.dumps({'error':{'code':'rate_limit_exceeded','message':'Too many requests'}})
+        result=live.classify_provider_error(429,body,'7')
+        self.assertFalse(result['terminal'])
+        self.assertTrue(result['retryable'])
+        self.assertEqual(live.retry_delay({},0,result),7.0)
+
+    def test_single_worker_stops_after_terminal_provider_error(self):
+        config=live.ROOT/'configs/rsi_live_feedback_extension_v3.json'
+        failed={'status':'failed','task':'real_moleculenet_freesolv','replicate':3,
+                'error_type':'ProviderAccessError','terminal_provider_error':True}
+        with tempfile.TemporaryDirectory() as tmp, \
+             patch.dict(os.environ,{'COMMONSTACK_API_KEY':'fixture'}), \
+             patch.object(live,'run_case',return_value=failed) as run_case:
+            output=Path(tmp)/'result'
+            with self.assertRaises(SystemExit):
+                live.run(config,output,workers=None)
+            status=json.loads((output/'run_status.json').read_text())
+            lock=json.loads((output/'protocol_lock.json').read_text())
+        self.assertEqual(run_case.call_count,1)
+        self.assertTrue(status['aborted'])
+        self.assertEqual(status['cases_not_started'],8)
+        self.assertEqual(lock['workers'],1)
 
 
 if __name__=='__main__': unittest.main()
