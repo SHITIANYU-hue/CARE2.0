@@ -1,0 +1,145 @@
+{
+  "parent_state_sha256": "a6327194beadc8d6ea7a3b8dc9456367aa635b309b67f7f539af2438ad1398d4",
+  "new_state_sha256": "8f25307038580790d20c4bc065d2b155752a82b8af709d8e4156607da9a4b7f7",
+  "generation": 2,
+  "arm": "shuffled_feedback",
+  "state": {
+    "skills": [
+      {
+        "skill_id": "closed_shell_ionicity_gap_refined",
+        "rules": [
+          {
+            "rule_id": "main_group_oxide_wide_gap",
+            "conditions": [
+              [
+                "anion_family",
+                "oxide"
+              ],
+              [
+                "transition_metal_flag",
+                "no_transition_metal"
+              ]
+            ],
+            "weight": 0.8,
+            "rationale": "Deep O 2p valence band plus empty main-group cation s states maximize the optical gap."
+          },
+          {
+            "rule_id": "main_group_halide_widest_gap",
+            "conditions": [
+              [
+                "anion_family",
+                "halide"
+              ],
+              [
+                "transition_metal_flag",
+                "no_transition_metal"
+              ]
+            ],
+            "weight": 0.9,
+            "rationale": "Largest electronegativity contrast with closed-shell cations pushes the conduction band highest."
+          },
+          {
+            "rule_id": "d_manifold_band_narrowing",
+            "conditions": [
+              [
+                "transition_metal_flag",
+                "has_transition_metal"
+              ]
+            ],
+            "weight": -0.55,
+            "rationale": "Partially filled d states insert mid-gap bands, systematically lowering measured optical gaps."
+          },
+          {
+            "rule_id": "chalcogenide_valence_band_rise",
+            "conditions": [
+              [
+                "anion_family",
+                "chalcogenide"
+              ]
+            ],
+            "weight": -0.45,
+            "rationale": "Heavier chalcogen p states raise the valence-band maximum, narrowing the semiconducting gap."
+          }
+        ],
+        "ridge": 1.6,
+        "prior_scale": 0.4,
+        "semantic_mass_start": 0.4,
+        "semantic_mass_end": 0.15,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.01,
+        "confidence": 0.72,
+        "hypothesis": "Anionic ionicity and d-band filling set the gap direction and transfer across chemistries. Fails on seeds where the anchor dominates or where lanthanide f states and defect-narrowed halides decouple the nominal anion from the true gap."
+      },
+      {
+        "skill_id": "lanthanide_f_state_gap_quench",
+        "rules": [
+          {
+            "rule_id": "lanthanide_f_state_narrowing",
+            "conditions": [
+              [
+                "lanthanide_flag",
+                "has_lanthanide"
+              ]
+            ],
+            "weight": -0.5,
+            "rationale": "Partially filled 4f states and heavy polarizable cations insert mid-gap levels, lowering measured gaps."
+          },
+          {
+            "rule_id": "lanthanide_free_wide_gap",
+            "conditions": [
+              [
+                "lanthanide_flag",
+                "no_lanthanide"
+              ]
+            ],
+            "weight": 0.2,
+            "rationale": "Absence of f manifolds leaves the fundamental gap set by anion-cation ionicity alone."
+          },
+          {
+            "rule_id": "oxide_lanthanide_wide_gap_exception",
+            "conditions": [
+              [
+                "anion_family",
+                "oxide"
+              ],
+              [
+                "lanthanide_flag",
+                "has_lanthanide"
+              ]
+            ],
+            "weight": 0.3,
+            "rationale": "Wide-gap lanthanide oxides: deep O 2p valence band and large cation charge keep gaps large despite f states."
+          },
+          {
+            "rule_id": "chalcogenide_covalent_narrowing",
+            "conditions": [
+              [
+                "anion_family",
+                "chalcogenide"
+              ]
+            ],
+            "weight": -0.3,
+            "rationale": "Covalent heavy-chalcogen valence bands narrow the gap; consistent with their high source refractive index."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.35,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.55,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.1,
+        "gp_xi": 0.015,
+        "confidence": 0.55,
+        "hypothesis": "A counter-hypothesis to the previous d-state rule: the uncertain, low-confidence source transfer understates lanthanide f-state effects, so lanthanide presence is the dominant gap-narrowing axis. May fail where lanthanide oxides legitimately keep wide gaps."
+      }
+    ],
+    "selected_skill_id": "closed_shell_ionicity_gap_refined",
+    "lesson": "The domain-knowledge skill beat the shrunk counter-hypothesis on every development seed (76.7 vs 71.6 mean AUC) and again showed one weak seed (27.8), so the interpretable ionicity rules carry the ranking signal while transferred dielectric magnitudes stay weaker.",
+    "revision_summary": "Retained the closed-shell ionicity skill, tightened ridge to 1.6 and lowered semantic mass to limit damage from the recurring weak seed. Replaced the broad polarizability counter-hypothesis with a lanthanide f-state counter-hypothesis that reverses the downweighting of the uncertain source relation. Deployment selection stays with the domain-knowledge, non-transfer skill given consistent development-seed superiority."
+  },
+  "memory_sha256": "74c5920c9548f665a51c3eb8ee7eab0d1bbffafad1de8d3e69bf3b8eaa92829c",
+  "experimental_only": true
+}

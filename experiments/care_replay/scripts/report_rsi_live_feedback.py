@@ -37,6 +37,9 @@ def analyze(root):
     names={'real_moleculenet_freesolv':'FreeSolv','real_moleculenet_lipophilicity':'Lipophilicity','real_matbench_expt_gap':'Experimental band gap'}
     diagnostic_path=root/'first_update_evaluation_metrics.json'
     diagnostic=json.loads(diagnostic_path.read_text()) if diagnostic_path.exists() else []
+    diagnostic_lock=(json.loads((root/'first_update_diagnostic_lock.json').read_text())
+                     if diagnostic else {})
+    diagnostic_status=diagnostic_lock.get('status','unknown')
     action_changes=[]
     metrics=[];result=[];checks={'budget_and_pairing':True,'finite_metrics':True,'heldout_feedback_excluded':True}
     methods=['fixed_initial','true_feedback','no_feedback','shuffled_feedback','gp_ucb']
@@ -110,6 +113,7 @@ def analyze(root):
              'additional_first_update_diagnostic_trajectories':len(diagnostic),
              'numerical_warning_trajectories':warning_trajectories,
              'checks':checks,'true_vs_fixed_executed_action_changes':action_changes,'claim_boundary':config['claim_boundary'],
+             'first_update_diagnostic_status':diagnostic_status if diagnostic else None,
              'inference_boundary':'Crossed bootstrap resamples three paired model replicates and forty paired replay seeds. Three model replicates are insufficient for strong call-level generalization; intervals are exploratory.'}
     (root/'summary.json').write_text(json.dumps(archive,indent=2)+'\n')
     with (root/'raw_evaluation_metrics.csv').open('w',newline='') as f:
@@ -145,7 +149,10 @@ def analyze(root):
         for task in result:
             st=task['comparisons']['first_update_only']['best_so_far_auc']
             lines.append('| '+names[task['task']]+' | '+fmt(st)+' | '+', '.join(f'{x:+.4f}' for x in st['per_replicate_means'])+' |')
-        lines += ['', 'This additional diagnostic was locked during generation, before any final held-out case metrics existed. It requires 360 extra replay trajectories and no extra model calls; it is not a primary endpoint.']
+        if diagnostic_status.startswith('posthoc_'):
+            lines += ['', 'This additional diagnostic was added after the primary run completed. It requires 360 extra replay trajectories and no extra model calls; it is descriptive and not a preregistered endpoint.']
+        else:
+            lines += ['', 'This additional diagnostic was locked during generation, before any final held-out case metrics existed. It requires 360 extra replay trajectories and no extra model calls; it is not a primary endpoint.']
     lines+=['','Intervals are exploratory 95% crossed-bootstrap intervals. Each task has only three independent '
             'initial model runs with paired revision arms and 40 common replay seeds. Model-call uncertainty remains weakly estimated. '
             'Familywise intervals for the three primary task comparisons are in `summary.json`; other contrasts are descriptive.', '',
@@ -168,8 +175,8 @@ def analyze(root):
             'For backend sample checks see `numerical_validation.json` when present. Failed API/format attempts are not silently counted as valid model generations.', '',
             '## Reproduction', '', 'Use the versions in `requirements.txt` and configure `COMMONSTACK_API_KEY` in the environment. Then:', '', '```bash',
             'python experiments/care_replay/scripts/run_rsi_live_feedback.py \\',
-            '  --config experiments/care_replay/configs/rsi_live_feedback_v1.json \\',
-            '  --output-dir /tmp/care-rsi-live-reproduction --workers 3',
+            '  --config /path/to/archive/config.json \\',
+            '  --output-dir /tmp/care-rsi-live-reproduction',
             'python experiments/care_replay/scripts/evaluate_rsi_first_update.py --root /tmp/care-rsi-live-reproduction',
             'python experiments/care_replay/scripts/report_rsi_live_feedback.py \\',
             '  --root /tmp/care-rsi-live-reproduction', '```', '',

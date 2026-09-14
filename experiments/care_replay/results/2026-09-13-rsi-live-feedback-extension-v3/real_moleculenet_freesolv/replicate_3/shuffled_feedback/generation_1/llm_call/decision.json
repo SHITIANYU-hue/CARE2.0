@@ -1,0 +1,125 @@
+{
+  "skills": [
+    {
+      "skill_id": "damped_length_prior_transfer",
+      "rules": [
+        {
+          "rule_id": "short_solute_prior_positive",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Source ESOL prior for smiles_short was +6.89 (n=261); small solutes pay little cavity-formation cost."
+        },
+        {
+          "rule_id": "mid_length_prior_negative",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": -0.35,
+          "rationale": "Source smiles_mid effect was -6.61 (n=226); transferred with damping because role confidence is only 0.22."
+        },
+        {
+          "rule_id": "long_solute_prior_negative",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": -0.55,
+          "rationale": "Strongest source value prior (-11.46, confidence 0.47): bulky lipophilic solutes lose solvation favorability."
+        },
+        {
+          "rule_id": "heteroatom_role_damped",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": 0.22,
+          "rationale": "Donor-to-heteroatom role transfer is weakest evidence (confidence 0.16), so polarity enters only as a small positive tilt."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.28,
+      "semantic_mass_start": 0.38,
+      "semantic_mass_end": 0.12,
+      "ucb_weight": 0.62,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.55,
+      "hypothesis": "Transfers the ESOL size ordering (short favored, mid and long penalized) with a small heteroatom tilt, letting the target-only anchor dominate late. Fails if hydration rewards large polar solutes."
+    },
+    {
+      "skill_id": "compact_apolar_counter_hypothesis",
+      "rules": [
+        {
+          "rule_id": "small_cavity_advantage",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": 0.45,
+          "rationale": "Cavity formation scales with solute volume; compact solutes retain the most favorable hydration balance."
+        },
+        {
+          "rule_id": "heteroatom_role_reversed",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "Counter-hypothesis: reverses the lowest-confidence source role (0.16), since heteroatom-dense solutes here are also large."
+        },
+        {
+          "rule_id": "polyhalogen_hydrophobic_penalty",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_high"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "Polyhalogenated solutes are weakly hydrogen bonding and bulky, a classic hydrophobic hydration penalty."
+        },
+        {
+          "rule_id": "extended_chain_penalty",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "Extended chains add nonpolar surface faster than polar contacts, reducing hydration favorability."
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.22,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.7,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.015,
+      "confidence": 0.4,
+      "hypothesis": "Size and hydrophobic surface, not heteroatom density, set hydration ranking; the uncertain donor-to-heteroatom role is reversed. Fails if polar multi-heteroatom solutes actually top the score."
+    }
+  ],
+  "selected_skill_id": "damped_length_prior_transfer",
+  "lesson": "On development seeds the source-prior length skill led the heteroatom-led mechanistic skill by roughly 23 AUC points, so size priors plus lighter semantic mass are the safer carrier; heteroatom weighting should stay small until target evidence accumulates.",
+  "revision_summary": "Kept the better-performing source-prior transfer but damped the heteroatom rule and reduced semantic mass and prior scale so the target-only anchor takes over sooner. Replaced the losing polarity-led skill with a compact-apolar counter-hypothesis that explicitly reverses the lowest-confidence donor-to-heteroatom role while retaining size and halogen terms. Selected the damped length-prior transfer for frozen deployment."
+}

@@ -1,0 +1,141 @@
+{
+  "parent_state_sha256": "7d154af703595673b3397df23b3018d696d6bc931e7417183003418a1b5bca6d",
+  "new_state_sha256": "4dad6c97d1bdbec60b61bcfaed2a3784db6fd8702494087220f7f099159bfae9",
+  "generation": 2,
+  "arm": "true_feedback",
+  "state": {
+    "skills": [
+      {
+        "skill_id": "hydrophobic_bulk_polarity_balance",
+        "rules": [
+          {
+            "rule_id": "halogen_rich_partition",
+            "conditions": [
+              [
+                "halogen_bin",
+                "halogen_high"
+              ]
+            ],
+            "weight": 0.55,
+            "rationale": "Halogen substitution adds polarizable hydrophobic volume that favors the octanol phase over water."
+          },
+          {
+            "rule_id": "aromatic_hydrophobic_core",
+            "conditions": [
+              [
+                "aromatic_bin",
+                "aromatic_high"
+              ]
+            ],
+            "weight": 0.45,
+            "rationale": "Extended aromatic frameworks are poorly hydrated and raise logD independently of chain length."
+          },
+          {
+            "rule_id": "halogen_aromatic_synergy",
+            "conditions": [
+              [
+                "aromatic_bin",
+                "aromatic_high"
+              ],
+              [
+                "halogen_bin",
+                "halogen_mid"
+              ]
+            ],
+            "weight": 0.3,
+            "rationale": "Halogenated aromatics combine pi-density with lipophilic surface, an additive partition gain."
+          },
+          {
+            "rule_id": "polar_hetero_penalty",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_high"
+              ]
+            ],
+            "weight": -0.45,
+            "rationale": "High heteroatom content means polar and ionizable groups that partition into the aqueous phase."
+          }
+        ],
+        "ridge": 0.9,
+        "prior_scale": 0.55,
+        "semantic_mass_start": 0.42,
+        "semantic_mass_end": 0.14,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 0.9,
+        "gp_xi": 0.02,
+        "confidence": 0.72,
+        "hypothesis": "Lipophilicity in this pool is set by a hydrophobic-surface versus polar-heteroatom balance; halogenation and aromaticity raise the score while heteroatom polarity lowers it. Fails if chain length or size dominates polarity here."
+      },
+      {
+        "skill_id": "aromatic_ring_lipophilic_surface",
+        "rules": [
+          {
+            "rule_id": "ring_rich_hydrophobic_surface",
+            "conditions": [
+              [
+                "ring_token_bin",
+                "ring_token_high"
+              ]
+            ],
+            "weight": 0.5,
+            "rationale": "Ring role carried the highest transfer weight (0.758); ring density adds hydrophobic surface and displaces water."
+          },
+          {
+            "rule_id": "aromatic_ring_coverage",
+            "conditions": [
+              [
+                "aromatic_bin",
+                "aromatic_high"
+              ],
+              [
+                "ring_token_bin",
+                "ring_token_high"
+              ]
+            ],
+            "weight": 0.35,
+            "rationale": "Aromatic ring-rich scaffolds are the concrete carrier of the ring-density effect in this catalog."
+          },
+          {
+            "rule_id": "hetero_ring_damping",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_high"
+              ]
+            ],
+            "weight": -0.35,
+            "rationale": "Heteroatom-rich rings are polar and hydrogen-bonding, damping the hydrophobic ring gain."
+          },
+          {
+            "rule_id": "low_ring_polar_penalty",
+            "conditions": [
+              [
+                "ring_token_bin",
+                "ring_token_low"
+              ]
+            ],
+            "weight": -0.3,
+            "rationale": "Acyclic or sparse-ring scaffolds expose flexible polar chains to solvent, lowering partition into octanol."
+          }
+        ],
+        "ridge": 1.2,
+        "prior_scale": 0.25,
+        "semantic_mass_start": 0.3,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.65,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.01,
+        "confidence": 0.45,
+        "hypothesis": "Transfers the source ring effect directly, treating ring density as the dominant lipophilic surface proxy rather than reversing any source sign; it deliberately avoids the low-confidence length relation. Fails if ring count is confounded with heteroatom content in this pool."
+      }
+    ],
+    "selected_skill_id": "hydrophobic_bulk_polarity_balance",
+    "lesson": "Two generations of development seeds agree that the halogen/aromatic surface model with a heteroatom polarity penalty is the reliable signal, while source-derived length transfer stays low-confidence and should be carried only as a structural hedge rather than as a sign-flipped prior.",
+    "revision_summary": "Deployed the domain-mechanistic halogen/aromatic model again, keeping the halogen-aromatic interaction and the heteroatom penalty with a slightly trimmed penalty weight (0.45) and raised confidence (0.72) after it again led the alternative on development seeds (90.05 vs 88.53 AUC). Replaced the failed sign-flip skill with a ring-density hedge that uses the highest-transfer-weight ring role without inverting any source effect, and dropped the unverified length rules entirely."
+  },
+  "memory_sha256": "0f581f57dfe3323361ada2e34c8f0b9949ae3e72275af0ef61d3147a2f916cd6",
+  "experimental_only": true
+}

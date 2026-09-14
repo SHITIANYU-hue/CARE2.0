@@ -1,0 +1,129 @@
+{
+  "skills": [
+    {
+      "skill_id": "esol_size_ring_transfer",
+      "rules": [
+        {
+          "rule_id": "short_smiles_bonus",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Explicit source value prior: smiles_short had positive solubility effect; small solutes pay a low cavity-formation cost in water."
+        },
+        {
+          "rule_id": "long_smiles_penalty",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": -0.6,
+          "rationale": "Largest-magnitude source prior was negative for smiles_long; bulky hydrophobic solutes desolvate poorly."
+        },
+        {
+          "rule_id": "ring_free_bonus",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_none"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Ring role carried the highest transfer weight (0.758); rigid ring systems reduced solubility in source data."
+        },
+        {
+          "rule_id": "low_branching_bonus",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_low"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Rotatable-bond role maps to branching with transfer weight 0.758; limited flexibility lowers entropic desolvation penalty."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.12,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.4,
+      "hypothesis": "Transfers ESOL size, ring and branching effects to hydration ranking. Fails because aqueous solubility mixes crystal-lattice terms absent from pure hydration free energy, and source role confidences are only 0.16-0.41."
+    },
+    {
+      "skill_id": "polar_hbond_hydration_prior",
+      "rules": [
+        {
+          "rule_id": "heteroatom_rich_bonus",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Dense N/O centers donate and accept hydrogen bonds, the dominant favorable term in hydration free energy."
+        },
+        {
+          "rule_id": "moderate_polarity_bonus",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_mid"
+            ]
+          ],
+          "weight": 0.35,
+          "rationale": "Broader-coverage polar tier; some hydrogen-bonding capacity still offsets cavity-formation cost in water."
+        },
+        {
+          "rule_id": "apolar_hydrocarbon_penalty",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_none"
+            ],
+            [
+              "hetero_atom_bin",
+              "hetero_none"
+            ]
+          ],
+          "weight": -0.6,
+          "rationale": "Pure hydrocarbons offer neither hydrogen bonding nor polarizable halogens, so cavity cost is uncompensated."
+        },
+        {
+          "rule_id": "midlength_counter_prior",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Counter-hypothesis reversing the weakly supported negative smiles_mid source prior; moderate size accommodates more polar groups."
+        }
+      ],
+      "ridge": 0.8,
+      "prior_scale": 0.5,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.18,
+      "ucb_weight": 0.55,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.02,
+      "confidence": 0.6,
+      "hypothesis": "Hydration affinity tracks polar hydrogen-bonding capacity rather than molecular size, reversing the mid-length source penalty. Fails if the score rewards small apolar solutes or if hetero_high coverage (28 items) is unrepresentative."
+    }
+  ],
+  "selected_skill_id": "polar_hbond_hydration_prior",
+  "lesson": "Source ESOL roles are size- and ring-dominated with low confidence (0.16-0.41), while hydration free energy is mechanistically governed by polar hydrogen bonding; prefer the mechanism-first prior, broaden it beyond thin bins, and decay semantic mass so revealed target data can override it.",
+  "revision_summary": "Rewrote all conditions as catalog field-to-value maps required by the schema. Trimmed the source-grounded skill to the three explicit smiles_length value priors plus the two highest-transfer-weight roles. Strengthened the mechanistic skill by adding hetero_mid coverage and converting the apolar penalty into a hetero_none plus halogen_none interaction; deployed it."
+}

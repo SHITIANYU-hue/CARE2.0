@@ -1,0 +1,133 @@
+{
+  "parent_state_sha256": "036bda368f0dad986d501dc4df2090139359e92693660dd06ab98c70f467c6d8",
+  "new_state_sha256": "5e8e3d22294d7ea43f8b1c0e78bbb951bae2b2a83ffeee70d978f47a7c5cb756",
+  "generation": 1,
+  "arm": "true_feedback",
+  "state": {
+    "skills": [
+      {
+        "skill_id": "oxide_light_cation_wide_gap_prior",
+        "rules": [
+          {
+            "rule_id": "oxide_anion_positive",
+            "conditions": [
+              [
+                "anion_family",
+                "oxide"
+              ]
+            ],
+            "weight": 0.62,
+            "rationale": "Oxide anions have deep O 2p valence bands and large electronegativity, giving the widest experimental gaps."
+          },
+          {
+            "rule_id": "no_transition_metal_positive",
+            "conditions": [
+              [
+                "transition_metal_flag",
+                "no_transition_metal"
+              ]
+            ],
+            "weight": 0.55,
+            "rationale": "Absent open-shell d states removes mid-gap levels and metallic screening, favoring measurable wide gaps."
+          },
+          {
+            "rule_id": "light_nonmetal_dominant_positive",
+            "conditions": [
+              [
+                "dominant_family",
+                "light_nonmetal"
+              ]
+            ],
+            "weight": 0.38,
+            "rationale": "Light nonmetal lattices are strongly covalent with large bonding-antibonding splitting, widening the gap."
+          },
+          {
+            "rule_id": "mean_z_low_positive",
+            "conditions": [
+              [
+                "mean_atomic_number_bin",
+                "mean_z_low"
+              ]
+            ],
+            "weight": 0.34,
+            "rationale": "Low mean Z tracks light anions and small spin-orbit coupling, both correlated with larger optical gaps."
+          }
+        ],
+        "ridge": 1.2,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.4,
+        "semantic_mass_end": 0.16,
+        "ucb_weight": 0.55,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.01,
+        "confidence": 0.68,
+        "hypothesis": "Oxide chemistry plus d-free light-element lattices carry the strongest wide-gap prior for experimental band gaps. Weakens for polarizable heavy chalcogenides or mixed-valence oxides where defect levels narrow measured gaps."
+      },
+      {
+        "skill_id": "heavy_element_gap_collapse_counterweight",
+        "rules": [
+          {
+            "rule_id": "mean_z_very_high_negative",
+            "conditions": [
+              [
+                "mean_atomic_number_bin",
+                "mean_z_very_high"
+              ]
+            ],
+            "weight": -0.58,
+            "rationale": "Reverses the low-confidence source positive prior; heavy p and f manifolds and spin-orbit coupling narrow gaps."
+          },
+          {
+            "rule_id": "lanthanide_dominant_negative",
+            "conditions": [
+              [
+                "dominant_family",
+                "lanthanide"
+              ]
+            ],
+            "weight": -0.52,
+            "rationale": "Localized 4f states create mid-gap levels and reabsorption, depressing measured experimental gaps."
+          },
+          {
+            "rule_id": "halide_anion_negative",
+            "conditions": [
+              [
+                "anion_family",
+                "halide"
+              ]
+            ],
+            "weight": -0.45,
+            "rationale": "Retains the source's negative halide signal, whose low-confidence transfer direction agrees with defect-limited halide gaps."
+          },
+          {
+            "rule_id": "carbide_or_carbon_negative",
+            "conditions": [
+              [
+                "anion_family",
+                "carbide_or_carbon"
+              ]
+            ],
+            "weight": -0.4,
+            "rationale": "Carbon-rich covalent networks commonly form semimetallic carbides whose measured gaps collapse or vanish."
+          }
+        ],
+        "ridge": 2.2,
+        "prior_scale": 0.22,
+        "semantic_mass_start": 0.26,
+        "semantic_mass_end": 0.08,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 1.6,
+        "gp_beta_end": 0.8,
+        "gp_xi": 0.02,
+        "confidence": 0.6,
+        "hypothesis": "Treats heavy-element, lanthanide, halide, and carbide compositions as gap-narrowing counter-signals to the dielectric transfer. May fail if the target is dominated by simple wide-gap light compounds."
+      }
+    ],
+    "selected_skill_id": "heavy_element_gap_collapse_counterweight",
+    "lesson": "Across the eight development seeds the counter-hypothesis skill led on both mean AUC (45.13 vs 37.02) and mean final best (57.23 vs 40.63), but the advantage is only a small-seed summary, not a causal mechanism; the high-variance seed 229107 does much of the work.",
+    "revision_summary": "Replaced the retained anion-metalloid transfer skill with an oxide/light-cation wide-gap prior, kept a counter-hypothesis skill but rebuilt it around mechanistic heavy-element, lanthanide, halide, and carbide gap-narrowing rules, and selected it for deployment on the strength of its higher development-seed means."
+  },
+  "memory_sha256": "1949b596eb8c1c866b8b236bf8c933843207315c22aa187f383bf6fb18203710",
+  "experimental_only": true
+}

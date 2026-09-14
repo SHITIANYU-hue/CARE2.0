@@ -1,0 +1,129 @@
+{
+  "skills": [
+    {
+      "skill_id": "polar_surface_rebalanced_halogen_partition",
+      "rules": [
+        {
+          "rule_id": "halogen_rich_partition",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_high"
+            ]
+          ],
+          "weight": 0.55,
+          "rationale": "High halogen counts add hydrophobic surface and polarizable volume, the dominant driver of octanol-water partitioning."
+        },
+        {
+          "rule_id": "aromatic_hydrophobic_core",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Extended aromatic frameworks are poorly hydrated and raise logD independent of chain length."
+        },
+        {
+          "rule_id": "halogen_aromatic_synergy",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ],
+            [
+              "halogen_bin",
+              "halogen_mid"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Halogenated aromatics combine pi-density with lipophilic surface, a mechanistically additive partition gain."
+        },
+        {
+          "rule_id": "polar_hetero_penalty",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Stronger reweighting of heteroatom polarity, since the prior generation underweighted the dominant aqueous-partitioning penalty."
+        }
+      ],
+      "ridge": 0.9,
+      "prior_scale": 0.55,
+      "semantic_mass_start": 0.42,
+      "semantic_mass_end": 0.14,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 0.9,
+      "gp_xi": 0.02,
+      "confidence": 0.68,
+      "hypothesis": "Retains the winning halogen/aromatic partition signal but rebalances weight toward heteroatom polarity, which the feedback suggests was under-penalized rather than over-penalized. Fails if size effects dominate polarity in this pool."
+    },
+    {
+      "skill_id": "source_ring_length_sign_reversal",
+      "rules": [
+        {
+          "rule_id": "ring_rich_hydrophobic_surface",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Ring role carried the highest transfer weight (0.758); ring density raises hydrophobic surface and lowers aqueous solubility."
+        },
+        {
+          "rule_id": "long_smiles_lipophilic",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Source long-SMILES effect was strongly negative on solubility (-11.46); sign flip predicts higher lipophilicity."
+        },
+        {
+          "rule_id": "short_smiles_hydrophilic",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": -0.45,
+          "rationale": "Short SMILES raised solubility (+6.89) in source; small polar scaffolds should partition poorly into octanol."
+        },
+        {
+          "rule_id": "very_long_length_counter",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_very_long"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "Very long strings often encode polar or peptide-like scaffolds where added length does not add lipophilicity."
+        }
+      ],
+      "ridge": 1.1,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.32,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.62,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.4,
+      "hypothesis": "Transfers ESOL ring and length effects with reversed sign, but is now downweighted relative to the domain-mechanistic model because the length relation had low confidence (0.22) and the sign flip is unverified. Fails if lipophilicity tracks polarity rather than size."
+    }
+  ],
+  "selected_skill_id": "polar_surface_rebalanced_halogen_partition",
+  "lesson": "The halogen/aromatic domain model held its lead on development seeds, so the productive revision was reallocating weight toward the heteroatom polarity term rather than chasing the low-confidence sign-reversed length prior; source-transfer rules survive only as a downweighted hedge.",
+  "revision_summary": "Kept the deployed halogen/aromatic partition model but strengthened the polar-heteroatom penalty and added a halogen-aromatic interaction while trimming the very-long-length counter to a two-condition design; reduced the sign-flip transfer skill to three rules with lower confidence, lower semantic mass, and a heavier UCB anchor, since its development AUC (86.36) trailed the domain model (88.70)."
+}

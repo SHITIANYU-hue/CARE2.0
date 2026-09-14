@@ -1,0 +1,137 @@
+{
+  "parent_state_sha256": "b24479350a17f75d0f59af8250035a4aed88a683374e6a2f3261584c36e3c43a",
+  "new_state_sha256": "9f5ade890cac5ce165a207a9e6d4c0e53f03310b080b2e5937dfe9c513ad3b07",
+  "generation": 2,
+  "arm": "no_feedback",
+  "state": {
+    "skills": [
+      {
+        "skill_id": "polar_hbond_surface_hydration",
+        "rules": [
+          {
+            "rule_id": "heteroatom_rich_hbond_network",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_high"
+              ]
+            ],
+            "weight": 0.8,
+            "rationale": "Dense O/N centers donate and accept several water hydrogen bonds, the dominant favorable term in hydration free energy."
+          },
+          {
+            "rule_id": "saturated_apolar_cavity_penalty",
+            "conditions": [
+              [
+                "aromatic_bin",
+                "aromatic_none"
+              ],
+              [
+                "hetero_atom_bin",
+                "hetero_none"
+              ]
+            ],
+            "weight": -0.7,
+            "rationale": "Saturated hydrocarbons offer no polar contacts; cavity-formation cost dominates, giving the weakest hydration in FreeSolv-type data."
+          },
+          {
+            "rule_id": "polyhalogen_weak_hbonding",
+            "conditions": [
+              [
+                "halogen_bin",
+                "halogen_high"
+              ]
+            ],
+            "weight": -0.4,
+            "rationale": "Heavily halogenated solutes are bulky and poor hydrogen bonders despite polarizability, so hydration stays unfavorable."
+          },
+          {
+            "rule_id": "moderate_heteroatom_partial_credit",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_mid"
+              ]
+            ],
+            "weight": 0.35,
+            "rationale": "Intermediate heteroatom counts retain hydrogen-bond capacity; graded polarity term stabilizes the surrogate across 91 candidates."
+          }
+        ],
+        "ridge": 1.2,
+        "prior_scale": 0.5,
+        "semantic_mass_start": 0.45,
+        "semantic_mass_end": 0.15,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 2.5,
+        "gp_beta_end": 1.2,
+        "gp_xi": 0.02,
+        "confidence": 0.6,
+        "hypothesis": "Hydration affinity tracks polar hydrogen-bonding surface, so graded heteroatom content leads while apolar and polyhalogenated solutes are penalized. Fails if the score instead rewards hydrophobic bulk or halogen polarizability."
+      },
+      {
+        "skill_id": "size_prior_reversal_carbonyl_acceptor",
+        "rules": [
+          {
+            "rule_id": "mid_length_prior_reversal",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_mid"
+              ]
+            ],
+            "weight": 0.45,
+            "rationale": "Counter-hypothesis: reverses the low-confidence source smiles_mid penalty, since mid-size solutes accumulate multiple polar hydration sites."
+          },
+          {
+            "rule_id": "short_solute_prior_reversal",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_short"
+              ]
+            ],
+            "weight": -0.3,
+            "rationale": "Reverses the source smiles_short bonus: the short bin is dominated by small alkanes and halomethanes that hydrate weakly."
+          },
+          {
+            "rule_id": "carbonyl_type_acceptor_credit",
+            "conditions": [
+              [
+                "double_bond_bin",
+                "double_bond_mid"
+              ]
+            ],
+            "weight": 0.3,
+            "rationale": "Moderate double-bond counts flag carbonyl, amide and ester groups, which are strong water hydrogen-bond acceptors."
+          },
+          {
+            "rule_id": "branched_bulk_cavity_damped",
+            "conditions": [
+              [
+                "branch_bin",
+                "branch_high"
+              ]
+            ],
+            "weight": -0.25,
+            "rationale": "Uses the rotatable-to-branch role but damped: heavily branched solutes raise cavity cost, though the source sign is unverified."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.35,
+        "semantic_mass_start": 0.3,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.02,
+        "confidence": 0.4,
+        "hypothesis": "Counter-hypothesis flipping the ESOL size priors: hydration magnitude grows with polar functionality rather than shrinking with size. Fails if FreeSolv scores still favor the smallest solutes as the source data suggested."
+      }
+    ],
+    "selected_skill_id": "polar_hbond_surface_hydration",
+    "lesson": "Source roles are low confidence (0.16-0.41) and only length carries signed value priors, so mechanistic hydrogen-bonding polarity terms remain the safer deployment while size priors stay in the counter-hypothesis.",
+    "revision_summary": "Rewrote all conditions as field-to-value objects, kept the mechanistic polar-surface skill with slightly lower semantic mass, and rebuilt the second skill as a sharper counter-hypothesis that reverses both ESOL length priors, adds a carbonyl-acceptor term, and damps the rotatable-to-branch role. Deployed the polar hydrogen-bond surface skill."
+  },
+  "memory_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "experimental_only": true
+}

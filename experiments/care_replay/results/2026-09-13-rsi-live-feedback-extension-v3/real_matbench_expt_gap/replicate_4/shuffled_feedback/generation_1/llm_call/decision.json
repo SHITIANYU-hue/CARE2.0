@@ -1,0 +1,125 @@
+{
+  "skills": [
+    {
+      "skill_id": "anion_polarizability_gap_ordering",
+      "rules": [
+        {
+          "rule_id": "chalcogenide_anion_positive",
+          "conditions": [
+            [
+              "anion_family",
+              "chalcogenide"
+            ]
+          ],
+          "weight": 0.55,
+          "rationale": "Chalcogenide p-states set a high valence-band maximum, which delays the closure of the optical gap."
+        },
+        {
+          "rule_id": "pnictide_anion_positive",
+          "conditions": [
+            [
+              "anion_family",
+              "pnictide"
+            ]
+          ],
+          "weight": 0.62,
+          "rationale": "Pnictide lone pairs push the valence band up strongly, a robust wide-gap motif across chemistries."
+        },
+        {
+          "rule_id": "halide_anion_negative",
+          "conditions": [
+            [
+              "anion_family",
+              "halide"
+            ]
+          ],
+          "weight": -0.45,
+          "rationale": "Very electronegative halides localize the valence band low, and defect levels in measured samples often shrink apparent gaps."
+        },
+        {
+          "rule_id": "metalloid_dominant_positive",
+          "conditions": [
+            [
+              "dominant_family",
+              "metalloid"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Metalloid lattices support directional covalent bonding and open gaps, matching the source's large positive effect."
+        }
+      ],
+      "ridge": 1.4,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.55,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.012,
+      "confidence": 0.68,
+      "hypothesis": "Anion chemistry and metalloid dominance carry the most transferable gap signal from the dielectric source. This ordering should weaken when strongly polarizable heavy anions or partially filled d shells close the gap."
+    },
+    {
+      "skill_id": "counter_transition_metal_gap_penalty",
+      "rules": [
+        {
+          "rule_id": "transition_metal_dominant_negative",
+          "conditions": [
+            [
+              "dominant_family",
+              "transition_metal"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Transition-metal d bands bracket the Fermi level, shrinking measured gaps despite the source's weak positive prior."
+        },
+        {
+          "rule_id": "has_transition_metal_downweighted",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": -0.28,
+          "rationale": "Source transition-metal evidence had low confidence, so its positive direction is treated cautiously here."
+        },
+        {
+          "rule_id": "mean_z_very_high_downweighted",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_very_high"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "Very heavy mean Z implies deep d or f manifolds that pin the gap; the source prior is downweighted."
+        },
+        {
+          "rule_id": "balanced_stoichiometry_positive",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "balanced"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Balanced compositions favor ordered stoichiometric phases with more interpretable optical gaps."
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.22,
+      "semantic_mass_start": 0.28,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 1.8,
+      "gp_beta_end": 0.9,
+      "gp_xi": 0.015,
+      "confidence": 0.6,
+      "hypothesis": "Reversing the low-confidence transition-metal and very-high-Z source relations treats d and f occupancy as gap-narrowing. This may misfire if the target is dominated by light early transition-metal oxides or simple binaries."
+    }
+  ],
+  "selected_skill_id": "anion_polarizability_gap_ordering",
+  "lesson": "The anion-family signal replicated better than the high-Z and lanthanide reversal, which had lower development AUC and no seed reaching the top range; downweighting unstable transfer relations and keeping a moderate ridge protects against overfitting a handful of seeds.",
+  "revision_summary": "Retained the positive chalcogenide, pnictide, and metalloid transfer rules but trimmed their weights, kept a tempered halide penalty, replaced the lanthanide counter-hypothesis with a lower-variance transition-metal and very-high-Z reversal, and froze the anion-ordering skill for deployment using development seeds only."
+}

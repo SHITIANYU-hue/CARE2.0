@@ -1,0 +1,145 @@
+{
+  "skills": [
+    {
+      "skill_id": "lipophilicity_hetero_penalty_shaped_by_ring_scaffold",
+      "rules": [
+        {
+          "rule_id": "hetero_high_ring_high_desolvation_penalty",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ],
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": -0.85,
+          "rationale": "Polar atom count dominates lipophilicity loss; dense ring scaffolds constrain desolvation, so high-heteroatom ring-rich molecules sit at the low logD end."
+        },
+        {
+          "rule_id": "hetero_low_aromatic_high_carbon_rich_reward",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ],
+            [
+              "hetero_atom_bin",
+              "hetero_low"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Few polar atoms plus aromatic surface means strong hydrophobic partitioning; classic high-logP aromatic scaffold."
+        },
+        {
+          "rule_id": "hetero_mid_neutral_shift",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_mid"
+            ]
+          ],
+          "weight": -0.25,
+          "rationale": "One to a few heteroatoms give a modest, sub-linear polarity penalty relative to the high-heteroatom regime."
+        },
+        {
+          "rule_id": "halogen_high_heavy_halogen_lipophilicity_boost",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_high"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Heavy halogens add polarizable, non-polar volume that raises logP without adding hydrogen-bonding capacity."
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.35,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.7,
+      "hypothesis": "Lipophilicity is largely set by the polar/apolar balance, so heteroatom count should be the dominant negative driver, amplified by rigid ring scaffolds. It may fail for zwitterionic or intramolecularly hydrogen-bonded molecules, where apparent polarity and measured logD diverge."
+    },
+    {
+      "skill_id": "ring_dense_branch_light_desolvation_screen",
+      "rules": [
+        {
+          "rule_id": "ring_high_branch_none_rigid_low_polarity_reward",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_none"
+            ],
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": 0.75,
+          "rationale": "Ring-rich, unbranched skeletons expose minimal polar surface and little conformational entropy cost on transfer, favoring high logD."
+        },
+        {
+          "rule_id": "ring_low_flexible_branching_entropy_penalty",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_high"
+            ],
+            [
+              "ring_token_bin",
+              "ring_token_low"
+            ]
+          ],
+          "weight": -0.6,
+          "rationale": "Acyclic, heavily branched molecules carry flexible polar groups that hydrate readily, lowering the partition coefficient."
+        },
+        {
+          "rule_id": "branch_mid_smiles_length_compensation",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_mid"
+            ],
+            [
+              "smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "Long branched strings usually encode appended polar functionality, which adds desolvation cost rather than apolar volume."
+        },
+        {
+          "rule_id": "smiles_short_apolar_compact_reward",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": 0.45,
+          "rationale": "Short SMILES generally mark small, compact molecules with limited polar group inventory and higher measured logP."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.35,
+      "semantic_mass_end": 0.12,
+      "ucb_weight": 0.55,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.1,
+      "gp_xi": 0.02,
+      "confidence": 0.62,
+      "hypothesis": "Rigid ring-rich, branch-poor skeletons should transfer as a broad lipophilicity-positive signature. It may fail when large ring systems themselves carry many heteroatoms or when long chains are purely alkyl and genuinely lipophilic."
+    }
+  ],
+  "selected_skill_id": "lipophilicity_hetero_penalty_shaped_by_ring_scaffold",
+  "lesson": "Polarity (heteroatom load) is the primary axis and ring rigidity modulates it; transfer evidence for scaffold-level descriptors supports this pairing, while the branch/length signature remains the weaker, more uncertain relation.",
+  "revision_summary": "Deployed the heteroatom-centered skill: it encodes the mechanistic polar/apolar driver, uses two-condition interactions only where chemically motivated, and keeps high prior weight on hetero_high/aromatic_high values supported by the source effect sizes. Retained a second, scaffold-flexibility skill as the counter-hypothesis because the supplied source effects for rotatable_bond_bin-to-branch_bin (mean 6.96, confidence 0.41) and ring_bin-to-ring_token_bin are directionally uncertain and may reflect solubility-specific rather than lipophilicity behavior; its weights downweight the ring/branch relation and let branch/length act mainly as a compensating penalty."
+}

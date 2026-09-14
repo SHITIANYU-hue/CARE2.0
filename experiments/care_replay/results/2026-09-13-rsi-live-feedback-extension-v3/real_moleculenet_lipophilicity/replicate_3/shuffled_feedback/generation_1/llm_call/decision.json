@@ -1,0 +1,137 @@
+{
+  "skills": [
+    {
+      "skill_id": "hetero_load_dominates_aromatic_modulated_lipophilicity",
+      "rules": [
+        {
+          "rule_id": "hetero_high_ring_high_polar_surface_penalty",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ],
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": -0.7,
+          "rationale": "High heteroatom load with a ring-rich scaffold maximizes polar and hydrogen-bonding surface, sharply lowering logD."
+        },
+        {
+          "rule_id": "hetero_low_aromatic_high_hydrophobic_partition_reward",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ],
+            [
+              "hetero_atom_bin",
+              "hetero_low"
+            ]
+          ],
+          "weight": 0.75,
+          "rationale": "Aromatic hydrocarbon surface with few polar atoms favors transfer into octanol, the textbook high-logP signature."
+        },
+        {
+          "rule_id": "hetero_mid_sublinear_polarity_penalty",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_mid"
+            ]
+          ],
+          "weight": -0.2,
+          "rationale": "A moderate heteroatom count imposes a sub-linear polarity cost relative to the hetero-high regime, consistent with additive fragment logP."
+        },
+        {
+          "rule_id": "halogen_none_polar_backbone_penalty",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_none"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Halogen-free, heteroatom-free backbones are purely hydrocarbon and should partition strongly into the lipophilic phase."
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.35,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.68,
+      "hypothesis": "Lipophilicity is set mainly by heteroatom-driven polar surface, with aromatic hydrocarbon bulk rewarding partitioning. It may fail for zwitterions or intramolecularly hydrogen-bonded molecules whose apparent polarity diverges from measured logD."
+    },
+    {
+      "skill_id": "rigidity_and_compactness_override_polarity_transfer",
+      "rules": [
+        {
+          "rule_id": "smiles_short_compact_scaffold_reward",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": 0.55,
+          "rationale": "Short SMILES mark small compact molecules with limited polar inventory; shared-value prior shows a positive short-length effect on partitioning."
+        },
+        {
+          "rule_id": "smiles_long_appendage_polarity_penalty",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Long strings usually encode appended polar or flexible functionality whose hydration cost lowers the partition coefficient."
+        },
+        {
+          "rule_id": "branch_low_ring_high_rigid_apolar_reward",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_low"
+            ],
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Rigid ring-rich skeletons with few branches expose little polar surface and pay small conformational entropy on transfer."
+        },
+        {
+          "rule_id": "halogen_mid_halogenated_partition_boost",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_mid"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Moderate halogenation adds polarizable non-polar volume without hydrogen-bonding capacity, raising logP."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.35,
+      "semantic_mass_end": 0.12,
+      "ucb_weight": 0.55,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.1,
+      "gp_xi": 0.02,
+      "confidence": 0.6,
+      "hypothesis": "Flexibility and size, not polar-atom count, dominate the lipophilicity signal; compact rigid scaffolds transfer as lipophilic while long flexible appendages penalize. It may fail for large purely alkyl chains that are genuinely lipophilic."
+    }
+  ],
+  "selected_skill_id": "rigidity_and_compactness_override_polarity_transfer",
+  "lesson": "The compactness and rigidity skill improved mean development AUC (86.9) over the heteroatom-centered skill (84.5) across the same seeds, so length, branching, and ring rigidity appear to carry stronger lipophilicity signal here than heteroatom load alone; seed spread remains wide, so only directional conclusions are warranted.",
+  "revision_summary": "Retained the mechanistic heteroatom/aromatic polarity skill as the polarity-grounded control but deployed the rigidity and compactness skill, since it matched the compactness and ring-rigidity signal that the source transfer effects favored and outscored the polarity skill on every-seed development AUC. Both skills keep 2-4 rules, exact catalog field/value pairs, and weights within range; the deployed skill downweights the uncertain heteroatom relation in favor of length, branch, ring, and halogen volume terms."
+}

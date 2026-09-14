@@ -1,0 +1,133 @@
+{
+  "skills": [
+    {
+      "skill_id": "esol_inverse_solubility_size_ring_transfer",
+      "rules": [
+        {
+          "rule_id": "long_skeleton_hydrophobic_surface",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": 0.55,
+          "rationale": "Source: long SMILES strongly reduced solubility. General solubility equation implies the same bulk raises lipophilicity."
+        },
+        {
+          "rule_id": "short_polar_core_penalty",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Source: short SMILES were the most soluble bin. Small compact solutes expose little hydrophobic surface, lowering logD."
+        },
+        {
+          "rule_id": "ring_token_scaffold_transfer",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": 0.45,
+          "rationale": "Highest-weight source role was ring structure. Fused ring scaffolds add rigid apolar surface favoring octanol partitioning."
+        },
+        {
+          "rule_id": "large_carbon_rich_synergy",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_low"
+            ],
+            [
+              "smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Size only helps when heteroatom-poor; large hydrocarbon-dominated skeletons are the classic high-logP regime."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.35,
+      "semantic_mass_start": 0.45,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.6,
+      "hypothesis": "Transfers ESOL size and ring roles with inverted sign, since solubility and lipophilicity are inversely coupled. Fails if length bins are chemically heterogeneous, or if pool variance is driven by polarity rather than molecular bulk."
+    },
+    {
+      "skill_id": "halogen_aromatic_partition_vs_heteroatom_polarity",
+      "rules": [
+        {
+          "rule_id": "halogen_hydrophobic_substitution",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_high"
+            ]
+          ],
+          "weight": 0.55,
+          "rationale": "Halogen substitution adds polarizable apolar surface with positive Hansch pi constants, a direct mechanistic driver of logP."
+        },
+        {
+          "rule_id": "aromatic_pi_surface",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Aromatic carbon surface partitions favorably into octanol; aromatic-rich scaffolds dominate high-lipophilicity drug space."
+        },
+        {
+          "rule_id": "heteroatom_polarity_counter_prior",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": -0.35,
+          "rationale": "Reverses the low-confidence donor-to-heteroatom source role: polar heteroatoms solvate in water and depress logD."
+        },
+        {
+          "rule_id": "polar_unhalogenated_hydrophilic_sink",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_none"
+            ],
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": -0.45,
+          "rationale": "Heteroatom-rich with no halogen compensation is the most hydrophilic combination; interaction is mechanistically additive in polarity."
+        }
+      ],
+      "ridge": 3.0,
+      "prior_scale": 0.5,
+      "semantic_mass_start": 0.6,
+      "semantic_mass_end": 0.25,
+      "ucb_weight": 0.35,
+      "gp_beta_start": 1.6,
+      "gp_beta_end": 0.8,
+      "gp_xi": 0.03,
+      "confidence": 0.7,
+      "hypothesis": "Transfers classical partition mechanisms: halogen and aromatic surface raise lipophilicity, polar heteroatoms lower it, while downweighting the weak donor-to-heteroatom source role. Fails if ionizable groups dominate measured logD or normalization compresses halogen effects."
+    }
+  ],
+  "selected_skill_id": "halogen_aromatic_partition_vs_heteroatom_polarity",
+  "lesson": "Cross-endpoint transfer from ESOL is directionally informative only after inversion, and its confidences are low (0.16-0.41 on 512 observations of a different property). Direct logP mechanism is the safer prior. The pool's bin distribution also matters: smiles_length_bin is badly skewed (2265 long vs 93 short), so length discriminates little, whereas halogen_high (98) and hetero_low (194) isolate sharp, chemically coherent subsets worth spending finite budget on.",
+  "revision_summary": "Started from a literal transfer of the four source roles, then revised twice. First, inverted the sign of all size and ring terms because solubility and lipophilicity are anti-correlated through the general solubility equation, making a naive magnitude-only transfer actively misleading. Second, split the proposals so the weakest source role (hbond_donor_bin to hetero_atom_bin, confidence 0.159) is not trusted in both skills: skill B reverses it to a negative polarity term. Two-condition rules were kept only where polarity and bulk genuinely interact, and selection favors skill B for its higher mechanistic confidence and sharper coverage."
+}

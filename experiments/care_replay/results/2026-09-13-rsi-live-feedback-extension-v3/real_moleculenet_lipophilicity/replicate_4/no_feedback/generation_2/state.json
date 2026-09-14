@@ -1,0 +1,133 @@
+{
+  "parent_state_sha256": "5a1ca5db7c3a29573ad2a4f7e8e5afd4b9e36a573f77bbc9b319f5c7cc51847d",
+  "new_state_sha256": "a0976a37b9b2ac0925cf231363e608f2d415699129ed105fef8edb2c9facd76c",
+  "generation": 2,
+  "arm": "no_feedback",
+  "state": {
+    "skills": [
+      {
+        "skill_id": "solubility_antipode_transfer_v2",
+        "rules": [
+          {
+            "rule_id": "long_smiles_antipode_boost",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_long"
+              ]
+            ],
+            "weight": 0.45,
+            "rationale": "Source ESOL long SMILES cut solubility (-11.46); if solubility and partition anti-correlate, long lipophilic chains favor octanol."
+          },
+          {
+            "rule_id": "short_smiles_polar_penalty",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_short"
+              ]
+            ],
+            "weight": -0.4,
+            "rationale": "Source prior: short SMILES raised solubility (+6.89); compact polar molecules hydrate well and partition poorly."
+          },
+          {
+            "rule_id": "ring_rich_hydrophobic_surface",
+            "conditions": [
+              [
+                "ring_token_bin",
+                "ring_token_high"
+              ]
+            ],
+            "weight": 0.4,
+            "rationale": "Ring role carried the strongest transfer weight (0.758); fused carbocycles add hydrophobic surface that penalizes aqueous solubility."
+          },
+          {
+            "rule_id": "hetero_polarity_penalty",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_high"
+              ]
+            ],
+            "weight": -0.3,
+            "rationale": "Donor-count role transferred to heteroatom bin (weight 0.509); polar heteroatoms raise hydration and depress logD."
+          }
+        ],
+        "ridge": 1.1,
+        "prior_scale": 0.28,
+        "semantic_mass_start": 0.3,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.62,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.01,
+        "confidence": 0.42,
+        "hypothesis": "Transfers ESOL size, ring and donor effects with reversed sign under the solubility-partition antipode. Fails if lipophilicity is driven by polarity balance rather than molecular size."
+      },
+      {
+        "skill_id": "halogen_carbon_surface_partition",
+        "rules": [
+          {
+            "rule_id": "halogen_polarizable_gain",
+            "conditions": [
+              [
+                "halogen_bin",
+                "halogen_mid"
+              ]
+            ],
+            "weight": 0.4,
+            "rationale": "Moderate halogen load adds polarizable, poorly hydrated surface without excessive molecular weight; raises octanol affinity."
+          },
+          {
+            "rule_id": "hydrocarbon_rich_core",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_low"
+              ]
+            ],
+            "weight": 0.5,
+            "rationale": "Low heteroatom count means carbon-rich scaffolds with minimal hydration shell, the direct driver of high partition coefficients."
+          },
+          {
+            "rule_id": "no_halogen_polar_head",
+            "conditions": [
+              [
+                "halogen_bin",
+                "halogen_none"
+              ]
+            ],
+            "weight": -0.25,
+            "rationale": "Halogen-free molecules often carry polar functionality instead; absence of lipophilic halogen surface weakens octanol partitioning."
+          },
+          {
+            "rule_id": "saturated_flexible_chain_penalty",
+            "conditions": [
+              [
+                "aromatic_bin",
+                "aromatic_none"
+              ]
+            ],
+            "weight": -0.3,
+            "rationale": "Non-aromatic scaffolds lack extended nonpolar pi surface and often bear hydrophilic groups, lowering the partition score."
+          }
+        ],
+        "ridge": 0.9,
+        "prior_scale": 0.42,
+        "semantic_mass_start": 0.4,
+        "semantic_mass_end": 0.14,
+        "ucb_weight": 0.58,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 0.9,
+        "gp_xi": 0.02,
+        "confidence": 0.62,
+        "hypothesis": "Mechanistic partition model: halogen polarizability and hydrocarbon-rich composition raise lipophilicity, while halogen-free and non-aromatic scaffolds partition poorly. Fails if size or ionization dominates composition in this pool."
+      }
+    ],
+    "selected_skill_id": "halogen_carbon_surface_partition",
+    "lesson": "Solubility-based transfer needs an unverified sign flip and rests on low-confidence length evidence, so composition descriptors that map directly onto octanol-water partitioning should carry deployment.",
+    "revision_summary": "Rewrote both skills with single field-value condition maps and at most four rules. Kept the antipode skill but lowered confidence to 0.42 and trimmed its weight on the weak length relation; broadened the domain skill by replacing the narrow halogen_high (98 candidates) rule with halogen_mid gain and halogen_none penalty plus an aromatic_none hydrophilicity rule, and deployed the domain skill."
+  },
+  "memory_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "experimental_only": true
+}

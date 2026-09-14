@@ -1,0 +1,137 @@
+{
+  "parent_state_sha256": "8b7a23b5fb0b559304eb9cf101266d3029391ad9d7383e73ad6bd80f13898279",
+  "new_state_sha256": "9dc401efbc222e19743d41da0014be05c2ae034b1ae60b265b4f39d89dd3c7cc",
+  "generation": 2,
+  "arm": "no_feedback",
+  "state": {
+    "skills": [
+      {
+        "skill_id": "moss_rule_gap_inversion",
+        "rules": [
+          {
+            "rule_id": "ionic_halide_wide_gap",
+            "conditions": [
+              [
+                "anion_family",
+                "halide"
+              ],
+              [
+                "transition_metal_flag",
+                "no_transition_metal"
+              ]
+            ],
+            "weight": 0.75,
+            "rationale": "Closed-shell ionic halides have deep halogen p valence bands and no d states, giving the widest experimental gaps."
+          },
+          {
+            "rule_id": "oxide_deep_oxygen_2p",
+            "conditions": [
+              [
+                "anion_family",
+                "oxide"
+              ]
+            ],
+            "weight": 0.45,
+            "rationale": "Oxygen 2p sits far below cation states, so oxides retain large ionic bonding-antibonding separation."
+          },
+          {
+            "rule_id": "chalcogenide_polarizable_narrowing",
+            "conditions": [
+              [
+                "anion_family",
+                "chalcogenide"
+              ]
+            ],
+            "weight": -0.4,
+            "rationale": "Polarizable S/Se/Te p bands raise the valence edge; high refractive index implies small gap by the Moss relation."
+          },
+          {
+            "rule_id": "light_element_sp_splitting",
+            "conditions": [
+              [
+                "mean_atomic_number_bin",
+                "mean_z_low"
+              ]
+            ],
+            "weight": 0.35,
+            "rationale": "Light-element compounds have compact orbitals and strong sp splitting, favoring wide measured gaps."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.35,
+        "semantic_mass_end": 0.12,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.01,
+        "confidence": 0.7,
+        "hypothesis": "Refractive index and band gap are inversely related (Moss rule), so source-positive polarizable chemistries should be reversed: ionic halides and oxides maximize gaps. Fails if the target pool's halides are heavy-metal-containing."
+      },
+      {
+        "skill_id": "source_polarizable_covalent_transfer",
+        "rules": [
+          {
+            "rule_id": "metalloid_covalent_network",
+            "conditions": [
+              [
+                "dominant_family",
+                "metalloid"
+              ]
+            ],
+            "weight": 0.6,
+            "rationale": "Strongest source effect: metalloid covalent networks keep large sp bonding-antibonding splitting."
+          },
+          {
+            "rule_id": "chalcogenide_covalent_prior",
+            "conditions": [
+              [
+                "anion_family",
+                "chalcogenide"
+              ]
+            ],
+            "weight": 0.45,
+            "rationale": "Source chalcogenide effect was positive and well supported; chalcogen p covalency may also sustain semiconducting gaps."
+          },
+          {
+            "rule_id": "pnictide_moderate_prior",
+            "conditions": [
+              [
+                "anion_family",
+                "pnictide"
+              ]
+            ],
+            "weight": 0.3,
+            "rationale": "Source pnictide effect was positive with moderate support; covalent pnictide bonding gives intermediate gaps."
+          },
+          {
+            "rule_id": "halogen_dominant_source_penalty",
+            "conditions": [
+              [
+                "dominant_family",
+                "halogen"
+              ]
+            ],
+            "weight": -0.4,
+            "rationale": "Source halogen effect was clearly negative; carried across directly without polarity inversion."
+          }
+        ],
+        "ridge": 1.2,
+        "prior_scale": 0.22,
+        "semantic_mass_start": 0.25,
+        "semantic_mass_end": 0.08,
+        "ucb_weight": 0.55,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 1.2,
+        "gp_xi": 0.02,
+        "confidence": 0.55,
+        "hypothesis": "Direct sign-preserving transfer of the dielectric source effects: metalloid, chalcogenide and pnictide covalency up, halogen down. Fails if the Moss inverse relation dominates, since high-index materials are typically narrow-gap."
+      }
+    ],
+    "selected_skill_id": "moss_rule_gap_inversion",
+    "lesson": "Source outcomes measure refractive index, which is physically anti-correlated with band gap, so sign-preserving transfer is unsafe; the deployed skill inverts polarizability-driven effects and favors ionic halide and oxide chemistry, with low semantic mass so the target-only anchor takes over as data accumulate.",
+    "revision_summary": "Fixed schema by expressing every conditions block as a field-to-value object and capping rules at four. Replaced the prior direct-transfer deployment with a Moss-rule inversion skill (ionic halide/oxide/light-element positive, chalcogenide negative) and retained a sign-preserving source-grounded skill as the alternative; the inversion skill is selected."
+  },
+  "memory_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "experimental_only": true
+}

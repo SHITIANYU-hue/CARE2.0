@@ -1,0 +1,125 @@
+{
+  "skills": [
+    {
+      "skill_id": "polar_heteroatom_hydration_prior_v2",
+      "rules": [
+        {
+          "rule_id": "hetero_dense_favors_hydration",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": 0.75,
+          "rationale": "Dense heteroatoms provide hydrogen-bond donors/acceptors and dipoles that strongly stabilize the aqueous phase."
+        },
+        {
+          "rule_id": "hydrocarbon_penalty",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_none"
+            ]
+          ],
+          "weight": -0.55,
+          "rationale": "Pure hydrocarbons offer only dispersion contacts, so cavity formation cost dominates hydration free energy."
+        },
+        {
+          "rule_id": "compact_solute_bonus",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Source evidence favors short SMILES; small solutes pay low cavity cost with polar groups fully solvent exposed."
+        },
+        {
+          "rule_id": "halogen_rich_penalty",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_high"
+            ]
+          ],
+          "weight": -0.35,
+          "rationale": "Heavy halogenation adds hydrophobic, weakly polar surface that degrades hydration despite nominal heteroatom count."
+        }
+      ],
+      "ridge": 0.9,
+      "prior_scale": 0.35,
+      "semantic_mass_start": 0.45,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.65,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 0.9,
+      "gp_xi": 0.01,
+      "confidence": 0.65,
+      "hypothesis": "Transfers polarity-driven hydration plus the source short-SMILES prior, now separating halogen hydrophobicity from heteroatom polarity. May fail if intramolecular hydrogen bonding shields polar groups."
+    },
+    {
+      "skill_id": "aromatic_surface_counter_hypothesis",
+      "rules": [
+        {
+          "rule_id": "downweight_ring_transfer",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_none"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Counter to the source ring effect: acyclic chains expose donors flexibly, but transfer is weak so weight is small."
+        },
+        {
+          "rule_id": "aromatic_surface_penalty",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_mid"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "Flat aromatic surfaces hydrate poorly; pi systems give weak, entropically costly water ordering."
+        },
+        {
+          "rule_id": "polar_acyclic_heteroatom_synergy",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_mid"
+            ]
+          ],
+          "weight": 0.45,
+          "rationale": "Moderate heteroatom content balances hydrogen bonding against added hydrophobic scaffold, a common hydration optimum."
+        },
+        {
+          "rule_id": "branch_burial_penalty",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_high"
+            ]
+          ],
+          "weight": -0.2,
+          "rationale": "Heavy branching sterically buries polar sites, reducing effective solvent-accessible hydrogen-bonding area."
+        }
+      ],
+      "ridge": 1.4,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.6,
+      "gp_beta_end": 1.1,
+      "gp_xi": 0.03,
+      "confidence": 0.45,
+      "hypothesis": "Downweights the uncertain source ring relation and bets that aromatic surface area, not ring count, governs hydration. Fails if polar heterocycles dominate the top candidates."
+    }
+  ],
+  "selected_skill_id": "polar_heteroatom_hydration_prior_v2",
+  "lesson": "Development seeds showed the polarity-grounded prior held a clear AUC margin and never collapsed to a low final best, whereas the ring-reversal skill had two badly stalled seeds; with only eight seeds this supports keeping the mechanistically strongest prior rather than reading causality into seed spread.",
+  "revision_summary": "Fixed conditions to field:value objects, kept the deployed heteroatom polarity mechanism but replaced the weak long-SMILES rule with a halogen-hydrophobicity rule and raised early semantic mass. The counter-hypothesis was rebuilt around aromatic surface area with the uncertain ring relation downweighted rather than strongly reversed."
+}

@@ -1,0 +1,133 @@
+{
+  "parent_state_sha256": "4f946bd0703bf8451e69a9228bdec6a574cc791878e8abe0a674ffe0fe32c352",
+  "new_state_sha256": "35f39343777d9cdce0a2d93fa965c3bc935e788de6742636c59fe48555fdd29a",
+  "generation": 2,
+  "arm": "no_feedback",
+  "state": {
+    "skills": [
+      {
+        "skill_id": "hetero_halogen_partition_balance_logd",
+        "rules": [
+          {
+            "rule_id": "hetero_high_polarity_penalty",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_high"
+              ]
+            ],
+            "weight": -0.7,
+            "rationale": "Dense N/O/S raises hydrogen-bonding and desolvation cost, the dominant negative driver of measured lipophilicity."
+          },
+          {
+            "rule_id": "hetero_low_hydrocarbon_reward",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_low"
+              ]
+            ],
+            "weight": 0.8,
+            "rationale": "Sparse polar atoms leave a mostly hydrocarbon surface, which partitions strongly into the organic phase."
+          },
+          {
+            "rule_id": "halogen_none_loss_of_apolar_volume",
+            "conditions": [
+              [
+                "halogen_bin",
+                "halogen_none"
+              ]
+            ],
+            "weight": -0.3,
+            "rationale": "Absent halogens remove polarizable apolar volume with no hydrogen-bond donor cost, lowering intrinsic logP."
+          },
+          {
+            "rule_id": "aromatic_high_hydrophobic_face_reward",
+            "conditions": [
+              [
+                "aromatic_bin",
+                "aromatic_high"
+              ]
+            ],
+            "weight": 0.35,
+            "rationale": "Extended aromatic surface adds hydrophobic contact area accessible in the octanol phase."
+          }
+        ],
+        "ridge": 1.5,
+        "prior_scale": 0.35,
+        "semantic_mass_start": 0.45,
+        "semantic_mass_end": 0.15,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.01,
+        "confidence": 0.7,
+        "hypothesis": "Lipophilicity is governed by polar/apolar balance: heteroatom load penalizes, halogens and aromatic surface reward. It may fail for ionizable or intramolecularly hydrogen-bonded compounds whose logD departs from intrinsic polarity."
+      },
+      {
+        "skill_id": "inverted_esol_size_rigidity_transfer",
+        "rules": [
+          {
+            "rule_id": "long_smiles_inverse_solubility_reward",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_long"
+              ]
+            ],
+            "weight": 0.55,
+            "rationale": "Source ESOL solubility fell most for long SMILES; since solubility anticorrelates with logD, large molecules should score high here."
+          },
+          {
+            "rule_id": "short_smiles_inverse_solubility_penalty",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_short"
+              ]
+            ],
+            "weight": -0.5,
+            "rationale": "Short SMILES were the most soluble source class, implying small polar fragments with low partition coefficients."
+          },
+          {
+            "rule_id": "ring_dense_rigid_scaffold_reward",
+            "conditions": [
+              [
+                "ring_token_bin",
+                "ring_token_high"
+              ]
+            ],
+            "weight": 0.45,
+            "rationale": "Rigid ring systems present broad hydrophobic faces and lack the conformational polarity of flexible chains."
+          },
+          {
+            "rule_id": "branch_high_flexibility_small_penalty",
+            "conditions": [
+              [
+                "branch_bin",
+                "branch_high"
+              ]
+            ],
+            "weight": -0.2,
+            "rationale": "Deliberately weak: the rotatable-bond-to-branch transfer is uncertain, so flexible branching gets only a small penalty."
+          }
+        ],
+        "ridge": 2.5,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.55,
+        "semantic_mass_end": 0.2,
+        "ucb_weight": 0.45,
+        "gp_beta_start": 2.5,
+        "gp_beta_end": 1.2,
+        "gp_xi": 0.03,
+        "confidence": 0.55,
+        "hypothesis": "Counter-hypothesis: source ESOL size and ring effects transfer with reversed sign because aqueous solubility anticorrelates with lipophilicity. It fails if long SMILES mainly encode appended polar functionality rather than apolar bulk."
+      }
+    ],
+    "selected_skill_id": "hetero_halogen_partition_balance_logd",
+    "lesson": "With no measured development feedback, the source evidence remains solubility-signed and cannot be copied into a lipophilicity prior without inverting its sign; the robust deployment rests on the mechanistic polar/apolar balance, while sign-inverted size and rigidity transfer stays the testable alternative.",
+    "revision_summary": "No development feedback was available, so both skills were re-derived from the original source-transfer evidence and catalog. Skill one keeps the domain-knowledge polar/apolar mechanism, drops the fragile aromatic-plus-halogen interaction in favor of single-field terms, raises the hetero_low reward and adds a small halogen_none penalty to keep the term balanced. Skill two remains the source-grounded counter-hypothesis, applying the ESOL smiles_length effects with reversed sign and treating the source rotatable-bond-to-branch relation as weak and uncertain. The polarity skill is deployed as the more mechanistically interpretable prior."
+  },
+  "memory_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "experimental_only": true
+}

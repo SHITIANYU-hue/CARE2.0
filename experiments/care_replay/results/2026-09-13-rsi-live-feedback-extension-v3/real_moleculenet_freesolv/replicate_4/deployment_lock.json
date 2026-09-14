@@ -1,0 +1,562 @@
+{
+  "selected": {
+    "fixed_initial": "polar_heteroatom_hydration_prior",
+    "true_feedback": "polar_heteroatom_hydration_core_v3",
+    "no_feedback": "polarity_cavity_hydration_prior",
+    "shuffled_feedback": "ring_flexibility_hydration_shaper"
+  },
+  "states": {
+    "fixed_initial": {
+      "skills": [
+        {
+          "skill_id": "polar_heteroatom_hydration_prior",
+          "rules": [
+            {
+              "rule_id": "hetero_dense_favors_hydration",
+              "conditions": [
+                [
+                  "hetero_atom_bin",
+                  "hetero_high"
+                ]
+              ],
+              "weight": 0.7,
+              "rationale": "Many heteroatoms give strong H-bond and dipole interactions that stabilize the aqueous phase."
+            },
+            {
+              "rule_id": "hetero_free_penalty",
+              "conditions": [
+                [
+                  "hetero_atom_bin",
+                  "hetero_none"
+                ]
+              ],
+              "weight": -0.5,
+              "rationale": "Pure hydrocarbon character lacks polar contacts, so hydration is entropically and enthalpically disfavored."
+            },
+            {
+              "rule_id": "compact_short_smiles_bonus",
+              "conditions": [
+                [
+                  "smiles_length_bin",
+                  "smiles_short"
+                ]
+              ],
+              "weight": 0.3,
+              "rationale": "Short SMILES track small polar solutes with favorable exposure of hydrogen-bonding groups to water."
+            },
+            {
+              "rule_id": "long_scaffold_penalty",
+              "conditions": [
+                [
+                  "smiles_length_bin",
+                  "smiles_long"
+                ]
+              ],
+              "weight": -0.3,
+              "rationale": "Longer scaffolds add hydrophobic surface and conformational cost that weaken net hydration."
+            }
+          ],
+          "ridge": 1.0,
+          "prior_scale": 0.3,
+          "semantic_mass_start": 0.35,
+          "semantic_mass_end": 0.15,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.6,
+          "hypothesis": "Heteroatom density drives hydration free energy through hydrogen bonding and polarity; it may fail when intramolecular hydrogen bonding shields polar groups."
+        },
+        {
+          "skill_id": "ring_effect_counter_hypothesis",
+          "rules": [
+            {
+              "rule_id": "ring_scaffold_disfavors_hydration",
+              "conditions": [
+                [
+                  "ring_token_bin",
+                  "ring_token_high"
+                ]
+              ],
+              "weight": -0.5,
+              "rationale": "Heavily ringed solutes are rigid and hydrophobic, giving poor cavity formation in water."
+            },
+            {
+              "rule_id": "ring_absent_bonus",
+              "conditions": [
+                [
+                  "ring_token_bin",
+                  "ring_token_none"
+                ]
+              ],
+              "weight": 0.35,
+              "rationale": "Acyclic polar chains hydrate readily because they can adopt conformations that expose donor and acceptor groups."
+            },
+            {
+              "rule_id": "aromatic_penalty",
+              "conditions": [
+                [
+                  "aromatic_bin",
+                  "aromatic_none"
+                ]
+              ],
+              "weight": 0.2,
+              "rationale": "Non-aromatic solutes often carry saturated polar groups better hydrated than flat aromatic surfaces."
+            },
+            {
+              "rule_id": "branching_penalty",
+              "conditions": [
+                [
+                  "branch_bin",
+                  "branch_high"
+                ]
+              ],
+              "weight": -0.25,
+              "rationale": "Branching buries polar functionality and reduces solvent accessibility of heteroatom sites."
+            }
+          ],
+          "ridge": 1.2,
+          "prior_scale": 0.4,
+          "semantic_mass_start": 0.3,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.5,
+          "gp_beta_start": 2.5,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.02,
+          "confidence": 0.45,
+          "hypothesis": "Reverses the source ring relation, betting that ring scaffolds fail to transfer and instead hinder hydration through hydrophobicity, which may fail for polar heterocycles."
+        }
+      ],
+      "selected_skill_id": "polar_heteroatom_hydration_prior",
+      "lesson": "Source ring and branching effects are chemically motivated but only weakly supported, so deploy the heteroatom-driven hydration prior that rests on direct polarity and hydrogen-bonding mechanisms.",
+      "revision_summary": "Kept the heteroatom hydration mechanism as the deployed skill and inverted the uncertain source ring/structure relation into a counter-hypothesis for diversity."
+    },
+    "true_feedback": {
+      "skills": [
+        {
+          "skill_id": "polar_heteroatom_hydration_core_v3",
+          "rules": [
+            {
+              "rule_id": "hetero_dense_favors_hydration",
+              "conditions": [
+                [
+                  "hetero_atom_bin",
+                  "hetero_high"
+                ]
+              ],
+              "weight": 0.75,
+              "rationale": "Dense heteroatoms supply hydrogen-bond donors and acceptors plus dipoles, strongly stabilizing the aqueous phase."
+            },
+            {
+              "rule_id": "hydrocarbon_cavity_penalty",
+              "conditions": [
+                [
+                  "hetero_atom_bin",
+                  "hetero_none"
+                ]
+              ],
+              "weight": -0.55,
+              "rationale": "Pure hydrocarbons offer only dispersion contacts, so cavity formation cost dominates the hydration free energy."
+            },
+            {
+              "rule_id": "compact_solute_bonus",
+              "conditions": [
+                [
+                  "smiles_length_bin",
+                  "smiles_short"
+                ]
+              ],
+              "weight": 0.3,
+              "rationale": "Source prior favors short SMILES; small solutes pay low cavity cost with polar groups fully solvent exposed."
+            },
+            {
+              "rule_id": "halogen_rich_penalty",
+              "conditions": [
+                [
+                  "halogen_bin",
+                  "halogen_high"
+                ]
+              ],
+              "weight": -0.35,
+              "rationale": "Heavy halogenation adds bulky hydrophobic surface that degrades hydration despite nominal heteroatom count."
+            }
+          ],
+          "ridge": 0.9,
+          "prior_scale": 0.35,
+          "semantic_mass_start": 0.4,
+          "semantic_mass_end": 0.15,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.2,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.6,
+          "hypothesis": "Polarity and hydrogen bonding drive hydration plus a source short-SMILES cavity prior, with halogen hydrophobicity separated from heteroatom count. May fail when intramolecular hydrogen bonds shield polar groups."
+        },
+        {
+          "skill_id": "aromatic_surface_ring_downweight_hypothesis",
+          "rules": [
+            {
+              "rule_id": "moderate_hetero_optimum",
+              "conditions": [
+                [
+                  "hetero_atom_bin",
+                  "hetero_mid"
+                ]
+              ],
+              "weight": 0.45,
+              "rationale": "Moderate heteroatom content balances hydrogen bonding against added hydrophobic scaffold, a common hydration optimum."
+            },
+            {
+              "rule_id": "aromatic_surface_penalty",
+              "conditions": [
+                [
+                  "aromatic_bin",
+                  "aromatic_mid"
+                ]
+              ],
+              "weight": -0.4,
+              "rationale": "Extended flat aromatic surfaces hydrate poorly because pi systems force entropically costly water ordering."
+            },
+            {
+              "rule_id": "downweight_ring_transfer",
+              "conditions": [
+                [
+                  "ring_token_bin",
+                  "ring_token_none"
+                ]
+              ],
+              "weight": 0.15,
+              "rationale": "Counter to the source ring relation: acyclic chains flexibly expose donors, but transfer is uncertain so weight stays small."
+            },
+            {
+              "rule_id": "branch_burial_penalty",
+              "conditions": [
+                [
+                  "branch_bin",
+                  "branch_high"
+                ]
+              ],
+              "weight": -0.2,
+              "rationale": "Heavy branching sterically buries polar sites, reducing solvent-accessible hydrogen-bonding area."
+            }
+          ],
+          "ridge": 1.4,
+          "prior_scale": 0.3,
+          "semantic_mass_start": 0.3,
+          "semantic_mass_end": 0.08,
+          "ucb_weight": 0.5,
+          "gp_beta_start": 2.6,
+          "gp_beta_end": 1.1,
+          "gp_xi": 0.03,
+          "confidence": 0.45,
+          "hypothesis": "Downweights the uncertain source ring relation and bets that aromatic surface area rather than ring count governs hydration. Fails when polar heterocycles or heavily hydroxylated rings dominate the candidate pool."
+        }
+      ],
+      "selected_skill_id": "polar_heteroatom_hydration_core_v3",
+      "lesson": "Across both generations the polarity-grounded prior led on mean AUC and mean final best while the ring-reversal variants stalled on several seeds; with eight seeds per generation these are noisy rankings, so keep the mechanistically direct hydrogen-bonding prior deployed.",
+      "revision_summary": "Retained the deployed heteroatom polarity and hydrocarbon-cavity mechanism, kept the source-grounded short-SMILES rule and the halogen hydrophobicity penalty, and trimmed early semantic mass slightly to reduce reliance on a thin semantic surrogate. The counter-hypothesis now downweights the uncertain source ring relation and centers on aromatic surface area and branching burial."
+    },
+    "no_feedback": {
+      "skills": [
+        {
+          "skill_id": "polarity_cavity_hydration_prior",
+          "rules": [
+            {
+              "rule_id": "heteroatom_dense_hydration_bonus",
+              "conditions": [
+                [
+                  "hetero_atom_bin",
+                  "hetero_high"
+                ]
+              ],
+              "weight": 0.7,
+              "rationale": "Dense O/N centers donate and accept hydrogen bonds and carry large dipoles, strongly stabilizing the hydrated solute."
+            },
+            {
+              "rule_id": "moderate_polarity_bonus",
+              "conditions": [
+                [
+                  "hetero_atom_bin",
+                  "hetero_mid"
+                ]
+              ],
+              "weight": 0.38,
+              "rationale": "Intermediate heteroatom counts expose acceptor sites to water without heavy hydrophobic ballast."
+            },
+            {
+              "rule_id": "pure_hydrocarbon_cavity_penalty",
+              "conditions": [
+                [
+                  "halogen_bin",
+                  "halogen_none"
+                ],
+                [
+                  "hetero_atom_bin",
+                  "hetero_none"
+                ]
+              ],
+              "weight": -0.6,
+              "rationale": "Apolar hydrocarbons pay cavity-formation cost with no compensating polar contacts: the classic hydrophobic penalty."
+            },
+            {
+              "rule_id": "heavy_halogenation_penalty",
+              "conditions": [
+                [
+                  "halogen_bin",
+                  "halogen_high"
+                ]
+              ],
+              "weight": -0.35,
+              "rationale": "Perhalogenated solutes are weakly hydrogen bonding and hydrophobic, giving poor hydration free energies."
+            }
+          ],
+          "ridge": 1.0,
+          "prior_scale": 0.3,
+          "semantic_mass_start": 0.35,
+          "semantic_mass_end": 0.12,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.6,
+          "hypothesis": "Maps the source hbond-donor role onto hetero_atom_bin: polarity drives hydration while hydrocarbon and perhalogenated scaffolds pay cavity cost. Fails for intramolecularly hydrogen-bonded or sterically shielded polar solutes."
+        },
+        {
+          "skill_id": "length_prior_reversal_polar_aromatic_counter",
+          "rules": [
+            {
+              "rule_id": "short_smiles_prior_reversed",
+              "conditions": [
+                [
+                  "smiles_length_bin",
+                  "smiles_short"
+                ]
+              ],
+              "weight": -0.28,
+              "rationale": "Source favored short solutes for solubility, but FreeSolv's short bin is dominated by small poorly hydrated alkanes."
+            },
+            {
+              "rule_id": "polar_substituted_aromatic_bonus",
+              "conditions": [
+                [
+                  "aromatic_bin",
+                  "aromatic_low"
+                ],
+                [
+                  "hetero_atom_bin",
+                  "hetero_mid"
+                ]
+              ],
+              "weight": 0.5,
+              "rationale": "Phenol- and aniline-like rings pair polarizable pi systems with donors, giving strongly negative hydration free energies."
+            },
+            {
+              "rule_id": "ring_role_downweighted",
+              "conditions": [
+                [
+                  "ring_token_bin",
+                  "ring_token_low"
+                ]
+              ],
+              "weight": 0.15,
+              "rationale": "Downweights the uncertain source ring role; a single ring is mildly helpful, not a dominant hydration driver."
+            },
+            {
+              "rule_id": "apolar_scaffold_penalty",
+              "conditions": [
+                [
+                  "hetero_atom_bin",
+                  "hetero_none"
+                ]
+              ],
+              "weight": -0.45,
+              "rationale": "Keeps the physical anchor that heteroatom-free scaffolds cannot repay water cavity cost."
+            }
+          ],
+          "ridge": 1.3,
+          "prior_scale": 0.4,
+          "semantic_mass_start": 0.3,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.5,
+          "gp_beta_start": 2.5,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.02,
+          "confidence": 0.45,
+          "hypothesis": "Reverses the source smiles_short prior and shrinks the high-weight ring role, betting polar aromatics beat tiny apolar solutes. Fails if the short bin holds mostly small alcohols and amines."
+        }
+      ],
+      "selected_skill_id": "polarity_cavity_hydration_prior",
+      "lesson": "The strongest source effects sit on structural bins (length, rings) with weak mechanistic links to hydration, so deployment should rest on polarity and cavity cost while structural priors stay as testable counter-hypotheses.",
+      "revision_summary": "Kept both hypotheses but reformatted conditions to single field-value maps, renamed the deployed skill, and slightly rebalanced weights (hetero_mid 0.35->0.38, smiles_short -0.30->-0.28, ring_token_low 0.20->0.15) to concentrate prior mass on the mechanistic polarity and hydrophobic-cavity terms."
+    },
+    "shuffled_feedback": {
+      "skills": [
+        {
+          "skill_id": "ring_flexibility_hydration_shaper",
+          "rules": [
+            {
+              "rule_id": "ring_absent_exposure_bonus",
+              "conditions": [
+                [
+                  "ring_token_bin",
+                  "ring_token_none"
+                ]
+              ],
+              "weight": 0.4,
+              "rationale": "Acyclic solutes reorient freely, keeping polar groups solvent-exposed and lowering hydration free energy."
+            },
+            {
+              "rule_id": "ring_high_rigidity_penalty",
+              "conditions": [
+                [
+                  "ring_token_bin",
+                  "ring_token_high"
+                ]
+              ],
+              "weight": -0.45,
+              "rationale": "Rigid polycyclic scaffolds form poor aqueous cavities and bury polar functionality from water."
+            },
+            {
+              "rule_id": "aromatic_face_penalty",
+              "conditions": [
+                [
+                  "aromatic_bin",
+                  "aromatic_high"
+                ]
+              ],
+              "weight": -0.3,
+              "rationale": "Extended aromatic surfaces are hydrophobic and solvophobically penalized, weakening net aqueous affinity."
+            },
+            {
+              "rule_id": "branch_burial_penalty",
+              "conditions": [
+                [
+                  "branch_bin",
+                  "branch_high"
+                ]
+              ],
+              "weight": -0.25,
+              "rationale": "Branching buries heteroatom sites, cutting solvent-accessible donor and acceptor area."
+            }
+          ],
+          "ridge": 1.2,
+          "prior_scale": 0.4,
+          "semantic_mass_start": 0.3,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.55,
+          "gp_beta_start": 2.5,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.02,
+          "confidence": 0.55,
+          "hypothesis": "Ring-free, unbranched, low-aromatic solutes hydrate better because polar groups stay exposed; this may fail for polar heterocycles where ring nitrogens or oxygens hydrogen-bond strongly."
+        },
+        {
+          "skill_id": "polar_contact_density_prior",
+          "rules": [
+            {
+              "rule_id": "hetero_dense_hbond_bonus",
+              "conditions": [
+                [
+                  "hetero_atom_bin",
+                  "hetero_high"
+                ]
+              ],
+              "weight": 0.65,
+              "rationale": "Dense heteroatoms give strong hydrogen-bond and dipole contacts that stabilize the aqueous phase."
+            },
+            {
+              "rule_id": "hydrocarbon_contact_penalty",
+              "conditions": [
+                [
+                  "hetero_atom_bin",
+                  "hetero_none"
+                ]
+              ],
+              "weight": -0.5,
+              "rationale": "Pure hydrocarbon character lacks polar contacts, so hydration is enthalpically and entropically disfavored."
+            },
+            {
+              "rule_id": "short_smiles_exposure_bonus",
+              "conditions": [
+                [
+                  "smiles_length_bin",
+                  "smiles_short"
+                ]
+              ],
+              "weight": 0.3,
+              "rationale": "Short SMILES mark small solutes whose polar groups remain fully solvent-accessible to water."
+            },
+            {
+              "rule_id": "long_scaffold_hydrophobic_penalty",
+              "conditions": [
+                [
+                  "smiles_length_bin",
+                  "smiles_long"
+                ]
+              ],
+              "weight": -0.3,
+              "rationale": "Longer scaffolds add hydrophobic surface and conformational cost that weaken net hydration."
+            }
+          ],
+          "ridge": 1.0,
+          "prior_scale": 0.3,
+          "semantic_mass_start": 0.3,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.5,
+          "hypothesis": "Heteroatom density and compactness drive hydration free energy through polarity and hydrogen bonding; it may fail when intramolecular hydrogen bonds shield polar groups from solvent."
+        }
+      ],
+      "selected_skill_id": "ring_flexibility_hydration_shaper",
+      "lesson": "The shape-based ring skill again beat the heteroatom prior (63.2 vs 58.1 mean development AUC), but both dropped sharply from the earlier generation, and per-seed spread stayed wide, so keep the shape mechanism deployed with only moderate confidence and unchanged mass settings.",
+      "revision_summary": "Retained the ring/flexibility skill as deployed after it repeated its development-AUC advantage, kept the aromatic and branching burial penalties, and kept the heteroatom polarity prior as the alternative at lower confidence."
+    }
+  },
+  "frozen_at": "2026-09-14T02:35:06.693531+00:00",
+  "evaluation_feedback_permitted": false,
+  "heldout_seeds": [
+    239100,
+    239101,
+    239102,
+    239103,
+    239104,
+    239105,
+    239106,
+    239107,
+    239108,
+    239109,
+    239110,
+    239111,
+    239112,
+    239113,
+    239114,
+    239115,
+    239116,
+    239117,
+    239118,
+    239119,
+    239120,
+    239121,
+    239122,
+    239123,
+    239124,
+    239125,
+    239126,
+    239127,
+    239128,
+    239129,
+    239130,
+    239131,
+    239132,
+    239133,
+    239134,
+    239135,
+    239136,
+    239137,
+    239138,
+    239139
+  ]
+}

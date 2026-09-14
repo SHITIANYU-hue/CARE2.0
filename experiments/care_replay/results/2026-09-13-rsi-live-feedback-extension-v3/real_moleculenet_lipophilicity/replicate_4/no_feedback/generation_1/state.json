@@ -1,0 +1,133 @@
+{
+  "parent_state_sha256": "be9815d97067f519a9c1102f9a4f72a7a3cb301a47e87c9a3b235aef33f27e8e",
+  "new_state_sha256": "5a1ca5db7c3a29573ad2a4f7e8e5afd4b9e36a573f77bbc9b319f5c7cc51847d",
+  "generation": 1,
+  "arm": "no_feedback",
+  "state": {
+    "skills": [
+      {
+        "skill_id": "esol_sign_flip_transfer",
+        "rules": [
+          {
+            "rule_id": "long_smiles_raises_logd",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_long"
+              ]
+            ],
+            "weight": 0.5,
+            "rationale": "Source ESOL: long SMILES cut solubility (-11.46); solubility-lipophilicity anti-correlation implies higher partition score."
+          },
+          {
+            "rule_id": "short_smiles_polar_penalty",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_short"
+              ]
+            ],
+            "weight": -0.45,
+            "rationale": "Source prior: short SMILES raised solubility (+6.89); small compact molecules should partition poorly into octanol."
+          },
+          {
+            "rule_id": "ring_rich_hydrophobic_surface",
+            "conditions": [
+              [
+                "ring_token_bin",
+                "ring_token_high"
+              ]
+            ],
+            "weight": 0.4,
+            "rationale": "Ring role carried the highest transfer weight (0.758); fused rings lower solubility and add hydrophobic surface."
+          },
+          {
+            "rule_id": "hetero_donor_polarity_penalty",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_high"
+              ]
+            ],
+            "weight": -0.3,
+            "rationale": "Donor-count role mapped to heteroatom bin (weight 0.509); polar heteroatoms hydrate and depress partitioning."
+          }
+        ],
+        "ridge": 1.2,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.32,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.01,
+        "confidence": 0.4,
+        "hypothesis": "Transfers ESOL size, ring and donor effects with reversed sign, assuming lipophilicity anti-correlates with aqueous solubility. Fails if the sign flip is invalid or if polarity balance, not molecular size, drives this pool."
+      },
+      {
+        "skill_id": "halogen_hydrocarbon_partition_counter",
+        "rules": [
+          {
+            "rule_id": "no_halogen_penalty",
+            "conditions": [
+              [
+                "halogen_bin",
+                "halogen_none"
+              ]
+            ],
+            "weight": -0.4,
+            "rationale": "Halogen-free scaffolds lack the hydrophobic, polarizable surface that reliably raises octanol-water partition coefficients."
+          },
+          {
+            "rule_id": "hydrocarbon_rich_core",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_low"
+              ]
+            ],
+            "weight": 0.5,
+            "rationale": "Low heteroatom fraction means carbon-rich, weakly hydrated scaffolds, the most direct mechanistic driver of high logD."
+          },
+          {
+            "rule_id": "aromatic_nonpolar_surface",
+            "conditions": [
+              [
+                "aromatic_bin",
+                "aromatic_high"
+              ]
+            ],
+            "weight": 0.35,
+            "rationale": "Extended aromatic systems are nonpolar and poorly solvated in water, raising measured partition independent of chain length."
+          },
+          {
+            "rule_id": "very_long_length_reversal",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_very_long"
+              ]
+            ],
+            "weight": -0.3,
+            "rationale": "Counter to the low-confidence (0.22) length transfer: very long strings often encode polar, peptide-like scaffolds."
+          }
+        ],
+        "ridge": 0.8,
+        "prior_scale": 0.45,
+        "semantic_mass_start": 0.42,
+        "semantic_mass_end": 0.14,
+        "ucb_weight": 0.55,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 0.9,
+        "gp_xi": 0.02,
+        "confidence": 0.6,
+        "hypothesis": "Domain partition model: halogenation, hydrocarbon-rich composition and aromatic surface raise lipophilicity, while the weak length relation is reversed at the extreme tail. Fails if molecular size dominates composition in this pool."
+      }
+    ],
+    "selected_skill_id": "halogen_hydrocarbon_partition_counter",
+    "lesson": "Cross-endpoint solubility transfer needs an unverified sign flip and rests on low-confidence length evidence, whereas halogen, heteroatom-fraction and aromatic descriptors map directly onto partition mechanism.",
+    "revision_summary": "Fixed conditions to single field-value maps, kept the sign-flipped source-evidence skill at reduced confidence, and replaced the narrow halogen_high rule (98 candidates) with a broader halogen_none penalty plus a hetero_low hydrocarbon-rich rule; the domain counter-skill remains deployed."
+  },
+  "memory_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "experimental_only": true
+}

@@ -1,0 +1,137 @@
+{
+  "skills": [
+    {
+      "skill_id": "polar_load_versus_halogenated_aromatic_surface",
+      "rules": [
+        {
+          "rule_id": "hetero_high_ring_high_desolvation_penalty",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ],
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": -0.8,
+          "rationale": "Heavy polar-atom load on rigid ring scaffolds maximizes hydration cost, placing these molecules at the low-logD end."
+        },
+        {
+          "rule_id": "hetero_low_carbon_rich_reward",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_low"
+            ]
+          ],
+          "weight": 0.85,
+          "rationale": "Carbon-rich skeletons with few polar atoms partition strongly into octanol; broadened from an interaction to raise coverage."
+        },
+        {
+          "rule_id": "halogen_high_polarizable_volume_boost",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_high"
+            ]
+          ],
+          "weight": 0.55,
+          "rationale": "Multiple halogens add polarizable apolar volume without hydrogen-bond donors, a classic logP-raising substitution."
+        },
+        {
+          "rule_id": "halogenated_aromatic_surface_reward",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ],
+            [
+              "halogen_bin",
+              "halogen_mid"
+            ]
+          ],
+          "weight": 0.45,
+          "rationale": "Halogen-substituted aromatic surface combines pi hydrophobicity with shielded polarity, a common high-logD medicinal motif."
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.45,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.72,
+      "hypothesis": "Lipophilicity tracks polar/apolar balance: heteroatom load penalizes, halogenated aromatic surface rewards. May fail for ionizable or intramolecularly hydrogen-bonded molecules where logD departs from raw polarity counts."
+    },
+    {
+      "skill_id": "size_reversal_and_carbonyl_free_scaffold_counter",
+      "rules": [
+        {
+          "rule_id": "short_smiles_penalty_reversing_solubility_prior",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": -0.6,
+          "rationale": "Reverses the source solubility prior: small compact molecules are usually less lipophilic, not more, on a logD scale."
+        },
+        {
+          "rule_id": "very_long_apolar_surface_reward",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_very_long"
+            ]
+          ],
+          "weight": 0.35,
+          "rationale": "Larger molecular surface adds apolar contact area; weight kept modest since long strings can also encode polar decoration."
+        },
+        {
+          "rule_id": "carbonyl_free_aromatic_reward",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ],
+            [
+              "double_bond_bin",
+              "double_bond_none"
+            ]
+          ],
+          "weight": 0.45,
+          "rationale": "Absent explicit double bonds means few carbonyl or nitro groups, so aromatic bulk contributes hydrophobicity without strong acceptors."
+        },
+        {
+          "rule_id": "moderate_halogenation_reward",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_mid"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Halogen substitution reliably increases partitioning and is independent of the uncertain ring or branch transfer relations."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.35,
+      "semantic_mass_end": 0.12,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.02,
+      "confidence": 0.55,
+      "hypothesis": "Counter-hypothesis: the source size prior should flip sign for lipophilicity, and ring/branch transfer is dropped entirely. It may fail if long molecules in this library are dominated by polar peptide-like appendages."
+    }
+  ],
+  "selected_skill_id": "polar_load_versus_halogenated_aromatic_surface",
+  "lesson": "On development seeds the heteroatom-polarity skill led the scaffold-flexibility skill on both mean AUC and final best, so polarity remains the primary axis; the weakest seed for both skills suggests narrow high-weight rules limited coverage early.",
+  "revision_summary": "Kept the winning polarity family but broadened its strongest positive rule from a hetero_low-by-aromatic interaction to hetero_low alone, dropped the low-information hetero_mid shift, and added a halogenated-aromatic interaction to widen positive coverage; semantic mass raised slightly at start. Replaced the underperforming ring/branch skill with a counter-hypothesis that discards the ring and branch transfer relations and explicitly reverses the source smiles_short positive prior, testing whether the solubility-derived size direction inverts for lipophilicity."
+}

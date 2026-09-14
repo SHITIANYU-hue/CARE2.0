@@ -1,0 +1,129 @@
+{
+  "skills": [
+    {
+      "skill_id": "esol_size_ring_prior_transfer_v2",
+      "rules": [
+        {
+          "rule_id": "short_smiles_favored",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": 0.58,
+          "rationale": "Source ESOL value prior for smiles_short was positive; small solutes pay a low cavity-formation cost in water."
+        },
+        {
+          "rule_id": "long_smiles_penalized",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": -0.62,
+          "rationale": "Largest source negative value prior (smiles_long); extended apolar surface raises desolvation cost."
+        },
+        {
+          "rule_id": "acyclic_bonus",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_none"
+            ]
+          ],
+          "weight": 0.36,
+          "rationale": "Ring role carried the highest transfer weight (0.758); rigid ring systems reduced source solubility."
+        },
+        {
+          "rule_id": "low_branching_bonus",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_low"
+            ]
+          ],
+          "weight": 0.22,
+          "rationale": "Rotatable-bond role maps to branching (transfer weight 0.758); limited flexibility lowers entropic solvation penalty."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.18,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.65,
+      "hypothesis": "Transfers ESOL size, ring and branching value priors to hydration ranking, with slightly higher early semantic mass. May fail on seeds whose early reveals land in the large 506-item smiles_short bin, where the prior gives little discrimination."
+    },
+    {
+      "skill_id": "apolar_size_dominant_counterprior",
+      "rules": [
+        {
+          "rule_id": "small_acyclic_solute",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_none"
+            ],
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Joint small and acyclic solutes combine low cavity cost with high conformational simplicity."
+        },
+        {
+          "rule_id": "long_solute_penalty",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Retains the best-supported source negative prior on molecular size."
+        },
+        {
+          "rule_id": "hbond_role_downweight",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_none"
+            ]
+          ],
+          "weight": 0.25,
+          "rationale": "Counter-hypothesis: downweights the low-confidence (0.159) donor-to-heteroatom role by mildly favoring apolar solutes."
+        },
+        {
+          "rule_id": "hetero_rich_caution",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": -0.2,
+          "rationale": "Reverses the untested polar-dominance assumption; hetero_high covers only 28 sparse, chemically diverse candidates."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.42,
+      "semantic_mass_end": 0.12,
+      "ucb_weight": 0.55,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.02,
+      "confidence": 0.5,
+      "hypothesis": "Keeps size and ring structure as the primary axis while reversing the weakly supported heteroatom polarity relation. Fails if the hidden score truly rewards hydrogen-bonding capacity, in which case the heteroatom terms mislead early ranking."
+    }
+  ],
+  "selected_skill_id": "esol_size_ring_prior_transfer_v2",
+  "lesson": "Development seeds favored the source-grounded size/ring/branch prior (mean AUC 77.6) over the polarity-first prior (51.8), so the explicitly transferred value priors are the more reliable starting hypothesis; the mechanistic polarity argument remains unverified and is better tested as a downweighted counter-hypothesis than as deployment.",
+  "revision_summary": "Retained the previously successful source-grounded skill with only small weight and semantic-mass adjustments, since its per-seed spread (53-99 AUC) reflects seed variance rather than a demonstrated flaw. Replaced the polarity-first skill, which underperformed on all eight development seeds, with a counter-hypothesis that keeps size and ring structure central while explicitly downweighting the lowest-confidence donor-to-heteroatom transfer role. Deployed the source-grounded skill."
+}

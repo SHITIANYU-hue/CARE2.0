@@ -1,0 +1,129 @@
+{
+  "skills": [
+    {
+      "skill_id": "esol_inverse_bulk_ring_transfer_v3",
+      "rules": [
+        {
+          "rule_id": "long_skeleton_hydrophobic_surface",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": 0.55,
+          "rationale": "Source: long SMILES strongly lowered solubility; that same molecular bulk raises octanol partitioning."
+        },
+        {
+          "rule_id": "short_compact_polar_penalty",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Source: short SMILES were most soluble. Small solutes expose little apolar surface, depressing logD."
+        },
+        {
+          "rule_id": "fused_ring_scaffold_transfer",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": 0.45,
+          "rationale": "Highest-weight source role was rings. Rigid fused scaffolds add apolar, low-entropy surface favoring octanol."
+        },
+        {
+          "rule_id": "carbon_rich_low_heteroatom_core",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_low"
+            ]
+          ],
+          "weight": 0.45,
+          "rationale": "Heteroatom-poor hydrocarbon skeletons are the classic high-logP regime and give broad, coherent coverage."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.48,
+      "semantic_mass_end": 0.14,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 0.9,
+      "gp_xi": 0.01,
+      "confidence": 0.68,
+      "hypothesis": "Transfers the strongest ESOL roles (size, rings) with inverted sign plus a carbon-rich core term, handing off slightly sooner to the target GP. Fails if pool variance comes from ionization rather than bulk."
+    },
+    {
+      "skill_id": "halogen_alkyl_branch_partition_counterprior",
+      "rules": [
+        {
+          "rule_id": "halogen_hansch_pi_surface",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_mid"
+            ]
+          ],
+          "weight": 0.45,
+          "rationale": "Moderate halogenation adds polarizable apolar surface with positive Hansch pi constants, a direct logP driver."
+        },
+        {
+          "rule_id": "branch_role_counter_reversal",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_high"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Reverses last generation's negative branch term: heavy branching often marks apolar alkyl substituents, not polar chains."
+        },
+        {
+          "rule_id": "polar_heteroatom_mild_penalty",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": -0.22,
+          "rationale": "Polar heteroatoms hydrate and depress logD, but the bin is majority-sized so the penalty stays mild."
+        },
+        {
+          "rule_id": "aromatic_druglike_moderate_polarity",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ],
+            [
+              "hetero_atom_bin",
+              "hetero_mid"
+            ]
+          ],
+          "weight": 0.32,
+          "rationale": "Aromatic-rich scaffolds with only moderate heteroatom load occupy the classic high-logD medicinal chemistry region."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.35,
+      "semantic_mass_end": 0.12,
+      "ucb_weight": 0.55,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 0.9,
+      "gp_xi": 0.02,
+      "confidence": 0.45,
+      "hypothesis": "Tests substituent-level partition chemistry (halogen and alkyl branching) instead of whole-molecule bulk, and reverses the branch sign we previously assumed. Fails if branching marks solubilizing polar side chains or halogens are normalized away."
+    }
+  ],
+  "selected_skill_id": "esol_inverse_bulk_ring_transfer_v3",
+  "lesson": "Across two development generations the inverted ESOL bulk/ring transfer led both times (87.9 then 89.7 mean AUC) and its rival closed the gap only after the rare halogen_high rule and the harsh hetero_high penalty were removed (85.2 to 88.9). Broad, high-coverage bulk and ring terms with mild penalties appear steadier than narrow-bin bets; low seeds per generation mean this is a preference, not established mechanism.",
+  "revision_summary": "Kept the twice-leading source-grounded skill's rule set intact and changed only fusion parameters: semantic mass decays a little faster and gp_beta is slightly lower, so the target-only anchor takes over sooner in late rounds where the weakest seeds (auc 82.25) lagged. The alternative is rebuilt as a sharper counter-hypothesis: it abandons whole-molecule bulk entirely, tests substituent-level partition terms (halogen_mid, aromatic_high with hetero_mid), and flips the branch sign we asserted last generation to probe whether branching tracks apolar alkyl groups instead of polar side chains, while keeping the hetero_high penalty mild given its majority coverage. Deployment is frozen on the inverted bulk/ring transfer."
+}

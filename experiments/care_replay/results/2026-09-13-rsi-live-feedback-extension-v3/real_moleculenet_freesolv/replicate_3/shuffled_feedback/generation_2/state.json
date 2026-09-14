@@ -1,0 +1,137 @@
+{
+  "parent_state_sha256": "cd63991936f0f13e46a02e5fd77e46909d4e120d6a9135696fafb21a100d2c5a",
+  "new_state_sha256": "4d12ae040e80ed8985fe5f2e27dbb9222d4b703129c6a38cb6f516069081b2e7",
+  "generation": 2,
+  "arm": "shuffled_feedback",
+  "state": {
+    "skills": [
+      {
+        "skill_id": "restored_length_prior_transfer",
+        "rules": [
+          {
+            "rule_id": "short_solute_prior_positive",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_short"
+              ]
+            ],
+            "weight": 0.5,
+            "rationale": "Source ESOL prior for smiles_short was +6.89 (n=261); compact solutes pay little cavity-formation cost."
+          },
+          {
+            "rule_id": "mid_length_prior_negative",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_mid"
+              ]
+            ],
+            "weight": -0.32,
+            "rationale": "Source smiles_mid effect -6.61 (n=226), damped because the length role confidence is only 0.22."
+          },
+          {
+            "rule_id": "long_solute_prior_negative",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_long"
+              ]
+            ],
+            "weight": -0.55,
+            "rationale": "Strongest source value prior (-11.46, confidence 0.47): bulky lipophilic solutes lose solvation favorability."
+          },
+          {
+            "rule_id": "heteroatom_role_transfer",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_high"
+              ]
+            ],
+            "weight": 0.35,
+            "rationale": "Donor-to-heteroatom role (transfer weight 0.51); multiple O/N centers add favorable water hydrogen bonds."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.42,
+        "semantic_mass_end": 0.14,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.012,
+        "confidence": 0.6,
+        "hypothesis": "Transfers the ESOL size ordering with a moderate heteroatom tilt, restoring the configuration that led on generation-0 seeds while the target anchor takes over late. Fails if hydration favors large polar solutes."
+      },
+      {
+        "skill_id": "ring_role_counter_prior",
+        "rules": [
+          {
+            "rule_id": "ring_role_positive",
+            "conditions": [
+              [
+                "ring_token_bin",
+                "ring_token_low"
+              ]
+            ],
+            "weight": 0.35,
+            "rationale": "Ring role carries the highest source transfer weight (0.76); cyclic solutes expose polarizable surface with modest cavity cost."
+          },
+          {
+            "rule_id": "mid_length_penalty_reversed",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_mid"
+              ]
+            ],
+            "weight": 0.18,
+            "rationale": "Counter-hypothesis: reverses the low-confidence (0.27) source smiles_mid penalty, since mid-size solutes accumulate hydration sites."
+          },
+          {
+            "rule_id": "pure_hydrocarbon_penalty",
+            "conditions": [
+              [
+                "halogen_bin",
+                "halogen_none"
+              ],
+              [
+                "hetero_atom_bin",
+                "hetero_none"
+              ]
+            ],
+            "weight": -0.45,
+            "rationale": "Solutes with neither heteroatoms nor halogens offer no polar contacts; cavity formation dominates hydration."
+          },
+          {
+            "rule_id": "polyhalogen_hydrophobic_penalty",
+            "conditions": [
+              [
+                "halogen_bin",
+                "halogen_high"
+              ]
+            ],
+            "weight": -0.3,
+            "rationale": "Polyhalogenated solutes hydrogen bond weakly and are bulky, a classic hydrophobic hydration penalty."
+          }
+        ],
+        "ridge": 2.0,
+        "prior_scale": 0.22,
+        "semantic_mass_start": 0.28,
+        "semantic_mass_end": 0.08,
+        "ucb_weight": 0.7,
+        "gp_beta_start": 2.4,
+        "gp_beta_end": 1.1,
+        "gp_xi": 0.02,
+        "confidence": 0.4,
+        "hypothesis": "Hydration ranking is set by ring and polar-contact chemistry rather than raw length, so the weak mid-length penalty is reversed. Fails if short saturated solutes actually dominate the score."
+      }
+    ],
+    "selected_skill_id": "restored_length_prior_transfer",
+    "lesson": "In both development generations the source-derived length-prior skill outranked its mechanistic rival on matched seeds, but absolute AUC differed strongly across seed blocks, so cross-generation drops should not be read as parameter effects; revert toward the best matched-seed configuration instead of over-damping.",
+    "revision_summary": "Restored the generation-0 heteroatom weight (0.35), prior_scale (0.30) and semantic mass (0.42/0.14) for the winning length-prior transfer, with slightly more early exploration. Replaced the compact-apolar counter with a ring-role counter-hypothesis that exploits the highest-weight unused source role, reverses the weak mid-length penalty, and keeps mechanistic hydrocarbon and polyhalogen penalties under light semantic mass. Deployed the restored length-prior transfer."
+  },
+  "memory_sha256": "f5e2db8fad1ad692ec449b3a3c918fd4f69a0e40cbaccf8cc1957025328a9b64",
+  "experimental_only": true
+}

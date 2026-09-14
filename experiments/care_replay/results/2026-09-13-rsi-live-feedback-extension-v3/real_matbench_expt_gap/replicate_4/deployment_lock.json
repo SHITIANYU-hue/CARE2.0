@@ -1,0 +1,562 @@
+{
+  "selected": {
+    "fixed_initial": "chalcogenide_pnictide_gap_transfer",
+    "true_feedback": "oxide_dfree_wide_gap_keep",
+    "no_feedback": "ionic_maingroup_wide_gap_chemistry",
+    "shuffled_feedback": "anion_covalency_gap_ordering"
+  },
+  "states": {
+    "fixed_initial": {
+      "skills": [
+        {
+          "skill_id": "chalcogenide_pnictide_gap_transfer",
+          "rules": [
+            {
+              "rule_id": "chalcogenide_anion_positive",
+              "conditions": [
+                [
+                  "anion_family",
+                  "chalcogenide"
+                ]
+              ],
+              "weight": 0.72,
+              "rationale": "Source dielectric transfer gave chalcogenide a strong positive effect; chalcogenide anions open valence-band maxima, widening gaps."
+            },
+            {
+              "rule_id": "pnictide_anion_positive",
+              "conditions": [
+                [
+                  "anion_family",
+                  "pnictide"
+                ]
+              ],
+              "weight": 0.81,
+              "rationale": "Strongest shared prior among the top anion families; pnictide p-states span the gap, widening experimental band gaps."
+            },
+            {
+              "rule_id": "halide_anion_negative",
+              "conditions": [
+                [
+                  "anion_family",
+                  "halide"
+                ]
+              ],
+              "weight": -0.68,
+              "rationale": "Halide reversed weight in source; high electronegativity and gap-narrowing carrier levels suppress experimental gaps."
+            },
+            {
+              "rule_id": "metalloid_dominant_positive",
+              "conditions": [
+                [
+                  "dominant_family",
+                  "metalloid"
+                ]
+              ],
+              "weight": 0.75,
+              "rationale": "High source support with large max effect; metalloid lattices favor wide-gap covalent bonding motifs."
+            }
+          ],
+          "ridge": 1.6,
+          "prior_scale": 0.35,
+          "semantic_mass_start": 0.42,
+          "semantic_mass_end": 0.18,
+          "ucb_weight": 0.58,
+          "gp_beta_start": 2.2,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.012,
+          "confidence": 0.66,
+          "hypothesis": "Chalcogenide and pnictide anions plus metalloid dominance transfer a positive gap signal from refractive-index physics. Fails when strong anion polarizability or transition-metal d-states collapse the gap."
+        },
+        {
+          "skill_id": "counter_high_z_lanthanide_gap_reversal",
+          "rules": [
+            {
+              "rule_id": "mean_z_very_high_downweighted",
+              "conditions": [
+                [
+                  "mean_atomic_number_bin",
+                  "mean_z_very_high"
+                ]
+              ],
+              "weight": -0.35,
+              "rationale": "Reverses the uncertain source prior; heavy-element f and d manifolds often pin or close experimental gaps."
+            },
+            {
+              "rule_id": "lanthanide_dominant_negative",
+              "conditions": [
+                [
+                  "dominant_family",
+                  "lanthanide"
+                ]
+              ],
+              "weight": -0.55,
+              "rationale": "Weak source support for lanthanide; localized f-states introduce mid-gap levels and reduce measured gaps."
+            },
+            {
+              "rule_id": "has_lanthanide_flag_negative",
+              "conditions": [
+                [
+                  "lanthanide_flag",
+                  "has_lanthanide"
+                ]
+              ],
+              "weight": -0.42,
+              "rationale": "Source lanthanide effect was near zero with low confidence, so counts as a gap-narrowing inhibitor."
+            },
+            {
+              "rule_id": "balanced_stoichiometry_positive",
+              "conditions": [
+                [
+                  "max_element_fraction_bin",
+                  "balanced"
+                ]
+              ],
+              "weight": 0.48,
+              "rationale": "Balanced compositions in source had positive effects; they support ordered wide-gap stoichiometric compounds."
+            }
+          ],
+          "ridge": 2.4,
+          "prior_scale": 0.22,
+          "semantic_mass_start": 0.3,
+          "semantic_mass_end": 0.08,
+          "ucb_weight": 0.45,
+          "gp_beta_start": 1.8,
+          "gp_beta_end": 0.9,
+          "gp_xi": 0.02,
+          "confidence": 0.58,
+          "hypothesis": "High mean atomic number and lanthanide presence downweight the source's weak positive prior, treating f and d occupancy as a gap-narrowing penalty. Might fail if the target's light-metal oxides dominate."
+        }
+      ],
+      "selected_skill_id": "chalcogenide_pnictide_gap_transfer",
+      "lesson": "Anion-family transfer from dielectric source carries the strongest, most interpretable gap signal; mean-Z and lanthanide relations are weak and warrant counter-weighting rather than blind adoption.",
+      "revision_summary": "Retained the positive anion and metalloid transfer signal, downweighted low-confidence lanthanide and very-high-Z relations, and selected the chalcogenide/pnictide skill for deployment with a moderate ridge to control variance."
+    },
+    "true_feedback": {
+      "skills": [
+        {
+          "skill_id": "oxide_dfree_wide_gap_keep",
+          "rules": [
+            {
+              "rule_id": "oxide_anion_positive",
+              "conditions": [
+                [
+                  "anion_family",
+                  "oxide"
+                ]
+              ],
+              "weight": 0.6,
+              "rationale": "Deep O 2p valence bands and high oxygen electronegativity set wide valence-to-conduction separations in measured gaps."
+            },
+            {
+              "rule_id": "no_transition_metal_positive",
+              "conditions": [
+                [
+                  "transition_metal_flag",
+                  "no_transition_metal"
+                ]
+              ],
+              "weight": 0.5,
+              "rationale": "Without open-shell d states there are no mid-gap d levels or metallic screening to shrink measured gaps."
+            },
+            {
+              "rule_id": "oxide_dfree_interaction_positive",
+              "conditions": [
+                [
+                  "anion_family",
+                  "oxide"
+                ],
+                [
+                  "transition_metal_flag",
+                  "no_transition_metal"
+                ]
+              ],
+              "weight": 0.45,
+              "rationale": "Main-group oxide lattices combine deep O 2p with s/p conduction bands, the classic wide-gap configuration."
+            },
+            {
+              "rule_id": "mean_z_low_positive",
+              "conditions": [
+                [
+                  "mean_atomic_number_bin",
+                  "mean_z_low"
+                ]
+              ],
+              "weight": 0.3,
+              "rationale": "Low mean Z implies light anions and weak spin-orbit coupling, both associated with larger optical gaps."
+            }
+          ],
+          "ridge": 1.1,
+          "prior_scale": 0.3,
+          "semantic_mass_start": 0.42,
+          "semantic_mass_end": 0.18,
+          "ucb_weight": 0.55,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.7,
+          "hypothesis": "Main-group oxide chemistry is the strongest wide-gap prior for experimental gaps and held up across the second development block. It should weaken for polarizable heavy chalcogenides, mixed-valence oxides, or defect-dominated samples."
+        },
+        {
+          "skill_id": "anion_polarizability_gap_counter",
+          "rules": [
+            {
+              "rule_id": "chalcogenide_anion_negative",
+              "conditions": [
+                [
+                  "anion_family",
+                  "chalcogenide"
+                ]
+              ],
+              "weight": -0.5,
+              "rationale": "Reverses the high-support source positive: soft, polarizable chalcogen p states raise valence-band maxima and narrow measured gaps."
+            },
+            {
+              "rule_id": "pnictide_anion_negative",
+              "conditions": [
+                [
+                  "anion_family",
+                  "pnictide"
+                ]
+              ],
+              "weight": -0.42,
+              "rationale": "Also reverses a confident source signal; pnictogen p bands sit high, and many pnictides are semimetals with vanishing gaps."
+            },
+            {
+              "rule_id": "halogen_dominant_negative",
+              "conditions": [
+                [
+                  "dominant_family",
+                  "halogen"
+                ]
+              ],
+              "weight": -0.4,
+              "rationale": "Agrees with the source halide sign; defect and impurity states in halide lattices depress measured optical gaps."
+            },
+            {
+              "rule_id": "concentrated_negative",
+              "conditions": [
+                [
+                  "max_element_fraction_bin",
+                  "concentrated"
+                ]
+              ],
+              "weight": -0.3,
+              "rationale": "A single dominant element suggests elemental or intermetallic character, which tends toward continuous bands and closed gaps."
+            }
+          ],
+          "ridge": 2.0,
+          "prior_scale": 0.22,
+          "semantic_mass_start": 0.26,
+          "semantic_mass_end": 0.09,
+          "ucb_weight": 0.5,
+          "gp_beta_start": 1.7,
+          "gp_beta_end": 0.9,
+          "gp_xi": 0.02,
+          "confidence": 0.58,
+          "hypothesis": "Downweights the dielectric source's chalcogenide and pnictide positives, treating polarizable soft anions and metallic stoichiometries as gap-narrowing. It fails if the target is genuinely rich in wide-gap chalcogenides such as sulfides."
+        }
+      ],
+      "selected_skill_id": "oxide_dfree_wide_gap_keep",
+      "lesson": "The second development block is decisive: the oxide/d-free skill beat the heavy-element counterweight on both mean AUC (70.84 vs 61.08) and mean final best (86.06 vs 80.36), and it lost fewer seeds badly, so the earlier selection of the counterweight is reversed — though both summaries rest on eight seeds each, not on a demonstrated mechanism.",
+      "revision_summary": "Kept the oxide, d-free, low-Z wide-gap skill essentially intact, adding an explicit oxide x d-free interaction rule, and rebuilt the alternative around anion polarizability so its chalcogenide and pnictide rules now invert the source priors instead of repeating them. Selected the oxide skill for deployment on its higher and far more stable development-seed means."
+    },
+    "no_feedback": {
+      "skills": [
+        {
+          "skill_id": "moss_inverted_polarizability_transfer",
+          "rules": [
+            {
+              "rule_id": "halide_anion_wide_gap",
+              "conditions": [
+                [
+                  "anion_family",
+                  "halide"
+                ]
+              ],
+              "weight": 0.82,
+              "rationale": "Halides were the strongest negative refractive-index effect in the source; low polarizability implies wide experimental gaps via the Moss relation."
+            },
+            {
+              "rule_id": "chalcogenide_anion_narrow_gap",
+              "conditions": [
+                [
+                  "anion_family",
+                  "chalcogenide"
+                ]
+              ],
+              "weight": -0.68,
+              "rationale": "Chalcogenides raised source refractive index; diffuse S/Se/Te p valence states are highly polarizable and narrow measured gaps."
+            },
+            {
+              "rule_id": "metalloid_dominant_narrow_gap",
+              "conditions": [
+                [
+                  "dominant_family",
+                  "metalloid"
+                ]
+              ],
+              "weight": -0.6,
+              "rationale": "Largest source effect was metalloid dominance; covalent Si, Ge, Sb, Te semiconductors cluster at small experimental gaps."
+            },
+            {
+              "rule_id": "heavy_mean_z_narrow_gap",
+              "conditions": [
+                [
+                  "mean_atomic_number_bin",
+                  "mean_z_high"
+                ]
+              ],
+              "weight": -0.5,
+              "rationale": "High mean Z boosted source refractive index; heavy, weakly bound valence electrons give smaller bonding-antibonding splitting and narrower gaps."
+            }
+          ],
+          "ridge": 1.2,
+          "prior_scale": 0.4,
+          "semantic_mass_start": 0.45,
+          "semantic_mass_end": 0.18,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.2,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.55,
+          "hypothesis": "Source refractive-index effects transfer with reversed sign because high polarizability implies a small gap. Fails if source effects reflected structural or stability confounders rather than electronic polarizability, or if source confidences (0.14-0.37) are too weak."
+        },
+        {
+          "skill_id": "ionic_maingroup_wide_gap_chemistry",
+          "rules": [
+            {
+              "rule_id": "maingroup_oxide_insulator",
+              "conditions": [
+                [
+                  "anion_family",
+                  "oxide"
+                ],
+                [
+                  "transition_metal_flag",
+                  "no_transition_metal"
+                ]
+              ],
+              "weight": 0.78,
+              "rationale": "Deep O 2p valence bands without partially filled d states give closed-shell main-group oxides the widest experimental gaps."
+            },
+            {
+              "rule_id": "halogen_dominant_ionic_salt",
+              "conditions": [
+                [
+                  "dominant_family",
+                  "halogen"
+                ]
+              ],
+              "weight": 0.7,
+              "rationale": "Ionic halide salts have low-lying halogen p bands and cation conduction bands, maximizing gaps despite the source's negative halogen effect."
+            },
+            {
+              "rule_id": "chalcogen_dominant_narrow_gap",
+              "conditions": [
+                [
+                  "dominant_family",
+                  "chalcogen"
+                ]
+              ],
+              "weight": -0.55,
+              "rationale": "Sulfide, selenide and telluride dominated phases are covalent, polarizable narrow-gap semiconductors across the largest catalog stratum."
+            },
+            {
+              "rule_id": "very_heavy_mean_z_downweight",
+              "conditions": [
+                [
+                  "mean_atomic_number_bin",
+                  "mean_z_very_high"
+                ]
+              ],
+              "weight": -0.4,
+              "rationale": "Counter to a weakly supported positive source effect: very heavy compounds have relativistic, polarizable valence shells and small gaps."
+            }
+          ],
+          "ridge": 1.5,
+          "prior_scale": 0.35,
+          "semantic_mass_start": 0.45,
+          "semantic_mass_end": 0.15,
+          "ucb_weight": 0.55,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 0.9,
+          "gp_xi": 0.02,
+          "confidence": 0.62,
+          "hypothesis": "Direct band-gap chemistry: ionic, transition-metal-free halides and oxides are wide-gap; chalcogen-rich and very heavy phases are narrow. Fails if catalog oxides are mostly mixed-valence or defect-rich compounds with in-gap d states."
+        }
+      ],
+      "selected_skill_id": "ionic_maingroup_wide_gap_chemistry",
+      "lesson": "Source dielectric effects are only weakly confident (0.01-0.37), so they should serve as sign-inverted priors rather than as the deployed backbone; direct band-gap chemistry with an explicit oxide by transition-metal interaction is the safer frozen choice.",
+      "revision_summary": "Reformatted conditions to catalog field-value maps, replaced the low-coverage pnictide rule with an inverted heavy mean-Z rule in the transfer skill, strengthened the domain skill with a main-group oxide interaction, a large chalcogen-dominant negative, and a counter-hypothesis downweighting the weakly supported very-high-Z source effect, and switched deployment to the mechanistic ionic wide-gap skill."
+    },
+    "shuffled_feedback": {
+      "skills": [
+        {
+          "skill_id": "anion_covalency_gap_ordering",
+          "rules": [
+            {
+              "rule_id": "pnictide_anion_positive",
+              "conditions": [
+                [
+                  "anion_family",
+                  "pnictide"
+                ]
+              ],
+              "weight": 0.58,
+              "rationale": "Pnictide p-states raise the valence-band maximum, a wide-gap motif with the largest replicated positive transfer effect."
+            },
+            {
+              "rule_id": "chalcogenide_anion_positive",
+              "conditions": [
+                [
+                  "anion_family",
+                  "chalcogenide"
+                ]
+              ],
+              "weight": 0.48,
+              "rationale": "Chalcogenide bonding gave a consistent positive source effect and dominates target coverage, stabilizing the surrogate early."
+            },
+            {
+              "rule_id": "metalloid_dominant_positive",
+              "conditions": [
+                [
+                  "dominant_family",
+                  "metalloid"
+                ]
+              ],
+              "weight": 0.55,
+              "rationale": "Metalloid lattices favor directional covalent bonding with open gaps; largest source max effect among dominant families."
+            },
+            {
+              "rule_id": "binary_stoichiometry_positive",
+              "conditions": [
+                [
+                  "element_count_bin",
+                  "binary"
+                ]
+              ],
+              "weight": 0.22,
+              "rationale": "Simple binaries have clean, well-measured gaps with fewer mid-gap impurity levels than multi-component phases."
+            }
+          ],
+          "ridge": 1.4,
+          "prior_scale": 0.3,
+          "semantic_mass_start": 0.4,
+          "semantic_mass_end": 0.15,
+          "ucb_weight": 0.55,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.012,
+          "confidence": 0.68,
+          "hypothesis": "Covalent anion families and metalloid dominance carry the most reproducible transferable signal; the contested halide penalty is dropped. Fails if measured wide gaps concentrate in ionic halides and oxides instead."
+        },
+        {
+          "skill_id": "moss_inverse_ionic_gap_reversal",
+          "rules": [
+            {
+              "rule_id": "halide_anion_positive_reversal",
+              "conditions": [
+                [
+                  "anion_family",
+                  "halide"
+                ]
+              ],
+              "weight": 0.6,
+              "rationale": "Moss relation inverts refractive index and gap, so the source halide penalty should flip: ionic halides show very wide gaps."
+            },
+            {
+              "rule_id": "oxide_anion_positive",
+              "conditions": [
+                [
+                  "anion_family",
+                  "oxide"
+                ]
+              ],
+              "weight": 0.45,
+              "rationale": "Strongly electronegative oxygen deepens the valence band, giving large experimental gaps in low-polarizability oxides."
+            },
+            {
+              "rule_id": "very_high_mean_z_negative",
+              "conditions": [
+                [
+                  "mean_atomic_number_bin",
+                  "mean_z_very_high"
+                ]
+              ],
+              "weight": -0.4,
+              "rationale": "Heavy elements bring polarizable shells and deep d or f manifolds that narrow gaps, downweighting a low-confidence source prior."
+            },
+            {
+              "rule_id": "transition_metal_present_negative",
+              "conditions": [
+                [
+                  "transition_metal_flag",
+                  "has_transition_metal"
+                ]
+              ],
+              "weight": -0.25,
+              "rationale": "Partially filled d bands sit near the Fermi level and shrink measured gaps; source support here was minimal."
+            }
+          ],
+          "ridge": 1.2,
+          "prior_scale": 0.28,
+          "semantic_mass_start": 0.32,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.5,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.02,
+          "confidence": 0.55,
+          "hypothesis": "Counter-hypothesis reversing the dielectric source signs via the Moss inverse relation: ionic halides and oxides widen gaps while heavy or d-electron chemistries narrow them. Fails if target wide gaps are covalent."
+        }
+      ],
+      "selected_skill_id": "anion_covalency_gap_ordering",
+      "lesson": "Across two development generations the anion-covalency transfer skill outperformed both counter-hypotheses on mean AUC and variance, while the contested halide sign and heavy-Z reversals never replicated; keep proven positive rules, drop ambiguous signs, and test reversals as the alternative rather than the deployment.",
+      "revision_summary": "Kept the replicated chalcogenide, pnictide, and metalloid positives with slightly trimmed weights, removed the unsupported halide penalty, added a mild binary-stoichiometry term, and replaced the transition-metal counter skill with a mechanistic Moss-relation reversal that flips halide and oxide signs; the anion-covalency skill is frozen for deployment on development evidence only."
+    }
+  },
+  "frozen_at": "2026-09-14T03:19:31.410415+00:00",
+  "evaluation_feedback_permitted": false,
+  "heldout_seeds": [
+    239100,
+    239101,
+    239102,
+    239103,
+    239104,
+    239105,
+    239106,
+    239107,
+    239108,
+    239109,
+    239110,
+    239111,
+    239112,
+    239113,
+    239114,
+    239115,
+    239116,
+    239117,
+    239118,
+    239119,
+    239120,
+    239121,
+    239122,
+    239123,
+    239124,
+    239125,
+    239126,
+    239127,
+    239128,
+    239129,
+    239130,
+    239131,
+    239132,
+    239133,
+    239134,
+    239135,
+    239136,
+    239137,
+    239138,
+    239139
+  ]
+}

@@ -1,0 +1,141 @@
+{
+  "parent_state_sha256": "061188824ce159c975e270f571a1a68e018c95384b17436e944e276411035bb6",
+  "new_state_sha256": "e644bb63ce6918609ca7636bdbf9cab70a4a8e44ec0c3b7d973c54d2655c8be5",
+  "generation": 1,
+  "arm": "no_feedback",
+  "state": {
+    "skills": [
+      {
+        "skill_id": "polarity_driven_hydration_prior",
+        "rules": [
+          {
+            "rule_id": "heteroatom_dense_hydration_bonus",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_high"
+              ]
+            ],
+            "weight": 0.7,
+            "rationale": "Dense O/N centers supply hydrogen bonds and large dipoles that strongly stabilize the hydrated state."
+          },
+          {
+            "rule_id": "moderate_polarity_bonus",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_mid"
+              ]
+            ],
+            "weight": 0.35,
+            "rationale": "Intermediate heteroatom counts still expose acceptor sites to water without heavy hydrophobic ballast."
+          },
+          {
+            "rule_id": "pure_hydrocarbon_penalty",
+            "conditions": [
+              [
+                "halogen_bin",
+                "halogen_none"
+              ],
+              [
+                "hetero_atom_bin",
+                "hetero_none"
+              ]
+            ],
+            "weight": -0.6,
+            "rationale": "Apolar hydrocarbons pay cavity-formation cost with no compensating polar contacts, the classic hydrophobic penalty."
+          },
+          {
+            "rule_id": "heavy_halogenation_penalty",
+            "conditions": [
+              [
+                "halogen_bin",
+                "halogen_high"
+              ]
+            ],
+            "weight": -0.35,
+            "rationale": "Multiply halogenated solutes are weakly polarizable and hydrophobic, giving poor hydration free energies."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.3,
+        "semantic_mass_start": 0.35,
+        "semantic_mass_end": 0.12,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.01,
+        "confidence": 0.6,
+        "hypothesis": "Transfers the source hbond-donor role onto hetero_atom_bin: polarity and hydrogen bonding dominate hydration, halogenation and pure hydrocarbons penalize it. May fail for intramolecularly hydrogen-bonded or shielded polar solutes."
+      },
+      {
+        "skill_id": "length_prior_reversal_polar_aromatic_counter",
+        "rules": [
+          {
+            "rule_id": "short_smiles_prior_reversed",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_short"
+              ]
+            ],
+            "weight": -0.3,
+            "rationale": "Source favored short solutes for solubility, but the short FreeSolv bin is dominated by poorly hydrated small alkanes."
+          },
+          {
+            "rule_id": "polar_substituted_aromatic_bonus",
+            "conditions": [
+              [
+                "aromatic_bin",
+                "aromatic_low"
+              ],
+              [
+                "hetero_atom_bin",
+                "hetero_mid"
+              ]
+            ],
+            "weight": 0.5,
+            "rationale": "Phenol- and aniline-like rings combine polarizable pi systems with donors, giving strongly negative hydration free energies."
+          },
+          {
+            "rule_id": "ring_effect_downweighted",
+            "conditions": [
+              [
+                "ring_token_bin",
+                "ring_token_low"
+              ]
+            ],
+            "weight": 0.2,
+            "rationale": "Downweights the uncertain source ring role; single rings are mildly helpful, not the dominant hydration driver."
+          },
+          {
+            "rule_id": "apolar_scaffold_penalty",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_none"
+              ]
+            ],
+            "weight": -0.45,
+            "rationale": "Retains the physical anchor that heteroatom-free scaffolds cannot repay the cavity cost in water."
+          }
+        ],
+        "ridge": 1.3,
+        "prior_scale": 0.4,
+        "semantic_mass_start": 0.3,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 2.5,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.02,
+        "confidence": 0.45,
+        "hypothesis": "Counter-hypothesis reversing the source smiles_short prior and downweighting the ring role, betting that polar aromatics outperform tiny apolar solutes. Fails if FreeSolv short bin is instead polar small alcohols."
+      }
+    ],
+    "selected_skill_id": "polarity_driven_hydration_prior",
+    "lesson": "Source effects are strongest for structural bins with weak mechanistic ties to hydration, so anchor deployment on polarity and hydrophobic cavity cost and treat the length prior as testable rather than trusted.",
+    "revision_summary": "Sharpened the deployed polarity skill with a hetero_none x halogen_none pure-hydrocarbon interaction and a halogen_high penalty, and replaced the ring-inversion counter with an explicit reversal of the source smiles_short prior favoring polar aromatics."
+  },
+  "memory_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "experimental_only": true
+}

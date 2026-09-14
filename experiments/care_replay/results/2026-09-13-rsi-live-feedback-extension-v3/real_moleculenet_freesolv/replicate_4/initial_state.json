@@ -1,0 +1,125 @@
+{
+  "skills": [
+    {
+      "skill_id": "polar_heteroatom_hydration_prior",
+      "rules": [
+        {
+          "rule_id": "hetero_dense_favors_hydration",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Many heteroatoms give strong H-bond and dipole interactions that stabilize the aqueous phase."
+        },
+        {
+          "rule_id": "hetero_free_penalty",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_none"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Pure hydrocarbon character lacks polar contacts, so hydration is entropically and enthalpically disfavored."
+        },
+        {
+          "rule_id": "compact_short_smiles_bonus",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Short SMILES track small polar solutes with favorable exposure of hydrogen-bonding groups to water."
+        },
+        {
+          "rule_id": "long_scaffold_penalty",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "Longer scaffolds add hydrophobic surface and conformational cost that weaken net hydration."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.35,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.6,
+      "hypothesis": "Heteroatom density drives hydration free energy through hydrogen bonding and polarity; it may fail when intramolecular hydrogen bonding shields polar groups."
+    },
+    {
+      "skill_id": "ring_effect_counter_hypothesis",
+      "rules": [
+        {
+          "rule_id": "ring_scaffold_disfavors_hydration",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Heavily ringed solutes are rigid and hydrophobic, giving poor cavity formation in water."
+        },
+        {
+          "rule_id": "ring_absent_bonus",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_none"
+            ]
+          ],
+          "weight": 0.35,
+          "rationale": "Acyclic polar chains hydrate readily because they can adopt conformations that expose donor and acceptor groups."
+        },
+        {
+          "rule_id": "aromatic_penalty",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_none"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Non-aromatic solutes often carry saturated polar groups better hydrated than flat aromatic surfaces."
+        },
+        {
+          "rule_id": "branching_penalty",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_high"
+            ]
+          ],
+          "weight": -0.25,
+          "rationale": "Branching buries polar functionality and reduces solvent accessibility of heteroatom sites."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.02,
+      "confidence": 0.45,
+      "hypothesis": "Reverses the source ring relation, betting that ring scaffolds fail to transfer and instead hinder hydration through hydrophobicity, which may fail for polar heterocycles."
+    }
+  ],
+  "selected_skill_id": "polar_heteroatom_hydration_prior",
+  "lesson": "Source ring and branching effects are chemically motivated but only weakly supported, so deploy the heteroatom-driven hydration prior that rests on direct polarity and hydrogen-bonding mechanisms.",
+  "revision_summary": "Kept the heteroatom hydration mechanism as the deployed skill and inverted the uncertain source ring/structure relation into a counter-hypothesis for diversity."
+}

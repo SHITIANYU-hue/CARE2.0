@@ -1,0 +1,129 @@
+{
+  "skills": [
+    {
+      "skill_id": "polar_hbond_surface_hydration_v2",
+      "rules": [
+        {
+          "rule_id": "heteroatom_dense_hydration",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": 0.8,
+          "rationale": "Dense O/N centers donate and accept multiple water hydrogen bonds, the dominant favorable hydration term."
+        },
+        {
+          "rule_id": "moderate_heteroatom_support",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_mid"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Intermediate polar content still provides hydrogen-bond sites; broadens coverage beyond the small hetero_high stratum."
+        },
+        {
+          "rule_id": "saturated_hydrocarbon_cavity_penalty",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_none"
+            ],
+            [
+              "hetero_atom_bin",
+              "hetero_none"
+            ]
+          ],
+          "weight": -0.75,
+          "rationale": "Pure saturated hydrocarbons lack hydrogen-bond sites; cavity formation dominates, giving weakest hydration."
+        },
+        {
+          "rule_id": "polyhalogen_hydrophobic_penalty",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_high"
+            ]
+          ],
+          "weight": -0.45,
+          "rationale": "Heavily halogenated solutes are bulky and weakly hydrogen bonding, typically unfavorable for hydration."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.55,
+      "semantic_mass_start": 0.55,
+      "semantic_mass_end": 0.25,
+      "ucb_weight": 0.45,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.02,
+      "confidence": 0.65,
+      "hypothesis": "Hydration affinity tracks polar hydrogen-bonding surface: heteroatom content leads, apolar saturated and polyhalogenated solutes are penalized. Fails if the score rewards hydrophobic bulk or halogen polarizability."
+    },
+    {
+      "skill_id": "size_prior_reversal_counter_transfer",
+      "rules": [
+        {
+          "rule_id": "mid_length_counter_positive",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": 0.45,
+          "rationale": "Counter-hypothesis reversing the low-confidence source smiles_mid penalty: larger solutes accumulate more hydration-active sites."
+        },
+        {
+          "rule_id": "short_solute_counter_penalty",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": -0.35,
+          "rationale": "Reverses the source smiles_short bonus; tiny solutes often are simple alkanes with minimal hydration interaction."
+        },
+        {
+          "rule_id": "heteroatom_anchor_retained",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Retains the polar hydrogen-bond anchor at reduced weight so the size reversal is tested, not confounded."
+        },
+        {
+          "rule_id": "halogen_free_polarity_bonus",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_none"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Halogen-free solutes are typically more polar and hydrophilic, an alternative route to favorable hydration."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.45,
+      "hypothesis": "Tests reversal of the uncertain ESOL length priors while keeping a damped polarity anchor. Fails if hydration truly favors small polar solutes, making the size reversal actively misleading."
+    }
+  ],
+  "selected_skill_id": "polar_hbond_surface_hydration_v2",
+  "lesson": "Development seeds showed the mechanistic polarity skill far ahead of the literal ESOL length-prior transfer, but with wide seed spread; broaden polar coverage and keep exploration rather than trusting weak source length priors.",
+  "revision_summary": "Refined the winning polarity skill by dropping its weak smiles_mid reversal, adding a hetero_mid support term for broader coverage, and slightly strengthening the polar anchor and semantic mass. Replaced the literal source-prior skill with a cleaner counter-hypothesis that reverses the low-confidence ESOL length priors while keeping a damped polarity anchor. Deployed the polarity skill."
+}

@@ -1,0 +1,49 @@
+{
+  "schema_version": "care.rsi_weight_training_draft/v1",
+  "status": "draft_pending_a800_inventory_and_training_data_gate",
+  "objective": "Test whether parameter-efficient weight training improves feedback-conditioned executable-skill revision on task-family-disjoint evaluation, beyond the same base model using context-only RSI.",
+  "current_evidence_boundary": "The current CARE 2.0 loop updates prompts, external memory, hypotheses, and executable skills. It does not update model weights. Any weight-trained result is a new experimental arm and must not be merged silently with context-only RSI.",
+  "training_data_gate": {
+    "minimum_examples": 1000,
+    "minimum_distinct_training_task_families": 8,
+    "minimum_heldout_task_families": 2,
+    "heldout_outcomes_excluded_from_all_training_decisions": true
+  },
+  "smoke_test": {
+    "permitted_below_training_data_gate": true,
+    "claim": "Pipeline and schema-conformance validation only; no efficacy or generalization claim.",
+    "target": "Normalized executable-skill JSON from valid archived responses."
+  },
+  "candidate_recipe_after_hardware_inventory": {
+    "method": "4-bit QLoRA supervised fine-tuning",
+    "base_model": "TBD after A800 GPU count, memory, local model inventory, and license check",
+    "lora_rank": 16,
+    "lora_alpha": 32,
+    "lora_dropout": 0.05,
+    "learning_rate": 0.0002,
+    "epochs_max": 3,
+    "effective_batch_size": 32,
+    "max_sequence_length": 4096,
+    "selection": "Validation-task JSON validity first, then development AUC; never heldout-task AUC"
+  },
+  "evaluation_arms": [
+    "frozen_base_model_with_context_rsi",
+    "trained_adapter_with_context_rsi",
+    "trained_adapter_without_measured_feedback",
+    "trained_adapter_with_shuffled_feedback",
+    "target_only_gp_ucb"
+  ],
+  "primary_comparison": "trained_adapter_with_context_rsi_minus_frozen_base_model_with_context_rsi",
+  "attribution_requirements": [
+    "trained adapter must improve over the frozen base model under the same prompts and reveal budget",
+    "trained adapter with true feedback must improve over its no-feedback and shuffled-feedback controls",
+    "the improvement direction must replicate on task families excluded from training and checkpoint selection"
+  ],
+  "reproducibility": {
+    "archive_dataset_manifest_and_hashes": true,
+    "archive_base_model_revision_and_license": true,
+    "archive_environment_and_gpu_inventory": true,
+    "archive_seeded_training_logs_and_checkpoints": true,
+    "archive_adapter_only_by_default": true
+  }
+}

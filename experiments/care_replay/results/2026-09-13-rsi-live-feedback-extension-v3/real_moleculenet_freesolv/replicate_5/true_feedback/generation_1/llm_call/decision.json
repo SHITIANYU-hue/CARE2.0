@@ -1,0 +1,125 @@
+{
+  "skills": [
+    {
+      "skill_id": "polar_hbond_hydration_prior",
+      "rules": [
+        {
+          "rule_id": "heteroatom_rich_favorable",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "N/O sites donate and accept hydrogen bonds, the dominant favorable term in hydration free energy."
+        },
+        {
+          "rule_id": "apolar_cavity_penalty",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_none"
+            ]
+          ],
+          "weight": -0.55,
+          "rationale": "Pure hydrocarbons pay cavity-formation cost with no compensating polar solvation."
+        },
+        {
+          "rule_id": "halogen_free_favorable",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_none"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Halogens raise hydrophobicity and disrupt water hydrogen bonding despite added polarizability."
+        },
+        {
+          "rule_id": "midlength_polar_window",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": 0.2,
+          "rationale": "Counter-prior: reverses the weak negative smiles_mid source effect; moderate length permits more polar groups."
+        }
+      ],
+      "ridge": 0.8,
+      "prior_scale": 0.5,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.12,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.02,
+      "confidence": 0.62,
+      "hypothesis": "Hydration ranking is set by polar hydrogen-bonding capacity, not molecular size; this skill keeps the polarity-first prior that led development seeds but decays semantic mass faster so revealed target outcomes dominate sooner. Fails if the score rewards small apolar solutes or hetero_high coverage is unrepresentative."
+    },
+    {
+      "skill_id": "aromatic_low_ring_source_prior",
+      "rules": [
+        {
+          "rule_id": "ring_free_favorable",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_none"
+            ]
+          ],
+          "weight": 0.35,
+          "rationale": "Ring role had highest transfer weight (0.76); saturated acyclic solutes avoid rigid hydrophobic ring desolvation penalties."
+        },
+        {
+          "rule_id": "aromatic_scaffold_penalty",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_none"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Non-aromatic solutes lack delocalized apolar surfaces that raise cavity-formation cost in water."
+        },
+        {
+          "rule_id": "short_smiles_source_prior",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": 0.45,
+          "rationale": "Explicit source value prior: smiles_short carried the largest positive solubility effect in the transfer table."
+        },
+        {
+          "rule_id": "long_smiles_source_prior",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Explicit source value prior: smiles_long carried the largest negative effect, consistent with poor hydration of large solutes."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.65,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.01,
+      "confidence": 0.4,
+      "hypothesis": "The two highest-transfer-weight source roles (ring, and rotatable-bond-to-branch) plus the explicit smiles-length value priors carry partly real hydration signal, since size and rigidity also govern cavity cost. May fail because ESOL effects blend crystal-lattice terms absent from pure hydration and source confidences are only 0.22-0.41."
+    }
+  ],
+  "selected_skill_id": "polar_hbond_hydration_prior",
+  "lesson": "The polarity-first hydration prior beat the source-transfer prior on every development seed (mean AUC 77.6 vs 51.8), confirming that hydrogen-bonding capacity rather than solubility size/ring terms drives this target; retaining that skill and trimming its semantic mass keeps the win while giving revealed target data more influence. The source-grounded alternative is kept only as a diversified hedge, not as a deployment candidate, because eight seeds are too few to rule out real signal in the ring and size terms.",
+  "revision_summary": "Retained polar_hydration_counter_prior essentially intact as polar_hbond_hydration_prior, lowering semantic_mass_end from 0.2 to 0.12 so the surrogate mass decays faster toward the anchor. Replaced the source-order skill with aromatic_low_ring_source_prior, which grounds itself in the explicit smiles_length value priors and the aromatic/ring descriptors tied to the highest-transfer-weight source roles, giving an orthogonal cavity-cost view as the counter-hypothesis hedge. Both skills use catalog-exact field/value pairs, four rules or fewer, and decaying semantic mass; deployed the polarity-first skill."
+}

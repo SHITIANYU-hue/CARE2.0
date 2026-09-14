@@ -1,0 +1,566 @@
+{
+  "selected": {
+    "fixed_initial": "halogen_aromatic_lipophilicity_counter",
+    "true_feedback": "hydrophobic_bulk_polarity_balance",
+    "no_feedback": "halogen_carbon_surface_partition",
+    "shuffled_feedback": "solubility_sign_flip_transfer"
+  },
+  "states": {
+    "fixed_initial": {
+      "skills": [
+        {
+          "skill_id": "solubility_sign_flip_transfer",
+          "rules": [
+            {
+              "rule_id": "long_smiles_lipophilic",
+              "conditions": [
+                [
+                  "smiles_length_bin",
+                  "smiles_long"
+                ]
+              ],
+              "weight": 0.55,
+              "rationale": "Source ESOL: long SMILES strongly reduced solubility (-11.46); anti-correlation implies higher lipophilicity."
+            },
+            {
+              "rule_id": "short_smiles_hydrophilic",
+              "conditions": [
+                [
+                  "smiles_length_bin",
+                  "smiles_short"
+                ]
+              ],
+              "weight": -0.45,
+              "rationale": "Source prior: short SMILES raised solubility (+6.89); small polar molecules should score low on lipophilicity."
+            },
+            {
+              "rule_id": "ring_rich_hydrophobic_surface",
+              "conditions": [
+                [
+                  "ring_token_bin",
+                  "ring_token_high"
+                ]
+              ],
+              "weight": 0.4,
+              "rationale": "Ring role had highest transfer weight (0.758); fused ring systems reduce solubility and add hydrophobic surface."
+            },
+            {
+              "rule_id": "donor_like_hetero_penalty",
+              "conditions": [
+                [
+                  "hetero_atom_bin",
+                  "hetero_high"
+                ]
+              ],
+              "weight": -0.3,
+              "rationale": "Donor-count role mapped to hetero bin; polar heteroatoms hydrate readily and depress partition coefficients."
+            }
+          ],
+          "ridge": 1.0,
+          "prior_scale": 0.35,
+          "semantic_mass_start": 0.35,
+          "semantic_mass_end": 0.12,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.2,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.45,
+          "hypothesis": "Transfers ESOL solubility effects with reversed sign, assuming lipophilicity is anti-correlated with aqueous solubility. Fails if lipophilicity here is driven by polarity balance rather than size, or if the hbond-donor to hetero mapping is invalid."
+        },
+        {
+          "skill_id": "halogen_aromatic_lipophilicity_counter",
+          "rules": [
+            {
+              "rule_id": "halogen_rich_partition",
+              "conditions": [
+                [
+                  "halogen_bin",
+                  "halogen_high"
+                ]
+              ],
+              "weight": 0.6,
+              "rationale": "Halogen substitution raises hydrophobic surface area and pi-density, a direct mechanistic driver of octanol partitioning."
+            },
+            {
+              "rule_id": "aromatic_hydrophobic_core",
+              "conditions": [
+                [
+                  "aromatic_bin",
+                  "aromatic_high"
+                ]
+              ],
+              "weight": 0.35,
+              "rationale": "Extended aromatic systems are nonpolar and poorly hydrated, raising measured logD independent of molecular length."
+            },
+            {
+              "rule_id": "polar_hetero_penalty",
+              "conditions": [
+                [
+                  "hetero_atom_bin",
+                  "hetero_high"
+                ]
+              ],
+              "weight": -0.4,
+              "rationale": "High heteroatom fraction implies polar and ionizable groups that partition into the aqueous phase."
+            },
+            {
+              "rule_id": "very_long_length_counter",
+              "conditions": [
+                [
+                  "smiles_length_bin",
+                  "smiles_very_long"
+                ]
+              ],
+              "weight": -0.25,
+              "rationale": "Counter to low-confidence length transfer: very long strings often encode polar, peptide-like scaffolds, not more lipophilic ones."
+            }
+          ],
+          "ridge": 0.8,
+          "prior_scale": 0.5,
+          "semantic_mass_start": 0.45,
+          "semantic_mass_end": 0.15,
+          "ucb_weight": 0.5,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 0.9,
+          "gp_xi": 0.02,
+          "confidence": 0.6,
+          "hypothesis": "Domain-first partition model: halogenation and aromatic surface raise lipophilicity, heteroatom polarity lowers it, and the uncertain length transfer is reversed at the extreme tail. Fails if size dominates polarity in this pool."
+        }
+      ],
+      "selected_skill_id": "halogen_aromatic_lipophilicity_counter",
+      "lesson": "Cross-endpoint transfer from solubility needs an unverified sign flip, while halogen, aromatic, and heteroatom descriptors map directly onto partition mechanism with broader pool coverage.",
+      "revision_summary": "Kept a sign-reversed source-evidence skill using the strongest ESOL roles (length, rings) at reduced confidence, and added a domain-mechanistic counter-hypothesis that downweights the low-confidence length relation (confidence 0.22) in favor of halogenation and aromaticity; the latter is deployed."
+    },
+    "true_feedback": {
+      "skills": [
+        {
+          "skill_id": "hydrophobic_bulk_polarity_balance",
+          "rules": [
+            {
+              "rule_id": "halogen_rich_partition",
+              "conditions": [
+                [
+                  "halogen_bin",
+                  "halogen_high"
+                ]
+              ],
+              "weight": 0.55,
+              "rationale": "Halogen substitution adds polarizable hydrophobic volume that favors the octanol phase over water."
+            },
+            {
+              "rule_id": "aromatic_hydrophobic_core",
+              "conditions": [
+                [
+                  "aromatic_bin",
+                  "aromatic_high"
+                ]
+              ],
+              "weight": 0.45,
+              "rationale": "Extended aromatic frameworks are poorly hydrated and raise logD independently of chain length."
+            },
+            {
+              "rule_id": "halogen_aromatic_synergy",
+              "conditions": [
+                [
+                  "aromatic_bin",
+                  "aromatic_high"
+                ],
+                [
+                  "halogen_bin",
+                  "halogen_mid"
+                ]
+              ],
+              "weight": 0.3,
+              "rationale": "Halogenated aromatics combine pi-density with lipophilic surface, an additive partition gain."
+            },
+            {
+              "rule_id": "polar_hetero_penalty",
+              "conditions": [
+                [
+                  "hetero_atom_bin",
+                  "hetero_high"
+                ]
+              ],
+              "weight": -0.45,
+              "rationale": "High heteroatom content means polar and ionizable groups that partition into the aqueous phase."
+            }
+          ],
+          "ridge": 0.9,
+          "prior_scale": 0.55,
+          "semantic_mass_start": 0.42,
+          "semantic_mass_end": 0.14,
+          "ucb_weight": 0.5,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 0.9,
+          "gp_xi": 0.02,
+          "confidence": 0.72,
+          "hypothesis": "Lipophilicity in this pool is set by a hydrophobic-surface versus polar-heteroatom balance; halogenation and aromaticity raise the score while heteroatom polarity lowers it. Fails if chain length or size dominates polarity here."
+        },
+        {
+          "skill_id": "aromatic_ring_lipophilic_surface",
+          "rules": [
+            {
+              "rule_id": "ring_rich_hydrophobic_surface",
+              "conditions": [
+                [
+                  "ring_token_bin",
+                  "ring_token_high"
+                ]
+              ],
+              "weight": 0.5,
+              "rationale": "Ring role carried the highest transfer weight (0.758); ring density adds hydrophobic surface and displaces water."
+            },
+            {
+              "rule_id": "aromatic_ring_coverage",
+              "conditions": [
+                [
+                  "aromatic_bin",
+                  "aromatic_high"
+                ],
+                [
+                  "ring_token_bin",
+                  "ring_token_high"
+                ]
+              ],
+              "weight": 0.35,
+              "rationale": "Aromatic ring-rich scaffolds are the concrete carrier of the ring-density effect in this catalog."
+            },
+            {
+              "rule_id": "hetero_ring_damping",
+              "conditions": [
+                [
+                  "hetero_atom_bin",
+                  "hetero_high"
+                ]
+              ],
+              "weight": -0.35,
+              "rationale": "Heteroatom-rich rings are polar and hydrogen-bonding, damping the hydrophobic ring gain."
+            },
+            {
+              "rule_id": "low_ring_polar_penalty",
+              "conditions": [
+                [
+                  "ring_token_bin",
+                  "ring_token_low"
+                ]
+              ],
+              "weight": -0.3,
+              "rationale": "Acyclic or sparse-ring scaffolds expose flexible polar chains to solvent, lowering partition into octanol."
+            }
+          ],
+          "ridge": 1.2,
+          "prior_scale": 0.25,
+          "semantic_mass_start": 0.3,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.65,
+          "gp_beta_start": 2.2,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.45,
+          "hypothesis": "Transfers the source ring effect directly, treating ring density as the dominant lipophilic surface proxy rather than reversing any source sign; it deliberately avoids the low-confidence length relation. Fails if ring count is confounded with heteroatom content in this pool."
+        }
+      ],
+      "selected_skill_id": "hydrophobic_bulk_polarity_balance",
+      "lesson": "Two generations of development seeds agree that the halogen/aromatic surface model with a heteroatom polarity penalty is the reliable signal, while source-derived length transfer stays low-confidence and should be carried only as a structural hedge rather than as a sign-flipped prior.",
+      "revision_summary": "Deployed the domain-mechanistic halogen/aromatic model again, keeping the halogen-aromatic interaction and the heteroatom penalty with a slightly trimmed penalty weight (0.45) and raised confidence (0.72) after it again led the alternative on development seeds (90.05 vs 88.53 AUC). Replaced the failed sign-flip skill with a ring-density hedge that uses the highest-transfer-weight ring role without inverting any source effect, and dropped the unverified length rules entirely."
+    },
+    "no_feedback": {
+      "skills": [
+        {
+          "skill_id": "solubility_antipode_transfer_v2",
+          "rules": [
+            {
+              "rule_id": "long_smiles_antipode_boost",
+              "conditions": [
+                [
+                  "smiles_length_bin",
+                  "smiles_long"
+                ]
+              ],
+              "weight": 0.45,
+              "rationale": "Source ESOL long SMILES cut solubility (-11.46); if solubility and partition anti-correlate, long lipophilic chains favor octanol."
+            },
+            {
+              "rule_id": "short_smiles_polar_penalty",
+              "conditions": [
+                [
+                  "smiles_length_bin",
+                  "smiles_short"
+                ]
+              ],
+              "weight": -0.4,
+              "rationale": "Source prior: short SMILES raised solubility (+6.89); compact polar molecules hydrate well and partition poorly."
+            },
+            {
+              "rule_id": "ring_rich_hydrophobic_surface",
+              "conditions": [
+                [
+                  "ring_token_bin",
+                  "ring_token_high"
+                ]
+              ],
+              "weight": 0.4,
+              "rationale": "Ring role carried the strongest transfer weight (0.758); fused carbocycles add hydrophobic surface that penalizes aqueous solubility."
+            },
+            {
+              "rule_id": "hetero_polarity_penalty",
+              "conditions": [
+                [
+                  "hetero_atom_bin",
+                  "hetero_high"
+                ]
+              ],
+              "weight": -0.3,
+              "rationale": "Donor-count role transferred to heteroatom bin (weight 0.509); polar heteroatoms raise hydration and depress logD."
+            }
+          ],
+          "ridge": 1.1,
+          "prior_scale": 0.28,
+          "semantic_mass_start": 0.3,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.62,
+          "gp_beta_start": 2.2,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.42,
+          "hypothesis": "Transfers ESOL size, ring and donor effects with reversed sign under the solubility-partition antipode. Fails if lipophilicity is driven by polarity balance rather than molecular size."
+        },
+        {
+          "skill_id": "halogen_carbon_surface_partition",
+          "rules": [
+            {
+              "rule_id": "halogen_polarizable_gain",
+              "conditions": [
+                [
+                  "halogen_bin",
+                  "halogen_mid"
+                ]
+              ],
+              "weight": 0.4,
+              "rationale": "Moderate halogen load adds polarizable, poorly hydrated surface without excessive molecular weight; raises octanol affinity."
+            },
+            {
+              "rule_id": "hydrocarbon_rich_core",
+              "conditions": [
+                [
+                  "hetero_atom_bin",
+                  "hetero_low"
+                ]
+              ],
+              "weight": 0.5,
+              "rationale": "Low heteroatom count means carbon-rich scaffolds with minimal hydration shell, the direct driver of high partition coefficients."
+            },
+            {
+              "rule_id": "no_halogen_polar_head",
+              "conditions": [
+                [
+                  "halogen_bin",
+                  "halogen_none"
+                ]
+              ],
+              "weight": -0.25,
+              "rationale": "Halogen-free molecules often carry polar functionality instead; absence of lipophilic halogen surface weakens octanol partitioning."
+            },
+            {
+              "rule_id": "saturated_flexible_chain_penalty",
+              "conditions": [
+                [
+                  "aromatic_bin",
+                  "aromatic_none"
+                ]
+              ],
+              "weight": -0.3,
+              "rationale": "Non-aromatic scaffolds lack extended nonpolar pi surface and often bear hydrophilic groups, lowering the partition score."
+            }
+          ],
+          "ridge": 0.9,
+          "prior_scale": 0.42,
+          "semantic_mass_start": 0.4,
+          "semantic_mass_end": 0.14,
+          "ucb_weight": 0.58,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 0.9,
+          "gp_xi": 0.02,
+          "confidence": 0.62,
+          "hypothesis": "Mechanistic partition model: halogen polarizability and hydrocarbon-rich composition raise lipophilicity, while halogen-free and non-aromatic scaffolds partition poorly. Fails if size or ionization dominates composition in this pool."
+        }
+      ],
+      "selected_skill_id": "halogen_carbon_surface_partition",
+      "lesson": "Solubility-based transfer needs an unverified sign flip and rests on low-confidence length evidence, so composition descriptors that map directly onto octanol-water partitioning should carry deployment.",
+      "revision_summary": "Rewrote both skills with single field-value condition maps and at most four rules. Kept the antipode skill but lowered confidence to 0.42 and trimmed its weight on the weak length relation; broadened the domain skill by replacing the narrow halogen_high (98 candidates) rule with halogen_mid gain and halogen_none penalty plus an aromatic_none hydrophilicity rule, and deployed the domain skill."
+    },
+    "shuffled_feedback": {
+      "skills": [
+        {
+          "skill_id": "solubility_sign_flip_transfer",
+          "rules": [
+            {
+              "rule_id": "long_smiles_lipophilic",
+              "conditions": [
+                [
+                  "smiles_length_bin",
+                  "smiles_long"
+                ]
+              ],
+              "weight": 0.6,
+              "rationale": "ESOL: long SMILES cut solubility (-11.46); anti-correlated endpoint implies greater octanol partitioning."
+            },
+            {
+              "rule_id": "short_smiles_hydrophilic",
+              "conditions": [
+                [
+                  "smiles_length_bin",
+                  "smiles_short"
+                ]
+              ],
+              "weight": -0.5,
+              "rationale": "Source prior: short SMILES raised solubility (+6.89); small polar molecules partition poorly into octanol."
+            },
+            {
+              "rule_id": "ring_rich_hydrophobic_surface",
+              "conditions": [
+                [
+                  "ring_token_bin",
+                  "ring_token_high"
+                ]
+              ],
+              "weight": 0.45,
+              "rationale": "Ring role had the highest transfer weight (0.758); fused rings add rigid hydrophobic surface area."
+            },
+            {
+              "rule_id": "donor_like_hetero_penalty",
+              "conditions": [
+                [
+                  "hetero_atom_bin",
+                  "hetero_high"
+                ]
+              ],
+              "weight": -0.18,
+              "rationale": "Donor-to-heteroatom mapping is the weakest source role (0.159), so keep only a mild polarity penalty."
+            }
+          ],
+          "ridge": 1.0,
+          "prior_scale": 0.4,
+          "semantic_mass_start": 0.38,
+          "semantic_mass_end": 0.14,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.2,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.65,
+          "hypothesis": "Sign-reversed ESOL transfer: size and ring content raise lipophilicity, small molecules lower it, with a softened heteroatom penalty. Fails if polarity balance rather than molecular size governs partitioning here."
+        },
+        {
+          "skill_id": "aromatic_core_polarity_neutral_counter",
+          "rules": [
+            {
+              "rule_id": "fused_aromatic_hydrophobic_core",
+              "conditions": [
+                [
+                  "aromatic_bin",
+                  "aromatic_high"
+                ],
+                [
+                  "ring_token_bin",
+                  "ring_token_high"
+                ]
+              ],
+              "weight": 0.5,
+              "rationale": "Polycyclic aromatic cores are poorly hydrated and dominate octanol affinity in drug-like pools."
+            },
+            {
+              "rule_id": "branch_rich_alkyl_surface",
+              "conditions": [
+                [
+                  "branch_bin",
+                  "branch_high"
+                ]
+              ],
+              "weight": 0.32,
+              "rationale": "Rotatable-bond role transferred strongly (0.758); branched alkyl substituents add nonpolar surface area."
+            },
+            {
+              "rule_id": "large_scaffold_size",
+              "conditions": [
+                [
+                  "smiles_length_bin",
+                  "smiles_long"
+                ]
+              ],
+              "weight": 0.3,
+              "rationale": "Larger scaffolds carry more hydrophobic surface; retained at reduced weight given low length-role confidence (0.224)."
+            },
+            {
+              "rule_id": "hetero_penalty_reversed",
+              "conditions": [
+                [
+                  "hetero_atom_bin",
+                  "hetero_mid"
+                ]
+              ],
+              "weight": 0.15,
+              "rationale": "Counter to weakest source mapping: moderate heteroatom counts include lipophilic S, N-aryl and halogen contexts."
+            }
+          ],
+          "ridge": 0.8,
+          "prior_scale": 0.45,
+          "semantic_mass_start": 0.35,
+          "semantic_mass_end": 0.12,
+          "ucb_weight": 0.55,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 0.9,
+          "gp_xi": 0.015,
+          "confidence": 0.5,
+          "hypothesis": "Counter-hypothesis that removes and mildly reverses the donor-to-heteroatom penalty and leads with an aromatic fused-core interaction. Fails if polar heteroatom content truly suppresses lipophilicity across this pool."
+        }
+      ],
+      "selected_skill_id": "solubility_sign_flip_transfer",
+      "lesson": "Across both development generations the sign-flipped ESOL transfer led (88.7 then 90.08 mean AUC) but the ring/branch counter closed to within 0.4 AUC, so the heteroatom penalty is likely weak, not strongly negative; very narrow rules remain the main variance source.",
+      "revision_summary": "Retained the deployed source-evidence skill with the heteroatom penalty softened further (-0.25 to -0.18) and slightly reduced semantic mass, reflecting the near-tie with the near-zero-penalty counter. Rebuilt the counter as an aromatic fused-core interaction skill that mildly reverses the weakest source mapping (donor to heteroatom, confidence 0.159) while avoiding low-coverage bins such as halogen_high and hetero_none. Deployed the retained transfer skill; sixteen development seeds are too few for causal claims."
+    }
+  },
+  "frozen_at": "2026-09-14T02:53:42.546860+00:00",
+  "evaluation_feedback_permitted": false,
+  "heldout_seeds": [
+    239100,
+    239101,
+    239102,
+    239103,
+    239104,
+    239105,
+    239106,
+    239107,
+    239108,
+    239109,
+    239110,
+    239111,
+    239112,
+    239113,
+    239114,
+    239115,
+    239116,
+    239117,
+    239118,
+    239119,
+    239120,
+    239121,
+    239122,
+    239123,
+    239124,
+    239125,
+    239126,
+    239127,
+    239128,
+    239129,
+    239130,
+    239131,
+    239132,
+    239133,
+    239134,
+    239135,
+    239136,
+    239137,
+    239138,
+    239139
+  ]
+}

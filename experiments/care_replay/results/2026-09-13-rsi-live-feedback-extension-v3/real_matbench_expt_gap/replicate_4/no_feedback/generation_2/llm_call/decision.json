@@ -1,0 +1,129 @@
+{
+  "skills": [
+    {
+      "skill_id": "moss_inverted_polarizability_transfer",
+      "rules": [
+        {
+          "rule_id": "halide_anion_wide_gap",
+          "conditions": [
+            [
+              "anion_family",
+              "halide"
+            ]
+          ],
+          "weight": 0.82,
+          "rationale": "Halides were the strongest negative refractive-index effect in the source; low polarizability implies wide experimental gaps via the Moss relation."
+        },
+        {
+          "rule_id": "chalcogenide_anion_narrow_gap",
+          "conditions": [
+            [
+              "anion_family",
+              "chalcogenide"
+            ]
+          ],
+          "weight": -0.68,
+          "rationale": "Chalcogenides raised source refractive index; diffuse S/Se/Te p valence states are highly polarizable and narrow measured gaps."
+        },
+        {
+          "rule_id": "metalloid_dominant_narrow_gap",
+          "conditions": [
+            [
+              "dominant_family",
+              "metalloid"
+            ]
+          ],
+          "weight": -0.6,
+          "rationale": "Largest source effect was metalloid dominance; covalent Si, Ge, Sb, Te semiconductors cluster at small experimental gaps."
+        },
+        {
+          "rule_id": "heavy_mean_z_narrow_gap",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_high"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "High mean Z boosted source refractive index; heavy, weakly bound valence electrons give smaller bonding-antibonding splitting and narrower gaps."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.45,
+      "semantic_mass_end": 0.18,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.55,
+      "hypothesis": "Source refractive-index effects transfer with reversed sign because high polarizability implies a small gap. Fails if source effects reflected structural or stability confounders rather than electronic polarizability, or if source confidences (0.14-0.37) are too weak."
+    },
+    {
+      "skill_id": "ionic_maingroup_wide_gap_chemistry",
+      "rules": [
+        {
+          "rule_id": "maingroup_oxide_insulator",
+          "conditions": [
+            [
+              "anion_family",
+              "oxide"
+            ],
+            [
+              "transition_metal_flag",
+              "no_transition_metal"
+            ]
+          ],
+          "weight": 0.78,
+          "rationale": "Deep O 2p valence bands without partially filled d states give closed-shell main-group oxides the widest experimental gaps."
+        },
+        {
+          "rule_id": "halogen_dominant_ionic_salt",
+          "conditions": [
+            [
+              "dominant_family",
+              "halogen"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Ionic halide salts have low-lying halogen p bands and cation conduction bands, maximizing gaps despite the source's negative halogen effect."
+        },
+        {
+          "rule_id": "chalcogen_dominant_narrow_gap",
+          "conditions": [
+            [
+              "dominant_family",
+              "chalcogen"
+            ]
+          ],
+          "weight": -0.55,
+          "rationale": "Sulfide, selenide and telluride dominated phases are covalent, polarizable narrow-gap semiconductors across the largest catalog stratum."
+        },
+        {
+          "rule_id": "very_heavy_mean_z_downweight",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_very_high"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "Counter to a weakly supported positive source effect: very heavy compounds have relativistic, polarizable valence shells and small gaps."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.35,
+      "semantic_mass_start": 0.45,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.55,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 0.9,
+      "gp_xi": 0.02,
+      "confidence": 0.62,
+      "hypothesis": "Direct band-gap chemistry: ionic, transition-metal-free halides and oxides are wide-gap; chalcogen-rich and very heavy phases are narrow. Fails if catalog oxides are mostly mixed-valence or defect-rich compounds with in-gap d states."
+    }
+  ],
+  "selected_skill_id": "ionic_maingroup_wide_gap_chemistry",
+  "lesson": "Source dielectric effects are only weakly confident (0.01-0.37), so they should serve as sign-inverted priors rather than as the deployed backbone; direct band-gap chemistry with an explicit oxide by transition-metal interaction is the safer frozen choice.",
+  "revision_summary": "Reformatted conditions to catalog field-value maps, replaced the low-coverage pnictide rule with an inverted heavy mean-Z rule in the transfer skill, strengthened the domain skill with a main-group oxide interaction, a large chalcogen-dominant negative, and a counter-hypothesis downweighting the weakly supported very-high-Z source effect, and switched deployment to the mechanistic ionic wide-gap skill."
+}

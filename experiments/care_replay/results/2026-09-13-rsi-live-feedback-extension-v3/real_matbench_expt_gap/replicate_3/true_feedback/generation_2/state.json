@@ -1,0 +1,137 @@
+{
+  "parent_state_sha256": "33bc8fbd94e3c7ae74158a944db5447798c1d2e7790233dfb080fd7356209584",
+  "new_state_sha256": "b3f240963ea2974c552c2f438229cb4b24e0c6ab784c248b25e0c476a5059b5a",
+  "generation": 2,
+  "arm": "true_feedback",
+  "state": {
+    "skills": [
+      {
+        "skill_id": "moss_inverted_light_ionic_wide_gap",
+        "rules": [
+          {
+            "rule_id": "halide_ionic_wide_gap",
+            "conditions": [
+              [
+                "anion_family",
+                "halide"
+              ]
+            ],
+            "weight": 0.6,
+            "rationale": "Source halides lower refractive index; by the Moss relation low polarizability implies wide experimental gaps."
+          },
+          {
+            "rule_id": "light_element_bond_splitting",
+            "conditions": [
+              [
+                "mean_atomic_number_bin",
+                "mean_z_low"
+              ]
+            ],
+            "weight": 0.5,
+            "rationale": "Compact valence orbitals in light constituents give large bonding-antibonding splitting and wide gaps."
+          },
+          {
+            "rule_id": "main_group_closed_shell_bonus",
+            "conditions": [
+              [
+                "transition_metal_flag",
+                "no_transition_metal"
+              ]
+            ],
+            "weight": 0.4,
+            "rationale": "Closed-shell main-group compounds lack partially filled d bands that pin the Fermi level."
+          },
+          {
+            "rule_id": "metalloid_network_narrow_gap",
+            "conditions": [
+              [
+                "dominant_family",
+                "metalloid"
+              ]
+            ],
+            "weight": -0.65,
+            "rationale": "Strongest source high-index effect; metalloid covalent networks (Si, Ge, Sb) are narrow-gap semiconductors."
+          }
+        ],
+        "ridge": 1.1,
+        "prior_scale": 0.28,
+        "semantic_mass_start": 0.34,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.58,
+        "gp_beta_start": 2.1,
+        "gp_beta_end": 1.05,
+        "gp_xi": 0.015,
+        "confidence": 0.66,
+        "hypothesis": "Merges inverted source polarity with light main-group ionic chemistry: halide, light-Z, main-group gain; metalloid loses. Fails if measured gaps track polarizability directly or halide entries are sparse."
+      },
+      {
+        "skill_id": "heavy_z_counter_oxide_chargetransfer",
+        "rules": [
+          {
+            "rule_id": "heavy_mean_z_neutralized",
+            "conditions": [
+              [
+                "mean_atomic_number_bin",
+                "mean_z_high"
+              ]
+            ],
+            "weight": -0.12,
+            "rationale": "Counter-hypothesis: heavy-Z source effect is low-confidence, so its inverted penalty is downweighted toward neutral."
+          },
+          {
+            "rule_id": "oxide_deep_valence_gap",
+            "conditions": [
+              [
+                "anion_family",
+                "oxide"
+              ]
+            ],
+            "weight": 0.5,
+            "rationale": "Deep O 2p valence bands and strong ionicity give oxides consistently wide experimental gaps."
+          },
+          {
+            "rule_id": "transition_metal_oxide_charge_transfer",
+            "conditions": [
+              [
+                "anion_family",
+                "oxide"
+              ],
+              [
+                "transition_metal_flag",
+                "has_transition_metal"
+              ]
+            ],
+            "weight": -0.35,
+            "rationale": "Transition-metal oxides narrow via d-band charge-transfer states, offsetting the generic oxide ionicity bonus."
+          },
+          {
+            "rule_id": "heavy_chalcogenide_semimetal",
+            "conditions": [
+              [
+                "anion_family",
+                "chalcogenide"
+              ]
+            ],
+            "weight": -0.4,
+            "rationale": "Selenides and tellurides are polarizable small-gap semiconductors; reverses the positive source chalcogenide prior."
+          }
+        ],
+        "ridge": 1.4,
+        "prior_scale": 0.22,
+        "semantic_mass_start": 0.26,
+        "semantic_mass_end": 0.08,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 1.1,
+        "gp_xi": 0.02,
+        "confidence": 0.52,
+        "hypothesis": "Reverses the chalcogenide source prior and neutralizes the weakly supported heavy-Z relation, relying on oxide ionicity split by d-band chemistry. Fails if wide-gap entries are dominated by light sulfides or main-group heavy-Z halides."
+      }
+    ],
+    "selected_skill_id": "moss_inverted_light_ionic_wide_gap",
+    "lesson": "Across two development generations the inverted-source and light main-group ionic proposals both scored far above the original chalcogenide/metalloid-positive prior, so Moss-type inversion plus main-group ionicity is the more durable prior; heavy-Z and lanthanide source relations carry too little support to justify strong weights.",
+    "revision_summary": "Merged the two best-performing gen-1 skills into one deployment candidate that keeps the halide and metalloid inversions and adds the light-Z and main-group bonuses that drove the higher-AUC skill, dropping the low-support heavy-Z and lanthanide rules. Paired it with a counter-hypothesis skill that neutralizes the uncertain heavy-Z relation, reverses the chalcogenide source prior, and splits oxides by transition-metal charge-transfer character. Deployed the merged inverted skill."
+  },
+  "memory_sha256": "abffc19eed9e6c7d890d03e23d467b0e05972a07ba97a710c9646f1ed584de3b",
+  "experimental_only": true
+}

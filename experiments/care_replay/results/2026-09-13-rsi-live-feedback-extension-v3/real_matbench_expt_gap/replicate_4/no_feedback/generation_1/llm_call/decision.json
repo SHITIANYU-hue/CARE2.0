@@ -1,0 +1,125 @@
+{
+  "skills": [
+    {
+      "skill_id": "moss_inverse_refractive_gap_transfer",
+      "rules": [
+        {
+          "rule_id": "halide_anion_wide_gap",
+          "conditions": [
+            [
+              "anion_family",
+              "halide"
+            ]
+          ],
+          "weight": 0.82,
+          "rationale": "Halides were the strongest negative in the refractive-index source; by the Moss relation low polarizability implies wide experimental gaps."
+        },
+        {
+          "rule_id": "chalcogenide_anion_narrow_gap",
+          "conditions": [
+            [
+              "anion_family",
+              "chalcogenide"
+            ]
+          ],
+          "weight": -0.7,
+          "rationale": "Chalcogenides scored positively for refractive index; high polarizability and diffuse S/Se/Te p-states narrow measured gaps."
+        },
+        {
+          "rule_id": "pnictide_anion_narrow_gap",
+          "conditions": [
+            [
+              "anion_family",
+              "pnictide"
+            ]
+          ],
+          "weight": -0.62,
+          "rationale": "Strong positive source effect on refractive index inverts: pnictide covalency gives small-gap semiconductors and semimetals."
+        },
+        {
+          "rule_id": "metalloid_dominant_narrow_gap",
+          "conditions": [
+            [
+              "dominant_family",
+              "metalloid"
+            ]
+          ],
+          "weight": -0.58,
+          "rationale": "Largest source effect was metalloid dominance; high-n metalloid semiconductors (Si, Ge, Sb, Te) cluster at small gaps."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.62,
+      "hypothesis": "Source refractive-index effects transfer with reversed sign because high refractive index implies high polarizability and small band gap. Fails if the source signal reflected shared lattice-stability confounders rather than electronic polarizability."
+    },
+    {
+      "skill_id": "ionic_insulator_wide_gap_chemistry",
+      "rules": [
+        {
+          "rule_id": "halogen_dominant_ionic",
+          "conditions": [
+            [
+              "dominant_family",
+              "halogen"
+            ]
+          ],
+          "weight": 0.72,
+          "rationale": "Halogen-dominated ionic salts have deep halide p valence bands and cation-derived conduction bands, giving the widest experimental gaps."
+        },
+        {
+          "rule_id": "oxide_anion_positive",
+          "conditions": [
+            [
+              "anion_family",
+              "oxide"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Oxide O 2p valence bands sit low in energy, so most stoichiometric oxides are wide-gap insulators."
+        },
+        {
+          "rule_id": "no_transition_metal_positive",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "no_transition_metal"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Absence of partially filled d shells removes mid-gap and narrow d bands that collapse measured band gaps."
+        },
+        {
+          "rule_id": "light_mean_z_positive",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_low"
+            ]
+          ],
+          "weight": 0.42,
+          "rationale": "Light-element compounds have short bonds and large bonding-antibonding splitting, mechanistically favoring wide gaps."
+        }
+      ],
+      "ridge": 1.8,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.38,
+      "semantic_mass_end": 0.12,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 0.9,
+      "gp_xi": 0.02,
+      "confidence": 0.6,
+      "hypothesis": "Pure domain prior: ionic, light, transition-metal-free halides and oxides maximize gaps. Fails if the catalog's oxides are dominated by mixed-valence transition-metal oxides whose d bands shrink gaps."
+    }
+  ],
+  "selected_skill_id": "moss_inverse_refractive_gap_transfer",
+  "lesson": "Refractive index and band gap are inversely coupled through polarizability, so the dielectric source's largest, best-supported effects should be transferred with reversed sign rather than copied positively.",
+  "revision_summary": "Replaced the previous direct-sign anion transfer with a Moss-relation inversion (halide positive; chalcogenide, pnictide, metalloid negative), dropped the low-confidence lanthanide and very-high-Z rules, and added a purely mechanistic ionic-insulator counter-skill. Deployed the inverted transfer skill with moderate ridge and decaying semantic mass."
+}

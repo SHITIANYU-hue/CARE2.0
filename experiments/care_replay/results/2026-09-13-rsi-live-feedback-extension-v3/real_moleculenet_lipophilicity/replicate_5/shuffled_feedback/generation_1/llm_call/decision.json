@@ -1,0 +1,129 @@
+{
+  "skills": [
+    {
+      "skill_id": "esol_inverse_bulk_ring_transfer_v2",
+      "rules": [
+        {
+          "rule_id": "long_skeleton_hydrophobic_surface",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": 0.55,
+          "rationale": "Source: long SMILES strongly lowered solubility; by the general solubility equation that bulk raises octanol partitioning."
+        },
+        {
+          "rule_id": "short_compact_polar_penalty",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": -0.55,
+          "rationale": "Source: short SMILES were most soluble. Small solutes expose little apolar surface, depressing logD."
+        },
+        {
+          "rule_id": "fused_ring_scaffold_transfer",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": 0.45,
+          "rationale": "Highest-weight source role was ring structure. Rigid fused rings add apolar, low-entropy surface favoring octanol."
+        },
+        {
+          "rule_id": "carbon_rich_low_heteroatom_core",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_low"
+            ]
+          ],
+          "weight": 0.45,
+          "rationale": "Heteroatom-poor hydrocarbon skeletons are the classic high-logP regime; broader coverage than the prior length interaction."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.18,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.65,
+      "hypothesis": "Transfers the strongest ESOL roles (size, rings) with inverted sign plus a carbon-rich core term. Fails if pool variance comes from ionization or polar functional groups rather than molecular bulk."
+    },
+    {
+      "skill_id": "aromatic_pi_surface_with_branch_role_reversal",
+      "rules": [
+        {
+          "rule_id": "aromatic_pi_partition_surface",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Aromatic carbon surface partitions favorably into octanol and dominates high-lipophilicity medicinal chemistry space."
+        },
+        {
+          "rule_id": "ring_scaffold_bulk",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": 0.35,
+          "rationale": "Ring-dense scaffolds add rigid apolar surface; mirrors the highest-confidence source role without relying on length bins."
+        },
+        {
+          "rule_id": "branch_role_counter_prior",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_high"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "Counter-hypothesis reversing the uncertain rotatable-bond-to-branch role: heavy branching usually marks polar solubilizing side chains."
+        },
+        {
+          "rule_id": "halogenated_aromatic_synergy",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ],
+            [
+              "halogen_bin",
+              "halogen_mid"
+            ]
+          ],
+          "weight": 0.35,
+          "rationale": "Moderate halogenation of aromatic rings adds positive Hansch pi surface; broader, less brittle than the rare halogen_high bin."
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.35,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.12,
+      "ucb_weight": 0.55,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 0.9,
+      "gp_xi": 0.02,
+      "confidence": 0.5,
+      "hypothesis": "Tests whether aromatic and ring surface, minus branching flexibility, beats size-driven transfer, while reversing the weak branch role. Fails if branching tracks apolar alkyl chains rather than polar substituents."
+    }
+  ],
+  "selected_skill_id": "esol_inverse_bulk_ring_transfer_v2",
+  "lesson": "Development seeds favored the inverted ESOL bulk/ring transfer (mean AUC 87.9) over the halogen-centric partition skill (85.2), and the latter's per-seed spread was wide (80.3-93.7). Narrow bins such as halogen_high (98 of 4200) and strong negative penalties on the majority hetero_high bin appear to waste budget; broad bulk and ring terms with a modest carbon-rich bonus are steadier. Seed counts are small, so this is a preference, not proof of mechanism.",
+  "revision_summary": "Retained the better-performing source-grounded skill largely intact, replacing its narrow hetero_low x smiles_long interaction with a single hetero_low term for wider coverage, and easing semantic mass decay slightly. Rebuilt the alternative as a cleaner counter-hypothesis: it drops the aggressive hetero_high penalty and the rare halogen_high rule that coincided with the weaker run, keeps aromatic and ring surface as the mechanistic core, and reverses the low-confidence rotatable-bond-to-branch source role as a negative branching term. Deployment is frozen on the inverted bulk/ring transfer."
+}

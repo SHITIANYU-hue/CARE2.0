@@ -1,0 +1,129 @@
+{
+  "skills": [
+    {
+      "skill_id": "anion_polarizability_gap_ordering",
+      "rules": [
+        {
+          "rule_id": "chalcogenide_valence_band_lowering",
+          "conditions": [
+            [
+              "anion_family",
+              "chalcogenide"
+            ]
+          ],
+          "weight": 0.55,
+          "rationale": "Chalcogen p valence bands sit lower than halide p, widening the bonding-antibonding gap at fixed cation."
+        },
+        {
+          "rule_id": "pnictide_intermediate_gap",
+          "conditions": [
+            [
+              "anion_family",
+              "pnictide"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Pnictide p states are less electronegative than chalcogens but still covalent, giving moderate gaps."
+        },
+        {
+          "rule_id": "halide_valence_band_raising",
+          "conditions": [
+            [
+              "anion_family",
+              "halide"
+            ]
+          ],
+          "weight": -0.6,
+          "rationale": "High halide electronegativity pushes the valence band up, narrowing the gap relative to chalcogenides."
+        },
+        {
+          "rule_id": "metalloid_covalent_network_gap",
+          "conditions": [
+            [
+              "dominant_family",
+              "metalloid"
+            ]
+          ],
+          "weight": 0.65,
+          "rationale": "Metalloid covalent networks preserve strong sp splitting, favoring wide gaps over metallic percolation."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.35,
+      "semantic_mass_end": 0.12,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.68,
+      "hypothesis": "Source evidence links chalcogenide, pnictide, and metalloid chemistry to high refractive index via polarizable covalent bonding; the same electron-rich character should raise experimental band gaps, failing where heavy-cation d states or halide valence bands narrow the gap."
+    },
+    {
+      "skill_id": "heavy_halogen_gap_downweight",
+      "rules": [
+        {
+          "rule_id": "halide_high_z_gap_penalty",
+          "conditions": [
+            [
+              "anion_family",
+              "halide"
+            ],
+            [
+              "mean_atomic_number_bin",
+              "mean_z_high"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Counter-hypothesis: heavy halides have diffuse valence orbitals and low measured gaps, reversing the source polarity."
+        },
+        {
+          "rule_id": "halogen_dominant_gap_penalty",
+          "conditions": [
+            [
+              "dominant_family",
+              "halogen"
+            ]
+          ],
+          "weight": -0.45,
+          "rationale": "Halogen-dominated valence bands sit near the Fermi level and reduce thermal or optical gaps."
+        },
+        {
+          "rule_id": "lanthanide_weak_prior",
+          "conditions": [
+            [
+              "lanthanide_flag",
+              "has_lanthanide"
+            ]
+          ],
+          "weight": 0.15,
+          "rationale": "Deep lanthanide f states barely perturb the band edges; source effect was near zero, so only a weak prior is defensible."
+        },
+        {
+          "rule_id": "transition_metal_d_band_downweight",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "has_transition_metal"
+            ]
+          ],
+          "weight": -0.15,
+          "rationale": "Partially filled d bands create mid-gap states and narrow gaps; this source transfer weight is the least reliable."
+        }
+      ],
+      "ridge": 1.2,
+      "prior_scale": 0.22,
+      "semantic_mass_start": 0.25,
+      "semantic_mass_end": 0.08,
+      "ucb_weight": 0.55,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.02,
+      "confidence": 0.56,
+      "hypothesis": "If source polarity fails to transfer, halogen-rich and high-Z transition-metal-lanthanide compositions should lower band gaps rather than raise them, so the surrogate should lean on the target-only anchor when these descriptors dominate."
+    }
+  ],
+  "selected_skill_id": "anion_polarizability_gap_ordering",
+  "lesson": "Anion-family electronegativity orders gaps reliably, so the chalcogenide and metalloid mechanisms were retained and extended to pnictides; halogen, lanthanide, and transition-metal signals stay low-confidence and belong in the counter-hypothesis skill.",
+  "revision_summary": "Replaced the previous two skills with a schema-valid pair: a source-grounded anion-polarizability skill ordering chalcogenide, pnictide, halide, and metalloid contributions, and a counter-hypothesis skill that downweights halogen-dominant, heavy-halide, lanthanide, and transition-metal chemistry; the anion-polarizability skill is selected for deployment."
+}

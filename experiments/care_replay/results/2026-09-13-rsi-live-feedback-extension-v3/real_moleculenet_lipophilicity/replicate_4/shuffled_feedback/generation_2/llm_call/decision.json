@@ -1,0 +1,129 @@
+{
+  "skills": [
+    {
+      "skill_id": "solubility_sign_flip_transfer",
+      "rules": [
+        {
+          "rule_id": "long_smiles_lipophilic",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "ESOL: long SMILES cut solubility (-11.46); anti-correlated endpoint implies greater octanol partitioning."
+        },
+        {
+          "rule_id": "short_smiles_hydrophilic",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Source prior: short SMILES raised solubility (+6.89); small polar molecules partition poorly into octanol."
+        },
+        {
+          "rule_id": "ring_rich_hydrophobic_surface",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": 0.45,
+          "rationale": "Ring role had the highest transfer weight (0.758); fused rings add rigid hydrophobic surface area."
+        },
+        {
+          "rule_id": "donor_like_hetero_penalty",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": -0.18,
+          "rationale": "Donor-to-heteroatom mapping is the weakest source role (0.159), so keep only a mild polarity penalty."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.4,
+      "semantic_mass_start": 0.38,
+      "semantic_mass_end": 0.14,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.65,
+      "hypothesis": "Sign-reversed ESOL transfer: size and ring content raise lipophilicity, small molecules lower it, with a softened heteroatom penalty. Fails if polarity balance rather than molecular size governs partitioning here."
+    },
+    {
+      "skill_id": "aromatic_core_polarity_neutral_counter",
+      "rules": [
+        {
+          "rule_id": "fused_aromatic_hydrophobic_core",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ],
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Polycyclic aromatic cores are poorly hydrated and dominate octanol affinity in drug-like pools."
+        },
+        {
+          "rule_id": "branch_rich_alkyl_surface",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_high"
+            ]
+          ],
+          "weight": 0.32,
+          "rationale": "Rotatable-bond role transferred strongly (0.758); branched alkyl substituents add nonpolar surface area."
+        },
+        {
+          "rule_id": "large_scaffold_size",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Larger scaffolds carry more hydrophobic surface; retained at reduced weight given low length-role confidence (0.224)."
+        },
+        {
+          "rule_id": "hetero_penalty_reversed",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_mid"
+            ]
+          ],
+          "weight": 0.15,
+          "rationale": "Counter to weakest source mapping: moderate heteroatom counts include lipophilic S, N-aryl and halogen contexts."
+        }
+      ],
+      "ridge": 0.8,
+      "prior_scale": 0.45,
+      "semantic_mass_start": 0.35,
+      "semantic_mass_end": 0.12,
+      "ucb_weight": 0.55,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 0.9,
+      "gp_xi": 0.015,
+      "confidence": 0.5,
+      "hypothesis": "Counter-hypothesis that removes and mildly reverses the donor-to-heteroatom penalty and leads with an aromatic fused-core interaction. Fails if polar heteroatom content truly suppresses lipophilicity across this pool."
+    }
+  ],
+  "selected_skill_id": "solubility_sign_flip_transfer",
+  "lesson": "Across both development generations the sign-flipped ESOL transfer led (88.7 then 90.08 mean AUC) but the ring/branch counter closed to within 0.4 AUC, so the heteroatom penalty is likely weak, not strongly negative; very narrow rules remain the main variance source.",
+  "revision_summary": "Retained the deployed source-evidence skill with the heteroatom penalty softened further (-0.25 to -0.18) and slightly reduced semantic mass, reflecting the near-tie with the near-zero-penalty counter. Rebuilt the counter as an aromatic fused-core interaction skill that mildly reverses the weakest source mapping (donor to heteroatom, confidence 0.159) while avoiding low-coverage bins such as halogen_high and hetero_none. Deployed the retained transfer skill; sixteen development seeds are too few for causal claims."
+}

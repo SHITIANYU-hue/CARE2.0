@@ -1,0 +1,118 @@
+{
+  "skills": [
+    {
+      "skill_id": "cavity_cost_size_ring_prior_low_mass",
+      "rules": [
+        {
+          "rule_id": "short_smiles_favored",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": 0.45,
+          "rationale": "Source ESOL value prior favored smiles_short; small solutes pay little cavity-formation cost in water."
+        },
+        {
+          "rule_id": "long_smiles_penalized",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": -0.55,
+          "rationale": "Largest source negative value prior; extended apolar surface raises the cavity and desolvation penalty."
+        },
+        {
+          "rule_id": "acyclic_bonus",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_none"
+            ]
+          ],
+          "weight": 0.28,
+          "rationale": "Ring role carried the highest transfer weight (0.758); rigid ring systems reduced source solubility."
+        },
+        {
+          "rule_id": "polar_small_solute",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_mid"
+            ],
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Small solutes bearing moderate N/O content combine low cavity cost with favorable water hydrogen bonding."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.25,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.05,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.4,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.02,
+      "confidence": 0.5,
+      "hypothesis": "Transfers the source size and ring priors but with much lower semantic mass, letting revealed target data dominate quickly. Fails if hydration ranking is driven mainly by polarity within the crowded smiles_short bin."
+    },
+    {
+      "skill_id": "hydrogen_bond_capacity_counterprior",
+      "rules": [
+        {
+          "rule_id": "heteroatom_hydrogen_bonding",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_mid"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Moderate N/O content supplies water hydrogen bonds, the dominant favorable term in hydration free energy."
+        },
+        {
+          "rule_id": "halogen_hydrophobicity_penalty",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_high"
+            ]
+          ],
+          "weight": -0.35,
+          "rationale": "Heavy halogenation increases hydrophobic surface and weakens water hydrogen bonding despite added polarizability."
+        },
+        {
+          "rule_id": "mid_length_counterprior",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": 0.15,
+          "rationale": "Counter-hypothesis: mildly reverses the low-confidence negative smiles_mid source prior; moderate size permits more polar groups."
+        }
+      ],
+      "ridge": 2.0,
+      "prior_scale": 0.2,
+      "semantic_mass_start": 0.28,
+      "semantic_mass_end": 0.05,
+      "ucb_weight": 0.45,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.03,
+      "confidence": 0.4,
+      "hypothesis": "Tests polarity-first hydration mechanics at reduced strength while reversing the weak smiles_mid penalty. Fails if the hidden score instead rewards small apolar solutes, or if bin coverage is too coarse to separate hydrogen-bonding capacity."
+    }
+  ],
+  "selected_skill_id": "cavity_cost_size_ring_prior_low_mass",
+  "lesson": "Across two generations the same source-grounded skill scored 77.6 then 49.6 on different seed blocks, while the polarity skills sat near 52 both times; the gap between skills is smaller than the gap between seed blocks, so neither prior is demonstrated to be strongly predictive. The robust response is to shrink semantic mass and prior scale and let the target-only GP anchor carry most of the ranking.",
+  "revision_summary": "Treated the generation-0 result for the source-grounded skill as partly seed luck rather than proof, since the same skill dropped to 49.6 on fresh seeds. Cut semantic_mass_start from 0.5 to 0.3 and prior_scale from 0.4 to 0.25, raised ridge for stronger shrinkage, and added one chemically meaningful two-condition rule (short and hetero_mid) to give discrimination inside the 506-item smiles_short bin, which was the stated failure mode. The second skill retains a downweighted polarity counter-hypothesis with a reversed smiles_mid prior so the untested mechanism keeps being probed without risking deployment. Deployed the low-mass size/ring skill."
+}

@@ -1,0 +1,125 @@
+{
+  "skills": [
+    {
+      "skill_id": "moss_inverted_polarizability_gap",
+      "rules": [
+        {
+          "rule_id": "halide_wide_gap_reversal",
+          "conditions": [
+            [
+              "anion_family",
+              "halide"
+            ]
+          ],
+          "weight": 0.7,
+          "rationale": "Source halide effect on refractive index was negative; by Moss relation low polarizability implies wide experimental gaps."
+        },
+        {
+          "rule_id": "chalcogenide_narrow_gap_reversal",
+          "conditions": [
+            [
+              "anion_family",
+              "chalcogenide"
+            ]
+          ],
+          "weight": -0.55,
+          "rationale": "Chalcogenides carried the largest positive source refractive-index effect, which maps to small, polarizable-lattice band gaps."
+        },
+        {
+          "rule_id": "halogen_dominant_ionic_gap",
+          "conditions": [
+            [
+              "dominant_family",
+              "halogen"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Halogen-dominated ionic solids have deep p valence bands and high-lying cation states, giving very wide gaps."
+        },
+        {
+          "rule_id": "metalloid_network_gap_penalty",
+          "conditions": [
+            [
+              "dominant_family",
+              "metalloid"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Metalloid networks showed the strongest positive source index effect; covalent Si/Ge/Sb phases are typically narrow-gap."
+        }
+      ],
+      "ridge": 0.8,
+      "prior_scale": 0.35,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.65,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.1,
+      "gp_xi": 0.01,
+      "confidence": 0.62,
+      "hypothesis": "Refractive index and band gap are inversely coupled (Moss relation), so source effect signs should be flipped: halide/halogen chemistry gains weight, chalcogenide/metalloid loses it. Fails if heavy iodides or defect-rich halides dominate the pool."
+    },
+    {
+      "skill_id": "closed_shell_light_ionic_gap",
+      "rules": [
+        {
+          "rule_id": "oxide_ionic_wide_gap",
+          "conditions": [
+            [
+              "anion_family",
+              "oxide"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Oxide O 2p valence bands sit deep, producing large ionic bonding-antibonding separation in most experimental oxides."
+        },
+        {
+          "rule_id": "no_partially_filled_d_states",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "no_transition_metal"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Absence of partially filled d bands removes mid-gap states that collapse measured gaps in transition-metal compounds."
+        },
+        {
+          "rule_id": "light_elements_strong_bonds",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_low"
+            ]
+          ],
+          "weight": 0.45,
+          "rationale": "Low mean Z implies short, strong bonds and small spin-orbit effects, both widening experimental gaps."
+        },
+        {
+          "rule_id": "very_heavy_lattice_penalty",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_very_high"
+            ]
+          ],
+          "weight": -0.45,
+          "rationale": "Very heavy lattices are highly polarizable with strong spin-orbit splitting, systematically narrowing gaps."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.55,
+      "gp_beta_start": 2.4,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.02,
+      "confidence": 0.55,
+      "hypothesis": "Domain proposal: wide experimental gaps come from light, closed-shell ionic chemistry without d-band states. May fail for wide-gap d0 oxides such as titanates that carry transition metals."
+    }
+  ],
+  "selected_skill_id": "moss_inverted_polarizability_gap",
+  "lesson": "Source refractive-index effects likely transfer with inverted sign to band gap; the prior generation's sign-preserving chalcogenide/metalloid skill hovered near the anchor baseline on development seeds.",
+  "revision_summary": "Replaced the sign-preserving transfer skill with a Moss-relation inverted version (halide/halogen up, chalcogenide/metalloid down) and added a domain skill favoring light, closed-shell, non-transition-metal ionic chemistry; deployed the inverted-transfer skill."
+}

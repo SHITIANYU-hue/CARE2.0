@@ -1,0 +1,125 @@
+{
+  "skills": [
+    {
+      "skill_id": "moss_inverted_halide_hardness_gap",
+      "rules": [
+        {
+          "rule_id": "halide_anion_wide_gap",
+          "conditions": [
+            [
+              "anion_family",
+              "halide"
+            ]
+          ],
+          "weight": 0.65,
+          "rationale": "Source halides had the most negative refractive-index effect; by the Moss relation that low polarizability maps to wide experimental gaps."
+        },
+        {
+          "rule_id": "oxide_anion_wide_gap",
+          "conditions": [
+            [
+              "anion_family",
+              "oxide"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Deep O 2p valence bands give large bonding-antibonding separation; oxides are also the cleanest wide-gap chemistry in this pool."
+        },
+        {
+          "rule_id": "chalcogenide_soft_cation_narrow_gap",
+          "conditions": [
+            [
+              "anion_family",
+              "chalcogenide"
+            ]
+          ],
+          "weight": -0.45,
+          "rationale": "Chalcogenides carried the strongest positive source index effect, the polarizable soft-anion regime that narrows measured gaps."
+        },
+        {
+          "rule_id": "metalloid_network_narrow_gap",
+          "conditions": [
+            [
+              "dominant_family",
+              "metalloid"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "Metalloid networks dominated the source high-index extremes; covalent Si/Ge/Sb-like networks are typically narrow-gap semiconductors."
+        }
+      ],
+      "ridge": 0.9,
+      "prior_scale": 0.33,
+      "semantic_mass_start": 0.38,
+      "semantic_mass_end": 0.14,
+      "ucb_weight": 0.62,
+      "gp_beta_start": 2.1,
+      "gp_beta_end": 1.05,
+      "gp_xi": 0.01,
+      "confidence": 0.63,
+      "hypothesis": "Sign-inverted source transfer plus chemistry-grounded oxide and soft-chalcogenide rules widens the effective gap estimate from polarizability alone. Fails where heavy iodides or defect-rich halides dominate the sampled compositions."
+    },
+    {
+      "skill_id": "closed_shell_cation_hardness_gap",
+      "rules": [
+        {
+          "rule_id": "no_transition_metal_wide_gap",
+          "conditions": [
+            [
+              "transition_metal_flag",
+              "no_transition_metal"
+            ]
+          ],
+          "weight": 0.55,
+          "rationale": "Without partially filled d shells no mid-gap d states form, so measured optical gaps stay wide."
+        },
+        {
+          "rule_id": "light_lattice_wide_gap",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_low"
+            ]
+          ],
+          "weight": 0.45,
+          "rationale": "Low mean Z means short strong bonds and weak spin-orbit coupling, both pushing experimental gaps up."
+        },
+        {
+          "rule_id": "very_heavy_lattice_narrow_gap",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_very_high"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Very heavy lattices are strongly polarizable with large spin-orbit splitting, which systematically narrows gaps."
+        },
+        {
+          "rule_id": "concentrated_composition_narrow_gap",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "concentrated"
+            ]
+          ],
+          "weight": -0.2,
+          "rationale": "Counter-hypothesis: concentrated compositions can sit near metallic connectivity, so the balanced-stoichiometry prior is only weakly supported and is downweighted."
+        }
+      ],
+      "ridge": 1.1,
+      "prior_scale": 0.28,
+      "semantic_mass_start": 0.28,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.55,
+      "gp_beta_start": 2.4,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.02,
+      "confidence": 0.58,
+      "hypothesis": "Domain proposal: wide experimental gaps arise from light, closed-shell chemistry with no d-band states, independent of anion identity. May fail for d0 wide-gap oxides such as titanates and for heavy closed-shell iodides."
+    }
+  ],
+  "selected_skill_id": "moss_inverted_halide_hardness_gap",
+  "lesson": "Sign-inverted source transfer reproduced its development advantage across a second seed block, but the margin over the domain skill is small and both remain seed-sensitive; source effects rest on thin support counts and should stay near the anchor.",
+  "revision_summary": "Kept the deployed Moss-inversion mechanism, retargeted it to anion-family polarizability with an added oxide wide-gap rule, and replaced the previous domain skill with one built on closed-shell cation hardness plus a downweighted stoichiometry counter-hypothesis; deployed the inverted anion-family transfer skill."
+}

@@ -1,0 +1,125 @@
+{
+  "skills": [
+    {
+      "skill_id": "polar_apolar_balance_logd_core",
+      "rules": [
+        {
+          "rule_id": "hetero_high_polarity_penalty",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": -0.7,
+          "rationale": "Dense N/O/S loading adds hydrogen-bonding and desolvation cost, the dominant negative driver of logD."
+        },
+        {
+          "rule_id": "hetero_low_carbon_rich_reward",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_low"
+            ]
+          ],
+          "weight": 0.75,
+          "rationale": "Few polar atoms means mostly hydrocarbon surface, giving strong partitioning into the organic phase."
+        },
+        {
+          "rule_id": "halogen_high_polarizable_volume_reward",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_high"
+            ]
+          ],
+          "weight": 0.55,
+          "rationale": "Multiple halogens add polarizable apolar volume without hydrogen-bond donors, a classic logP enhancer."
+        },
+        {
+          "rule_id": "aromatic_high_hydrophobic_surface_reward",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Extended aromatic surface contributes hydrophobic contact area and raises measured lipophilicity."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.35,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.7,
+      "hypothesis": "Lipophilicity tracks the polar/apolar balance: heteroatom load penalizes, halogen and aromatic apolar surface rewards. It may fail for ionizable or intramolecularly hydrogen-bonded molecules where logD departs from intrinsic polarity."
+    },
+    {
+      "skill_id": "inverted_solubility_transfer_size_scaffold",
+      "rules": [
+        {
+          "rule_id": "long_smiles_inverse_solubility_reward",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Source solubility fell sharply for long SMILES; solubility and logD anticorrelate, so large molecules should score high here."
+        },
+        {
+          "rule_id": "short_smiles_inverse_solubility_penalty",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_short"
+            ]
+          ],
+          "weight": -0.55,
+          "rationale": "Short SMILES were the most soluble source class, implying small polar fragments with low partition coefficients."
+        },
+        {
+          "rule_id": "ring_dense_scaffold_reward",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": 0.45,
+          "rationale": "Rigid ring systems lower crystal-free aqueous solubility and present broad hydrophobic faces, favoring lipophilicity."
+        },
+        {
+          "rule_id": "branch_high_flexibility_downweight",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_high"
+            ]
+          ],
+          "weight": -0.25,
+          "rationale": "Deliberately weak: the rotatable-bond-to-branch transfer is uncertain, so flexible branching gets only a small penalty."
+        }
+      ],
+      "ridge": 2.5,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.5,
+      "semantic_mass_end": 0.2,
+      "ucb_weight": 0.45,
+      "gp_beta_start": 2.5,
+      "gp_beta_end": 1.2,
+      "gp_xi": 0.03,
+      "confidence": 0.55,
+      "hypothesis": "Counter-hypothesis: source ESOL effects transfer with reversed sign because aqueous solubility anticorrelates with logD, so size and ring density become positive. It fails if long SMILES mainly encode appended polar functionality."
+    }
+  ],
+  "selected_skill_id": "polar_apolar_balance_logd_core",
+  "lesson": "Source evidence is solubility-signed, so it cannot be copied directly into a lipophilicity prior; the safest deployment rests on the mechanistic polar/apolar balance, while the sign-inverted size/scaffold transfer is the testable alternative.",
+  "revision_summary": "Rewrote both skills so every conditions object maps one catalog field to one exact catalog value, removing the malformed list-pair conditions of the previous round. Skill one keeps the domain-knowledge polarity mechanism but replaces fragile two-condition interactions with cleaner single-field heteroatom, halogen and aromatic terms, boosting the hetero_low reward. Skill two is the explicit source-grounded counter-hypothesis: it applies the ESOL length effects with reversed sign (solubility anticorrelates with logD) and deliberately downweights the uncertain rotatable-bond-to-branch relation. Deployed the polarity skill as the more mechanistically robust prior."
+}
