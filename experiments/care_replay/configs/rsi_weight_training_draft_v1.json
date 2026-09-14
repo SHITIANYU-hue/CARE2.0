@@ -1,6 +1,6 @@
 {
   "schema_version": "care.rsi_weight_training_draft/v1",
-  "status": "draft_pending_a800_inventory_and_training_data_gate",
+  "status": "a800_qlora_smoke_test_complete",
   "objective": "Test whether parameter-efficient weight training improves feedback-conditioned executable-skill revision on task-family-disjoint evaluation, beyond the same base model using context-only RSI.",
   "current_evidence_boundary": "The current CARE 2.0 loop updates prompts, external memory, hypotheses, and executable skills. It does not update model weights. Any weight-trained result is a new experimental arm and must not be merged silently with context-only RSI.",
   "training_data_gate": {
@@ -14,9 +14,18 @@
     "claim": "Pipeline and schema-conformance validation only; no efficacy or generalization claim.",
     "target": "Normalized executable-skill JSON from valid archived responses."
   },
+  "hardware_inventory": {
+    "checked_at": "2026-09-14",
+    "gpu_count": 8,
+    "gpu_model": "NVIDIA A800 80GB PCIe",
+    "memory_per_gpu_mib": 81920,
+    "smoke_test_gpu_count": 1,
+    "cached_base_model": "Qwen/Qwen2.5-32B-Instruct",
+    "cached_base_model_revision": "local_modelscope_snapshot_checked_2026-09-14"
+  },
   "candidate_recipe_after_hardware_inventory": {
     "method": "4-bit QLoRA supervised fine-tuning",
-    "base_model": "TBD after A800 GPU count, memory, local model inventory, and license check",
+    "base_model": "Qwen/Qwen2.5-32B-Instruct",
     "lora_rank": 16,
     "lora_alpha": 32,
     "lora_dropout": 0.05,
@@ -25,6 +34,17 @@
     "effective_batch_size": 32,
     "max_sequence_length": 4096,
     "selection": "Validation-task JSON validity first, then development AUC; never heldout-task AUC"
+  },
+  "completed_smoke_test": {
+    "result_directory": "experiments/care_replay/results/2026-09-14-rsi-qwen25-32b-qlora-smoke-v1",
+    "train_examples": 36,
+    "validation_examples": 18,
+    "optimizer_steps": 4,
+    "initial_validation_loss": 1.0344640870059834,
+    "final_validation_loss": 0.8968663271392356,
+    "valid_json_samples": "1/1",
+    "peak_gpu_memory_gib": 36.357,
+    "claim": "Pipeline and schema-conformance validation only; no efficacy or generalization claim."
   },
   "evaluation_arms": [
     "frozen_base_model_with_context_rsi",

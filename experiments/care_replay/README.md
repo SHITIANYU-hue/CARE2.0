@@ -2,6 +2,24 @@
 
 This is a lightweight CARE 2.0 replay harness for the first experiment pass.
 
+## RSI weight-training smoke test
+
+The current 36/18-example split is for pipeline and JSON-format validation only.
+It is too small and too task-concentrated for an efficacy or generalization claim.
+On a CUDA host with the cached Qwen2.5-32B-Instruct model, run:
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python experiments/care_replay/scripts/train_rsi_qlora.py \
+  --model /path/to/Qwen2.5-32B-Instruct \
+  --train-file experiments/care_replay/results/2026-09-13-rsi-sft-smoke-dataset-v2/train.jsonl \
+  --validation-file experiments/care_replay/results/2026-09-13-rsi-sft-smoke-dataset-v2/validation.jsonl \
+  --output-dir experiments/care_replay/results/2026-09-14-rsi-qwen25-32b-qlora-smoke-v1 \
+  --max-steps 4
+```
+
+The run writes an adapter, per-step logs, validation losses, GPU peak memory,
+dataset hashes, environment versions, and a generated JSON-format check.
+
 Current status:
 
 - Uses synthetic finite candidate pools for Suzuki-style reaction optimization,
