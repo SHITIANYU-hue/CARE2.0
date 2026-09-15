@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Run an auditable QLoRA SFT smoke test for CARE RSI responses."""
+"""Run auditable QLoRA SFT, with full-epoch checkpoints and validation."""
 
 from __future__ import annotations
 
 import argparse
 import hashlib
 import json
+import math
 import os
 import platform
 import random
@@ -19,6 +20,7 @@ import torch
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from torch.utils.data import DataLoader, Dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from transformers import get_cosine_schedule_with_warmup
 
 
 @dataclass
@@ -39,7 +41,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--validation-file", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--max-length", type=int, default=4096)
-    parser.add_argument("--max-steps", type=int, default=4)
+    duration = parser.add_mutually_exclusive_group()
+    duration.add_argument("--max-steps", type=int)
+    duration.add_argument("--epochs", type=int)
+    parser.add_argument("--require-untruncated", action="store_true")
+    parser.add_argument("--allow-prompt-overlap", action="store_true", help="Legacy pipeline smoke only")
     parser.add_argument("--gradient-accumulation-steps", type=int, default=4)
     parser.add_argument("--learning-rate", type=float, default=2e-4)
     parser.add_argument("--lora-rank", type=int, default=16)
@@ -50,7 +56,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-new-tokens", type=int, default=768)
     parser.add_argument("--train-limit", type=int, default=None)
     parser.add_argument("--validation-limit", type=int, default=None)
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.epochs is None and args.max_steps is None:
+        args.max_steps = 4
+    for name in ("max_length", "gradient_accumulation_steps", "max_new_tokens"):
+        if getattr(args, name) < 1:
+            parser.error(f"--{name.replace('_', '-')} must be positive")
+    if args.max_length < 256 or args.max_new_tokens >= args.max_length:
+        parser.error("max-length must be >=256 and exceed max-new-tokens")
+    for name in ("epochs", "max_steps", "train_limit", "validation_limit"):
+        if getattr(args, name) is not None and getattr(args, name) < 1:
+            parser.error(f"--{name.replace('_', '-')} must be positive")
+    return args
 
 
 def read_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -232,12 +249,21 @@ def main() -> None:
     all_validation_rows = read_jsonl(args.validation_file)
     train_rows = all_train_rows[: args.train_limit]
     validation_rows = all_validation_rows[: args.validation_limit]
+    prompt_hash = lambda row: hashlib.sha256(json.dumps(row['messages'][:-1], sort_keys=True).encode()).hexdigest()
+    prompt_overlap = {prompt_hash(r) for r in train_rows} & {prompt_hash(r) for r in validation_rows}
+    if prompt_overlap and not args.allow_prompt_overlap:
+        raise ValueError("Train/validation prompts overlap; rebuild a prompt-group-disjoint split")
     tokenizer = AutoTokenizer.from_pretrained(args.model, use_fast=True, local_files_only=True)
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token = tokenizer.eos_token
 
     train_dataset = ChatSFTDataset(train_rows, tokenizer, args.max_length)
     validation_dataset = ChatSFTDataset(validation_rows, tokenizer, args.max_length)
+    if args.require_untruncated and any(
+        d.stats.truncated_prompts or d.stats.truncated_answers
+        for d in (train_dataset, validation_dataset)
+    ):
+        raise ValueError("Full-context run refuses truncated training or validation examples")
     collator = CompletionCollator(tokenizer.pad_token_id)
     generator = torch.Generator().manual_seed(args.seed)
     train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True, collate_fn=collator, generator=generator)
@@ -275,6 +301,10 @@ def main() -> None:
     )
     trainable, total = model.get_nb_trainable_parameters()
     optimizer = torch.optim.AdamW((p for p in model.parameters() if p.requires_grad), lr=args.learning_rate)
+    target_steps = args.max_steps or args.epochs * math.ceil(len(train_loader) / args.gradient_accumulation_steps)
+    scheduler = get_cosine_schedule_with_warmup(
+        optimizer, num_warmup_steps=max(1, int(target_steps * .05)), num_training_steps=target_steps
+    )
 
     started = time.time()
     initial_validation_loss = evaluate_loss(model, validation_loader)
@@ -283,40 +313,70 @@ def main() -> None:
     optimizer_step = 0
     micro_step = 0
     epoch = 0
+    validation_curve = [{"epoch": 0, "optimizer_step": 0, "loss": initial_validation_loss}]
+    best_loss = float("inf")
+    best_checkpoint = None
+    window_losses = []
     with log_path.open("w", encoding="utf-8") as log_handle:
-        while optimizer_step < args.max_steps:
+        while optimizer_step < target_steps:
             epoch += 1
             model.train()
             for batch_index, batch in enumerate(train_loader, 1):
                 batch = {key: value.to(model.device) for key, value in batch.items()}
                 with torch.autocast(device_type="cuda", dtype=torch.bfloat16):
                     loss = model(**batch).loss
-                (loss / args.gradient_accumulation_steps).backward()
+                window_start = ((batch_index - 1) // args.gradient_accumulation_steps) * args.gradient_accumulation_steps
+                window_size = min(args.gradient_accumulation_steps, len(train_loader) - window_start)
+                (loss / window_size).backward()
+                window_losses.append(float(loss.detach().item()))
                 micro_step += 1
-                should_step = micro_step % args.gradient_accumulation_steps == 0 or batch_index == len(train_loader)
+                should_step = batch_index % args.gradient_accumulation_steps == 0 or batch_index == len(train_loader)
                 if not should_step:
                     continue
                 torch.nn.utils.clip_grad_norm_((p for p in model.parameters() if p.requires_grad), 1.0)
                 optimizer.step()
+                scheduler.step()
                 optimizer.zero_grad(set_to_none=True)
                 optimizer_step += 1
                 record = {
                     "epoch": epoch,
                     "optimizer_step": optimizer_step,
                     "micro_step": micro_step,
-                    "loss": float(loss.detach().item()),
+                    "loss": sum(window_losses) / len(window_losses),
+                    "learning_rate": scheduler.get_last_lr()[0],
                     "peak_gpu_memory_gib": round(torch.cuda.max_memory_allocated() / 2**30, 3),
                 }
                 print(json.dumps(record), flush=True)
                 log_handle.write(json.dumps(record) + "\n")
                 log_handle.flush()
-                if optimizer_step >= args.max_steps:
+                window_losses = []
+                if optimizer_step >= target_steps:
                     break
+            validation_loss = evaluate_loss(model, validation_loader)
+            checkpoint = args.output_dir / f"checkpoint-epoch-{epoch}"
+            model.save_pretrained(checkpoint / "adapter", safe_serialization=True)
+            tokenizer.save_pretrained(checkpoint / "adapter")
+            torch.save({
+                "epoch": epoch, "optimizer_step": optimizer_step, "micro_step": micro_step,
+                "optimizer": optimizer.state_dict(), "scheduler": scheduler.state_dict(),
+                "torch_rng": torch.get_rng_state(), "cuda_rng": torch.cuda.get_rng_state_all(),
+                "loader_rng": generator.get_state(), "python_rng": random.getstate(),
+            }, checkpoint / "training_state.pt")
+            validation_curve.append({
+                "epoch": epoch, "optimizer_step": optimizer_step, "loss": validation_loss,
+                "complete_epoch": batch_index == len(train_loader),
+                "checkpoint": str(checkpoint),
+            })
+            if validation_loss < best_loss:
+                best_loss, best_checkpoint = validation_loss, checkpoint
+            (args.output_dir / "validation_curve.json").write_text(json.dumps(validation_curve, indent=2) + "\n")
+            print(json.dumps({"epoch_validation": validation_curve[-1]}), flush=True)
 
-    final_validation_loss = evaluate_loss(model, validation_loader)
+    final_validation_loss = validation_curve[-1]["loss"]
     adapter_dir = args.output_dir / "adapter"
     model.save_pretrained(adapter_dir, safe_serialization=True)
     tokenizer.save_pretrained(adapter_dir)
+    (args.output_dir / "best_adapter").symlink_to(best_checkpoint.name + "/adapter", target_is_directory=True)
     model.config.use_cache = True
     samples = generate_samples(
         model, tokenizer, validation_rows, args.max_length, args.max_new_tokens, args.generation_samples
@@ -326,14 +386,15 @@ def main() -> None:
     )
 
     metrics = {
-        "status": "smoke_test_complete",
-        "claim_boundary": "Pipeline and schema-conformance validation only; no efficacy or generalization claim.",
+        "status": "full_training_complete" if args.epochs else "smoke_test_complete",
+        "claim_boundary": "Full available-data fitting; same-task validation is not task-disjoint efficacy or generalization evidence.",
         "arguments": {key: str(value) if isinstance(value, Path) else value for key, value in vars(args).items()},
         "dataset": {
             "train_examples": len(train_rows),
             "validation_examples": len(validation_rows),
             "available_train_examples": len(all_train_rows),
             "available_validation_examples": len(all_validation_rows),
+            "train_validation_prompt_overlap": len(prompt_overlap),
             "train_sha256": sha256_file(args.train_file),
             "validation_sha256": sha256_file(args.validation_file),
             "train_encoding": asdict(train_dataset.stats),
@@ -348,6 +409,11 @@ def main() -> None:
             "initial_validation_loss": initial_validation_loss,
             "final_validation_loss": final_validation_loss,
             "validation_loss_delta": final_validation_loss - initial_validation_loss,
+            "best_validation_loss": best_loss,
+            "best_checkpoint": str(best_checkpoint),
+            "completed_epochs": sum(bool(x.get("complete_epoch")) for x in validation_curve[1:]),
+            "examples_seen": micro_step,
+            "validation_curve": validation_curve,
             "optimizer_steps": optimizer_step,
             "micro_steps": micro_step,
             "generated_samples": len(samples),
@@ -357,6 +423,7 @@ def main() -> None:
         },
         "environment": {
             "git_revision": git_revision(),
+            "training_script_sha256": sha256_file(Path(__file__)),
             "hostname": platform.node(),
             "python": platform.python_version(),
             "torch": torch.__version__,

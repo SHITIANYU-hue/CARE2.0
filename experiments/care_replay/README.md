@@ -14,11 +14,62 @@ CUDA_VISIBLE_DEVICES=0 python experiments/care_replay/scripts/train_rsi_qlora.py
   --train-file experiments/care_replay/results/2026-09-13-rsi-sft-smoke-dataset-v2/train.jsonl \
   --validation-file experiments/care_replay/results/2026-09-13-rsi-sft-smoke-dataset-v2/validation.jsonl \
   --output-dir experiments/care_replay/results/2026-09-14-rsi-qwen25-32b-qlora-smoke-v1 \
-  --max-steps 4
+  --max-steps 4 --allow-prompt-overlap
 ```
 
 The run writes an adapter, per-step logs, validation losses, GPU peak memory,
 dataset hashes, environment versions, and a generated JSON-format check.
+
+The legacy smoke split contains overlapping prompt groups. Its validation loss
+is a pipeline check and must not be interpreted as independent validation.
+
+## Complete available-data training and post-training RSI
+
+The canonical dataset in `results/2026-09-15-rsi-full-sft-dataset-v1` contains
+42 training and 12 validation records, with zero exact prompt-group overlap.
+The three scientific task families still occur on both sides. This is full
+available-data training, not task-family-disjoint confirmation.
+
+```bash
+CUDA_VISIBLE_DEVICES=5 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python experiments/care_replay/scripts/train_rsi_qlora.py \
+  --model /path/to/Qwen2.5-32B-Instruct \
+  --train-file experiments/care_replay/results/2026-09-15-rsi-full-sft-dataset-v1/train.jsonl \
+  --validation-file experiments/care_replay/results/2026-09-15-rsi-full-sft-dataset-v1/validation.jsonl \
+  --output-dir experiments/care_replay/results/2026-09-15-rsi-qwen25-32b-full-sft-v3 \
+  --epochs 3 --max-length 10240 --require-untruncated \
+  --gradient-accumulation-steps 4 --generation-samples 3 --max-new-tokens 2048
+```
+
+Every epoch saves an adapter and optimizer/scheduler/RNG state. Checkpoints are
+selected by validation loss; evaluation-seed outcomes never select checkpoints.
+`adapter` is the final model; `best_adapter` points to the best validated epoch.
+No base-model weights are merged or published.
+
+The live RSI runner accepts `generation_backend: local_qlora`, a local
+`base_model_path`, and an optional `adapter_path`. Without the adapter it runs
+frozen-base context RSI; with the adapter it runs post-trained context RSI.
+Both use the same schema compiler, development feedback, heldout-seed lock,
+no-feedback/shuffled-feedback controls, and target-only GP-UCB control.
+Weights remain frozen during each online search. Local generation requires
+`--workers 1` and refuses silent context truncation.
+
+```bash
+CUDA_VISIBLE_DEVICES=4 python experiments/care_replay/scripts/run_rsi_live_feedback.py \
+  --config experiments/care_replay/configs/rsi_local_posttraining_base_pilot_v1.json \
+  --output-dir experiments/care_replay/results/2026-09-15-rsi-local-base-pilot-v1 --workers 1
+CUDA_VISIBLE_DEVICES=6 python experiments/care_replay/scripts/run_rsi_live_feedback.py \
+  --config experiments/care_replay/configs/rsi_local_posttraining_adapter_pilot_v1.json \
+  --output-dir experiments/care_replay/results/2026-09-15-rsi-local-adapter-pilot-v1 --workers 1
+python experiments/care_replay/scripts/compare_rsi_posttraining.py \
+  --base-dir experiments/care_replay/results/2026-09-15-rsi-local-base-pilot-v1 \
+  --adapter-dir experiments/care_replay/results/2026-09-15-rsi-local-adapter-pilot-v1 \
+  --output-dir experiments/care_replay/results/2026-09-15-rsi-posttraining-comparison-v1
+```
+
+Check that the selected GPU is free before starting. The pilot is same-task and
+uses one model chain; it is not an efficacy or generalization claim. Formal
+evaluation still requires >=1000 examples, >=8 training task families, and >=2
+families excluded from training and checkpoint selection.
 
 Current status:
 

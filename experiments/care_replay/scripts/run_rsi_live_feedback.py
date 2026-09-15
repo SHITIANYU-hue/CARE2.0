@@ -49,6 +49,11 @@ def fingerprint(value):
 
 
 def validate_config(config):
+    backend = config.get('generation_backend', 'commonstack')
+    if backend not in ('commonstack', 'local_qlora'):
+        raise ValueError('Unsupported generation backend')
+    if backend == 'local_qlora' and not config.get('base_model_path'):
+        raise ValueError('Local RSI requires base_model_path')
     n = config['development_seeds_per_generation'] * config['updates']
     dev = set(range(config['development_seed_start'], config['development_seed_start'] + n))
     heldout = set(range(config['evaluation_seed_start'], config['evaluation_seed_start'] + config['evaluation_seed_count']))
@@ -158,7 +163,10 @@ def retry_delay(config, attempt, provider_error=None):
 
 def generate(config, prompt, catalog, directory):
     """First valid response wins; never select model attempts using target performance."""
-    key = os.environ['COMMONSTACK_API_KEY']
+    backend = config.get('generation_backend', 'commonstack')
+    key = os.environ.get('COMMONSTACK_API_KEY', '')
+    if backend == 'commonstack' and not key:
+        raise RuntimeError('Configure COMMONSTACK_API_KEY in the environment')
     system = ('You are a scientific optimization researcher revising executable semantic skills. '
               'Use only the evidence explicitly supplied. Never claim model-weight training or unseen '
               'target measurements. Return one valid JSON object with exactly two distinct skills. '
@@ -177,12 +185,16 @@ def generate(config, prompt, catalog, directory):
                   'started_at':datetime.now(timezone.utc).isoformat(),
                   'credential_included_in_archive':False}
         save(directory / f'attempt_{attempt}_request.json', record)
-        request = urllib.request.Request(config['base_url'].rstrip('/') + '/chat/completions',
-            data=json.dumps(body).encode(), headers={'Authorization':'Bearer '+key,'Content-Type':'application/json'})
         started = time.monotonic()
         try:
-            with urllib.request.urlopen(request,timeout=120) as response:
-                payload = json.load(response)
+            if backend == 'local_qlora':
+                import local_rsi_backend
+                payload = local_rsi_backend.complete(config, body)
+            else:
+                request = urllib.request.Request(config['base_url'].rstrip('/') + '/chat/completions',
+                    data=json.dumps(body).encode(), headers={'Authorization':'Bearer '+key,'Content-Type':'application/json'})
+                with urllib.request.urlopen(request,timeout=120) as response:
+                    payload = json.load(response)
             record['response'] = payload
             record['elapsed_seconds'] = time.monotonic() - started
             content = payload['choices'][0]['message']['content']
@@ -196,6 +208,7 @@ def generate(config, prompt, catalog, directory):
         except Exception as exc:
             record['status'] = 'failed'
             record['error_type'] = type(exc).__name__
+            record['error_message'] = clean_text(str(exc)[:2000])
             record['elapsed_seconds'] = time.monotonic() - started
             provider_error = None
             if isinstance(exc, urllib.error.HTTPError):
@@ -344,21 +357,30 @@ def run(config_path,output,workers):
     workers=int(workers if workers is not None else config.get('recommended_workers',3))
     if workers < 1:
         raise ValueError('workers must be positive')
-    if not os.environ.get('COMMONSTACK_API_KEY'):
+    if config.get('generation_backend', 'commonstack') == 'local_qlora' and workers != 1:
+        raise ValueError('Local model generation requires workers=1 for reproducible RNG and memory use')
+    if config.get('generation_backend', 'commonstack') == 'commonstack' and not os.environ.get('COMMONSTACK_API_KEY'):
         raise RuntimeError('Configure COMMONSTACK_API_KEY in the environment')
     if output.exists() and any(output.iterdir()):
         raise FileExistsError('Refusing to overwrite experiment evidence')
     output.mkdir(parents=True,exist_ok=True)
     save(output/'config.json',config)
+    try:
+        base_commit = subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True,stderr=subprocess.DEVNULL).strip()
+    except subprocess.CalledProcessError:
+        base_commit = None
     save(output/'protocol_lock.json',{
         'created_at':datetime.now(timezone.utc).isoformat(), 'config_sha256':fingerprint(config),
-        'base_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip(),
+        'base_commit':base_commit,
         'implementation_hashes':{str(p.relative_to(REPO)):hashlib.sha256(p.read_bytes()).hexdigest()
                                  for p in (ROOT/'scripts').glob('*.py')},
         'python':platform.python_version(),'numpy':np.__version__,
         'workers':workers,
         'planned_valid_generation_calls':len(config['tasks'])*len(config['model_replicates'])*(1+len(config['arms'])*config['updates']),
-        'model_rng_seed_supported':False,'claim_boundary':config['claim_boundary']})
+        'model_rng_seed_supported':config.get('generation_backend') == 'local_qlora',
+        'generation_backend':config.get('generation_backend', 'commonstack'),
+        'adapter_path':config.get('adapter_path'),
+        'claim_boundary':config['claim_boundary']})
     jobs=[(spec,rep) for spec in config['tasks'] for rep in config['model_replicates']]
     results=[];aborted=False
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
