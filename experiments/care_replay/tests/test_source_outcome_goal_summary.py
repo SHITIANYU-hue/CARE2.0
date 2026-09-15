@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
@@ -129,15 +131,68 @@ class SourceOutcomeGoalSummaryTests(unittest.TestCase):
         )
 
     def test_round_efficiency_resolves_copied_record_by_basename(self) -> None:
-        record = efficiency.resolve_record_path(
-            "/server/checkout/model_calls/"
-            "molecular_esol_to_lipophilicity_target_only.json"
-        )
-        self.assertTrue(record.exists())
-        self.assertEqual(
-            record.name,
-            "molecular_esol_to_lipophilicity_target_only.json",
-        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            record = root / "copied" / "record.json"
+            record.parent.mkdir()
+            record.write_bytes(b'{"frozen": true}\n')
+            with patch.object(efficiency, "ROOT", root):
+                resolved = efficiency.resolve_record_path(str(root / "missing" / record.name))
+            self.assertEqual(resolved, record)
+
+    def test_round_efficiency_missing_record_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with patch.object(efficiency, "ROOT", root):
+                with self.assertRaises(FileNotFoundError):
+                    efficiency.resolve_record_path(str(root / "missing" / "record.json"))
+
+    def test_round_efficiency_identical_restored_record_uses_frozen_input(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            archived = root / "results" / "record.json"
+            frozen = root / "skill_banks" / "frozen_records" / "record.json"
+            for record in (archived, frozen):
+                record.parent.mkdir(parents=True)
+                record.write_bytes(b'{"frozen": true}\n')
+            with patch.object(efficiency, "ROOT", root):
+                resolved = efficiency.resolve_record_path(str(root / "missing" / frozen.name))
+            self.assertEqual(resolved, frozen)
+
+    def test_round_efficiency_identical_copies_use_stable_order(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name in ("z_last", "a_first"):
+                record = root / name / "record.json"
+                record.parent.mkdir()
+                record.write_bytes(b'{"frozen": true}\n')
+            with patch.object(efficiency, "ROOT", root):
+                resolved = efficiency.resolve_record_path(str(root / "missing" / "record.json"))
+            self.assertEqual(resolved, root / "a_first" / "record.json")
+
+    def test_round_efficiency_conflicting_frozen_and_restored_records_are_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            archived = root / "results" / "record.json"
+            frozen = root / "skill_banks" / "frozen_records" / "record.json"
+            for record, contents in ((archived, b'{"value": 1}'), (frozen, b'{"value": 2}')):
+                record.parent.mkdir(parents=True)
+                record.write_bytes(contents)
+            with patch.object(efficiency, "ROOT", root):
+                with self.assertRaisesRegex(FileNotFoundError, "different contents"):
+                    efficiency.resolve_record_path(str(root / "missing" / frozen.name))
+
+    def test_round_efficiency_existing_explicit_path_has_precedence(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            explicit = root / "results" / "record.json"
+            frozen = root / "skill_banks" / "frozen_records" / "record.json"
+            for record, contents in ((explicit, b'{"value": 1}'), (frozen, b'{"value": 2}')):
+                record.parent.mkdir(parents=True)
+                record.write_bytes(contents)
+            with patch.object(efficiency, "ROOT", root):
+                resolved = efficiency.resolve_record_path(str(explicit))
+            self.assertEqual(resolved, explicit)
 
 
 if __name__ == "__main__":

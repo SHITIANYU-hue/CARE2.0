@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 from statistics import mean
@@ -36,13 +37,28 @@ def audit_path(audit_dir: Path, output_id: str, mode: str, seed: int) -> Path:
 
 def resolve_record_path(record_path: str) -> Path:
     path = Path(record_path)
-    if path.exists():
+    if path.is_file():
         return path
-    matches = list(ROOT.rglob(path.name))
-    if len(matches) != 1:
+    matches = sorted(
+        (match for match in ROOT.rglob(path.name) if match.is_file() and match.name == path.name),
+        key=lambda match: match.as_posix(),
+    )
+    if not matches:
         raise FileNotFoundError(
             f"Could not uniquely resolve copied model record {record_path!r}."
         )
+    if len(matches) > 1:
+        digests = {hashlib.sha256(match.read_bytes()).digest() for match in matches}
+        if len(digests) != 1:
+            raise FileNotFoundError(
+                f"Could not uniquely resolve copied model record {record_path!r}: "
+                "matching files have different contents."
+            )
+        # Restoring an archive can reproduce the canonical frozen input verbatim.
+        frozen_root = ROOT / "skill_banks" / "frozen_records"
+        frozen_matches = [match for match in matches if frozen_root in match.parents]
+        if frozen_matches:
+            return frozen_matches[0]
     return matches[0]
 
 

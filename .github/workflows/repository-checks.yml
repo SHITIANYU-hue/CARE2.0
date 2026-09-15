@@ -1,0 +1,32 @@
+name: Repository checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Verify archive integrity and repository layout
+        run: |
+          python care.py check
+          python care.py artifacts verify --all
+      - name: Verify core without restored results
+        run: |
+          python care.py smoke
+          python care.py kb-build
+          python care.py kb-query gate --limit 2
+          python -m pytest experiments/care_replay/tests/test_transfer_skill.py experiments/care_replay/tests/test_source_outcome_transfer.py experiments/care_replay/tests/test_cross_task_router.py experiments/care_replay/tests/test_hidden_target_noninterference.py tests
+      - name: Restore evidence used by historical regression tests
+        run: python care.py artifacts restore replay-2026-08-10-baumgartner-warmstart-v2-external-confirmation replay-2026-08-15-opus5-generalization-study replay-2026-08-24-online-llm-matched-classical-audit-v1
+      - run: python -m pytest
