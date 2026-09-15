@@ -39,6 +39,14 @@ def read_complete(root):
     expected = len(config['tasks']) * len(config['model_replicates']) * config['evaluation_seed_count'] * len(ARMS)
     if len(rows) != len(index) or len(index) != expected:
         raise ValueError('Missing or duplicate paired evaluation metrics')
+    for row in rows:
+        arm = 'fixed_initial' if row['arm'] == 'gp_ucb' else row['arm']
+        path = root / row['task'] / f"replicate_{row['replicate']}" / arm / 'evaluation' / f"seed_{row['seed']}.json"
+        trajectory = next(x for x in json.loads(path.read_text()) if x['skill_id'] == row['skill_id'])
+        if len(trajectory['events']) != config['reveal_rounds'] or len(trajectory['initial']['candidate_ids']) != config['initial_observations']:
+            raise ValueError('Actual initial/reveal budget differs from protocol')
+        key = row['task'], row['replicate'], row['seed'], row['arm']
+        index[key] = {**index[key], '_initial': trajectory['initial']}
     return config, index
 
 
@@ -58,6 +66,10 @@ def compare(base_root, adapter_root):
         raise ValueError('Expected a frozen base and a trained adapter condition')
     if set(base) != set(adapter):
         raise ValueError('Evaluation seed/arm pairing differs')
+    for key in base:
+        fixed_key = key[:-1] + ('fixed_initial',)
+        if base[key]['_initial'] != adapter[key]['_initial'] or base[key]['_initial'] != base[fixed_key]['_initial']:
+            raise ValueError('Paired initial candidates or measured values differ')
     tasks = []
     for spec in base_config['tasks']:
         keys = [(spec['id'], rep, seed) for rep in base_config['model_replicates']
@@ -85,7 +97,7 @@ def compare(base_root, adapter_root):
     return {
         'status': 'matched_diagnostic_complete', 'tasks': tasks,
         'primary_comparison': 'adapter true-feedback minus frozen-base true-feedback AUC',
-        'checks': {'matched_settings': True, 'same_gp_control': True, 'heldout_feedback_excluded': True},
+        'checks': {'matched_settings': True, 'same_gp_control': True, 'same_initial_observations': True, 'heldout_feedback_excluded': True},
         'claim_boundary': 'Same-task diagnostic. Few model chains do not establish call-level reliability or task-family generalization. Training improves RSI only if matched base, no-feedback and shuffled-feedback comparisons replicate on families unused for training and checkpoint selection.',
     }
 

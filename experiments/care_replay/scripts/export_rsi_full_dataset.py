@@ -31,7 +31,13 @@ def build(source, output):
             payload = json.loads(next(m['content'] for m in row['messages'] if m['role'] == 'user'))
             catalog = payload['target']['public_semantic_fields']
             decision = live.normalize_response(row['messages'][-1]['content'], catalog, 2)
+            # Compiler dataclasses use pair tuples internally; generation requires
+            # field/value objects. Never teach the model the private storage form.
+            for skill in decision['skills']:
+                for rule in skill['rules']:
+                    rule['conditions'] = dict(rule['conditions'])
             row['messages'][-1]['content'] = json.dumps(decision, ensure_ascii=False, separators=(',', ':'))
+            live.normalize_response(row['messages'][-1]['content'], catalog, 2)
             row['metadata']['purpose'] = 'full_available_data_sft_same_task_prompt_disjoint_validation'
             row['metadata']['prompt_sha256'] = prompt_hash(row)
     hashes = {s: {prompt_hash(r) for r in rows[s]} for s in rows}
@@ -50,7 +56,7 @@ def build(source, output):
         'source_directory': str(source),
         'split_rule': 'Legacy validation groups that also occur in training move entirely to training',
         'overlapping_validation_rows_moved': len(moved), 'prompt_overlap': 0,
-        'target_format': 'canonical compiler-normalized executable-skill JSON',
+        'target_format': 'canonical generation-wire JSON; conditions objects; compiler round-trip checked',
         'claim_boundary': 'Complete available-data SFT only. Three task families and same-task validation do not satisfy the 1000-example, 8-training-family, 2-heldout-family efficacy gate.',
         'files': files,
     }

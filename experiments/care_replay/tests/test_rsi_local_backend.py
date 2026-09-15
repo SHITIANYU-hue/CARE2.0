@@ -64,6 +64,9 @@ class LocalBackendTest(unittest.TestCase):
             validation = [json.loads(x) for x in (output / 'validation.jsonl').read_text().splitlines()]
             self.assertEqual(len(train), 2)
             self.assertFalse({dataset.prompt_hash(r) for r in train} & {dataset.prompt_hash(r) for r in validation})
+            target = json.loads(train[0]['messages'][-1]['content'])
+            self.assertIsInstance(target['skills'][0]['rules'][0]['conditions'], dict)
+            live.normalize_response(train[0]['messages'][-1]['content'], {'x': {'good': 1}}, 2)
 
 
 if __name__ == '__main__':

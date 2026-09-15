@@ -13,7 +13,7 @@ class MatchedTrainingTest(unittest.TestCase):
                   'evaluation_seed_start': 10, 'evaluation_seed_count': 2,
                   'reveal_rounds': 10}
         adapter_config = {**config, 'adapter_path': '/adapter'}
-        base = {('task', 0, seed, arm): {'best_so_far_auc': value}
+        base = {('task', 0, seed, arm): {'best_so_far_auc': value, '_initial': {'candidate_ids': [seed]}}
                 for seed in (10, 11) for arm, value in
                 [('fixed_initial', 9), ('true_feedback', 10), ('no_feedback', 8),
                  ('shuffled_feedback', 8), ('gp_ucb', 7)]}
@@ -39,6 +39,13 @@ class MatchedTrainingTest(unittest.TestCase):
         c, a, b, t = self.fixture(); t['task', 0, 10, 'gp_ucb']['best_so_far_auc'] = 8
         with patch.object(report, 'read_complete', side_effect=[(c, b), (a, t)]):
             with self.assertRaisesRegex(ValueError, 'GP control'):
+                report.compare(Path('/base'), Path('/trained'))
+
+    def test_initial_measurement_pairing_rejected(self):
+        c, a, b, t = self.fixture()
+        t['task', 0, 10, 'true_feedback']['_initial'] = {'candidate_ids': [999]}
+        with patch.object(report, 'read_complete', side_effect=[(c, b), (a, t)]):
+            with self.assertRaisesRegex(ValueError, 'initial candidates'):
                 report.compare(Path('/base'), Path('/trained'))
 
 

@@ -25,17 +25,21 @@ is a pipeline check and must not be interpreted as independent validation.
 
 ## Complete available-data training and post-training RSI
 
-The canonical dataset in `results/2026-09-15-rsi-full-sft-dataset-v1` contains
+The canonical dataset in `results/2026-09-15-rsi-full-sft-dataset-v2` contains
 42 training and 12 validation records, with zero exact prompt-group overlap.
 The three scientific task families still occur on both sides. This is full
 available-data training, not task-family-disjoint confirmation.
+Targets use the generation interface's JSON schema and are checked by compiling
+them through that interface again. Dataset v1 was invalidated because its
+internal compiler representation encoded rule conditions as pair lists.
+The interrupted v3 checkpoint is retained for audit and is not deployed.
 
 ```bash
 CUDA_VISIBLE_DEVICES=5 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python experiments/care_replay/scripts/train_rsi_qlora.py \
   --model /path/to/Qwen2.5-32B-Instruct \
-  --train-file experiments/care_replay/results/2026-09-15-rsi-full-sft-dataset-v1/train.jsonl \
-  --validation-file experiments/care_replay/results/2026-09-15-rsi-full-sft-dataset-v1/validation.jsonl \
-  --output-dir experiments/care_replay/results/2026-09-15-rsi-qwen25-32b-full-sft-v3 \
+  --train-file experiments/care_replay/results/2026-09-15-rsi-full-sft-dataset-v2/train.jsonl \
+  --validation-file experiments/care_replay/results/2026-09-15-rsi-full-sft-dataset-v2/validation.jsonl \
+  --output-dir experiments/care_replay/results/2026-09-15-rsi-qwen25-32b-full-sft-v4 \
   --epochs 3 --max-length 10240 --require-untruncated \
   --gradient-accumulation-steps 4 --generation-samples 3 --max-new-tokens 2048
 ```
