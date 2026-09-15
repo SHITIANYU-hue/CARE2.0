@@ -25,6 +25,13 @@ is a pipeline check and must not be interpreted as independent validation.
 
 ## Complete available-data training and post-training RSI
 
+The [completed A800 training report](results/2026-09-15-rsi-qwen25-32b-full-sft-v4/README.md)
+records all three epochs, 33 optimizer steps, unchanged dataset hashes, no prompt
+or answer truncation, and verified nonzero adapter updates. Epoch 2 was selected
+solely by validation loss. The final epoch's three sample responses contain valid
+JSON, but only two pass strict rule compilation; local generation is not
+constrained decoding.
+
 The canonical dataset in `results/2026-09-15-rsi-full-sft-dataset-v2` contains
 42 training and 12 validation records, with zero exact prompt-group overlap.
 The three scientific task families still occur on both sides. This is full
