@@ -60,7 +60,7 @@ official HMS implementation and defaults to its required
 `gpt-4o-2024-08-06` judge:
 
 ```bash
-uv run inspect score results/2026-08-30-validation-full25-v1/raw_logs/care.eval \
+uv run --locked --package care2-astabench inspect score results/2026-08-30-validation-full25-v1/raw_logs/care.eval \
   --scorer configurable_discoverybench_scorer.py@score_discoverybench_configurable \
   --output-file care-scored-official.eval
 ```
@@ -68,7 +68,7 @@ uv run inspect score results/2026-08-30-validation-full25-v1/raw_logs/care.eval 
 For endpoint testing, a different judge can be passed explicitly:
 
 ```bash
-uv run inspect score results/2026-08-30-validation-full25-v1/raw_logs/care.eval \
+uv run --locked --package care2-astabench inspect score results/2026-08-30-validation-full25-v1/raw_logs/care.eval \
   --scorer configurable_discoverybench_scorer.py@score_discoverybench_configurable \
   -S judge_model=openai/gpt-4.1 \
   --output-file care-scored-gpt41.eval
@@ -80,11 +80,24 @@ compatible sensitivity analyses, with the judge model named in every artifact.
 
 ## Reproducible setup
 
+AstaBench is a member of the repository's uv workspace. It shares the root
+`uv.lock` and `.venv`; its pinned benchmark dependencies are declared in this
+directory's `pyproject.toml`. Install uv and follow the shared
+[environment guide](../../docs/ENVIRONMENT.md) first. The commands below run
+from this directory:
+
 ```bash
 cd experiments/astabench
-uv sync --group dev
-uv run pytest
+uv sync --locked --package care2-astabench
+uv run --locked --package care2-astabench python -m pytest
 ```
+
+From the repository root, `uv sync --locked --extra astabench` installs the
+main project and AstaBench together. Keep `--package care2-astabench` on
+AstaBench commands (or use the root `--extra astabench`) so uv includes the
+benchmark dependencies when it synchronizes the shared environment. See the
+root environment guide for the separate commands for the repository-wide
+test suite.
 
 Official AstaBench data are gated. Accept the dataset license and set an
 authenticated Hugging Face token before running the benchmark:
@@ -99,7 +112,7 @@ Run the validation split first. The model name must be identical for CARE and
 the ReAct control.
 
 ```bash
-uv run inspect eval \
+uv run --locked --package care2-astabench inspect eval \
   astabench/discoverybench_validation \
   --solver care_astabench_solver.py@care_discovery_agent \
   --model openai/anthropic/claude-opus-5 \
@@ -117,7 +130,7 @@ comparison and solver code are frozen.
 Generate the current internal quality-token audit from real CARE traces:
 
 ```bash
-uv run python scripts/build_internal_quality_cost_audit.py
+uv run --locked --package care2-astabench python scripts/build_internal_quality_cost_audit.py
 ```
 
 The resulting plot is based on recorded AUC effects and token counts. It is not

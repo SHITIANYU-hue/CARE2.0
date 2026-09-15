@@ -95,7 +95,7 @@ def sentence_transformer_embeddings(
         from sentence_transformers import SentenceTransformer
     except ImportError as exc:
         raise RuntimeError(
-            "Install sentence-transformers before using --provider sentence_transformers."
+            "Use uv run --locked --extra embeddings python knowledge_base/build_embeddings.py for --provider sentence_transformers."
         ) from exc
     encoder = SentenceTransformer(model)
     vectors = encoder.encode(

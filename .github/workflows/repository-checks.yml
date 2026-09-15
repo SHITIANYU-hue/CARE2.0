@@ -7,26 +7,47 @@ on:
 permissions:
   contents: read
 
+env:
+  MPLBACKEND: Agg
+
 jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
-          python-version: '3.12'
-          cache: pip
-      - run: python -m pip install -r requirements-dev.txt
+          version: "0.12.9"
+          enable-cache: true
+      - run: uv python install
+      - name: Install the committed environment
+        run: uv sync --locked
       - name: Verify archive integrity and repository layout
         run: |
-          python care.py check
-          python care.py artifacts verify --all
+          uv run --locked python care.py check
+          uv run --locked python care.py artifacts verify --all
       - name: Verify core without restored results
         run: |
-          python care.py smoke
-          python care.py kb-build
-          python care.py kb-query gate --limit 2
-          python -m pytest experiments/care_replay/tests/test_transfer_skill.py experiments/care_replay/tests/test_source_outcome_transfer.py experiments/care_replay/tests/test_cross_task_router.py experiments/care_replay/tests/test_hidden_target_noninterference.py tests
+          uv run --locked python care.py smoke
+          uv run --locked python care.py kb-build
+          uv run --locked python care.py kb-query gate --limit 2
+          uv run --locked pytest experiments/care_replay/tests/test_transfer_skill.py experiments/care_replay/tests/test_source_outcome_transfer.py experiments/care_replay/tests/test_cross_task_router.py experiments/care_replay/tests/test_hidden_target_noninterference.py tests
       - name: Restore evidence used by historical regression tests
-        run: python care.py artifacts restore replay-2026-08-10-baumgartner-warmstart-v2-external-confirmation replay-2026-08-15-opus5-generalization-study replay-2026-08-24-online-llm-matched-classical-audit-v1
-      - run: python -m pytest
+        run: uv run --locked python care.py artifacts restore replay-2026-08-10-baumgartner-warmstart-v2-external-confirmation replay-2026-08-15-opus5-generalization-study replay-2026-08-24-online-llm-matched-classical-audit-v1
+      - run: uv run --locked pytest
+
+  optional-environments:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.12.9"
+          enable-cache: true
+      - run: uv python install
+      - name: Install all optional tracks from the same lock
+        run: uv sync --locked --all-extras
+      - name: Verify optional imports without downloading models
+        run: uv run --locked --all-extras python -c "import rdkit, sentence_transformers, torch, care_astabench_solver; assert torch.version.cuda is None"
+      - name: Verify AstaBench offline tests
+        run: uv run --locked --all-extras pytest experiments/astabench/tests

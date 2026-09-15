@@ -1,8 +1,45 @@
 # CARE Replay Experiment
 
-This is a lightweight CARE 2.0 replay harness for the first experiment pass.
+This is the CARE 2.0 finite-pool replay harness. The canonical method is defined in
+[CARE2_METHOD.md](CARE2_METHOD.md); the repository navigation is in the
+[main README](../../README.md).
 
-Current status:
+## Environment and quick start
+
+Run all commands below from the repository root. The project requires Python
+3.11 or newer and pins Python 3.12 in `.python-version`. Use uv with the root
+`uv.lock`, which also locks the AstaBench workspace member. The default
+environment includes NumPy, Matplotlib, and pytest.
+
+```bash
+uv sync --locked
+uv run --locked python care.py smoke
+uv run --locked python care.py pair --help
+uv run --locked python care.py suite --help
+```
+
+The quick smoke uses two synthetic seeds and three rounds without model API
+calls. The commands later in this document reproduce individual research
+protocols; they may use larger budgets or make model API calls. Historical
+`results/` and `outputs/` files are stored in [archives](../../artifacts/README.md)
+and must be restored before commands that read them.
+
+Optional extras are `descriptors` (RDKit), `embeddings` (Sentence Transformers
+and CPU PyTorch), and `astabench`. To install all optional features, run
+`uv sync --locked --all-extras`. Commands that need an optional feature must
+also keep the corresponding `--extra <name>` or `--all-extras` on `uv run`.
+See [ENVIRONMENT.md](../../docs/ENVIRONMENT.md) for setup and examples.
+
+The default `uv run --locked pytest` covers the replay, knowledge-base, and
+repository tests. Restore the three evidence archives listed in
+[REORGANIZATION.md](../../docs/REORGANIZATION.md#验证入口) for the full run.
+AstaBench tests run separately from the repository root:
+
+```bash
+uv run --locked --package care2-astabench pytest experiments/astabench/tests
+```
+
+## Current capabilities
 
 - Uses synthetic finite candidate pools for Suzuki-style reaction optimization,
   ChemLex-style acid-amine optimization, and materials formulation optimization.
@@ -72,27 +109,27 @@ Current status:
 Run:
 
 ```bash
-python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset synthetic_suzuki_i --seeds 30 --rounds 10
-python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset synthetic_chemlex_i --seeds 30 --rounds 10
-python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset synthetic_materials_i --seeds 30 --rounds 10
-python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_buchwald_hartwig --seeds 30 --rounds 10
-python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_suzuki_miyaura --seeds 30 --rounds 10
-python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_chemlex_acidamine --seeds 30 --rounds 10
-python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_moleculenet_esol --seeds 30 --rounds 10
-python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_moleculenet_freesolv --seeds 30 --rounds 10
-python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_moleculenet_lipophilicity --seeds 30 --rounds 10
-python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_matbench_expt_gap --seeds 30 --rounds 10
-python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset all --seeds 30 --rounds 10
+uv run --locked python experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset synthetic_suzuki_i --seeds 30 --rounds 10
+uv run --locked python experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset synthetic_chemlex_i --seeds 30 --rounds 10
+uv run --locked python experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset synthetic_materials_i --seeds 30 --rounds 10
+uv run --locked python experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_buchwald_hartwig --seeds 30 --rounds 10
+uv run --locked python experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_suzuki_miyaura --seeds 30 --rounds 10
+uv run --locked python experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_chemlex_acidamine --seeds 30 --rounds 10
+uv run --locked python experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_moleculenet_esol --seeds 30 --rounds 10
+uv run --locked python experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_moleculenet_freesolv --seeds 30 --rounds 10
+uv run --locked python experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_moleculenet_lipophilicity --seeds 30 --rounds 10
+uv run --locked python experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset real_matbench_expt_gap --seeds 30 --rounds 10
+uv run --locked python experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset all --seeds 30 --rounds 10
 ```
 
 Calibrate and then confirm the Baumgartner initial-design skill:
 
 ```bash
-python3 experiments/care_replay/scripts/run_multisource_warmstart.py calibrate \
+uv run --locked python experiments/care_replay/scripts/run_multisource_warmstart.py calibrate \
   --config experiments/care_replay/configs/baumgartner_multisource_warmstart_v1.json \
   --output-dir /tmp/care2-baumgartner-development
 
-python3 experiments/care_replay/scripts/run_multisource_warmstart.py confirm \
+uv run --locked python experiments/care_replay/scripts/run_multisource_warmstart.py confirm \
   --config experiments/care_replay/configs/baumgartner_multisource_warmstart_v1.json \
   --selection-record /tmp/care2-baumgartner-development/selection_record.json \
   --output-dir /tmp/care2-baumgartner-confirmation
@@ -107,7 +144,7 @@ Run a real LLM-in-the-loop smoke test:
 
 ```bash
 export CARE_LLM_API_KEY="..."
-python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset synthetic_materials_i --seeds 3 --rounds 6 --initial 5 --modes no_care_random,incumbent,llm_no_gate,llm_gate_v1 --llm-model openai/gpt-4o-mini --output-tag llm_commonstack
+uv run --locked python experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset synthetic_materials_i --seeds 3 --rounds 6 --initial 5 --modes no_care_random,incumbent,llm_no_gate,llm_gate_v1 --llm-model openai/gpt-4o-mini --output-tag llm_commonstack
 ```
 
 Run the evidence-bounded LLM scientist loop:
@@ -115,19 +152,19 @@ Run the evidence-bounded LLM scientist loop:
 ```bash
 export COMMONSTACK_API_KEY="..."
 
-python3 experiments/care_replay/scripts/run_llm_initial_design_hypothesis.py generate \
+uv run --locked python experiments/care_replay/scripts/run_llm_initial_design_hypothesis.py generate \
   --config experiments/care_replay/configs/baumgartner_multisource_warmstart_v2.json \
   --target-task real_baumgartner_suzuki_minlp2 \
   --source-tasks real_baumgartner_suzuki_minlp1 \
   --output /tmp/care2/hypothesis.json
 
-python3 experiments/care_replay/scripts/run_llm_initial_design_hypothesis.py reflect \
+uv run --locked python experiments/care_replay/scripts/run_llm_initial_design_hypothesis.py reflect \
   --config experiments/care_replay/configs/baumgartner_multisource_warmstart_v2.json \
   --hypothesis-record /tmp/care2/hypothesis.json \
   --initial-design-mode compiled \
   --output /tmp/care2/reflection.json
 
-python3 experiments/care_replay/scripts/run_llm_initial_design_hypothesis.py evaluate \
+uv run --locked python experiments/care_replay/scripts/run_llm_initial_design_hypothesis.py evaluate \
   --config experiments/care_replay/configs/baumgartner_multisource_warmstart_v2.json \
   --hypothesis-record /tmp/care2/hypothesis.json \
   --reflection-record /tmp/care2/reflection.json \
@@ -139,7 +176,7 @@ Run or resume the frozen repeated-trajectory confirmation:
 ```bash
 export COMMONSTACK_API_KEY="..."
 
-python3 experiments/care_replay/scripts/run_repeated_online_llm_confirmation.py \
+uv run --locked python experiments/care_replay/scripts/run_repeated_online_llm_confirmation.py \
   --suite-config experiments/care_replay/configs/online_llm_repeated_confirmation_v1.json \
   --output-root experiments/care_replay/results/2026-08-23-online-llm-repeated-confirmation-v1 \
   --continue-on-error
@@ -155,7 +192,7 @@ For an independent run with auditable infrastructure retries:
 ```bash
 export COMMONSTACK_API_KEY="..."
 
-python3 experiments/care_replay/scripts/run_repeated_online_llm_confirmation_v2.py \
+uv run --locked python experiments/care_replay/scripts/run_repeated_online_llm_confirmation_v2.py \
   --suite-config experiments/care_replay/configs/online_llm_repeated_confirmation_v2.json \
   --output-root experiments/care_replay/results/2026-08-23-online-llm-repeated-confirmation-v2 \
   --continue-on-error
@@ -184,7 +221,7 @@ same LLM initial design followed by target-only GP-UCB, under the same budget.
 ```bash
 export COMMONSTACK_API_KEY="..."
 
-python3 experiments/care_replay/scripts/run_online_llm_scientist.py generate-initial \
+uv run --locked python experiments/care_replay/scripts/run_online_llm_scientist.py generate-initial \
   --config experiments/care_replay/configs/baumgartner_multisource_warmstart_v1.json \
   --target-task real_baumgartner_cn_phenethylamine_alphos \
   --source-tasks real_baumgartner_cn_aniline_alphos \
@@ -192,7 +229,7 @@ python3 experiments/care_replay/scripts/run_online_llm_scientist.py generate-ini
   --per-view-limit 6 \
   --output /tmp/care2-online/initial.json
 
-python3 experiments/care_replay/scripts/run_online_llm_scientist.py run \
+uv run --locked python experiments/care_replay/scripts/run_online_llm_scientist.py run \
   --config experiments/care_replay/configs/baumgartner_multisource_warmstart_v1.json \
   --initial-record /tmp/care2-online/initial.json \
   --initial-design-mode auto \
@@ -211,12 +248,12 @@ Run the Opus high-authority suites:
 ```bash
 export COMMONSTACK_API_KEY="..."
 
-python3 experiments/care_replay/scripts/run_online_llm_suite.py \
+uv run --locked python experiments/care_replay/scripts/run_online_llm_suite.py \
   --suite-config experiments/care_replay/configs/opus48_high_authority_development_v1.json \
   --output-root experiments/care_replay/results/2026-08-16-opus48-bounded-ei-development-v2 \
   --skip-existing
 
-python3 experiments/care_replay/scripts/run_online_llm_suite.py \
+uv run --locked python experiments/care_replay/scripts/run_online_llm_suite.py \
   --suite-config experiments/care_replay/configs/opus48_high_authority_chemistry_holdout_v1.json \
   --output-root experiments/care_replay/results/2026-08-16-opus48-high-authority-chemistry-holdout-v1 \
   --skip-existing
@@ -283,7 +320,7 @@ confirmatory decision.
 Build the trace-level diagnostic with:
 
 ```bash
-python3 experiments/care_replay/scripts/build_online_llm_decision_impact_audit.py \
+uv run --locked python experiments/care_replay/scripts/build_online_llm_decision_impact_audit.py \
   --input-root experiments/care_replay/results/2026-08-24-online-llm-bounded-authority-route-disjoint-confirmation-v1
 ```
 
@@ -298,7 +335,7 @@ primary confirmation protocol tests the route-split selected bounded-authority
 controller:
 
 ```bash
-python3 experiments/care_replay/scripts/run_repeated_online_llm_confirmation_v2.py \
+uv run --locked python experiments/care_replay/scripts/run_repeated_online_llm_confirmation_v2.py \
   --suite-config experiments/care_replay/configs/online_llm_bounded_authority_route_disjoint_confirmation_v1.json \
   --output-root experiments/care_replay/results/2026-08-24-online-llm-bounded-authority-route-disjoint-confirmation-v1 \
   --continue-on-error
@@ -309,7 +346,7 @@ No confirmatory decision is emitted until all 180 declared trajectories are comp
 Run the frozen seven-pair source-outcome suite through the canonical entry point:
 
 ```bash
-python3 experiments/care_replay/scripts/run_care2.py suite \
+uv run --locked python experiments/care_replay/scripts/run_care2.py suite \
   --config experiments/care_replay/configs/source_outcome_benchmark.json \
   --strategy full_source_outcome \
   --calibration-seed-start 40000 \
@@ -346,7 +383,7 @@ of positive transfer.
 Run the continuous FreeSolv extension with the same route and baseline logic:
 
 ```bash
-python3 experiments/care_replay/scripts/run_source_outcome_suite.py \
+uv run --locked python experiments/care_replay/scripts/run_source_outcome_suite.py \
   --config experiments/care_replay/configs/source_outcome_freesolv_continuous.json \
   --strategy full_source_outcome \
   --calibration-seed-start 50000 \
@@ -366,7 +403,7 @@ replay; calibration chooses among it and held-out seeds only execute the chosen
 candidate or the exact target-only fallback:
 
 ```bash
-python3 experiments/care_replay/scripts/run_calibrated_source_outcome_portfolio.py \
+uv run --locked python experiments/care_replay/scripts/run_calibrated_source_outcome_portfolio.py \
   --llm-record experiments/care_replay/configs/source_outcome_llm/generalized_to_bh.json \
   --target-llm-record experiments/care_replay/results/2026-07-24-source-outcome-transfer/model_calls/chemlex_acidamine_to_buchwald_hartwig_matched_target_only_reaction_chemlex_to_buchwald_hartwig_target_only.json \
   --target-llm-mode gp_ucb \
@@ -426,7 +463,7 @@ and its limitations.
 Run the strict batch-diversity ablation:
 
 ```bash
-python3 experiments/care_replay/scripts/run_exploration_batch.py --dataset real_buchwald_hartwig --seeds 30 --seed-start 50 --rounds 6 --initial 8 --batch-size 2 --novelty-weight 0.04 --min-batch-distance 0.34 --max-acquisition-loss 0.02 --modes incumbent_batch,target_diverse_batch,target_diverse_batch_gate --output-tag batch30
+uv run --locked python experiments/care_replay/scripts/run_exploration_batch.py --dataset real_buchwald_hartwig --seeds 30 --seed-start 50 --rounds 6 --initial 8 --batch-size 2 --novelty-weight 0.04 --min-batch-distance 0.34 --max-acquisition-loss 0.02 --modes incumbent_batch,target_diverse_batch,target_diverse_batch_gate --output-tag batch30
 ```
 
 Here `--rounds` is the total reveal budget, not the number of batches. Every
@@ -440,7 +477,7 @@ Run the nine-dataset LLM generalization sweep:
 
 ```bash
 export CARE_LLM_API_KEY="..."
-python3 experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset all --seeds 5 --rounds 6 --initial 5 --modes no_care_random,incumbent,llm_no_gate,llm_gate_v1 --llm-model openai/gpt-4o-mini --output-tag llm_commonstack_5seed
+uv run --locked python experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset all --seeds 5 --rounds 6 --initial 5 --modes no_care_random,incumbent,llm_no_gate,llm_gate_v1 --llm-model openai/gpt-4o-mini --output-tag llm_commonstack_5seed
 ```
 
 The default LLM base URL is `https://api.commonstack.ai/v1`. The API key is read
@@ -452,7 +489,7 @@ For lower-cost models, use native JSON mode instead of forcing a function call:
 ```bash
 export CARE_LLM_API_KEY="..."
 export CARE_LLM_TRACE_LOG="experiments/care_replay/outputs/logs/cheap_skill_generation.jsonl"
-python3 experiments/care_replay/scripts/run_llm_kernel_skill_evolution.py \
+uv run --locked python experiments/care_replay/scripts/run_llm_kernel_skill_evolution.py \
   --source-dataset real_suzuki_miyaura \
   --target-dataset real_buchwald_hartwig \
   --llm-model openai/gpt-4o-mini \
@@ -468,13 +505,13 @@ Refine a generated portfolio from calibration-only diagnostics, then freeze the
 selector before evaluating independent seeds:
 
 ```bash
-python3 experiments/care_replay/scripts/generate_refined_llm_kernel_skills.py \
+uv run --locked python experiments/care_replay/scripts/generate_refined_llm_kernel_skills.py \
   --llm-record first_round_llm_record.json \
   --calibration-summary first_round_summary.json \
   --target-dataset real_buchwald_hartwig \
   --output refined_llm_record.json
 
-python3 experiments/care_replay/scripts/run_calibrated_frozen_llm_selector.py \
+uv run --locked python experiments/care_replay/scripts/run_calibrated_frozen_llm_selector.py \
   --llm-record refined_llm_record.json \
   --source-dataset real_suzuki_miyaura \
   --target-dataset real_buchwald_hartwig \
@@ -490,7 +527,7 @@ To execute both the LLM-shaped kernel and its source prior, use the calibrated
 prior selector:
 
 ```bash
-python3 experiments/care_replay/scripts/run_calibrated_llm_prior_selector.py \
+uv run --locked python experiments/care_replay/scripts/run_calibrated_llm_prior_selector.py \
   --llm-record frozen_llm_record.json \
   --source-dataset real_moleculenet_esol \
   --target-dataset real_moleculenet_freesolv \
@@ -532,12 +569,12 @@ library once, then calibrate and freeze it before held-out replay:
 ```bash
 export CARE_LLM_API_KEY="..."
 export CARE_LLM_TRACE_LOG="experiments/care_replay/outputs/llm_semantic/generation_trace.jsonl"
-python3 experiments/care_replay/scripts/generate_llm_semantic_skills.py \
+uv run --locked python experiments/care_replay/scripts/generate_llm_semantic_skills.py \
   --source-dataset real_suzuki_miyaura \
   --target-dataset real_buchwald_hartwig \
   --output experiments/care_replay/outputs/llm_semantic/suzuki_to_bh.json
 
-python3 experiments/care_replay/scripts/run_calibrated_llm_semantic_selector.py \
+uv run --locked python experiments/care_replay/scripts/run_calibrated_llm_semantic_selector.py \
   --llm-record experiments/care_replay/outputs/llm_semantic/suzuki_to_bh.json \
   --target-dataset real_buchwald_hartwig \
   --calibration-seed-start 13000 --calibration-seeds 50 \
@@ -563,7 +600,7 @@ Run the matched random-rule null control before making a claim about LLM
 knowledge:
 
 ```bash
-python3 experiments/care_replay/scripts/run_random_rule_control.py \
+uv run --locked python experiments/care_replay/scripts/run_random_rule_control.py \
   --llm-record experiments/care_replay/results/2026-07-22-multidomain-llm-completion/model_calls/phonons_target_only_kb_deepseek.json \
   --target-dataset real_matbench_phonons \
   --calibration-seed-start 30000 --calibration-seeds 30 \
@@ -586,7 +623,7 @@ For a stricter causal check, run the frozen record without any target
 calibration or target-based skill selection:
 
 ```bash
-python3 experiments/care_replay/scripts/run_zero_shot_semantic_transfer.py \
+uv run --locked python experiments/care_replay/scripts/run_zero_shot_semantic_transfer.py \
   --llm-record experiments/care_replay/outputs/llm_semantic/suzuki_to_bh_semantic_record.json \
   --target-dataset real_buchwald_hartwig \
   --seed-start 40000 --seeds 100 --initial 5 --rounds 10 \
@@ -604,7 +641,7 @@ To make the LLM propose scientific hypotheses rather than acquisition
 parameters, generate a hypothesis-only record:
 
 ```bash
-python3 experiments/care_replay/scripts/generate_llm_semantic_skills.py \
+uv run --locked python experiments/care_replay/scripts/generate_llm_semantic_skills.py \
   --source-dataset real_suzuki_miyaura \
   --target-dataset real_buchwald_hartwig \
   --evidence-mode source_schema_only \
@@ -620,7 +657,7 @@ are rejected before replay.
 The current five-pair zero-shot matrix is aggregated without winner selection:
 
 ```bash
-python3 experiments/care_replay/scripts/build_zero_shot_transfer_report.py \
+uv run --locked python experiments/care_replay/scripts/build_zero_shot_transfer_report.py \
   experiments/care_replay/results/2026-07-25-hypothesis-zero-shot-suzuki-to-bh-30seed \
   experiments/care_replay/results/2026-07-25-hypothesis-zero-shot-suzuki-to-chemlex-10seed \
   experiments/care_replay/results/2026-07-25-hypothesis-zero-shot-expt-gap-to-dielectric-10seed \
@@ -638,18 +675,18 @@ generalization and failure, not a claim that every domain transfers.
 Persist the claims and failure conditions as auditable knowledge cards:
 
 ```bash
-python3 knowledge_base/ingest_hypothesis_transfer.py \
+uv run --locked python knowledge_base/ingest_hypothesis_transfer.py \
   --report experiments/care_replay/results/2026-07-25-zero-shot-hypothesis-transfer-matrix/zero_shot_transfer_matrix.json \
   --record experiments/care_replay/results/2026-07-25-hypothesis-generation/suzuki_to_bh_hypothesis_record_commonstack.json \
   --output knowledge_base/generated_cards/2026-07-25-zero-shot-hypothesis-transfer.json
-python3 knowledge_base/build_kb.py
+uv run --locked python knowledge_base/build_kb.py
 ```
 
 Run a strong-model LLM transfer follow-up:
 
 ```bash
 export CARE_LLM_API_KEY="..."
-python3 experiments/care_replay/scripts/run_transfer_ablation.py --source-dataset real_suzuki_miyaura --target-dataset real_buchwald_hartwig --source-observations 96 --seeds 5 --rounds 10 --initial 5 --modes no_care_random,incumbent,transfer_gate_v1,llm_transfer_gate_v1,llm_audit_transfer_gate_v1 --llm-model openai/gpt-5.5 --llm-max-tokens 700 --output-tag strong_model_openai_gpt-5_5_suzuki_to_bh_5seed
+uv run --locked python experiments/care_replay/scripts/run_transfer_ablation.py --source-dataset real_suzuki_miyaura --target-dataset real_buchwald_hartwig --source-observations 96 --seeds 5 --rounds 10 --initial 5 --modes no_care_random,incumbent,transfer_gate_v1,llm_transfer_gate_v1,llm_audit_transfer_gate_v1 --llm-model openai/gpt-5.5 --llm-max-tokens 700 --output-tag strong_model_openai_gpt-5_5_suzuki_to_bh_5seed
 ```
 
 Run the latest target-calibrated LLM prompt follow-up:
@@ -657,7 +694,7 @@ Run the latest target-calibrated LLM prompt follow-up:
 ```bash
 export CARE_LLM_API_KEY="..."
 export CARE_LLM_TRACE_LOG="experiments/care_replay/outputs/logs/openai_gpt-5_5_suzuki_to_bh_prompt_v3_calibrated_5seed_calls.jsonl"
-python3 experiments/care_replay/scripts/run_transfer_ablation.py --source-dataset real_suzuki_miyaura --target-dataset real_buchwald_hartwig --source-observations 96 --seeds 5 --rounds 10 --initial 5 --modes no_care_random,incumbent,transfer_gate_v1,llm_transfer_gate_v1,llm_audit_transfer_gate_v1 --llm-model openai/gpt-5.5 --llm-max-tokens 700 --output-tag prompt_v3_calibrated_openai_gpt-5_5_suzuki_to_bh_5seed
+uv run --locked python experiments/care_replay/scripts/run_transfer_ablation.py --source-dataset real_suzuki_miyaura --target-dataset real_buchwald_hartwig --source-observations 96 --seeds 5 --rounds 10 --initial 5 --modes no_care_random,incumbent,transfer_gate_v1,llm_transfer_gate_v1,llm_audit_transfer_gate_v1 --llm-model openai/gpt-5.5 --llm-max-tokens 700 --output-tag prompt_v3_calibrated_openai_gpt-5_5_suzuki_to_bh_5seed
 ```
 
 Run the latest LLM rule-patch risk-control follow-up:
@@ -665,7 +702,7 @@ Run the latest LLM rule-patch risk-control follow-up:
 ```bash
 export CARE_LLM_API_KEY="..."
 export CARE_LLM_TRACE_LOG="experiments/care_replay/outputs/logs/rule_patch_guarded_risk_control_openai_gpt-5_5_suzuki_to_bh_10seed_calls.jsonl"
-python3 experiments/care_replay/scripts/run_transfer_ablation.py --source-dataset real_suzuki_miyaura --target-dataset real_buchwald_hartwig --source-observations 96 --seeds 10 --rounds 10 --initial 5 --modes incumbent,transfer_gate_v1,llm_rule_patch_guarded_damped_interaction_gate_v1,llm_rule_patch_guarded_confirmed_interaction_gate_v1 --llm-model openai/gpt-5.5 --llm-max-tokens 1200 --output-tag rule_patch_guarded_risk_control_openai_gpt-5_5_suzuki_to_bh_10seed
+uv run --locked python experiments/care_replay/scripts/run_transfer_ablation.py --source-dataset real_suzuki_miyaura --target-dataset real_buchwald_hartwig --source-observations 96 --seeds 10 --rounds 10 --initial 5 --modes incumbent,transfer_gate_v1,llm_rule_patch_guarded_damped_interaction_gate_v1,llm_rule_patch_guarded_confirmed_interaction_gate_v1 --llm-model openai/gpt-5.5 --llm-max-tokens 1200 --output-tag rule_patch_guarded_risk_control_openai_gpt-5_5_suzuki_to_bh_10seed
 ```
 
 Run the prompt-optimized LLM rule-patch follow-up:
@@ -673,67 +710,67 @@ Run the prompt-optimized LLM rule-patch follow-up:
 ```bash
 export CARE_LLM_API_KEY="..."
 export CARE_LLM_TRACE_LOG="experiments/care_replay/outputs/logs/rule_patch_prompt_optimized_risk_capped_openai_gpt-5_5_suzuki_to_bh_10seed_calls.jsonl"
-python3 experiments/care_replay/scripts/run_transfer_ablation.py --source-dataset real_suzuki_miyaura --target-dataset real_buchwald_hartwig --source-observations 96 --seeds 10 --rounds 10 --initial 5 --modes incumbent,transfer_gate_v1,llm_rule_patch_guarded_confirmed_interaction_gate_v1,llm_rule_patch_prompt_optimized_confirmed_gate_v1 --llm-model openai/gpt-5.5 --llm-max-tokens 1200 --output-tag rule_patch_prompt_optimized_risk_capped_openai_gpt-5_5_suzuki_to_bh_10seed
+uv run --locked python experiments/care_replay/scripts/run_transfer_ablation.py --source-dataset real_suzuki_miyaura --target-dataset real_buchwald_hartwig --source-observations 96 --seeds 10 --rounds 10 --initial 5 --modes incumbent,transfer_gate_v1,llm_rule_patch_guarded_confirmed_interaction_gate_v1,llm_rule_patch_prompt_optimized_confirmed_gate_v1 --llm-model openai/gpt-5.5 --llm-max-tokens 1200 --output-tag rule_patch_prompt_optimized_risk_capped_openai_gpt-5_5_suzuki_to_bh_10seed
 ```
 
 Run the target-only incumbent rule ablation:
 
 ```bash
-python3 experiments/care_replay/scripts/run_incumbent_ablation.py --dataset real_buchwald_hartwig --seeds 50 --rounds 10 --initial 5 --output-tag 50seed
-python3 experiments/care_replay/scripts/run_incumbent_ablation.py --dataset real_moleculenet_lipophilicity --seeds 50 --rounds 10 --initial 5 --output-tag 50seed
+uv run --locked python experiments/care_replay/scripts/run_incumbent_ablation.py --dataset real_buchwald_hartwig --seeds 50 --rounds 10 --initial 5 --output-tag 50seed
+uv run --locked python experiments/care_replay/scripts/run_incumbent_ablation.py --dataset real_moleculenet_lipophilicity --seeds 50 --rounds 10 --initial 5 --output-tag 50seed
 ```
 
 Run the dependency-free surrogate baseline comparison:
 
 ```bash
-python3 experiments/care_replay/scripts/run_surrogate_baselines.py --dataset real_buchwald_hartwig --seeds 50 --rounds 10 --initial 5 --output-tag 50seed
-python3 experiments/care_replay/scripts/run_surrogate_baselines.py --dataset real_moleculenet_lipophilicity --seeds 50 --rounds 10 --initial 5 --output-tag 50seed
+uv run --locked python experiments/care_replay/scripts/run_surrogate_baselines.py --dataset real_buchwald_hartwig --seeds 50 --rounds 10 --initial 5 --output-tag 50seed
+uv run --locked python experiments/care_replay/scripts/run_surrogate_baselines.py --dataset real_moleculenet_lipophilicity --seeds 50 --rounds 10 --initial 5 --output-tag 50seed
 ```
 
 Run hybrid CARE transfer over a GP-UCB incumbent:
 
 ```bash
-python3 experiments/care_replay/scripts/run_hybrid_surrogate_transfer.py --source-dataset real_moleculenet_freesolv --target-dataset real_moleculenet_lipophilicity --seeds 50 --rounds 10 --initial 5 --source-observations 192 --output-tag 50seed
-python3 experiments/care_replay/scripts/run_hybrid_surrogate_transfer.py --source-dataset real_suzuki_miyaura --target-dataset real_buchwald_hartwig --seeds 50 --rounds 10 --initial 5 --source-observations 96 --output-tag 50seed
-python3 experiments/care_replay/scripts/run_hybrid_surrogate_transfer.py --source-dataset real_moleculenet_freesolv --target-dataset real_moleculenet_lipophilicity --seeds 100 --rounds 5 --initial 5 --source-observations 192 --modes gp_ucb,hybrid_value_prior_gp_ucb_gate_v1,hybrid_value_prior_gp_ucb_no_gate --output-tag lowbudget5_100seed
+uv run --locked python experiments/care_replay/scripts/run_hybrid_surrogate_transfer.py --source-dataset real_moleculenet_freesolv --target-dataset real_moleculenet_lipophilicity --seeds 50 --rounds 10 --initial 5 --source-observations 192 --output-tag 50seed
+uv run --locked python experiments/care_replay/scripts/run_hybrid_surrogate_transfer.py --source-dataset real_suzuki_miyaura --target-dataset real_buchwald_hartwig --seeds 50 --rounds 10 --initial 5 --source-observations 96 --output-tag 50seed
+uv run --locked python experiments/care_replay/scripts/run_hybrid_surrogate_transfer.py --source-dataset real_moleculenet_freesolv --target-dataset real_moleculenet_lipophilicity --seeds 100 --rounds 5 --initial 5 --source-observations 192 --modes gp_ucb,hybrid_value_prior_gp_ucb_gate_v1,hybrid_value_prior_gp_ucb_no_gate --output-tag lowbudget5_100seed
 ```
 
 Run transfer-weighted GP-kernel skill optimization:
 
 ```bash
-python3 experiments/care_replay/scripts/run_transfer_weighted_kernel.py --source-dataset real_suzuki_miyaura --target-dataset real_buchwald_hartwig --seeds 50 --rounds 10 --initial 5 --source-observations 96 --scales 0,0.5,1,1.5,2,4 --output-tag 50seed
-python3 experiments/care_replay/scripts/run_transfer_weighted_kernel.py --source-dataset real_moleculenet_freesolv --target-dataset real_moleculenet_lipophilicity --seeds 50 --rounds 10 --initial 5 --source-observations 192 --scales 0,1.5,4 --output-tag 50seed
+uv run --locked python experiments/care_replay/scripts/run_transfer_weighted_kernel.py --source-dataset real_suzuki_miyaura --target-dataset real_buchwald_hartwig --seeds 50 --rounds 10 --initial 5 --source-observations 96 --scales 0,0.5,1,1.5,2,4 --output-tag 50seed
+uv run --locked python experiments/care_replay/scripts/run_transfer_weighted_kernel.py --source-dataset real_moleculenet_freesolv --target-dataset real_moleculenet_lipophilicity --seeds 50 --rounds 10 --initial 5 --source-observations 192 --scales 0,1.5,4 --output-tag 50seed
 ```
 
 Build a calibration/held-out summary for transfer-weighted kernel grids:
 
 ```bash
-python3 experiments/care_replay/scripts/build_transfer_weighted_calibration_summary.py --metrics experiments/care_replay/outputs/tables/transfer_weighted_kernel_real_suzuki_miyaura_to_real_buchwald_hartwig_calibrated_grid_100seed_metrics.csv --out-dir experiments/care_replay/results/2026-07-05-calibrated-transfer-weighted-kernel --label suzuki_to_bh --calibration-seed-count 50
+uv run --locked python experiments/care_replay/scripts/build_transfer_weighted_calibration_summary.py --metrics experiments/care_replay/outputs/tables/transfer_weighted_kernel_real_suzuki_miyaura_to_real_buchwald_hartwig_calibrated_grid_100seed_metrics.csv --out-dir experiments/care_replay/results/2026-07-05-calibrated-transfer-weighted-kernel --label suzuki_to_bh --calibration-seed-count 50
 ```
 
 Build the paired transfer significance audit:
 
 ```bash
-python3 experiments/care_replay/scripts/build_transfer_significance_summary.py
+uv run --locked python experiments/care_replay/scripts/build_transfer_significance_summary.py
 ```
 
 Run the source-evidence causality ablation for an LLM semantic skill library:
 
 ```bash
 export COMMONSTACK_API_KEY="..."
-python3 experiments/care_replay/scripts/generate_llm_semantic_skills.py \
+uv run --locked python experiments/care_replay/scripts/generate_llm_semantic_skills.py \
   --source-dataset real_suzuki_miyaura \
   --target-dataset real_buchwald_hartwig \
   --evidence-mode full \
   --llm-temperature 0 \
   --output experiments/care_replay/outputs/llm_semantic/causality/bh_full.json
-python3 experiments/care_replay/scripts/generate_llm_semantic_skills.py \
+uv run --locked python experiments/care_replay/scripts/generate_llm_semantic_skills.py \
   --source-dataset real_suzuki_miyaura \
   --target-dataset real_buchwald_hartwig \
   --evidence-mode source_schema_only \
   --llm-temperature 0 \
   --output experiments/care_replay/outputs/llm_semantic/causality/bh_source_schema_only.json
-python3 experiments/care_replay/scripts/generate_llm_semantic_skills.py \
+uv run --locked python experiments/care_replay/scripts/generate_llm_semantic_skills.py \
   --source-dataset real_suzuki_miyaura \
   --target-dataset real_buchwald_hartwig \
   --evidence-mode target_only \
@@ -785,7 +822,7 @@ and CARE policies consume the same public representation.
 Measure target-experiment savings from the held-out audit traces:
 
 ```bash
-python3 experiments/care_replay/scripts/build_round_efficiency_summary.py \
+uv run --locked python experiments/care_replay/scripts/build_round_efficiency_summary.py \
   --summary experiments/care_replay/outputs/runs/<output_id>_summary.json \
   --audit-dir experiments/care_replay/outputs/runs \
   --output-id <output_id> \
@@ -815,8 +852,8 @@ plotting dependency.
 Generate a skill with public CARE knowledge retrieval:
 
 ```bash
-python3 knowledge_base/build_kb.py
-python3 experiments/care_replay/scripts/generate_llm_semantic_skills.py \
+uv run --locked python knowledge_base/build_kb.py
+uv run --locked python experiments/care_replay/scripts/generate_llm_semantic_skills.py \
   --source-dataset real_suzuki_miyaura \
   --target-dataset real_chemlex_acidamine \
   --evidence-mode source_schema_only \
@@ -1081,20 +1118,20 @@ candidates, revealed values, and diagnostics; it is not a claim to expose hidden
 chain-of-thought. Rebuild both artifacts with:
 
 ```bash
-python3 scripts/build_transfer_visualizations.py \
-  --source-outcome-root results/2026-07-24-source-outcome-transfer \
-  --output-dir results/2026-07-25-transfer-visualizations
+uv run --locked python experiments/care_replay/scripts/build_transfer_visualizations.py \
+  --source-outcome-root experiments/care_replay/results/2026-07-24-source-outcome-transfer \
+  --output-dir experiments/care_replay/results/2026-07-25-transfer-visualizations
 
-python3 scripts/build_reasoning_trace_index.py \
-  --repo-root ../.. \
-  --source-outcome-root results/2026-07-24-source-outcome-transfer \
-  --model-call-root results/2026-07-25-hypothesis-generation \
-  --zero-shot-root results/2026-07-25-hypothesis-zero-shot-suzuki-to-bh-30seed \
-  --zero-shot-root results/2026-07-25-hypothesis-zero-shot-suzuki-to-chemlex-10seed \
-  --zero-shot-root results/2026-07-25-hypothesis-zero-shot-expt-gap-to-dielectric-10seed \
-  --zero-shot-root results/2026-07-25-hypothesis-zero-shot-esol-to-freesolv-10seed \
-  --zero-shot-root results/2026-07-25-hypothesis-zero-shot-freesolv-to-lipophilicity-10seed \
-  --output results/2026-07-25-transfer-visualizations/reasoning_trace_index.json
+uv run --locked python experiments/care_replay/scripts/build_reasoning_trace_index.py \
+  --repo-root . \
+  --source-outcome-root experiments/care_replay/results/2026-07-24-source-outcome-transfer \
+  --model-call-root experiments/care_replay/results/2026-07-25-hypothesis-generation \
+  --zero-shot-root experiments/care_replay/results/2026-07-25-hypothesis-zero-shot-suzuki-to-bh-30seed \
+  --zero-shot-root experiments/care_replay/results/2026-07-25-hypothesis-zero-shot-suzuki-to-chemlex-10seed \
+  --zero-shot-root experiments/care_replay/results/2026-07-25-hypothesis-zero-shot-expt-gap-to-dielectric-10seed \
+  --zero-shot-root experiments/care_replay/results/2026-07-25-hypothesis-zero-shot-esol-to-freesolv-10seed \
+  --zero-shot-root experiments/care_replay/results/2026-07-25-hypothesis-zero-shot-freesolv-to-lipophilicity-10seed \
+  --output experiments/care_replay/results/2026-07-25-transfer-visualizations/reasoning_trace_index.json
 ```
 
 ## High-participation online LLM scientist
@@ -1143,11 +1180,11 @@ route-specific transfer, not a universal cross-domain gain claim.
 Rebuild the aggregate report and figure with:
 
 ```bash
-python3 scripts/build_online_llm_generalization_report.py \
-  --root results/2026-08-15-opus5-generalization-study \
-  --output-dir results/2026-08-15-opus5-generalization-study/aggregate
+uv run --locked python experiments/care_replay/scripts/build_online_llm_generalization_report.py \
+  --root experiments/care_replay/results/2026-08-15-opus5-generalization-study \
+  --output-dir experiments/care_replay/results/2026-08-15-opus5-generalization-study/aggregate
 
-python3 scripts/build_online_llm_generalization_figures.py \
-  --metrics results/2026-08-15-opus5-generalization-study/aggregate/generalization_metrics.csv \
-  --output-dir results/2026-08-15-opus5-generalization-study/figures
+uv run --locked python experiments/care_replay/scripts/build_online_llm_generalization_figures.py \
+  --metrics experiments/care_replay/results/2026-08-15-opus5-generalization-study/aggregate/generalization_metrics.csv \
+  --output-dir experiments/care_replay/results/2026-08-15-opus5-generalization-study/figures
 ```

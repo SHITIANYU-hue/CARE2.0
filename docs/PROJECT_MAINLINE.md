@@ -32,7 +32,7 @@ main = carry1.0 (b5aab263)
               ├─ llm-traces (d95253a5)
               └─ exploration-aware-llm 的历史
                   └─ 4c6f19f8 (2026-09-01，本分支截止点)
-                      ├─ codex/repository-reorganization
+                      ├─ tangchao/repository-reorganization
                       └─ 后续历史 → c064a0cf（不纳入本分支）
 ```
 
@@ -153,22 +153,21 @@ skill_banks/frozen_records/
 
 推荐阅读顺序：本文件 → [主方法契约](../experiments/care_replay/CARE2_METHOD.md) → `run_care2.py` → `run_calibrated_source_outcome_transfer.py` → 声明协议及其结果归档。针对湿实验部署继续阅读 `MULTISOURCE_WETLAB_PROTOCOL.md`、`BAUMGARTNER_WARMSTART_PROTOCOL.md` 和 SkillBank。
 
-以下是维护时的分层检查入口，不代表本文已经执行全部实验。
+以下命令均从仓库根目录运行；先用 `uv sync --locked` 安装 Python 3.12 的锁定环境。项目要求 Python 3.11+，主项目和 AstaBench workspace 成员共用根 `uv.lock`。可选描述符、语义检索和外部评测的安装方式见 [环境与依赖](ENVIRONMENT.md)。以下是维护时的分层检查入口，不代表本文已经执行全部实验。
 
 ```bash
 # 无模型调用的最小合成回放
-python experiments/care_replay/scripts/run_synthetic_suzuki.py --dataset synthetic_suzuki_i --seeds 2 --rounds 3 --initial 3 --modes no_care_random,incumbent,gate_v1 --output-tag reorganization_smoke
+uv run --locked python care.py smoke
 
 # 主线参数入口，不启动外部模型
-python experiments/care_replay/scripts/run_care2.py pair --help
-python experiments/care_replay/scripts/run_care2.py suite --help
+uv run --locked python care.py pair --help
+uv run --locked python care.py suite --help
 
 # 不依赖真实数据的技能契约测试
-python -m unittest discover -s experiments/care_replay/tests -p test_transfer_skill.py
+uv run --locked pytest experiments/care_replay/tests/test_transfer_skill.py
 
 # SkillBank 和 ask/tell 契约：需要 data/raw 中的 Reizman 数据
-python -m unittest discover -s experiments/care_replay/tests -p test_skill_bank.py
-python -m unittest discover -s experiments/care_replay/tests -p test_wetlab_protocol.py
+uv run --locked pytest experiments/care_replay/tests/test_skill_bank.py experiments/care_replay/tests/test_wetlab_protocol.py
 ```
 
 更完整的主线回归应覆盖 `test_source_outcome_transfer.py`、`test_calibrated_frozen_llm_selector.py`、`test_cross_task_router.py` 和 `test_classical_transfer_baselines.py`。其中部分测试读取公开真实数据，需要先具备对应 data/raw。涉及结果重建或在线模型的测试应按模块单独运行，不能与离线 smoke 混为同一验收结论。

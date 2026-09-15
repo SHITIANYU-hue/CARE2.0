@@ -2,7 +2,7 @@
 
 ## 基准与保全范围
 
-整理分支：`codex/repository-reorganization`。
+整理分支：`tangchao/repository-reorganization`。
 
 基准提交：**`4c6f19f8cf62b25558f966604ce0b7644578f889`（2026-09-01，`eval: add official AstaBench HMS scores`）**。当前整理分支从这一提交继续，保留目录整理、归档工具、主线冻结输入及截止点以内的代码和实验资料。
 
@@ -20,7 +20,7 @@
 | tar.gz 归档数 | 138 |
 | 归档总字节 | 575,763,319（约 549.09 MiB） |
 
-归档逐项统计见 [catalog.json](../artifacts/catalog.json) 及 [归档目录](../artifacts/README.md)。整理后共 **511 个受跟踪文件**，包含源码、文档、运行输入和 138 个归档。
+归档逐项统计见 [catalog.json](../artifacts/catalog.json) 及 [归档目录](../artifacts/README.md)。归档整理提交共 **511 个受跟踪文件**，包含源码、文档、运行输入和 138 个归档；后续环境配置文件另计。
 
 原始研究分支与 Git 历史保留；整理分支重建在上述基线上。当前文件树变简洁不等于历史对象变小。需要较浅的工作副本时，可克隆此分支并使用 `--depth 1`，但归档本身仍需下载。
 
@@ -48,8 +48,8 @@
 `artifacts/catalog.json` 是小型目录元数据，不是裸运行日志。它保存每个归档的 SHA-256、文件数、尺寸和来源。单包按最多 90 MiB 原始内容分组，生成结果均低于 100 MiB。
 
 ```bash
-python care.py artifacts verify --all
-python care.py artifacts list --category replay-results
+uv run --locked python care.py artifacts verify --all
+uv run --locked python care.py artifacts list --category replay-results
 ```
 
 校验会检查外层 SHA、tar 路径、普通文件类型、重复成员、逐文件 SHA、数量和尺寸。恢复前会预检全部所选归档和目标路径；拒绝路径逃逸、链接、不同内容覆盖及跨包版本冲突。
@@ -58,13 +58,13 @@ python care.py artifacts list --category replay-results
 
 ```bash
 # 补充的 live LLM trace 分支
-python care.py artifacts restore llm-traces-2026-07-16
+uv run --locked python care.py artifacts restore llm-traces-2026-07-16
 
 # 典型的主线历史结果
-python care.py artifacts restore replay-2026-07-23-source-evidence-extension
+uv run --locked python care.py artifacts restore replay-2026-07-23-source-evidence-extension
 
 # 独立目录复核，避免与现有运行混淆
-python care.py artifacts restore replay-2026-08-24-online-llm-matched-classical-audit-v1 --destination review-copy
+uv run --locked python care.py artifacts restore replay-2026-08-24-online-llm-matched-classical-audit-v1 --destination review-copy
 ```
 
 恢复目录包含原始完整仓库相对路径，而不是直接把内容放进目标目录根。部分历史归档带原有内层 tar.gz；工具保留它们，不递归展开。分包实验必须恢复全部 `partNN`；ID 见 [归档目录](../artifacts/README.md)。
@@ -75,31 +75,41 @@ python care.py artifacts restore replay-2026-08-24-online-llm-matched-classical-
 
 ## 验证入口
 
+以下命令在仓库根目录运行。项目通过 uv 管理环境，要求 Python 3.11+，`.python-version` 固定为 3.12；主线和 AstaBench workspace 成员共享根 `uv.lock`。默认依赖包含 NumPy、Matplotlib 和 pytest。可选功能见 [环境与依赖](ENVIRONMENT.md)。
+
 ```bash
-python -m pip install -r requirements-dev.txt
+uv sync --locked
 
 # 在未恢复任何历史结果的工作树内也能执行
-python care.py smoke
-python care.py kb-build
-python care.py kb-query gate --limit 2
-python -m pytest experiments/care_replay/tests/test_transfer_skill.py experiments/care_replay/tests/test_source_outcome_transfer.py experiments/care_replay/tests/test_cross_task_router.py experiments/care_replay/tests/test_hidden_target_noninterference.py tests
+uv run --locked python care.py smoke
+uv run --locked python care.py kb-build
+uv run --locked python care.py kb-query gate --limit 2
+uv run --locked pytest experiments/care_replay/tests/test_transfer_skill.py experiments/care_replay/tests/test_source_outcome_transfer.py experiments/care_replay/tests/test_cross_task_router.py experiments/care_replay/tests/test_hidden_target_noninterference.py tests
 
 # 完整研究测试还读取历史证据，需先恢复以下 3 个包
-python care.py artifacts restore replay-2026-08-10-baumgartner-warmstart-v2-external-confirmation replay-2026-08-15-opus5-generalization-study replay-2026-08-24-online-llm-matched-classical-audit-v1
-python -m pytest
+uv run --locked python care.py artifacts restore replay-2026-08-10-baumgartner-warmstart-v2-external-confirmation replay-2026-08-15-opus5-generalization-study replay-2026-08-24-online-llm-matched-classical-audit-v1
+uv run --locked pytest
 
 # 提交前先暂存，再检查索引
-python care.py check
+uv run --locked python care.py check
 git diff --cached --check
 ```
 
-AstaBench 保持独立的 `experiments/astabench/pyproject.toml` 与 `uv.lock`，在该环境运行其测试。完整 LLM 在线实验和多种子科学复现与仓库验收测试分别执行，不使用 smoke 的缩减预算替代原始结果。
+默认 `uv run --locked pytest` 运行主线测试，不收集 AstaBench。AstaBench 保留成员 `experiments/astabench/pyproject.toml`，依赖统一记录在根 `uv.lock`；从仓库根目录单独运行：
+
+```bash
+uv run --locked --package care2-astabench pytest experiments/astabench/tests
+```
+
+需要所有可选功能时执行 `uv sync --locked --all-extras`，后续运行也使用 `--all-extras`；单项功能使用对应的 `--extra <名称>`。完整 LLM 在线实验和多种子科学复现与仓库验收测试分别执行，不使用 smoke 的缩减预算替代原始结果。
 
 ## 后续维护
 
-新增实验按 [CONTRIBUTING.md](../CONTRIBUTING.md) 先写源码和协议，再写被忽略的结果目录，最后用 `python care.py pack` 封存。归档工具保留源文件，不自动删除或上传；确认校验完成后再由维护者清理本地临时输出。
+新增实验按 [CONTRIBUTING.md](../CONTRIBUTING.md) 先写源码和协议，再写被忽略的结果目录，最后用 `uv run --locked python care.py pack` 封存。归档工具保留源文件，不自动删除或上传；确认校验完成后再由维护者清理本地临时输出。
 
-## 本次验收（2026-09-15）
+## 归档整理时的验收（Windows，2026-09-15）
+
+以下保留归档整理提交的验收记录，不代表本次 WSL/uv 环境的执行结果；当前环境说明和验证记录见 [ENVIRONMENT.md](ENVIRONMENT.md)。
 
 138 个历史 tar.gz 已完整校验通过，覆盖外层 SHA-256、24,992 个原始成员的 SHA-256、路径、数量和尺寸。
 
@@ -107,6 +117,6 @@ AstaBench 保持独立的 `experiments/astabench/pyproject.toml` 与 `uv.lock`�
 
 未恢复任何历史结果时，主线及工具测试 **56 passed、2 skipped、30 subtests passed**；最小 synthetic smoke 通过，知识库成功构建 189 张卡并可查询。恢复上述 3 包的 102 个原始文件后，完整离线回归为 **310 passed、2 skipped、33 subtests passed**。两项跳过均因本机 Windows 没有创建真实符号链接的权限；junction/reparse 检查已通过。测试完成后已再次清理临时恢复的历史文件。
 
-验收范围包括：归档外层与逐成员校验、原始 Git blob 映射、主线冻结输入可用性，以及恢复上述 3 包后的 replay、knowledge_base 和仓库工具测试。AstaBench 的适配器测试需要独立 inspect-ai/astabench 环境，应另行记录；未启动新的付费 LLM 实验。
+验收范围包括：归档外层与逐成员校验、原始 Git blob 映射、主线冻结输入可用性，以及恢复上述 3 包后的 replay、knowledge_base 和仓库工具测试。当时未执行 AstaBench 适配器测试，未启动新的付费 LLM 实验。
 
 GitHub Actions 工作流验证布局、归档、无需恢复的主线和恢复历史证据后的测试。远程 CI 的状态以推送后实际运行结果为准。

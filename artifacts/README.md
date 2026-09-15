@@ -4,10 +4,13 @@
 
 共 **138 个 tar.gz**，**24,992 个原始文件**，压缩后 **549.09 MiB**。其中 17 个文件来自 `llm-traces` 独有提交。
 
+命令从仓库根目录运行；先按 [环境与依赖](../docs/ENVIRONMENT.md) 安装 uv 环境。
+
 ```bash
-python care.py artifacts list
-python care.py artifacts verify --all
-python care.py artifacts restore llm-traces-2026-07-16
+uv sync --locked
+uv run --locked python care.py artifacts list
+uv run --locked python care.py artifacts verify --all
+uv run --locked python care.py artifacts restore llm-traces-2026-07-16
 ```
 
 每个归档内的 `CARE_ARCHIVE_MANIFEST.json` 保存原始路径、Git blob、提交号和逐文件 SHA-256。[catalog.json](catalog.json) 保存归档级 SHA-256 和尺寸。恢复工具先检查全部选中内容及目标位置，拒绝覆盖不同文件。

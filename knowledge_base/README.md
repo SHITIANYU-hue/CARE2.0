@@ -9,14 +9,20 @@ The public seed file intentionally contains only public, release-safe cards.
 Internal chat logs, private notes, and generated SQLite databases are not
 tracked in this repository.
 
+Run the commands below from the repository root after `uv sync --locked`.
+The shared [environment guide](../docs/ENVIRONMENT.md) covers uv installation
+and optional dependencies. SQLite/FTS, hashed embeddings, and HTTP embedding
+requests use the Python standard library; local semantic embeddings use the
+optional `embeddings` environment described below.
+
 Replay result snapshots can be converted into public cards automatically. The
 ingester creates `experiment_result`, reusable `skill`, negative-transfer, and
 `run_log` cards while preserving the result directory as provenance:
 
 ```bash
-python3 knowledge_base/ingest_experiment_results.py \
+uv run --locked python knowledge_base/ingest_experiment_results.py \
   experiments/care_replay/results/2026-07-21-llm-evidence-causality
-python3 knowledge_base/build_kb.py
+uv run --locked python knowledge_base/build_kb.py
 ```
 
 Generated card JSON is tracked under `knowledge_base/generated_cards/`.
@@ -29,7 +35,7 @@ Completed result directories can update the card store, SQLite/FTS database,
 Markdown index, and embedding index in one transaction:
 
 ```bash
-python3 knowledge_base/self_update.py \
+uv run --locked python knowledge_base/self_update.py \
   experiments/care_replay/results/<completed-run>
 ```
 
@@ -37,7 +43,7 @@ To discover every new or changed result manifest under the replay results
 directory:
 
 ```bash
-python3 knowledge_base/self_update.py --discover
+uv run --locked python knowledge_base/self_update.py --discover
 ```
 
 The updater fingerprints each result, skips unchanged runs, records an audit
@@ -77,7 +83,7 @@ its result directory.
 Use the loop finalizer when an experiment is complete:
 
 ```bash
-python3 knowledge_base/close_loop.py \
+uv run --locked python knowledge_base/close_loop.py \
   experiments/care_replay/results/<completed-run>
 ```
 
@@ -102,11 +108,11 @@ ingester so the scientific claim, mechanism, failure conditions, compiler
 boundary, matched random-null comparison, and result provenance remain visible:
 
 ```bash
-python3 knowledge_base/ingest_hypothesis_transfer.py \
+uv run --locked python knowledge_base/ingest_hypothesis_transfer.py \
   --report experiments/care_replay/results/2026-07-25-zero-shot-hypothesis-transfer-matrix/zero_shot_transfer_matrix.json \
   --record experiments/care_replay/results/2026-07-25-hypothesis-generation/suzuki_to_bh_hypothesis_record_commonstack.json \
   --output knowledge_base/generated_cards/2026-07-25-zero-shot-hypothesis-transfer.json
-python3 knowledge_base/build_kb.py
+uv run --locked python knowledge_base/build_kb.py
 ```
 
 These cards deliberately use `candidate` or `needs_verification` for mechanism
@@ -116,7 +122,7 @@ just because it improved one replay.
 ## Build
 
 ```bash
-python3 knowledge_base/build_kb.py
+uv run --locked python knowledge_base/build_kb.py
 ```
 
 This creates:
@@ -129,9 +135,9 @@ These generated files are ignored by git.
 ## Query
 
 ```bash
-python3 knowledge_base/query_kb.py gate --limit 5
-python3 knowledge_base/query_kb.py --type dataset
-python3 knowledge_base/query_kb.py "Suzuki ChemLex"
+uv run --locked python knowledge_base/query_kb.py gate --limit 5
+uv run --locked python knowledge_base/query_kb.py --type dataset
+uv run --locked python knowledge_base/query_kb.py "Suzuki ChemLex"
 ```
 
 `retrieval.py` is the runtime API used by the LLM skill generator. Runtime
@@ -146,8 +152,8 @@ reconstructed.
 Build a local development vector index without any API call:
 
 ```bash
-python3 knowledge_base/build_embeddings.py --provider hashed
-python3 knowledge_base/query_embeddings.py "reaction optimization dataset" --limit 5
+uv run --locked python knowledge_base/build_embeddings.py --provider hashed
+uv run --locked python knowledge_base/query_embeddings.py "reaction optimization dataset" --limit 5
 ```
 
 Use an OpenAI-compatible embedding endpoint:
@@ -156,21 +162,30 @@ Use an OpenAI-compatible embedding endpoint:
 export CARE_OPENAI_API_KEY="..."
 export CARE_OPENAI_BASE_URL="https://your-endpoint/v1"
 export CARE_EMBEDDING_MODEL="your-embedding-model"
-python3 knowledge_base/build_embeddings.py --provider openai
+uv run --locked python knowledge_base/build_embeddings.py --provider openai
 ```
 
 The API key is never stored in the repository. A chat-only model endpoint is not
 enough for this path; the endpoint must support `/v1/embeddings`.
 
-For a local semantic embedding model, install `sentence-transformers` and use:
+For a local semantic embedding model, select the `embeddings` extra. It
+includes Sentence Transformers and CPU PyTorch for a consistent setup on
+colleagues' machines:
 
 ```bash
-python3 knowledge_base/build_embeddings.py \
+uv sync --locked --extra embeddings
+uv run --locked --extra embeddings python knowledge_base/build_embeddings.py \
   --provider sentence_transformers \
   --model sentence-transformers/all-MiniLM-L6-v2
-python3 knowledge_base/query_embeddings.py \
+uv run --locked --extra embeddings python knowledge_base/query_embeddings.py \
   "negative transfer reaction representation" --limit 5
 ```
+
+The first semantic run downloads the selected model from Hugging Face and
+caches it locally; `uv sync` installs packages but does not download model
+weights. Keep `--extra embeddings` on commands that use the semantic provider,
+including `self_update.py` and `close_loop.py` when configured for it, so uv
+includes these optional packages when it synchronizes the environment.
 
 The JSONL index records the provider and model for every vector, so the query
 path cannot silently mix hashed, API, and local-model embeddings.

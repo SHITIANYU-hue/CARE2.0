@@ -63,7 +63,7 @@ def sentence_transformer_embedding(text: str, model: str) -> list[float]:
         from sentence_transformers import SentenceTransformer
     except ImportError as exc:
         raise RuntimeError(
-            "Install sentence-transformers before querying this index."
+            "Use uv run --locked --extra embeddings python knowledge_base/query_embeddings.py to query this semantic index."
         ) from exc
     vector = SentenceTransformer(model).encode(
         [text],
