@@ -32,6 +32,13 @@ solely by validation loss. The final epoch's three sample responses contain vali
 JSON, but only two pass strict rule compilation; local generation is not
 constrained decoding.
 
+The [completed matched post-training pilot](results/2026-09-15-rsi-posttraining-comparison-v1/README.md)
+retains all 100 evaluation trajectories across frozen-base and trained-adapter
+conditions. The same-task mean AUC gain is +9.11335 (6 paired wins, 4 losses),
+entirely from the initial policy; the extra true-feedback recursive gain is zero.
+Shuffled feedback performs better than true feedback in this one-chain pilot.
+These results do not establish a distinct recursion benefit or generalization.
+
 The canonical dataset in `results/2026-09-15-rsi-full-sft-dataset-v2` contains
 42 training and 12 validation records, with zero exact prompt-group overlap.
 The three scientific task families still occur on both sides. This is full

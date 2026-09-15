@@ -21,4 +21,4 @@
 
 [模型文件哈希](base_model_manifest.json)、[执行清单](execution_manifest.json)及[服务器代码快照](code_snapshot/README.md)标识实际运行版本。之前的 prompt 重叠、GPU0 OOM 和训练目标内部格式错误均在 attempt_history 中保留；被中止的 v3 模型没有用于部署。
 
-数据涵盖 FreeSolv、Lipophilicity 和实验带隙三个任务；训练和验证仍共享任务及相关历史。这次证明现有数据的完整训练流程已完成，不能据此认定科学实验增益或跨任务泛化。后训练 RSI 结果另见配对对照报告。
+数据涵盖 FreeSolv、Lipophilicity 和实验带隙三个任务；训练和验证仍共享任务及相关历史。这次证明现有数据的完整训练流程已完成，不能据此认定科学实验增益或跨任务泛化。[后训练 RSI 配对对照](../2026-09-15-rsi-posttraining-comparison-v1/README.md)也已完成。

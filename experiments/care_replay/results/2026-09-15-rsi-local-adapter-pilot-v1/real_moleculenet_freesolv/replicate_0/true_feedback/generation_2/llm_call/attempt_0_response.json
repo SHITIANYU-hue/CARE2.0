@@ -1,0 +1,191 @@
+{
+  "attempt": 0,
+  "request": {
+    "model": "local/qwen25-32b-adapter",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a scientific optimization researcher revising executable semantic skills. Use only the evidence explicitly supplied. Never claim model-weight training or unseen target measurements. Return one valid JSON object with exactly two distinct skills. Every rule conditions value must exactly match the supplied public catalog. You may retain a successful skill and propose a counter-hypothesis. Select exactly one skill for deployment using selected_skill_id. Use short lowercase snake_case skill IDs. Include lesson and revision_summary strings. Use at most four rules per skill. Keep rationale and lesson concise."
+      },
+      {
+        "role": "user",
+        "content": "{\"task\": \"Revise the preceding executable skills for the same scientific search task. Return two skills and select one for deployment.\", \"target\": {\"dataset\": \"real_moleculenet_freesolv\", \"title\": \"MoleculeNet FreeSolv hydration free-energy replay\", \"objective\": \"maximize_hydration_affinity_score\", \"candidate_count\": 642, \"public_semantic_fields\": {\"smiles_length_bin\": {\"smiles_long\": 13, \"smiles_mid\": 122, \"smiles_short\": 506, \"smiles_very_long\": 1}, \"hetero_atom_bin\": {\"hetero_high\": 28, \"hetero_low\": 316, \"hetero_mid\": 91, \"hetero_none\": 207}, \"halogen_bin\": {\"halogen_high\": 43, \"halogen_low\": 73, \"halogen_mid\": 59, \"halogen_none\": 467}, \"aromatic_bin\": {\"aromatic_high\": 3, \"aromatic_low\": 203, \"aromatic_mid\": 61, \"aromatic_none\": 375}, \"ring_token_bin\": {\"ring_token_high\": 2, \"ring_token_low\": 247, \"ring_token_mid\": 73, \"ring_token_none\": 320}, \"branch_bin\": {\"branch_high\": 20, \"branch_low\": 311, \"branch_mid\": 116, \"branch_none\": 195}, \"double_bond_bin\": {\"double_bond_low\": 179, \"double_bond_mid\": 71, \"double_bond_none\": 392}}, \"hidden_target\": \"hydration_affinity_score\", \"boundary\": \"Field values and counts are public; target outcomes are not included.\"}, \"source_transfer_evidence\": {\"source_dataset\": \"real_moleculenet_esol\", \"source_objective\": \"maximize_normalized_solubility\", \"source_observation_count\": 512, \"roles\": [{\"source_field\": \"smiles_length_bin\", \"target_field\": \"smiles_length_bin\", \"source_support_count\": 3, \"source_mean_abs_effect\": 8.322, \"source_max_abs_effect\": 11.4573, \"confidence\": 0.2236, \"transfer_weight\": 0.5736}, {\"source_field\": \"hbond_donor_bin\", \"target_field\": \"hetero_atom_bin\", \"source_support_count\": 4, \"source_mean_abs_effect\": 4.8005, \"source_max_abs_effect\": 7.0201, \"confidence\": 0.1591, \"transfer_weight\": 0.5091}, {\"source_field\": \"ring_bin\", \"target_field\": \"ring_token_bin\", \"source_support_count\": 4, \"source_mean_abs_effect\": 9.9419, \"source_max_abs_effect\": 21.9901, \"confidence\": 0.4079, \"transfer_weight\": 0.7579}, {\"source_field\": \"rotatable_bond_bin\", \"target_field\": \"branch_bin\", \"source_support_count\": 4, \"source_mean_abs_effect\": 6.9595, \"source_max_abs_effect\": 21.3794, \"confidence\": 0.4079, \"transfer_weight\": 0.7579}], \"shared_value_priors\": [{\"source_field\": \"smiles_length_bin\", \"target_field\": \"smiles_length_bin\", \"value\": \"smiles_short\", \"source_support_count\": 261, \"source_effect\": 6.8942, \"confidence\": 0.2801, \"transfer_weight\": 0.039545}, {\"source_field\": \"smiles_length_bin\", \"target_field\": \"smiles_length_bin\", \"value\": \"smiles_mid\", \"source_support_count\": 226, \"source_effect\": -6.6146, \"confidence\": 0.2687, \"transfer_weight\": 0.037941}, {\"source_field\": \"smiles_length_bin\", \"target_field\": \"smiles_length_bin\", \"value\": \"smiles_long\", \"source_support_count\": 24, \"source_effect\": -11.4573, \"confidence\": 0.4655, \"transfer_weight\": 0.065719}], \"boundary\": \"Only source outcomes and public source/target descriptors are summarized. No target outcomes are present.\", \"evidence_mode\": \"full\"}, \"executor\": {\"semantic_model\": \"Rules become binary features. Revealed target outcomes fit a ridge Bayesian linear surrogate whose coefficient prior follows rule weights.\", \"anchor\": \"A rank blend of target-only GP-UCB and GP-EI.\", \"fusion\": \"semantic_mass_start/end controls the rank mass assigned to the semantic surrogate; the remaining mass stays on the target-only anchor.\", \"selection\": \"Independent calibration seeds select one frozen skill. Independent held-out seeds are evaluated only after selection.\"}, \"design_requirements\": [\"Return exactly 2 diverse skills.\", \"Keep each skill to 2-4 rules, each rationale to at most 25 words, and each hypothesis to at most 45 words.\", \"Use only exact field/value pairs in public_semantic_fields.\", \"Each conditions object must map a real catalog field name directly to one exact catalog value, for example {\\\"dominant_family\\\": \\\"oxide\\\"}. Never use literal placeholder keys such as exact_field, field_name, field, or value.\", \"Give every skill a distinct, descriptive scientific skill_id. Never copy schema placeholders such as short_unique_name or add numeric suffixes to a placeholder.\", \"Use two-condition interactions only when scientifically meaningful.\", \"Include at least one skill explicitly grounded in the supplied source outcome evidence.\", \"Include at least one domain-knowledge proposal.\", \"Include a counter-hypothesis proposal that reverses or downweights an uncertain source relation.\", \"Prefer mechanistic, chemically or physically interpretable rules over arbitrary coverage rules.\", \"Do not claim access to target outcomes and do not output candidate identifiers.\"], \"allowed_ranges\": {\"rule_weight\": \"[-1, 1]\", \"ridge\": \"[0.05, 20]\", \"prior_scale\": \"[0, 1.5]\", \"semantic_mass_start_end\": \"[0, 0.85]\", \"ucb_weight\": \"[0, 1]; EI weight is 1 - ucb_weight\", \"gp_beta_start_end\": \"[0.2, 4]\", \"gp_xi\": \"[0, 0.2]\", \"confidence\": \"[0.05, 1]\"}, \"output_contract\": {\"skills\": [{\"skill_id\": \"descriptive_scientific_skill_id\", \"rules\": [{\"rule_id\": \"mechanistic_rule\", \"conditions\": {\"field_name_from_public_semantic_fields\": \"exact_catalog_value\"}, \"weight\": 0.5, \"rationale\": \"short scientific rationale\"}], \"ridge\": 1.0, \"prior_scale\": 0.25, \"semantic_mass_start\": 0.3, \"semantic_mass_end\": 0.1, \"ucb_weight\": 0.6, \"gp_beta_start\": 2.0, \"gp_beta_end\": 1.0, \"gp_xi\": 0.01, \"confidence\": 0.7, \"hypothesis\": \"what this skill transfers and when it may fail\"}]}, \"proposal_mode\": \"parametric\", \"deployment_requirement\": \"Also output selected_skill_id matching one of the two skill IDs, lesson, and revision_summary. Deployment is frozen before evaluation.\", \"previous_skills\": {\"skills\": [{\"skill_id\": \"size_and_hbond_transfer\", \"rules\": [{\"rule_id\": \"long_smiles_penalty\", \"conditions\": [[\"smiles_length_bin\", \"smiles_long\"]], \"weight\": -0.6, \"rationale\": \"Source ESOL: long SMILES reduced solubility (-11.46); hydration affinity often inversely related to molecular size.\"}, {\"rule_id\": \"heteroatom_rich_bonus\", \"conditions\": [[\"hetero_atom_bin\", \"hetero_high\"]], \"weight\": 0.5, \"rationale\": \"Hydrogen-bond donors (heteroatoms) donate water hydrogen bonds, raising hydration affinity.\"}, {\"rule_id\": \"ring_rich_penalty\", \"conditions\": [[\"ring_token_bin\", \"ring_token_high\"]], \"weight\": -0.4, \"rationale\": \"Ring-rich molecules pack poorly in water, lowering hydration affinity; source ring_bin transferred strongly (w=0.76).\"}, {\"rule_id\": \"halogen_rich_penalty\", \"conditions\": [[\"halogen_bin\", \"halogen_high\"]], \"weight\": -0.3, \"rationale\": \"Halogen substitution weakens hydrogen bonding, reducing hydration affinity.\"}], \"ridge\": 1.0, \"prior_scale\": 0.25, \"semantic_mass_start\": 0.4, \"semantic_mass_end\": 0.15, \"ucb_weight\": 0.6, \"gp_beta_start\": 2.0, \"gp_beta_end\": 1.0, \"gp_xi\": 0.01, \"confidence\": 0.55, \"hypothesis\": \"Transfers ESOL solubility effects: small heterocyclics score highest, large ring-rich halogenated candidates lowest. Fails if hydration affinity tracks polar surface area rather than size.\"}, {\"skill_id\": \"polar_surface_area_counter_hypothesis\", \"rules\": [{\"rule_id\": \"small_heterocycle_bonus\", \"conditions\": [[\"hetero_atom_bin\", \"hetero_high\"], [\"smiles_length_bin\", \"smiles_short\"]], \"weight\": 0.7, \"rationale\": \"Small heterocycles maximize polar surface area per atom, the dominant hydration driver.\"}, {\"rule_id\": \"large_halogenated_penalty\", \"conditions\": [[\"halogen_bin\", \"halogen_high\"], [\"smiles_length_bin\", \"smiles_long\"]], \"weight\": -0.6, \"rationale\": \"Large halogenated solutes have low polar surface area and poor water packing.\"}, {\"rule_id\": \"aromatic_rich_penalty\", \"conditions\": [[\"aromatic_bin\", \"aromatic_high\"]], \"weight\": -0.4, \"rationale\": \"Aromatic surfaces hydrate poorly, so aromaticity should lower hydration affinity.\"}, {\"rule_id\": \"ring_free_bonus\", \"conditions\": [[\"ring_token_bin\", \"ring_token_none\"]], \"weight\": 0.3, \"rationale\": \"Ring-free acyclic scaffolds pack well in water, raising hydration affinity.\"}], \"ridge\": 1.5, \"prior_scale\": 0.35, \"semantic_mass_start\": 0.35, \"semantic_mass_end\": 0.1, \"ucb_weight\": 0.55, \"gp_beta_start\": 2.2, \"gp_beta_end\": 1.0, \"gp_xi\": 0.015, \"confidence\": 0.6, \"hypothesis\": \"Counter-hypothesis: hydration affinity tracks polar surface area, not size. Fails if the source smiles_length effect (+6.89/-6.61/-11.46) carries across.\"}], \"selected_skill_id\": \"size_and_hbond_transfer\", \"lesson\": \"Across two development seeds, both skills reached the same final best score (95.4), so the seed-level differences in AUC and final best are unreliable. The source-grounded skill's mean AUC (81.2) was higher than the counter-hypothesis (69.4), so the safer choice is to keep the size-and-HBond transfer and deploy it.\", \"revision_summary\": \"Kept the source-grounded skill intact and deployed it, since its mean performance was slightly better and the seed-level differences are too small to draw causal conclusions. The counter-hypothesis remains unchanged as a polar-surface-area alternative.\"}, \"persistent_experimental_memory\": [{\"generation_observed\": 0, \"previous_skills\": {\"skills\": [{\"skill_id\": \"solubility_ring_transfer\", \"rules\": [{\"rule_id\": \"long_smiles_penalty\", \"conditions\": [[\"smiles_length_bin\", \"smiles_long\"]], \"weight\": -0.6, \"rationale\": \"Source ESOL: long SMILES reduced solubility (-11.46); hydration affinity often inversely related to molecular size.\"}, {\"rule_id\": \"heteroatom_rich_bonus\", \"conditions\": [[\"hetero_atom_bin\", \"hetero_high\"]], \"weight\": 0.5, \"rationale\": \"Hydrogen-bond donors (heteroatoms) donate water hydrogen bonds, raising hydration affinity.\"}, {\"rule_id\": \"ring_rich_penalty\", \"conditions\": [[\"ring_token_bin\", \"ring_token_high\"]], \"weight\": -0.4, \"rationale\": \"Ring-rich molecules pack poorly in water, lowering hydration affinity; source ring_bin transferred strongly (w=0.76).\"}, {\"rule_id\": \"halogen_rich_penalty\", \"conditions\": [[\"halogen_bin\", \"halogen_high\"]], \"weight\": -0.3, \"rationale\": \"Halogen substitution weakens hydrogen bonding, reducing hydration affinity.\"}], \"ridge\": 1.0, \"prior_scale\": 0.25, \"semantic_mass_start\": 0.4, \"semantic_mass_end\": 0.15, \"ucb_weight\": 0.6, \"gp_beta_start\": 2.0, \"gp_beta_end\": 1.0, \"gp_xi\": 0.01, \"confidence\": 0.55, \"hypothesis\": \"Transfers ESOL solubility effects: small heterocyclics score highest, large ring-rich halogenated candidates lowest. Fails if hydration affinity tracks polar surface area rather than size.\"}, {\"skill_id\": \"polar_surface_area_counter_hypothesis\", \"rules\": [{\"rule_id\": \"small_heterocycle_bonus\", \"conditions\": [[\"hetero_atom_bin\", \"hetero_high\"], [\"smiles_length_bin\", \"smiles_short\"]], \"weight\": 0.7, \"rationale\": \"Small heterocycles maximize polar surface area per atom, the dominant hydration driver.\"}, {\"rule_id\": \"large_halogenated_penalty\", \"conditions\": [[\"halogen_bin\", \"halogen_high\"], [\"smiles_length_bin\", \"smiles_long\"]], \"weight\": -0.6, \"rationale\": \"Large halogenated solutes have low polar surface area and poor water packing.\"}, {\"rule_id\": \"aromatic_rich_penalty\", \"conditions\": [[\"aromatic_bin\", \"aromatic_high\"]], \"weight\": -0.4, \"rationale\": \"Aromatic surfaces hydrate poorly, so aromaticity should lower hydration affinity.\"}, {\"rule_id\": \"ring_free_bonus\", \"conditions\": [[\"ring_token_bin\", \"ring_token_none\"]], \"weight\": 0.3, \"rationale\": \"Ring-free acyclic scaffolds pack well in water, raising hydration affinity.\"}], \"ridge\": 1.5, \"prior_scale\": 0.35, \"semantic_mass_start\": 0.35, \"semantic_mass_end\": 0.1, \"ucb_weight\": 0.55, \"gp_beta_start\": 2.2, \"gp_beta_end\": 1.0, \"gp_xi\": 0.015, \"confidence\": 0.6, \"hypothesis\": \"Counter-hypothesis: hydration affinity tracks polar surface area, not size. Fails if the source smiles_length effect (+6.89/-6.61/-11.46) carries across.\"}], \"selected_skill_id\": \"polar_surface_area_counter_hypothesis\", \"lesson\": \"The source ESOL evidence is thin (only three smiles_length support points) and low-confidence (0.22), so the safest transfer is a counter-hypothesis that reverses the uncertain size penalty and focuses on polar surface area.\", \"revision_summary\": \"Kept the source-grounded skill but trimmed its weakest rules (branch and double bond) and lowered its semantic mass decay. Added a counter-hypothesis skill that replaces the uncertain smiles_length transfer with a polar-surface-area mechanism, deploying it because the source evidence is too sparse to trust.\"}, \"feedback\": {\"development_only\": true, \"skill_results\": [{\"skill_id\": \"solubility_ring_transfer\", \"seeds\": [202615100, 202615101], \"mean_auc\": 81.165, \"mean_final_best\": 86.31665000000001, \"per_seed\": [{\"seed\": 202615100, \"auc\": 95.4, \"final_best\": 95.4}, {\"seed\": 202615101, \"auc\": 66.93, \"final_best\": 77.2333}]}, {\"skill_id\": \"polar_surface_area_counter_hypothesis\", \"seeds\": [202615100, 202615101], \"mean_auc\": 69.37, \"mean_final_best\": 73.06665000000001, \"per_seed\": [{\"seed\": 202615100, \"auc\": 95.4, \"final_best\": 95.4}, {\"seed\": 202615101, \"auc\": 43.34, \"final_best\": 50.7333}]}]}}, {\"generation_observed\": 1, \"previous_skills\": {\"skills\": [{\"skill_id\": \"size_and_hbond_transfer\", \"rules\": [{\"rule_id\": \"long_smiles_penalty\", \"conditions\": [[\"smiles_length_bin\", \"smiles_long\"]], \"weight\": -0.6, \"rationale\": \"Source ESOL: long SMILES reduced solubility (-11.46); hydration affinity often inversely related to molecular size.\"}, {\"rule_id\": \"heteroatom_rich_bonus\", \"conditions\": [[\"hetero_atom_bin\", \"hetero_high\"]], \"weight\": 0.5, \"rationale\": \"Hydrogen-bond donors (heteroatoms) donate water hydrogen bonds, raising hydration affinity.\"}, {\"rule_id\": \"ring_rich_penalty\", \"conditions\": [[\"ring_token_bin\", \"ring_token_high\"]], \"weight\": -0.4, \"rationale\": \"Ring-rich molecules pack poorly in water, lowering hydration affinity; source ring_bin transferred strongly (w=0.76).\"}, {\"rule_id\": \"halogen_rich_penalty\", \"conditions\": [[\"halogen_bin\", \"halogen_high\"]], \"weight\": -0.3, \"rationale\": \"Halogen substitution weakens hydrogen bonding, reducing hydration affinity.\"}], \"ridge\": 1.0, \"prior_scale\": 0.25, \"semantic_mass_start\": 0.4, \"semantic_mass_end\": 0.15, \"ucb_weight\": 0.6, \"gp_beta_start\": 2.0, \"gp_beta_end\": 1.0, \"gp_xi\": 0.01, \"confidence\": 0.55, \"hypothesis\": \"Transfers ESOL solubility effects: small heterocyclics score highest, large ring-rich halogenated candidates lowest. Fails if hydration affinity tracks polar surface area rather than size.\"}, {\"skill_id\": \"polar_surface_area_counter_hypothesis\", \"rules\": [{\"rule_id\": \"small_heterocycle_bonus\", \"conditions\": [[\"hetero_atom_bin\", \"hetero_high\"], [\"smiles_length_bin\", \"smiles_short\"]], \"weight\": 0.7, \"rationale\": \"Small heterocycles maximize polar surface area per atom, the dominant hydration driver.\"}, {\"rule_id\": \"large_halogenated_penalty\", \"conditions\": [[\"halogen_bin\", \"halogen_high\"], [\"smiles_length_bin\", \"smiles_long\"]], \"weight\": -0.6, \"rationale\": \"Large halogenated solutes have low polar surface area and poor water packing.\"}, {\"rule_id\": \"aromatic_rich_penalty\", \"conditions\": [[\"aromatic_bin\", \"aromatic_high\"]], \"weight\": -0.4, \"rationale\": \"Aromatic surfaces hydrate poorly, so aromaticity should lower hydration affinity.\"}, {\"rule_id\": \"ring_free_bonus\", \"conditions\": [[\"ring_token_bin\", \"ring_token_none\"]], \"weight\": 0.3, \"rationale\": \"Ring-free acyclic scaffolds pack well in water, raising hydration affinity.\"}], \"ridge\": 1.5, \"prior_scale\": 0.35, \"semantic_mass_start\": 0.35, \"semantic_mass_end\": 0.1, \"ucb_weight\": 0.55, \"gp_beta_start\": 2.2, \"gp_beta_end\": 1.0, \"gp_xi\": 0.015, \"confidence\": 0.6, \"hypothesis\": \"Counter-hypothesis: hydration affinity tracks polar surface area, not size. Fails if the source smiles_length effect (+6.89/-6.61/-11.46) carries across.\"}], \"selected_skill_id\": \"size_and_hbond_transfer\", \"lesson\": \"Across two development seeds, both skills reached the same final best score (95.4), so the seed-level differences in AUC and final best are unreliable. The source-grounded skill's mean AUC (81.2) was higher than the counter-hypothesis (69.4), so the safer choice is to keep the size-and-HBond transfer and deploy it.\", \"revision_summary\": \"Kept the source-grounded skill intact and deployed it, since its mean performance was slightly better and the seed-level differences are too small to draw causal conclusions. The counter-hypothesis remains unchanged as a polar-surface-area alternative.\"}, \"feedback\": {\"development_only\": true, \"skill_results\": [{\"skill_id\": \"size_and_hbond_transfer\", \"seeds\": [202615102, 202615103], \"mean_auc\": 64.16335, \"mean_final_best\": 77.05, \"per_seed\": [{\"seed\": 202615102, \"auc\": 77.05, \"final_best\": 77.2333}, {\"seed\": 202615103, \"auc\": 51.2767, \"final_best\": 76.8667}]}, {\"skill_id\": \"polar_surface_area_counter_hypothesis\", \"seeds\": [202615102, 202615103], \"mean_auc\": 67.86335, \"mean_final_best\": 83.41665, \"per_seed\": [{\"seed\": 202615102, \"auc\": 85.5467, \"final_best\": 95.4}, {\"seed\": 202615103, \"auc\": 50.18, \"final_best\": 71.4333}]}]}}], \"feedback_boundary\": \"Only completed development-seed summaries may appear here. Held-out evaluation outcomes are unavailable. No global KB retrieval or promotion is performed.\", \"revision_instruction\": \"Use the supplied feedback to identify failures and improve the next skill generation. Do not infer causal mechanisms from a small set of seeds alone.\"}"
+      }
+    ],
+    "temperature": 0.0,
+    "max_tokens": 2048,
+    "response_format": {
+      "type": "json_object"
+    }
+  },
+  "request_sha256": "e0fa63dd376d8edbbd99c8ea34bed54840599350000ecd636a0ed029e3f15d15",
+  "started_at": "2026-09-15T10:10:35.316806+00:00",
+  "credential_included_in_archive": false,
+  "response": {
+    "model": "local/qwen25-32b-adapter",
+    "choices": [
+      {
+        "message": {
+          "role": "assistant",
+          "content": "{\"skills\":[{\"skill_id\":\"size_hbond_ring_transfer\",\"rules\":[{\"rule_id\":\"long_smiles_penalty\",\"conditions\":{\"smiles_length_bin\":\"smiles_long\"},\"weight\":-0.6,\"rationale\":\"Source ESOL: long SMILES reduced solubility (-11.46); hydration affinity often inversely related to molecular size.\"},{\"rule_id\":\"heteroatom_rich_bonus\",\"conditions\":{\"hetero_atom_bin\":\"hetero_high\"},\"weight\":0.5,\"rationale\":\"Hydrogen-bond donors (heteroatoms) donate water hydrogen bonds, raising hydration affinity.\"},{\"rule_id\":\"ring_rich_penalty\",\"conditions\":{\"ring_token_bin\":\"ring_token_high\"},\"weight\":-0.4,\"rationale\":\"Ring-rich molecules pack poorly in water, lowering hydration affinity; source ring_bin transferred strongly (w=0.76).\"},{\"rule_id\":\"halogen_rich_penalty\",\"conditions\":{\"halogen_bin\":\"halogen_high\"},\"weight\":-0.3,\"rationale\":\"Halogen substitution weakens hydrogen bonding, reducing hydration affinity.\"}],\"ridge\":1.0,\"prior_scale\":0.25,\"semantic_mass_start\":0.4,\"semantic_mass_end\":0.15,\"ucb_weight\":0.6,\"gp_beta_start\":2.0,\"gp_beta_end\":1.0,\"gp_xi\":0.01,\"confidence\":0.55,\"hypothesis\":\"Transfers ESOL solubility effects: small heterocyclics score highest, large ring-rich halogenated candidates lowest. Fails if hydration affinity tracks polar surface area rather than size.\"},{\"skill_id\":\"polar_surface_area_counter_hypothesis\",\"rules\":[{\"rule_id\":\"small_heterocycle_bonus\",\"conditions\":{\"hetero_atom_bin\":\"hetero_high\",\"smiles_length_bin\":\"smiles_short\"},\"weight\":0.7,\"rationale\":\"Small heterocycles maximize polar surface area per atom, the dominant hydration driver.\"},{\"rule_id\":\"large_halogenated_penalty\",\"conditions\":{\"halogen_bin\":\"halogen_high\",\"smiles_length_bin\":\"smiles_long\"},\"weight\":-0.6,\"rationale\":\"Large halogenated solutes have low polar surface area and poor water packing.\"},{\"rule_id\":\"aromatic_rich_penalty\",\"conditions\":{\"aromatic_bin\":\"aromatic_high\"},\"weight\":-0.4,\"rationale\":\"Aromatic surfaces hydrate poorly, so aromaticity should lower hydration affinity.\"},{\"rule_id\":\"ring_free_bonus\",\"conditions\":{\"ring_token_bin\":\"ring_token_none\"},\"weight\":0.3,\"rationale\":\"Ring-free acyclic scaffolds pack well in water, raising hydration affinity.\"}],\"ridge\":1.5,\"prior_scale\":0.35,\"semantic_mass_start\":0.35,\"semantic_mass_end\":0.1,\"ucb_weight\":0.55,\"gp_beta_start\":2.2,\"gp_beta_end\":1.0,\"gp_xi\":0.015,\"confidence\":0.6,\"hypothesis\":\"Counter-hypothesis: hydration affinity tracks polar surface area, not size. Fails if the source smiles_length effect (+6.89/-6.61/-11.46) carries across.\"}],\"selected_skill_id\":\"polar_surface_area_counter_hypothesis\",\"lesson\":\"Across four development seeds, the source-grounded skill's mean AUC dropped from 81.2 to 64.2 while the counter-hypothesis rose from 69.4 to 67.9, reversing the earlier ordering. Seed-level final best scores were again unreliable, so the only reliable signal is the AUC trend, which favors the polar-surface-area mechanism.\",\"revision_summary\":\"Kept both skills unchanged, since the AUC shift reversed the previous ordering and the seed-level final bests remain unreliable. Deployed the polar-surface-area counter-hypothesis, which now has the higher mean AUC.\"}"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 5338,
+      "completion_tokens": 817,
+      "total_tokens": 6155
+    },
+    "local_provenance": {
+      "backend": "local_qlora",
+      "base_model_path": "/work/zeyuwang/ms_cache/Qwen/Qwen2___5-32B-Instruct",
+      "base_config_sha256": "9c6772f138ef9e5b3d1c18f2c87e451bbc01f5f1a4eabb36f9bf4f53829b903e",
+      "adapter_path": "/work/zeyuwang/care-rsi/repo/experiments/care_replay/results/2026-09-15-rsi-qwen25-32b-full-sft-v4/best_adapter",
+      "weights_frozen_during_search": true,
+      "quantization": "4-bit NF4 double quantization",
+      "torch": "2.4.0+cu121",
+      "transformers": "4.51.3",
+      "gpu": "NVIDIA A800 80GB PCIe",
+      "adapter_sha256": "30cd27d9ee6250ced68434096a698770ebdd9e2bc420bf5dfd32be285d907ed3",
+      "generation_seed": 218106567,
+      "response_format_enforced_by_compiler": true
+    }
+  },
+  "elapsed_seconds": 127.33587037399411,
+  "raw_model_content": "{\"skills\":[{\"skill_id\":\"size_hbond_ring_transfer\",\"rules\":[{\"rule_id\":\"long_smiles_penalty\",\"conditions\":{\"smiles_length_bin\":\"smiles_long\"},\"weight\":-0.6,\"rationale\":\"Source ESOL: long SMILES reduced solubility (-11.46); hydration affinity often inversely related to molecular size.\"},{\"rule_id\":\"heteroatom_rich_bonus\",\"conditions\":{\"hetero_atom_bin\":\"hetero_high\"},\"weight\":0.5,\"rationale\":\"Hydrogen-bond donors (heteroatoms) donate water hydrogen bonds, raising hydration affinity.\"},{\"rule_id\":\"ring_rich_penalty\",\"conditions\":{\"ring_token_bin\":\"ring_token_high\"},\"weight\":-0.4,\"rationale\":\"Ring-rich molecules pack poorly in water, lowering hydration affinity; source ring_bin transferred strongly (w=0.76).\"},{\"rule_id\":\"halogen_rich_penalty\",\"conditions\":{\"halogen_bin\":\"halogen_high\"},\"weight\":-0.3,\"rationale\":\"Halogen substitution weakens hydrogen bonding, reducing hydration affinity.\"}],\"ridge\":1.0,\"prior_scale\":0.25,\"semantic_mass_start\":0.4,\"semantic_mass_end\":0.15,\"ucb_weight\":0.6,\"gp_beta_start\":2.0,\"gp_beta_end\":1.0,\"gp_xi\":0.01,\"confidence\":0.55,\"hypothesis\":\"Transfers ESOL solubility effects: small heterocyclics score highest, large ring-rich halogenated candidates lowest. Fails if hydration affinity tracks polar surface area rather than size.\"},{\"skill_id\":\"polar_surface_area_counter_hypothesis\",\"rules\":[{\"rule_id\":\"small_heterocycle_bonus\",\"conditions\":{\"hetero_atom_bin\":\"hetero_high\",\"smiles_length_bin\":\"smiles_short\"},\"weight\":0.7,\"rationale\":\"Small heterocycles maximize polar surface area per atom, the dominant hydration driver.\"},{\"rule_id\":\"large_halogenated_penalty\",\"conditions\":{\"halogen_bin\":\"halogen_high\",\"smiles_length_bin\":\"smiles_long\"},\"weight\":-0.6,\"rationale\":\"Large halogenated solutes have low polar surface area and poor water packing.\"},{\"rule_id\":\"aromatic_rich_penalty\",\"conditions\":{\"aromatic_bin\":\"aromatic_high\"},\"weight\":-0.4,\"rationale\":\"Aromatic surfaces hydrate poorly, so aromaticity should lower hydration affinity.\"},{\"rule_id\":\"ring_free_bonus\",\"conditions\":{\"ring_token_bin\":\"ring_token_none\"},\"weight\":0.3,\"rationale\":\"Ring-free acyclic scaffolds pack well in water, raising hydration affinity.\"}],\"ridge\":1.5,\"prior_scale\":0.35,\"semantic_mass_start\":0.35,\"semantic_mass_end\":0.1,\"ucb_weight\":0.55,\"gp_beta_start\":2.2,\"gp_beta_end\":1.0,\"gp_xi\":0.015,\"confidence\":0.6,\"hypothesis\":\"Counter-hypothesis: hydration affinity tracks polar surface area, not size. Fails if the source smiles_length effect (+6.89/-6.61/-11.46) carries across.\"}],\"selected_skill_id\":\"polar_surface_area_counter_hypothesis\",\"lesson\":\"Across four development seeds, the source-grounded skill's mean AUC dropped from 81.2 to 64.2 while the counter-hypothesis rose from 69.4 to 67.9, reversing the earlier ordering. Seed-level final best scores were again unreliable, so the only reliable signal is the AUC trend, which favors the polar-surface-area mechanism.\",\"revision_summary\":\"Kept both skills unchanged, since the AUC shift reversed the previous ordering and the seed-level final bests remain unreliable. Deployed the polar-surface-area counter-hypothesis, which now has the higher mean AUC.\"}",
+  "normalized": {
+    "skills": [
+      {
+        "skill_id": "size_hbond_ring_transfer",
+        "rules": [
+          {
+            "rule_id": "long_smiles_penalty",
+            "conditions": [
+              [
+                "smiles_length_bin",
+                "smiles_long"
+              ]
+            ],
+            "weight": -0.6,
+            "rationale": "Source ESOL: long SMILES reduced solubility (-11.46); hydration affinity often inversely related to molecular size."
+          },
+          {
+            "rule_id": "heteroatom_rich_bonus",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_high"
+              ]
+            ],
+            "weight": 0.5,
+            "rationale": "Hydrogen-bond donors (heteroatoms) donate water hydrogen bonds, raising hydration affinity."
+          },
+          {
+            "rule_id": "ring_rich_penalty",
+            "conditions": [
+              [
+                "ring_token_bin",
+                "ring_token_high"
+              ]
+            ],
+            "weight": -0.4,
+            "rationale": "Ring-rich molecules pack poorly in water, lowering hydration affinity; source ring_bin transferred strongly (w=0.76)."
+          },
+          {
+            "rule_id": "halogen_rich_penalty",
+            "conditions": [
+              [
+                "halogen_bin",
+                "halogen_high"
+              ]
+            ],
+            "weight": -0.3,
+            "rationale": "Halogen substitution weakens hydrogen bonding, reducing hydration affinity."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.25,
+        "semantic_mass_start": 0.4,
+        "semantic_mass_end": 0.15,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.01,
+        "confidence": 0.55,
+        "hypothesis": "Transfers ESOL solubility effects: small heterocyclics score highest, large ring-rich halogenated candidates lowest. Fails if hydration affinity tracks polar surface area rather than size."
+      },
+      {
+        "skill_id": "polar_surface_area_counter_hypothesis",
+        "rules": [
+          {
+            "rule_id": "small_heterocycle_bonus",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_high"
+              ],
+              [
+                "smiles_length_bin",
+                "smiles_short"
+              ]
+            ],
+            "weight": 0.7,
+            "rationale": "Small heterocycles maximize polar surface area per atom, the dominant hydration driver."
+          },
+          {
+            "rule_id": "large_halogenated_penalty",
+            "conditions": [
+              [
+                "halogen_bin",
+                "halogen_high"
+              ],
+              [
+                "smiles_length_bin",
+                "smiles_long"
+              ]
+            ],
+            "weight": -0.6,
+            "rationale": "Large halogenated solutes have low polar surface area and poor water packing."
+          },
+          {
+            "rule_id": "aromatic_rich_penalty",
+            "conditions": [
+              [
+                "aromatic_bin",
+                "aromatic_high"
+              ]
+            ],
+            "weight": -0.4,
+            "rationale": "Aromatic surfaces hydrate poorly, so aromaticity should lower hydration affinity."
+          },
+          {
+            "rule_id": "ring_free_bonus",
+            "conditions": [
+              [
+                "ring_token_bin",
+                "ring_token_none"
+              ]
+            ],
+            "weight": 0.3,
+            "rationale": "Ring-free acyclic scaffolds pack well in water, raising hydration affinity."
+          }
+        ],
+        "ridge": 1.5,
+        "prior_scale": 0.35,
+        "semantic_mass_start": 0.35,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.55,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.015,
+        "confidence": 0.6,
+        "hypothesis": "Counter-hypothesis: hydration affinity tracks polar surface area, not size. Fails if the source smiles_length effect (+6.89/-6.61/-11.46) carries across."
+      }
+    ],
+    "selected_skill_id": "polar_surface_area_counter_hypothesis",
+    "lesson": "Across four development seeds, the source-grounded skill's mean AUC dropped from 81.2 to 64.2 while the counter-hypothesis rose from 69.4 to 67.9, reversing the earlier ordering. Seed-level final best scores were again unreliable, so the only reliable signal is the AUC trend, which favors the polar-surface-area mechanism.",
+    "revision_summary": "Kept both skills unchanged, since the AUC shift reversed the previous ordering and the seed-level final bests remain unreliable. Deployed the polar-surface-area counter-hypothesis, which now has the higher mean AUC."
+  },
+  "status": "valid"
+}

@@ -1,0 +1,141 @@
+{
+  "parent_state_sha256": "fae0876e5b48209dea73c422c23ca909c88050431417f66228c269735f13f5b8",
+  "new_state_sha256": "ab6ecc7eb0eed721019bba228ac9954902fa4a2d3deea9e7707b96c9937b87f8",
+  "generation": 2,
+  "arm": "shuffled_feedback",
+  "state": {
+    "skills": [
+      {
+        "skill_id": "polar_surface_area_counter_hypothesis_v3",
+        "rules": [
+          {
+            "rule_id": "small_heterocycle_bonus",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_high"
+              ],
+              [
+                "smiles_length_bin",
+                "smiles_short"
+              ]
+            ],
+            "weight": 0.7,
+            "rationale": "Small heterocycles maximize polar surface area per atom, the dominant hydration driver."
+          },
+          {
+            "rule_id": "large_halogenated_penalty",
+            "conditions": [
+              [
+                "halogen_bin",
+                "halogen_high"
+              ],
+              [
+                "smiles_length_bin",
+                "smiles_long"
+              ]
+            ],
+            "weight": -0.6,
+            "rationale": "Large halogenated solutes have low polar surface area and poor water packing."
+          },
+          {
+            "rule_id": "aromatic_rich_penalty",
+            "conditions": [
+              [
+                "aromatic_bin",
+                "aromatic_high"
+              ]
+            ],
+            "weight": -0.4,
+            "rationale": "Aromatic surfaces hydrate poorly, so aromaticity should lower hydration affinity."
+          },
+          {
+            "rule_id": "ring_free_bonus",
+            "conditions": [
+              [
+                "ring_token_bin",
+                "ring_token_none"
+              ]
+            ],
+            "weight": 0.3,
+            "rationale": "Ring-free acyclic scaffolds pack well in water, raising hydration affinity."
+          }
+        ],
+        "ridge": 1.5,
+        "prior_scale": 0.35,
+        "semantic_mass_start": 0.35,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.55,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.015,
+        "confidence": 0.6,
+        "hypothesis": "Counter-hypothesis: hydration affinity tracks polar surface area, not size. Fails if the source smiles_length effect (+6.89/-6.61/-11.46) carries across."
+      },
+      {
+        "skill_id": "hydrogen_bonding_hydration_transfer",
+        "rules": [
+          {
+            "rule_id": "heteroatom_rich_bonus",
+            "conditions": [
+              [
+                "hetero_atom_bin",
+                "hetero_high"
+              ]
+            ],
+            "weight": 0.6,
+            "rationale": "Hydrogen-bond donors (heteroatoms) donate water hydrogen bonds, raising hydration affinity."
+          },
+          {
+            "rule_id": "halogen_rich_penalty",
+            "conditions": [
+              [
+                "halogen_bin",
+                "halogen_high"
+              ]
+            ],
+            "weight": -0.4,
+            "rationale": "Halogen substitution weakens hydrogen bonding, reducing hydration affinity."
+          },
+          {
+            "rule_id": "aromatic_rich_penalty",
+            "conditions": [
+              [
+                "aromatic_bin",
+                "aromatic_high"
+              ]
+            ],
+            "weight": -0.3,
+            "rationale": "Aromatic surfaces hydrate poorly, so aromaticity should lower hydration affinity."
+          },
+          {
+            "rule_id": "ring_rich_penalty",
+            "conditions": [
+              [
+                "ring_token_bin",
+                "ring_token_high"
+              ]
+            ],
+            "weight": -0.2,
+            "rationale": "Ring-rich molecules pack poorly in water, lowering hydration affinity; source ring_bin transferred strongly (w=0.76)."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.25,
+        "semantic_mass_start": 0.3,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.01,
+        "confidence": 0.5,
+        "hypothesis": "Transfers ESOL hydrogen-bonding effects: heteroatom-rich, halogen-poor, aromatic-poor, ring-poor candidates score highest. Fails if hydration affinity tracks polar surface area rather than hydrogen bonding."
+      }
+    ],
+    "selected_skill_id": "hydrogen_bonding_hydration_transfer",
+    "lesson": "Across four development seeds, the polar-surface-area counter-hypothesis skill dropped sharply from generation 0 (mean AUC 81.17) to generation 1 (mean AUC 61.21), while the size-and-heteroatom transfer skill held steady (mean AUC 69.37 to 67.86). This suggests the polar-surface-area mechanism was too fragile to carry across, so the safer transfer is hydrogen bonding.",
+    "revision_summary": "Retained the polar-surface-area counter-hypothesis skill unchanged as v3, since its core mechanism remains the strongest mechanistic prior. Replaced the deployed size-transfer skill with a hydrogen-bonding transfer that keeps the heteroatom bonus and ring penalty but drops the uncertain smiles_length term, so the deployed skill now transfers hydrogen bonding rather than size."
+  },
+  "memory_sha256": "3f6aed8cc1979ac8435683637a2bd5219b07bf83310a25e3bf82afca951af329",
+  "experimental_only": true
+}
