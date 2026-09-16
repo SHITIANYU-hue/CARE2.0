@@ -73,6 +73,22 @@ uv run --locked --all-extras pytest experiments/astabench/tests
 
 验收未下载语义模型权重，未运行付费模型或新的完整科学实验。日志保存在本地 `.git/uv-validation/`，不进入源码目录。
 
+## 团队开发与完整实验复现的范围
+
+该分支可以作为主线开发、测试及扩展功能开发的起点。七对默认主线任务所需的冻结模型记录和数据已跟踪，不依赖维护者本机的未提交文件。
+
+2026-09-16 在 WSL 中从提交 `ff29aa93` 建立独立浅克隆和新的 `.venv` 后，默认安装、无历史结果的核心测试（57 passed、1 skipped）、恢复三个证据包后的完整主线测试（311 passed、1 skipped）、全部可选依赖导入和 AstaBench 离线测试（12 passed）均通过。克隆目录的受跟踪文件没有变化。
+
+完整实验还需要以下输入或外部条件：
+
+- **其他历史报告和实验**：按配置恢复 `artifacts/` 中对应的结果包；默认完整回归所需的三个包见上文。
+- **额外公共数据任务**：`flip2_trpb_one_to_many.csv.gz`、`matbench_mp_gap.json.gz`、`matbench_mp_e_form.json.gz` 未随 Git 提交，相关任务首次运行时由 `run_synthetic_suzuki.py` 联网下载。当前下载器未校验内容 SHA，因此不能承诺上游文件未来变化时仍逐字节复现；它们不是上述七对默认主线测试的前提。
+- **在线 LLM 实验**：使用调用方自己的 API 凭据和额度，按照对应实验说明配置 `CARE_LLM_API_KEY`、`COMMONSTACK_API_KEY` 等。
+- **AstaBench 实际评测**：需要数据集访问许可、Hugging Face 凭据及所用模型的 API 凭据；复现官方 ReAct 对照还需按实验协议获取外部 `allenai/agent-baselines` 仓库的指定提交。本仓库的 uv 环境包含 CARE 适配器。
+- **本地语义模型**：首次使用另外下载权重；uv 锁定的是 Python 依赖，不包含模型权重和外部服务。
+
+当前部署验收覆盖 WSL2 Ubuntu 24.04 / Python 3.12；其他操作系统、Python 版本、完整科学实验和外部服务应按实际使用场景再验收。推送后的 GitHub Actions 通过后，可将该提交作为团队已验证的开发基线。
+
 ## 添加和升级依赖
 
 ```bash
