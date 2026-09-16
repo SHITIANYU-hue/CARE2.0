@@ -98,7 +98,7 @@ def compare(base_root, adapter_root):
         'status': 'matched_diagnostic_complete', 'tasks': tasks,
         'primary_comparison': 'adapter true-feedback minus frozen-base true-feedback AUC',
         'checks': {'matched_settings': True, 'same_gp_control': True, 'same_initial_observations': True, 'heldout_feedback_excluded': True},
-        'claim_boundary': 'Same-task diagnostic. Few model chains do not establish call-level reliability or task-family generalization. Training improves RSI only if matched base, no-feedback and shuffled-feedback comparisons replicate on families unused for training and checkpoint selection.',
+        'claim_boundary': base_config.get('claim_boundary', 'Diagnostic only; few model chains do not establish reliability or generalization.'),
     }
 
 

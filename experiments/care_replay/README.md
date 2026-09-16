@@ -42,6 +42,12 @@ entirely from the initial policy; the extra true-feedback recursive gain is zero
 Shuffled feedback performs better than true feedback in this one-chain pilot.
 These results do not establish a distinct recursion benefit or generalization.
 
+The [post-hoc frozen-policy factorial replay](results/2026-09-16-rsi-initial-policy-factorial-v2/README.md)
+reproduces the old pure controls and separates rule-plus-weight changes from
+controller changes. Replacing rules alone gives +12.56001 AUC, replacing the
+controller alone +0.60099, and replacing both +9.11335. This reuses old evaluation
+seeds and is descriptive attribution, not an independent confirmation.
+
 The canonical dataset in `results/2026-09-15-rsi-full-sft-dataset-v2` contains
 42 training and 12 validation records, with zero exact prompt-group overlap.
 The three scientific task families still occur on both sides. This is full
