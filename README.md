@@ -20,6 +20,9 @@ Current contents:
 - [RSI 全流程图](docs/RSI_FULL_WORKFLOW_ZH.md): the Chinese flowchart covering
   offline training, experiment selection, feedback revision, paired evaluation,
   and archival records.
+- [主流 RSI 路径与 CARE vNext](docs/RSI_PATHS_AND_CARE_VNEXT_ZH.md): a Chinese
+  review of reflection, textual-gradient, prompt-evolution, context-engineering,
+  and post-training paths, plus the trajectory-evidence and promotion-gate design.
 - `docs/NATURE_SUBMISSION_READINESS.md`: the current journal-positioning,
   claim boundary, reviewer-risk, and evidence-completion plan.
 - `CARE2.0_Nature_evidence_update_2026-08-24.pptx`: a 15-slide reviewer-facing
@@ -89,6 +92,8 @@ The latest project sync focuses on three workstreams:
 
 The latest tracked replay output is in:
 
+- `experiments/care_replay/results/2026-09-16-rsi-evidence-gate-phonons-v1/`
+- `experiments/care_replay/results/2026-09-16-rsi-phonons-posttraining-comparison-v2/`
 - `experiments/care_replay/results/2026-08-22-submission-evidence-audit/`
 - `experiments/astabench/results/2026-08-29-internal-quality-cost-audit-v1/`
 - `experiments/care_replay/results/2026-08-24-online-llm-fixed-threshold5-gate-replay-v1/`

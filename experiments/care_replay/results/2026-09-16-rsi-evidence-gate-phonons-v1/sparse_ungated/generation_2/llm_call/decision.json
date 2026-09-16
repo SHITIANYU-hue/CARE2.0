@@ -1,0 +1,125 @@
+{
+  "skills": [
+    {
+      "skill_id": "polarizable_chalcogenide_transfer_v3",
+      "rules": [
+        {
+          "rule_id": "chalcogenide_anion",
+          "conditions": [
+            [
+              "anion_family",
+              "chalcogenide"
+            ]
+          ],
+          "weight": 0.6,
+          "rationale": "Chalcogenide anions raised refractive index in dielectric source; polarizability raises phonon DOS peaks."
+        },
+        {
+          "rule_id": "heavy_main_group_dominant",
+          "conditions": [
+            [
+              "dominant_family",
+              "post_transition"
+            ]
+          ],
+          "weight": 0.5,
+          "rationale": "Post-transition main-group heavy elements raised source objective; high Z raises phonon frequencies."
+        },
+        {
+          "rule_id": "moderately_concentrated",
+          "conditions": [
+            [
+              "max_element_fraction_bin",
+              "moderately_concentrated"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Moderate concentration balances polarizability and bonding complexity."
+        },
+        {
+          "rule_id": "mean_z_mid",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_mid"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Mid mean Z covers chalcogenides and post-transition heavy elements."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.3,
+      "semantic_mass_start": 0.4,
+      "semantic_mass_end": 0.15,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.4,
+      "hypothesis": "Transfers chalcogenide and heavy-element polarity effects from dielectric refractive index; fails if phonon peaks are dominated by light-element modes."
+    },
+    {
+      "skill_id": "covalent_oxide_counter_hypothesis_v2",
+      "rules": [
+        {
+          "rule_id": "oxide_anion",
+          "conditions": [
+            [
+              "anion_family",
+              "oxide"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Oxides dominate the target pool but are typically covalent, giving low-lying phonon peaks."
+        },
+        {
+          "rule_id": "light_nonmetal_dominant",
+          "conditions": [
+            [
+              "dominant_family",
+              "light_nonmetal"
+            ]
+          ],
+          "weight": -0.4,
+          "rationale": "Light nonmetals lowered source objective; low Z lowers phonon frequencies."
+        },
+        {
+          "rule_id": "binary_composition",
+          "conditions": [
+            [
+              "element_count_bin",
+              "binary"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "Binary compositions have few bonding modes, reducing peak intensity."
+        },
+        {
+          "rule_id": "mean_z_low",
+          "conditions": [
+            [
+              "mean_atomic_number_bin",
+              "mean_z_low"
+            ]
+          ],
+          "weight": -0.2,
+          "rationale": "Low mean Z covers light nonmetals and binaries."
+        }
+      ],
+      "ridge": 1.5,
+      "prior_scale": 0.2,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.5,
+      "gp_beta_start": 2.2,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.02,
+      "confidence": 0.3,
+      "hypothesis": "Reverses the low-confidence halogen and quinary-seinery source relations and adds oxide covalency; fails if oxides carry high-lying peaks."
+    }
+  ],
+  "selected_skill_id": "polarizable_chalcogenide_transfer_v3",
+  "lesson": "Across eight development seeds, the chalcogenide polarity skill led the counter-hypothesis on both AUC and final best, though with high variance: four seeds reached near-perfect performance while four others were poor. This suggests the polarity mechanism is the right direction but the skill is brittle, so I kept it with the same rules and parameters.",
+  "revision_summary": "Kept the chalcogenide polarity skill and the oxide covalency counter-hypothesis unchanged. Both skills use two-to-four mechanistically interpretable rules, and neither uses placeholder keys or target outcomes. The polarity skill remains deployed because it leads the counter-hypothesis across all observed seeds, though with high variance."
+}
