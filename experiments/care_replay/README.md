@@ -48,6 +48,8 @@ controller changes. Replacing rules alone gives +12.56001 AUC, replacing the
 controller alone +0.60099, and replacing both +9.11335. This reuses old evaluation
 seeds and is descriptive attribution, not an independent confirmation.
 
+The [task-extension conclusion](results/2026-09-16-rsi-task-extension-design-v1/RESULTS.md) adds matched Lipophilicity and previously untrained-target phonons diagnostics. The trained initial phonons policy improves by +19.93641 AUC, while two true-feedback revisions reduce that trained initial policy by 7.93471 points.
+
 The canonical dataset in `results/2026-09-15-rsi-full-sft-dataset-v2` contains
 42 training and 12 validation records, with zero exact prompt-group overlap.
 The three scientific task families still occur on both sides. This is full

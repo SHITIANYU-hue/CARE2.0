@@ -29,6 +29,12 @@ class MatchedTrainingTest(unittest.TestCase):
         self.assertEqual(result['adapter_minus_base']['true_feedback']['mean'], 2)
         self.assertEqual(result['change_in_recursive_update_gain']['mean'], 1)
 
+    def test_explicit_absent_task_subset_rejected(self):
+        c, a, b, t = self.fixture()
+        with patch.object(report, 'read_complete', side_effect=[(c, b), (a, t)]):
+            with self.assertRaisesRegex(ValueError, 'absent'):
+                report.compare(Path('/base'), Path('/trained'), ['missing'])
+
     def test_different_reveal_budget_rejected(self):
         c, a, b, t = self.fixture(); a['reveal_rounds'] = 11
         with patch.object(report, 'read_complete', side_effect=[(c, b), (a, t)]):
@@ -40,6 +46,12 @@ class MatchedTrainingTest(unittest.TestCase):
         with patch.object(report, 'read_complete', side_effect=[(c, b), (a, t)]):
             with self.assertRaisesRegex(ValueError, 'GP control'):
                 report.compare(Path('/base'), Path('/trained'))
+
+    def test_bootstrap_interval_is_deterministic_and_contains_constant(self):
+        first = report.matched_difference([3.0, 3.0, 3.0], 42, 200)
+        second = report.matched_difference([3.0, 3.0, 3.0], 42, 200)
+        self.assertEqual(first, second)
+        self.assertEqual(first['paired_seed_bootstrap_mean_ci_95'], [3.0, 3.0])
 
     def test_initial_measurement_pairing_rejected(self):
         c, a, b, t = self.fixture()

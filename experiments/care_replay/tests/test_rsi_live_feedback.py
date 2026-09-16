@@ -43,7 +43,7 @@ class LiveRSITest(unittest.TestCase):
 
     def test_compiler_rejects_invalid_public_value(self):
         skill=lambda k:{'skill_id':k,'rules':[{'rule_id':'r','conditions':{'x':'unknown'},'weight':1}]}
-        with self.assertRaisesRegex(ValueError,'unsupported'):
+        with self.assertRaisesRegex(ValueError,'unsupported public condition: x=unknown.*allowed values'):
             live.normalize_response(json.dumps({'skills':[skill('a'),skill('b')],'selected_skill_id':'a'}),{'x':{'good':1}},2)
 
     def test_base_prompt_invariant_to_hidden_target_labels(self):

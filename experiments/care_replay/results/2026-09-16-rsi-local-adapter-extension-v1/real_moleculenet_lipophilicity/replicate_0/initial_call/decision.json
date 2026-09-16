@@ -1,0 +1,125 @@
+{
+  "skills": [
+    {
+      "skill_id": "solubility_ring_transfer",
+      "rules": [
+        {
+          "rule_id": "long_smiles_penalty",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_long"
+            ]
+          ],
+          "weight": -0.6,
+          "rationale": "Source: long SMILES reduced solubility (-11.46); longer molecules pack more polar groups, raising desolvation cost."
+        },
+        {
+          "rule_id": "mid_smiles_bonus",
+          "conditions": [
+            [
+              "smiles_length_bin",
+              "smiles_mid"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Source: mid-length SMILES raised solubility (+6.89); moderate size balances polar surface area and hydrophobic core."
+        },
+        {
+          "rule_id": "high_ring_token_penalty",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_high"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Ring topology transferred (0.76 weight); rigid ring systems reduce conformational entropy and solvation."
+        },
+        {
+          "rule_id": "low_ring_token_bonus",
+          "conditions": [
+            [
+              "ring_token_bin",
+              "ring_token_low"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Low ring content implies flexible chains, which solvate more easily than rigid ring scaffolds."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.25,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.4,
+      "hypothesis": "Transfers ESOL length and ring effects to lipophilicity: compact, low-ring scaffolds should score highest. Fails if lipophilicity tracks halogenation or aromaticity rather than polarity."
+    },
+    {
+      "skill_id": "polar_surface_area_counter_hypothesis",
+      "rules": [
+        {
+          "rule_id": "heteroatom_rich_penalty",
+          "conditions": [
+            [
+              "hetero_atom_bin",
+              "hetero_high"
+            ]
+          ],
+          "weight": -0.5,
+          "rationale": "Counter-hypothesis: heteroatom-rich molecules carry polar functionality that lowers lipophilicity, reversing the weak hbond donor transfer."
+        },
+        {
+          "rule_id": "halogen_free_bonus",
+          "conditions": [
+            [
+              "halogen_bin",
+              "halogen_none"
+            ]
+          ],
+          "weight": 0.4,
+          "rationale": "Halogen-free molecules lack apolar substituents, so their polar surface dominates partitioning into octanol."
+        },
+        {
+          "rule_id": "aromatic_rich_bonus",
+          "conditions": [
+            [
+              "aromatic_bin",
+              "aromatic_high"
+            ]
+          ],
+          "weight": 0.3,
+          "rationale": "Aromatic pi systems are apolar and raise octanol-water partition coefficients, the direct lipophilicity measure."
+        },
+        {
+          "rule_id": "branching_penalty",
+          "conditions": [
+            [
+              "branch_bin",
+              "branch_high"
+            ]
+          ],
+          "weight": -0.3,
+          "rationale": "High branching adds polar substituents and raises molecular volume, both lowering octanol solubility."
+        }
+      ],
+      "ridge": 1.0,
+      "prior_scale": 0.25,
+      "semantic_mass_start": 0.3,
+      "semantic_mass_end": 0.1,
+      "ucb_weight": 0.6,
+      "gp_beta_start": 2.0,
+      "gp_beta_end": 1.0,
+      "gp_xi": 0.01,
+      "confidence": 0.4,
+      "hypothesis": "Lipophilicity tracks polar surface area, not solubility: heteroatom-rich, halogen-free, aromatic, unbranched scaffolds should score highest. Fails if the pool's polarity range is narrow."
+    }
+  ],
+  "selected_skill_id": "polar_surface_area_counter_hypothesis",
+  "lesson": "The source ESOL evidence is weak (confidences 0.16-0.41) and its length and ring effects are poorly supported (2-4 observations), so transferring them directly risks misguidance.",
+  "revision_summary": "Kept the source-grounded skill but lowered its confidence and semantic mass decay, and added a counter-hypothesis skill that reverses the uncertain heteroatom transfer and instead scores by polar surface area. Deployed the counter-hypothesis skill because polarity is the dominant driver of octanol-water partitioning, the lipophilicity measure."
+}

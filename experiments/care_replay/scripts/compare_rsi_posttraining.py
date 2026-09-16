@@ -3,6 +3,7 @@
 from __future__ import annotations
 import argparse
 import json
+import random
 from pathlib import Path
 from statistics import mean
 
@@ -13,17 +14,23 @@ MATCHED = ('base_model_path', 'temperature', 'max_tokens', 'model_replicates',
            'reveal_rounds', 'source_observations', 'discount', 'kernel', 'tasks', 'updates',
            'local_generation_seed', 'local_context_limit', 'generation_backend',
            'max_attempts_per_generation', 'skills_per_generation', 'arms',
-           'shuffle_seed', 'constraints')
+           'shuffle_seed', 'bootstrap_seed', 'bootstrap_draws', 'constraints')
 
 
-def read_complete(root):
+def read_complete(root, task_ids=None):
     config = json.loads((root / 'config.json').read_text())
-    if not json.loads((root / 'run_status.json').read_text()).get('complete'):
-        raise ValueError('Incomplete RSI run cannot be compared')
+    overall_complete = json.loads((root / 'run_status.json').read_text()).get('complete')
+    if not overall_complete and task_ids is None:
+        raise ValueError('Incomplete RSI run cannot be compared without an explicit completed task subset')
+    selected = [spec for spec in config['tasks'] if task_ids is None or spec['id'] in task_ids]
+    if task_ids is not None and {spec['id'] for spec in selected} != set(task_ids):
+        raise ValueError('Requested task subset is absent from config')
     rows = []
-    for spec in config['tasks']:
+    for spec in selected:
         for rep in config['model_replicates']:
             folder = root / spec['id'] / f'replicate_{rep}'
+            if json.loads((folder / 'status.json').read_text()).get('status') != 'complete':
+                raise ValueError(f"Requested case is incomplete: {spec['id']} replicate {rep}")
             lock = json.loads((folder / 'deployment_lock.json').read_text())
             if lock.get('evaluation_feedback_permitted') is not False:
                 raise ValueError('Heldout feedback boundary was not locked')
@@ -36,7 +43,7 @@ def read_complete(root):
                             raise ValueError('Heldout seed entered revision prompt')
             rows.extend(json.loads((folder / 'evaluation_metrics.json').read_text()))
     index = {(r['task'], r['replicate'], r['seed'], r['arm']): r['metrics'] for r in rows}
-    expected = len(config['tasks']) * len(config['model_replicates']) * config['evaluation_seed_count'] * len(ARMS)
+    expected = len(selected) * len(config['model_replicates']) * config['evaluation_seed_count'] * len(ARMS)
     if len(rows) != len(index) or len(index) != expected:
         raise ValueError('Missing or duplicate paired evaluation metrics')
     for row in rows:
@@ -50,15 +57,23 @@ def read_complete(root):
     return config, index
 
 
-def matched_difference(values):
+def matched_difference(values, bootstrap_seed=20260910, bootstrap_draws=5000):
+    if not values or bootstrap_draws < 1:
+        raise ValueError('Bootstrap requires values and a positive draw count')
+    rng = random.Random(bootstrap_seed)
+    boot = sorted(mean(rng.choice(values) for _ in values) for _ in range(bootstrap_draws))
+    lower = boot[max(0, int(0.025 * bootstrap_draws) - 1)]
+    upper = boot[min(bootstrap_draws - 1, int(0.975 * bootstrap_draws))]
     return {'mean': mean(values), 'paired_wins': sum(x > 1e-8 for x in values),
             'paired_losses': sum(x < -1e-8 for x in values),
-            'paired_ties': sum(abs(x) <= 1e-8 for x in values), 'paired_values': values}
+            'paired_ties': sum(abs(x) <= 1e-8 for x in values), 'paired_values': values,
+            'paired_seed_bootstrap_mean_ci_95': [lower, upper],
+            'bootstrap_seed': bootstrap_seed, 'bootstrap_draws': bootstrap_draws}
 
 
-def compare(base_root, adapter_root):
-    base_config, base = read_complete(base_root)
-    adapter_config, adapter = read_complete(adapter_root)
+def compare(base_root, adapter_root, task_ids=None):
+    base_config, base = read_complete(base_root, task_ids)
+    adapter_config, adapter = read_complete(adapter_root, task_ids)
     for key in MATCHED:
         if base_config.get(key) != adapter_config.get(key):
             raise ValueError(f'Unmatched experimental setting: {key}')
@@ -70,8 +85,11 @@ def compare(base_root, adapter_root):
         fixed_key = key[:-1] + ('fixed_initial',)
         if base[key]['_initial'] != adapter[key]['_initial'] or base[key]['_initial'] != base[fixed_key]['_initial']:
             raise ValueError('Paired initial candidates or measured values differ')
+    selected_specs = [spec for spec in base_config['tasks'] if task_ids is None or spec['id'] in task_ids]
+    if task_ids is not None and not selected_specs:
+        raise ValueError('Requested task subset is absent from config')
     tasks = []
-    for spec in base_config['tasks']:
+    for spec in selected_specs:
         keys = [(spec['id'], rep, seed) for rep in base_config['model_replicates']
                 for seed in range(base_config['evaluation_seed_start'],
                                   base_config['evaluation_seed_start'] + base_config['evaluation_seed_count'])]
@@ -84,18 +102,18 @@ def compare(base_root, adapter_root):
                 'adapter': mean(adapter[k + (arm,)]['best_so_far_auc'] for k in keys),
             }
             result['adapter_minus_base'][arm] = matched_difference([
-                adapter[k + (arm,)]['best_so_far_auc'] - base[k + (arm,)]['best_so_far_auc'] for k in keys])
+                adapter[k + (arm,)]['best_so_far_auc'] - base[k + (arm,)]['best_so_far_auc'] for k in keys], base_config.get('bootstrap_seed', 20260910), base_config.get('bootstrap_draws', 5000))
         for name, index in [('base', base), ('adapter', adapter)]:
             result['feedback_effects'][name] = {
                 control: matched_difference([
-                    index[k + ('true_feedback',)]['best_so_far_auc'] - index[k + (control,)]['best_so_far_auc'] for k in keys])
+                    index[k + ('true_feedback',)]['best_so_far_auc'] - index[k + (control,)]['best_so_far_auc'] for k in keys], base_config.get('bootstrap_seed', 20260910), base_config.get('bootstrap_draws', 5000))
                 for control in ('fixed_initial', 'no_feedback', 'shuffled_feedback')}
         result['change_in_recursive_update_gain'] = matched_difference([
             (adapter[k + ('true_feedback',)]['best_so_far_auc'] - adapter[k + ('fixed_initial',)]['best_so_far_auc'])
-            - (base[k + ('true_feedback',)]['best_so_far_auc'] - base[k + ('fixed_initial',)]['best_so_far_auc']) for k in keys])
+            - (base[k + ('true_feedback',)]['best_so_far_auc'] - base[k + ('fixed_initial',)]['best_so_far_auc']) for k in keys], base_config.get('bootstrap_seed', 20260910), base_config.get('bootstrap_draws', 5000))
         tasks.append(result)
     return {
-        'status': 'matched_diagnostic_complete', 'tasks': tasks,
+        'status': 'matched_task_subset_diagnostic_complete' if task_ids is not None else 'matched_diagnostic_complete', 'tasks': tasks,
         'primary_comparison': 'adapter true-feedback minus frozen-base true-feedback AUC',
         'checks': {'matched_settings': True, 'same_gp_control': True, 'same_initial_observations': True, 'heldout_feedback_excluded': True},
         'claim_boundary': base_config.get('claim_boundary', 'Diagnostic only; few model chains do not establish reliability or generalization.'),
@@ -107,8 +125,9 @@ if __name__ == '__main__':
     parser.add_argument('--base-dir', type=Path, required=True)
     parser.add_argument('--adapter-dir', type=Path, required=True)
     parser.add_argument('--output-dir', type=Path, required=True)
+    parser.add_argument('--task', action='append', help='Explicit completed task subset; permits recovery from an unrelated incomplete case')
     args = parser.parse_args()
-    summary = compare(args.base_dir, args.adapter_dir)
+    summary = compare(args.base_dir, args.adapter_dir, args.task)
     args.output_dir.mkdir(parents=True, exist_ok=False)
     (args.output_dir / 'comparison.json').write_text(json.dumps(summary, indent=2) + '\n')
     print(json.dumps(summary, indent=2))

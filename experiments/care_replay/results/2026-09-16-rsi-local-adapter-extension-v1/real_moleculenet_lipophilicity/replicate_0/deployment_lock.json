@@ -1,0 +1,524 @@
+{
+  "selected": {
+    "fixed_initial": "polar_surface_area_counter_hypothesis",
+    "true_feedback": "polarity_surface_area_lipophilicity_v2",
+    "no_feedback": "polarity_surface_area_prior",
+    "shuffled_feedback": "polarity_surface_area_lipophilicity_v2"
+  },
+  "states": {
+    "fixed_initial": {
+      "skills": [
+        {
+          "skill_id": "solubility_ring_transfer",
+          "rules": [
+            {
+              "rule_id": "long_smiles_penalty",
+              "conditions": [
+                [
+                  "smiles_length_bin",
+                  "smiles_long"
+                ]
+              ],
+              "weight": -0.6,
+              "rationale": "Source: long SMILES reduced solubility (-11.46); longer molecules pack more polar groups, raising desolvation cost."
+            },
+            {
+              "rule_id": "mid_smiles_bonus",
+              "conditions": [
+                [
+                  "smiles_length_bin",
+                  "smiles_mid"
+                ]
+              ],
+              "weight": 0.4,
+              "rationale": "Source: mid-length SMILES raised solubility (+6.89); moderate size balances polar surface area and hydrophobic core."
+            },
+            {
+              "rule_id": "high_ring_token_penalty",
+              "conditions": [
+                [
+                  "ring_token_bin",
+                  "ring_token_high"
+                ]
+              ],
+              "weight": -0.5,
+              "rationale": "Ring topology transferred (0.76 weight); rigid ring systems reduce conformational entropy and solvation."
+            },
+            {
+              "rule_id": "low_ring_token_bonus",
+              "conditions": [
+                [
+                  "ring_token_bin",
+                  "ring_token_low"
+                ]
+              ],
+              "weight": 0.3,
+              "rationale": "Low ring content implies flexible chains, which solvate more easily than rigid ring scaffolds."
+            }
+          ],
+          "ridge": 1.0,
+          "prior_scale": 0.25,
+          "semantic_mass_start": 0.3,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.4,
+          "hypothesis": "Transfers ESOL length and ring effects to lipophilicity: compact, low-ring scaffolds should score highest. Fails if lipophilicity tracks halogenation or aromaticity rather than polarity."
+        },
+        {
+          "skill_id": "polar_surface_area_counter_hypothesis",
+          "rules": [
+            {
+              "rule_id": "heteroatom_rich_penalty",
+              "conditions": [
+                [
+                  "hetero_atom_bin",
+                  "hetero_high"
+                ]
+              ],
+              "weight": -0.5,
+              "rationale": "Counter-hypothesis: heteroatom-rich molecules carry polar functionality that lowers lipophilicity, reversing the weak hbond donor transfer."
+            },
+            {
+              "rule_id": "halogen_free_bonus",
+              "conditions": [
+                [
+                  "halogen_bin",
+                  "halogen_none"
+                ]
+              ],
+              "weight": 0.4,
+              "rationale": "Halogen-free molecules lack apolar substituents, so their polar surface dominates partitioning into octanol."
+            },
+            {
+              "rule_id": "aromatic_rich_bonus",
+              "conditions": [
+                [
+                  "aromatic_bin",
+                  "aromatic_high"
+                ]
+              ],
+              "weight": 0.3,
+              "rationale": "Aromatic pi systems are apolar and raise octanol-water partition coefficients, the direct lipophilicity measure."
+            },
+            {
+              "rule_id": "branching_penalty",
+              "conditions": [
+                [
+                  "branch_bin",
+                  "branch_high"
+                ]
+              ],
+              "weight": -0.3,
+              "rationale": "High branching adds polar substituents and raises molecular volume, both lowering octanol solubility."
+            }
+          ],
+          "ridge": 1.0,
+          "prior_scale": 0.25,
+          "semantic_mass_start": 0.3,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.4,
+          "hypothesis": "Lipophilicity tracks polar surface area, not solubility: heteroatom-rich, halogen-free, aromatic, unbranched scaffolds should score highest. Fails if the pool's polarity range is narrow."
+        }
+      ],
+      "selected_skill_id": "polar_surface_area_counter_hypothesis",
+      "lesson": "The source ESOL evidence is weak (confidences 0.16-0.41) and its length and ring effects are poorly supported (2-4 observations), so transferring them directly risks misguidance.",
+      "revision_summary": "Kept the source-grounded skill but lowered its confidence and semantic mass decay, and added a counter-hypothesis skill that reverses the uncertain heteroatom transfer and instead scores by polar surface area. Deployed the counter-hypothesis skill because polarity is the dominant driver of octanol-water partitioning, the lipophilicity measure."
+    },
+    "true_feedback": {
+      "skills": [
+        {
+          "skill_id": "polarity_surface_area_lipophilicity_v2",
+          "rules": [
+            {
+              "rule_id": "heteroatom_rich_penalty",
+              "conditions": [
+                [
+                  "hetero_atom_bin",
+                  "hetero_high"
+                ]
+              ],
+              "weight": -0.5,
+              "rationale": "Heteroatom-rich molecules carry polar functionality that lowers octanol-water partitioning, the lipophilicity measure."
+            },
+            {
+              "rule_id": "halogen_rich_bonus",
+              "conditions": [
+                [
+                  "halogen_bin",
+                  "halogen_high"
+                ]
+              ],
+              "weight": 0.4,
+              "rationale": "Halogenated molecules carry apolar substituents that raise hydrophobic surface and partitioning into octanol."
+            },
+            {
+              "rule_id": "aromatic_rich_bonus",
+              "conditions": [
+                [
+                  "aromatic_bin",
+                  "aromatic_high"
+                ]
+              ],
+              "weight": 0.4,
+              "rationale": "Aromatic pi systems are apolar and raise octanol-water partition coefficients, the direct lipophilicity measure."
+            },
+            {
+              "rule_id": "branching_penalty",
+              "conditions": [
+                [
+                  "branch_bin",
+                  "branch_high"
+                ]
+              ],
+              "weight": -0.3,
+              "rationale": "High branching adds polar substituents and raises molecular volume, both lowering octanol solubility."
+            }
+          ],
+          "ridge": 1.0,
+          "prior_scale": 0.25,
+          "semantic_mass_start": 0.3,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.5,
+          "hypothesis": "Lipophilicity tracks polar surface area: heteroatom-rich, unbranched scaffolds score lowest, while halogenated and aromatic pi systems raise octanol partitioning. Fails if the pool's polarity range is narrow or if halogenation dominates the measured partitioning."
+        },
+        {
+          "skill_id": "hydrophobic_surface_counter_hypothesis",
+          "rules": [
+            {
+              "rule_id": "long_smiles_bonus",
+              "conditions": [
+                [
+                  "smiles_length_bin",
+                  "smiles_long"
+                ]
+              ],
+              "weight": 0.5,
+              "rationale": "Counter-hypothesis: the source's long-SMILES penalty (-11.46) is poorly supported (2 observations) and polarity is the dominant lipophilicity driver, not size."
+            },
+            {
+              "rule_id": "mid_smiles_penalty",
+              "conditions": [
+                [
+                  "smiles_length_bin",
+                  "smiles_mid"
+                ]
+              ],
+              "weight": -0.4,
+              "rationale": "Mid-length SMILES carried a positive solubility effect (+6.89) but moderate size raises polar surface area, lowering octanol partitioning."
+            },
+            {
+              "rule_id": "high_ring_token_bonus",
+              "conditions": [
+                [
+                  "ring_token_bin",
+                  "ring_token_high"
+                ]
+              ],
+              "weight": 0.4,
+              "rationale": "Reverses the low-confidence ring transfer: rigid ring systems raise hydrophobic surface and partitioning into octanol."
+            },
+            {
+              "rule_id": "low_ring_token_penalty",
+              "conditions": [
+                [
+                  "ring_token_bin",
+                  "ring_token_low"
+                ]
+              ],
+              "weight": -0.3,
+              "rationale": "Flexible chains expose polar functionality, lowering octanol solubility relative to rigid ring scaffolds."
+            }
+          ],
+          "ridge": 1.0,
+          "prior_scale": 0.25,
+          "semantic_mass_start": 0.3,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.4,
+          "hypothesis": "Lipophilicity tracks ring topology and hydrophobic surface, not polarity: long, high-ring scaffolds score highest. Fails if the pool's polarity range is wide or if halogenation dominates the measured partitioning."
+        }
+      ],
+      "selected_skill_id": "polarity_surface_area_lipophilicity_v2",
+      "lesson": "Across four development seeds, the polarity-surface-area skill outscored the ring-topology skill (mean AUC 89.3 vs 85.3, mean final best 93.7 vs 85.3), but seed-level performance was mixed (one seed led, one lagged for each skill), so no single seed's outcome can be taken as causal.",
+      "revision_summary": "Kept the deployed polarity-surface-area skill but replaced the halogen-free penalty with a halogen-rich bonus, since halogenation adds apolar substituents and raises hydrophobic surface. The ring-topology counter-hypothesis was retained unchanged. Deployed the polarity-surface-area skill because polarity is the dominant driver of octanol-water partitioning, the lipophilicity measure, and the halogen sign reversal makes it mechanistically consistent."
+    },
+    "no_feedback": {
+      "skills": [
+        {
+          "skill_id": "polarity_surface_area_prior",
+          "rules": [
+            {
+              "rule_id": "heteroatom_rich_penalty",
+              "conditions": [
+                [
+                  "hetero_atom_bin",
+                  "hetero_high"
+                ]
+              ],
+              "weight": -0.5,
+              "rationale": "Heteroatom-rich molecules carry polar functionality that lowers octanol-water partitioning, the lipophilicity measure."
+            },
+            {
+              "rule_id": "halogen_free_penalty",
+              "conditions": [
+                [
+                  "halogen_bin",
+                  "halogen_none"
+                ]
+              ],
+              "weight": -0.4,
+              "rationale": "Halogen-free molecules lack apolar substituents, so their polar surface dominates partitioning into octanol."
+            },
+            {
+              "rule_id": "aromatic_rich_bonus",
+              "conditions": [
+                [
+                  "aromatic_bin",
+                  "aromatic_high"
+                ]
+              ],
+              "weight": 0.4,
+              "rationale": "Aromatic pi systems are apolar and raise octanol-water partition coefficients, the direct lipophilicity measure."
+            },
+            {
+              "rule_id": "branching_penalty",
+              "conditions": [
+                [
+                  "branch_bin",
+                  "branch_high"
+                ]
+              ],
+              "weight": -0.3,
+              "rationale": "High branching adds polar substituents and raises molecular volume, both lowering octanol solubility."
+            }
+          ],
+          "ridge": 1.0,
+          "prior_scale": 0.25,
+          "semantic_mass_start": 0.3,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.5,
+          "hypothesis": "Lipophilicity tracks polar surface area: heteroatom-rich, halogen-free, unbranched scaffolds score lowest, while aromatic-rich ones score highest. Fails if the pool's polarity range is narrow or if halogenation dominates partitioning."
+        },
+        {
+          "skill_id": "polarity_surface_area_counter_hypothesis",
+          "rules": [
+            {
+              "rule_id": "halogen_rich_bonus",
+              "conditions": [
+                [
+                  "halogen_bin",
+                  "halogen_high"
+                ]
+              ],
+              "weight": 0.5,
+              "rationale": "Halogenation adds apolar substituents that raise octanol-water partitioning, the lipophilicity measure."
+            },
+            {
+              "rule_id": "heteroatom_rich_bonus",
+              "conditions": [
+                [
+                  "hetero_atom_bin",
+                  "hetero_high"
+                ]
+              ],
+              "weight": 0.4,
+              "rationale": "Counter to the polarity prior, heteroatom-rich scaffolds can be halogenated and still partition favorably into octanol."
+            },
+            {
+              "rule_id": "aromatic_rich_penalty",
+              "conditions": [
+                [
+                  "aromatic_bin",
+                  "aromatic_high"
+                ]
+              ],
+              "weight": -0.4,
+              "rationale": "Aromatic pi systems are rigid and raise desolvation cost, so they lower octanol-water partitioning."
+            },
+            {
+              "rule_id": "branching_bonus",
+              "conditions": [
+                [
+                  "branch_bin",
+                  "branch_high"
+                ]
+              ],
+              "weight": 0.3,
+              "rationale": "Branching adds apolar substituents and raises hydrophobic surface area, both raising octanol solubility."
+            }
+          ],
+          "ridge": 1.0,
+          "prior_scale": 0.25,
+          "semantic_mass_start": 0.3,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.4,
+          "hypothesis": "Lipophilicity tracks halogenation and branching, not polarity: halogen-rich, heteroatom-rich, branched scaffolds score highest, while aromatic-rich ones score lowest. Fails if the pool lacks halogenated candidates or if polarity dominates partitioning."
+        }
+      ],
+      "selected_skill_id": "polarity_surface_area_prior",
+      "lesson": "The source ESOL evidence is weak (confidences 0.16-0.41) and its length and ring effects are poorly supported (2-4 observations), so transferring them directly risks misguidance.",
+      "revision_summary": "Retained the polarity-surface-area prior skill and deployed it because polarity is the dominant driver of octanol-water partitioning, the lipophilicity measure. Replaced the source-grounded skill with a counter-hypothesis that reverses the polarity prior: halogenation and branching raise partitioning, while aromatic rigidity lowers it. Both skills keep low confidence and semantic mass decay, since the source relations are weakly supported and polarity, not solubility, governs octanol partitioning."
+    },
+    "shuffled_feedback": {
+      "skills": [
+        {
+          "skill_id": "polarity_surface_area_lipophilicity_v2",
+          "rules": [
+            {
+              "rule_id": "heteroatom_rich_penalty",
+              "conditions": [
+                [
+                  "hetero_atom_bin",
+                  "hetero_high"
+                ]
+              ],
+              "weight": -0.5,
+              "rationale": "Heteroatom-rich molecules carry polar functionality that lowers octanol-water partitioning, the lipophilicity measure."
+            },
+            {
+              "rule_id": "halogen_free_penalty",
+              "conditions": [
+                [
+                  "halogen_bin",
+                  "halogen_none"
+                ]
+              ],
+              "weight": -0.4,
+              "rationale": "Halogen-free molecules lack apolar substituents, so their polar surface dominates partitioning into octanol."
+            },
+            {
+              "rule_id": "aromatic_rich_bonus",
+              "conditions": [
+                [
+                  "aromatic_bin",
+                  "aromatic_high"
+                ]
+              ],
+              "weight": 0.4,
+              "rationale": "Aromatic pi systems are apolar and raise octanol-water partition coefficients, the direct lipophilicity measure."
+            },
+            {
+              "rule_id": "branching_penalty",
+              "conditions": [
+                [
+                  "branch_bin",
+                  "branch_high"
+                ]
+              ],
+              "weight": -0.3,
+              "rationale": "High branching adds polar substituents and raises molecular volume, both lowering octanol solubility."
+            }
+          ],
+          "ridge": 1.0,
+          "prior_scale": 0.25,
+          "semantic_mass_start": 0.3,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.5,
+          "hypothesis": "Lipophilicity tracks polar surface area: heteroatom-rich, halogen-free, unbranched scaffolds score lowest, while aromatic pi systems raise octanol partitioning. Fails if the pool's polarity range is narrow or if halogenation dominates the measured partitioning."
+        },
+        {
+          "skill_id": "apolar_partitioning_counter_hypothesis_v2",
+          "rules": [
+            {
+              "rule_id": "halogen_rich_bonus",
+              "conditions": [
+                [
+                  "halogen_bin",
+                  "halogen_high"
+                ]
+              ],
+              "weight": 0.5,
+              "rationale": "Halogenation adds apolar substituents that favor octanol partitioning, the direct lipophilicity measure."
+            },
+            {
+              "rule_id": "heteroatom_rich_bonus",
+              "conditions": [
+                [
+                  "hetero_atom_bin",
+                  "hetero_high"
+                ]
+              ],
+              "weight": 0.4,
+              "rationale": "Counter-hypothesis: heteroatom-rich scaffolds carry apolar heterocycles that raise octanol-water partitioning."
+            },
+            {
+              "rule_id": "aromatic_rich_bonus",
+              "conditions": [
+                [
+                  "aromatic_bin",
+                  "aromatic_high"
+                ]
+              ],
+              "weight": 0.3,
+              "rationale": "Aromatic pi systems are apolar and raise octanol-water partition coefficients, the direct lipophilicity measure."
+            },
+            {
+              "rule_id": "ring_token_penalty",
+              "conditions": [
+                [
+                  "ring_token_bin",
+                  "ring_token_high"
+                ]
+              ],
+              "weight": -0.3,
+              "rationale": "Rigid ring systems raise molecular volume and hydrogen bonding capacity, both lowering octanol solubility."
+            }
+          ],
+          "ridge": 1.0,
+          "prior_scale": 0.25,
+          "semantic_mass_start": 0.3,
+          "semantic_mass_end": 0.1,
+          "ucb_weight": 0.6,
+          "gp_beta_start": 2.0,
+          "gp_beta_end": 1.0,
+          "gp_xi": 0.01,
+          "confidence": 0.4,
+          "hypothesis": "Lipophilicity tracks apolar partitioning: halogenated, heteroatom-rich, aromatic scaffolds score highest, while high ring content raises polar surface. Fails if the pool's polarity range is wide or if ring topology dominates the measured partitioning."
+        }
+      ],
+      "selected_skill_id": "polarity_surface_area_lipophilicity_v2",
+      "lesson": "Across four development seeds, the polarity-surface-area skill (mean AUC 88.27, mean final best 88.81) slightly trailed the apolar-partitioning counter-hypothesis skill (mean AUC 89.49, mean final best 93.75). Seed-level variation was large, so no causal inference about mechanism is possible.",
+      "revision_summary": "Kept the deployed polarity-surface-area skill unchanged and retained the apolar-partitioning counter-hypothesis skill. The polarity skill deployed again because octanol-water partitioning is the direct lipophilicity measure, and polarity is the dominant driver of partitioning, even though the counter-hypothesis skill led on one seed."
+    }
+  },
+  "frozen_at": "2026-09-16T03:07:05.695497+00:00",
+  "evaluation_feedback_permitted": false,
+  "heldout_seeds": [
+    202616200,
+    202616201,
+    202616202,
+    202616203,
+    202616204,
+    202616205,
+    202616206,
+    202616207,
+    202616208,
+    202616209
+  ]
+}
