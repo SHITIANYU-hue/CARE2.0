@@ -17,6 +17,9 @@ Current contents:
 - `task_tracker/`: current project tasks, owners, blockers, and next actions.
 - `overview.md`: a narrative overview of the current replay experiments,
   datasets, results, and next steps.
+- [RSI 全流程图](docs/RSI_FULL_WORKFLOW_ZH.md): the Chinese flowchart covering
+  offline training, experiment selection, feedback revision, paired evaluation,
+  and archival records.
 - `docs/NATURE_SUBMISSION_READINESS.md`: the current journal-positioning,
   claim boundary, reviewer-risk, and evidence-completion plan.
 - `CARE2.0_Nature_evidence_update_2026-08-24.pptx`: a 15-slide reviewer-facing

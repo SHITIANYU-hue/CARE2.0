@@ -2,6 +2,9 @@
 
 This is a lightweight CARE 2.0 replay harness for the first experiment pass.
 
+See the [RSI 全流程图](../../docs/RSI_FULL_WORKFLOW_ZH.md) for the complete
+training, experiment, feedback-revision, evaluation, and archive flow.
+
 ## RSI weight-training smoke test
 
 The current 36/18-example split is for pipeline and JSON-format validation only.
