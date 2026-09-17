@@ -23,6 +23,8 @@ Current contents:
 - [主流 RSI 路径与 CARE vNext](docs/RSI_PATHS_AND_CARE_VNEXT_ZH.md): a Chinese
   review of reflection, textual-gradient, prompt-evolution, context-engineering,
   and post-training paths, plus the trajectory-evidence and promotion-gate design.
+- [RSI 策略档案实测](docs/RSI_ARCHIVE_TRIAL_2026-09-17_ZH.md): a two-target trial
+  of candidate-level feedback, two-skill promotion, and bounded validated memory.
 - `docs/NATURE_SUBMISSION_READINESS.md`: the current journal-positioning,
   claim boundary, reviewer-risk, and evidence-completion plan.
 - `CARE2.0_Nature_evidence_update_2026-08-24.pptx`: a 15-slide reviewer-facing
@@ -92,6 +94,8 @@ The latest project sync focuses on three workstreams:
 
 The latest tracked replay output is in:
 
+- `experiments/care_replay/results/2026-09-17-rsi-archive-search-esol-target-only-v1/`
+- `experiments/care_replay/results/2026-09-17-rsi-archive-search-phonons-v1/`
 - `experiments/care_replay/results/2026-09-16-rsi-evidence-gate-phonons-v1/`
 - `experiments/care_replay/results/2026-09-16-rsi-phonons-posttraining-comparison-v2/`
 - `experiments/care_replay/results/2026-08-22-submission-evidence-audit/`

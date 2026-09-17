@@ -1,0 +1,191 @@
+{
+  "attempt": 0,
+  "request": {
+    "model": "local/qwen25-32b-adapter",
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a scientific optimization researcher revising executable semantic skills. Use only the evidence explicitly supplied. Never claim model-weight training or unseen target measurements. Return one valid JSON object with exactly two distinct skills. Every rule conditions value must exactly match the supplied public catalog. You may retain a successful skill and propose a counter-hypothesis. Select exactly one skill for deployment using selected_skill_id. Use short lowercase snake_case skill IDs. Include lesson and revision_summary strings. Use at most four rules per skill. Keep rationale and lesson concise."
+      },
+      {
+        "role": "user",
+        "content": "{\"task\": \"Revise the preceding executable skills for the same scientific search task. Return two skills and select one for deployment.\", \"target\": {\"dataset\": \"real_moleculenet_esol\", \"title\": \"MoleculeNet ESOL Delaney solubility replay\", \"objective\": \"maximize_normalized_solubility\", \"candidate_count\": 1128, \"public_semantic_fields\": {\"smiles_length_bin\": {\"smiles_long\": 61, \"smiles_mid\": 476, \"smiles_short\": 589, \"smiles_very_long\": 2}, \"hbond_donor_bin\": {\"donor_high\": 10, \"donor_low\": 444, \"donor_mid\": 39, \"donor_none\": 635}, \"ring_bin\": {\"rings_high\": 25, \"rings_low\": 607, \"rings_mid\": 179, \"rings_none\": 317}, \"rotatable_bond_bin\": {\"rot_high\": 143, \"rot_low\": 593, \"rot_mid\": 362, \"rot_very_high\": 30}}, \"hidden_target\": \"normalized_solubility_score\", \"boundary\": \"Field values and counts are public; target outcomes are not included.\"}, \"source_transfer_evidence\": {\"evidence_mode\": \"target_only\", \"source_dataset\": null, \"source_objective\": null, \"mapped_roles\": [], \"source_outcome_statistics\": null, \"shared_value_priors\": [], \"boundary\": \"No source identity, source schema, source outcomes, source effects, or source value priors are provided. The LLM must use the public target schema and its pretrained domain knowledge only.\"}, \"executor\": {\"semantic_model\": \"Rules become binary features. Revealed target outcomes fit a ridge Bayesian linear surrogate whose coefficient prior follows rule weights.\", \"anchor\": \"A rank blend of target-only GP-UCB and GP-EI.\", \"fusion\": \"semantic_mass_start/end controls the rank mass assigned to the semantic surrogate; the remaining mass stays on the target-only anchor.\", \"selection\": \"Independent calibration seeds select one frozen skill. Independent held-out seeds are evaluated only after selection.\"}, \"design_requirements\": [\"Return exactly 2 diverse skills.\", \"Keep each skill to 2-4 rules, each rationale to at most 25 words, and each hypothesis to at most 45 words.\", \"Use only exact field/value pairs in public_semantic_fields.\", \"Each conditions object must map a real catalog field name directly to one exact catalog value, for example {\\\"dominant_family\\\": \\\"oxide\\\"}. Never use literal placeholder keys such as exact_field, field_name, field, or value.\", \"Give every skill a distinct, descriptive scientific skill_id. Never copy schema placeholders such as short_unique_name or add numeric suffixes to a placeholder.\", \"Use two-condition interactions only when scientifically meaningful.\", \"Use only target-schema-compatible domain knowledge; do not imply that a source task or source outcomes were observed.\", \"Include at least one domain-knowledge proposal.\", \"Include a counter-hypothesis proposal that reverses or downweights an uncertain source relation.\", \"Prefer mechanistic, chemically or physically interpretable rules over arbitrary coverage rules.\", \"Do not claim access to target outcomes and do not output candidate identifiers.\"], \"allowed_ranges\": {\"rule_weight\": \"[-1, 1]\", \"ridge\": \"[0.05, 20]\", \"prior_scale\": \"[0, 1.5]\", \"semantic_mass_start_end\": \"[0, 0.85]\", \"ucb_weight\": \"[0, 1]; EI weight is 1 - ucb_weight\", \"gp_beta_start_end\": \"[0.2, 4]\", \"gp_xi\": \"[0, 0.2]\", \"confidence\": \"[0.05, 1]\"}, \"output_contract\": {\"skills\": [{\"skill_id\": \"descriptive_scientific_skill_id\", \"rules\": [{\"rule_id\": \"mechanistic_rule\", \"conditions\": {\"field_name_from_public_semantic_fields\": \"exact_catalog_value\"}, \"weight\": 0.5, \"rationale\": \"short scientific rationale\"}], \"ridge\": 1.0, \"prior_scale\": 0.25, \"semantic_mass_start\": 0.3, \"semantic_mass_end\": 0.1, \"ucb_weight\": 0.6, \"gp_beta_start\": 2.0, \"gp_beta_end\": 1.0, \"gp_xi\": 0.01, \"confidence\": 0.7, \"hypothesis\": \"what this skill transfers and when it may fail\"}]}, \"proposal_mode\": \"parametric\", \"deployment_requirement\": \"Return exactly two executable skills, selected_skill_id, lesson, and revision_summary.\", \"previous_skills\": {\"skills\": [{\"skill_id\": \"polar_hbond_donors_plus_compactness\", \"rules\": [{\"rule_id\": \"donor_high_polarity\", \"conditions\": [[\"hbond_donor_bin\", \"donor_high\"]], \"weight\": 0.6, \"rationale\": \"Hydrogen-bond donors (OH, NH) add polar surface area, raising aqueous solubility.\"}, {\"rule_id\": \"donor_mid_polarity\", \"conditions\": [[\"hbond_donor_bin\", \"donor_mid\"]], \"weight\": 0.4, \"rationale\": \"Moderate donor count still adds polar surface, though less than high-donor molecules.\"}, {\"rule_id\": \"compact_mid_smiles\", \"conditions\": [[\"smiles_length_bin\", \"smiles_mid\"]], \"weight\": 0.3, \"rationale\": \"Mid-length SMILES encodes compact, moderate-size molecules, which balance polar surface and bulk.\"}, {\"rule_id\": \"no_donor_penalty\", \"conditions\": [[\"hbond_donor_bin\", \"donor_none\"]], \"weight\": -0.5, \"rationale\": \"Lack of hydrogen bonding reduces aqueous solubility relative to polar donors.\"}], \"ridge\": 1.0, \"prior_scale\": 0.25, \"semantic_mass_start\": 0.4, \"semantic_mass_end\": 0.15, \"ucb_weight\": 0.6, \"gp_beta_start\": 2.0, \"gp_beta_end\": 1.0, \"gp_xi\": 0.01, \"confidence\": 0.7, \"hypothesis\": \"Polar hydrogen-bond donors plus compact mid-sized topology raise solubility. Fails if donor-rich molecules are very large or if donor-free apolar molecules are small and polar.\"}, {\"skill_id\": \"hydrophobic_ring_rich_counter_hypothesis_reversed\", \"rules\": [{\"rule_id\": \"ring_rich_hydrophobic\", \"conditions\": [[\"ring_bin\", \"rings_high\"]], \"weight\": 0.3, \"rationale\": \"Ring-rich topology often means rigid, hydrophobic structure, but the rarest bin carries little information.\"}, {\"rule_id\": \"rotatable_penalty\", \"conditions\": [[\"rotatable_bond_bin\", \"rot_high\"]], \"weight\": -0.2, \"rationale\": \"High rotatability usually indicates flexible, non-planar hydrophobic surface, reducing solubility.\"}, {\"rule_id\": \"donor_none_reward\", \"conditions\": [[\"hbond_donor_bin\", \"donor_none\"]], \"weight\": 0.4, \"rationale\": \"Counterintuitively, donor-free apolar molecules can be highly soluble if small and compact.\"}, {\"rule_id\": \"very_long_penalty\", \"conditions\": [[\"smiles_length_bin\", \"smiles_very_long\"]], \"weight\": -0.6, \"rationale\": \"Very long SMILES encodes huge molecules, which are almost always insoluble.\"}], \"ridge\": 1.5, \"prior_scale\": 0.35, \"semantic_mass_start\": 0.3, \"semantic_mass_end\": 0.1, \"ucb_weight\": 0.5, \"gp_beta_start\": 2.2, \"gp_beta_end\": 1.0, \"gp_xi\": 0.02, \"confidence\": 0.6, \"hypothesis\": \"Ring-rich prior is reversed: ring-rich topology is weakly rewarded, while rotatable and very-long penalties remain. Fails if ring-rich molecules are small and polar.\"}], \"selected_skill_id\": \"polar_hbond_donors_plus_compactness\", \"lesson\": \"Across four development seeds, the donor-rich skill led the counter-hypothesis on mean AUC (92.0 vs 89.2), though final-best scores were similar. Seed variation was substantial, so no single seed's outcome should be taken as causal.\", \"revision_summary\": \"Replaced the long-SMILES penalty with a mid-SMILES reward, keeping the donor polarity mechanism intact. Reversed the ring-rich prior in the counter-hypothesis and reduced its semantic mass slightly. Deployed the donor-plus-compactness skill because its mechanistic rationale is best grounded in aqueous solubility chemistry.\"}, \"persistent_experimental_memory\": [{\"generation_observed\": 0, \"previous_skills\": {\"skills\": [{\"skill_id\": \"polar_hbond_donors_raise_solubility\", \"rules\": [{\"rule_id\": \"donor_high_polarity\", \"conditions\": [[\"hbond_donor_bin\", \"donor_high\"]], \"weight\": 0.6, \"rationale\": \"Hydrogen-bond donors (OH, NH) add polar surface area, raising aqueous solubility.\"}, {\"rule_id\": \"donor_mid_polarity\", \"conditions\": [[\"hbond_donor_bin\", \"donor_mid\"]], \"weight\": 0.4, \"rationale\": \"Moderate donor count still adds polar surface, though less than high-donor molecules.\"}, {\"rule_id\": \"long_smiles_penalty\", \"conditions\": [[\"smiles_length_bin\", \"smiles_long\"]], \"weight\": -0.3, \"rationale\": \"Longer SMILES implies larger molecular size, which typically lowers solubility.\"}, {\"rule_id\": \"no_donor_penalty\", \"conditions\": [[\"hbond_donor_bin\", \"donor_none\"]], \"weight\": -0.5, \"rationale\": \"Lack of hydrogen bonding reduces aqueous solubility relative to polar donors.\"}], \"ridge\": 1.0, \"prior_scale\": 0.25, \"semantic_mass_start\": 0.4, \"semantic_mass_end\": 0.15, \"ucb_weight\": 0.6, \"gp_beta_start\": 2.0, \"gp_beta_end\": 1.0, \"gp_xi\": 0.01, \"confidence\": 0.7, \"hypothesis\": \"Polar hydrogen-bond donors raise aqueous solubility, so donor-rich, compact molecules should score highest. Fails if polarity is offset by large hydrophobic surface.\"}, {\"skill_id\": \"hydrophobic_ring_rich_counter_hypothesis\", \"rules\": [{\"rule_id\": \"ring_rich_hydrophobic\", \"conditions\": [[\"ring_bin\", \"rings_high\"]], \"weight\": -0.5, \"rationale\": \"Ring-rich topology often means rigid, hydrophobic structure, lowering aqueous solubility.\"}, {\"rule_id\": \"rotatable_penalty\", \"conditions\": [[\"rotatable_bond_bin\", \"rot_high\"]], \"weight\": -0.4, \"rationale\": \"High rotatability usually indicates flexible, non-planar hydrophobic surface, reducing solubility.\"}, {\"rule_id\": \"donor_none_reward\", \"conditions\": [[\"hbond_donor_bin\", \"donor_none\"]], \"weight\": 0.4, \"rationale\": \"Counterintuitively, donor-free apolar molecules can be highly soluble if small and compact.\"}, {\"rule_id\": \"very_long_penalty\", \"conditions\": [[\"smiles_length_bin\", \"smiles_very_long\"]], \"weight\": -0.6, \"rationale\": \"Very long SMILES encodes huge molecules, which are almost always insoluble.\"}], \"ridge\": 1.5, \"prior_scale\": 0.35, \"semantic_mass_start\": 0.35, \"semantic_mass_end\": 0.1, \"ucb_weight\": 0.5, \"gp_beta_start\": 2.2, \"gp_beta_end\": 1.0, \"gp_xi\": 0.02, \"confidence\": 0.6, \"hypothesis\": \"Ring-rich, flexible hydrophobic topology lowers solubility, so the donor-rich prior may be reversed. Fails if ring-rich molecules are small and polar.\"}], \"selected_skill_id\": \"polar_hbond_donors_raise_solubility\", \"lesson\": \"The ESOL task rewards aqueous solubility, which tracks polar hydrogen-bonding capacity more reliably than ring or rotatable-bond counts. Ring-rich and very-long candidates are rare, so their low-solubility prior carries little information.\", \"revision_summary\": \"Kept the polar-donor solubility mechanism and added a counter-hypothesis that reverses the ring/rotatable prior, both with modest semantic mass decay. Deployed the donor-rich skill because its mechanistic rationale is better grounded in aqueous solubility chemistry.\"}, \"feedback\": {\"development_only\": true, \"skill_results\": [{\"skill_id\": \"polar_hbond_donors_raise_solubility\", \"seeds\": [202618100, 202618101, 202618102, 202618103], \"mean_auc\": 92.033025, \"mean_final_best\": 93.339275, \"per_seed\": [{\"seed\": 202618100, \"auc\": 90.7285, \"final_best\": 91.3571}, {\"seed\": 202618101, \"auc\": 88.8393, \"final_best\": 91.3571}, {\"seed\": 202618102, \"auc\": 95.0643, \"final_best\": 96.9286}, {\"seed\": 202618103, \"auc\": 93.5, \"final_best\": 93.7143}]}, {\"skill_id\": \"hydrophobic_ring_rich_counter_hypothesis\", \"seeds\": [202618100, 202618101, 202618102, 202618103], \"mean_auc\": 89.24589999999999, \"mean_final_best\": 94.7857, \"per_seed\": [{\"seed\": 202618100, \"auc\": 90.1072, \"final_best\": 96.9286}, {\"seed\": 202618101, \"auc\": 81.9193, \"final_best\": 93.5714}, {\"seed\": 202618102, \"auc\": 91.8857, \"final_best\": 95.2857}, {\"seed\": 202618103, \"auc\": 93.0714, \"final_best\": 93.3571}]}]}}, {\"generation_observed\": 1, \"previous_skills\": {\"skills\": [{\"skill_id\": \"polar_hbond_donors_plus_compactness\", \"rules\": [{\"rule_id\": \"donor_high_polarity\", \"conditions\": [[\"hbond_donor_bin\", \"donor_high\"]], \"weight\": 0.6, \"rationale\": \"Hydrogen-bond donors (OH, NH) add polar surface area, raising aqueous solubility.\"}, {\"rule_id\": \"donor_mid_polarity\", \"conditions\": [[\"hbond_donor_bin\", \"donor_mid\"]], \"weight\": 0.4, \"rationale\": \"Moderate donor count still adds polar surface, though less than high-donor molecules.\"}, {\"rule_id\": \"compact_mid_smiles\", \"conditions\": [[\"smiles_length_bin\", \"smiles_mid\"]], \"weight\": 0.3, \"rationale\": \"Mid-length SMILES encodes compact, moderate-size molecules, which balance polar surface and bulk.\"}, {\"rule_id\": \"no_donor_penalty\", \"conditions\": [[\"hbond_donor_bin\", \"donor_none\"]], \"weight\": -0.5, \"rationale\": \"Lack of hydrogen bonding reduces aqueous solubility relative to polar donors.\"}], \"ridge\": 1.0, \"prior_scale\": 0.25, \"semantic_mass_start\": 0.4, \"semantic_mass_end\": 0.15, \"ucb_weight\": 0.6, \"gp_beta_start\": 2.0, \"gp_beta_end\": 1.0, \"gp_xi\": 0.01, \"confidence\": 0.7, \"hypothesis\": \"Polar hydrogen-bond donors plus compact mid-sized topology raise solubility. Fails if donor-rich molecules are very large or if donor-free apolar molecules are small and polar.\"}, {\"skill_id\": \"hydrophobic_ring_rich_counter_hypothesis_reversed\", \"rules\": [{\"rule_id\": \"ring_rich_hydrophobic\", \"conditions\": [[\"ring_bin\", \"rings_high\"]], \"weight\": 0.3, \"rationale\": \"Ring-rich topology often means rigid, hydrophobic structure, but the rarest bin carries little information.\"}, {\"rule_id\": \"rotatable_penalty\", \"conditions\": [[\"rotatable_bond_bin\", \"rot_high\"]], \"weight\": -0.2, \"rationale\": \"High rotatability usually indicates flexible, non-planar hydrophobic surface, reducing solubility.\"}, {\"rule_id\": \"donor_none_reward\", \"conditions\": [[\"hbond_donor_bin\", \"donor_none\"]], \"weight\": 0.4, \"rationale\": \"Counterintuitively, donor-free apolar molecules can be highly soluble if small and compact.\"}, {\"rule_id\": \"very_long_penalty\", \"conditions\": [[\"smiles_length_bin\", \"smiles_very_long\"]], \"weight\": -0.6, \"rationale\": \"Very long SMILES encodes huge molecules, which are almost always insoluble.\"}], \"ridge\": 1.5, \"prior_scale\": 0.35, \"semantic_mass_start\": 0.3, \"semantic_mass_end\": 0.1, \"ucb_weight\": 0.5, \"gp_beta_start\": 2.2, \"gp_beta_end\": 1.0, \"gp_xi\": 0.02, \"confidence\": 0.6, \"hypothesis\": \"Ring-rich prior is reversed: ring-rich topology is weakly rewarded, while rotatable and very-long penalties remain. Fails if ring-rich molecules are small and polar.\"}], \"selected_skill_id\": \"polar_hbond_donors_plus_compactness\", \"lesson\": \"Across four development seeds, the donor-rich skill led the counter-hypothesis on mean AUC (92.0 vs 89.2), though final-best scores were similar. Seed variation was substantial, so no single seed's outcome should be taken as causal.\", \"revision_summary\": \"Replaced the long-SMILES penalty with a mid-SMILES reward, keeping the donor polarity mechanism intact. Reversed the ring-rich prior in the counter-hypothesis and reduced its semantic mass slightly. Deployed the donor-plus-compactness skill because its mechanistic rationale is best grounded in aqueous solubility chemistry.\"}, \"feedback\": {\"development_only\": true, \"skill_results\": [{\"skill_id\": \"polar_hbond_donors_plus_compactness\", \"seeds\": [202618104, 202618105, 202618106, 202618107], \"mean_auc\": 92.7268, \"mean_final_best\": 93.7143, \"per_seed\": [{\"seed\": 202618104, \"auc\": 93.7143, \"final_best\": 93.7143}, {\"seed\": 202618105, \"auc\": 90.3643, \"final_best\": 93.7143}, {\"seed\": 202618106, \"auc\": 93.4143, \"final_best\": 93.7143}, {\"seed\": 202618107, \"auc\": 93.4143, \"final_best\": 93.7143}]}, {\"skill_id\": \"hydrophobic_ring_rich_counter_hypothesis_reversed\", \"seeds\": [202618104, 202618105, 202618106, 202618107], \"mean_auc\": 88.078575, \"mean_final_best\": 94.7857, \"per_seed\": [{\"seed\": 202618104, \"auc\": 89.5786, \"final_best\": 95.2857}, {\"seed\": 202618105, \"auc\": 89.8428, \"final_best\": 93.3571}, {\"seed\": 202618106, \"auc\": 91.4786, \"final_best\": 96.9286}, {\"seed\": 202618107, \"auc\": 81.4143, \"final_best\": 93.5714}]}]}}], \"feedback_boundary\": \"Only completed development-seed summaries may appear here. Held-out evaluation outcomes are unavailable. No global KB retrieval or promotion is performed.\", \"revision_instruction\": \"Use the supplied feedback to identify failures and improve the next skill generation. Do not infer causal mechanisms from a small set of seeds alone.\"}"
+      }
+    ],
+    "temperature": 0.0,
+    "max_tokens": 2048,
+    "response_format": {
+      "type": "json_object"
+    }
+  },
+  "request_sha256": "0ffb306d6c72e3e0b145ef78a49249c501789b2a947fa1c12eb60635ef59aa4f",
+  "started_at": "2026-09-17T01:32:20.950282+00:00",
+  "credential_included_in_archive": false,
+  "response": {
+    "model": "local/qwen25-32b-adapter",
+    "choices": [
+      {
+        "message": {
+          "role": "assistant",
+          "content": "{\"skills\":[{\"skill_id\":\"polar_hbond_donors_plus_apolar_compactness\",\"rules\":[{\"rule_id\":\"donor_high_polarity\",\"conditions\":{\"hbond_donor_bin\":\"donor_high\"},\"weight\":0.6,\"rationale\":\"Hydrogen-bond donors (OH, NH) add polar surface area, raising aqueous solubility.\"},{\"rule_id\":\"donor_mid_polarity\",\"conditions\":{\"hbond_donor_bin\":\"donor_mid\"},\"weight\":0.4,\"rationale\":\"Moderate donor count still adds polar surface, though less than high-donor molecules.\"},{\"rule_id\":\"compact_small_apolar\",\"conditions\":{\"hbond_donor_bin\":\"donor_none\",\"smiles_length_bin\":\"smiles_short\"},\"weight\":0.5,\"rationale\":\"Small donor-free molecules are compact and apolar, a known solubility-raising combination.\"},{\"rule_id\":\"no_donor_penalty\",\"conditions\":{\"hbond_donor_bin\":\"donor_none\"},\"weight\":-0.4,\"rationale\":\"Lack of hydrogen bonding reduces aqueous solubility relative to polar donors.\"}],\"ridge\":1.0,\"prior_scale\":0.25,\"semantic_mass_start\":0.4,\"semantic_mass_end\":0.15,\"ucb_weight\":0.6,\"gp_beta_start\":2.0,\"gp_beta_end\":1.0,\"gp_xi\":0.01,\"confidence\":0.7,\"hypothesis\":\"Polar hydrogen-bond donors plus small apolar compactness raise solubility. Fails if donor-rich molecules are very large or if donor-free apolar molecules are large and flexible.\"},{\"skill_id\":\"hydrophobic_ring_rich_counter_hypothesis_reversed_with_rotatable_interaction\",\"rules\":[{\"rule_id\":\"ring_rich_hydrophobic\",\"conditions\":{\"ring_bin\":\"rings_high\"},\"weight\":0.3,\"rationale\":\"Ring-rich topology often means rigid, hydrophobic structure, but the rarest bin carries little information.\"},{\"rule_id\":\"rotatable_penalty\",\"conditions\":{\"rotatable_bond_bin\":\"rot_high\"},\"weight\":-0.2,\"rationale\":\"High rotatability usually indicates flexible, non-planar hydrophobic surface, reducing solubility.\"},{\"rule_id\":\"donor_none_reward\",\"conditions\":{\"hbond_donor_bin\":\"donor_none\"},\"weight\":0.4,\"rationale\":\"Counterintuitively, donor-free apolar molecules can be highly soluble if small and compact.\"},{\"rule_id\":\"rotatable_ring_interaction\",\"conditions\":{\"rotatable_bond_bin\":\"rot_high\",\"ring_bin\":\"rings_high\"},\"weight\":-0.5,\"rationale\":\"Rigid ring-rich topology plus high rotatability maximizes hydrophobic surface, the lowest-solubility combination.\"}],\"ridge\":1.5,\"prior_scale\":0.35,\"semantic_mass_start\":0.3,\"semantic_mass_end\":0.1,\"ucb_weight\":0.5,\"gp_beta_start\":2.2,\"gp_beta_end\":1.0,\"gp_xi\":0.02,\"confidence\":0.6,\"hypothesis\":\"Ring-rich prior is reversed, with a rotatable/ring interaction penalty. Fails if ring-rich molecules are small and polar or if the interaction is too rare to inform the surrogate.\"}],\"selected_skill_id\":\"polar_hbond_donors_plus_apolar_compactness\",\"lesson\":\"Across eight development seeds, the donor-rich skill led the counter-hypothesis on mean AUC (92.4 vs 88.6), though final-best scores were similar. Seed variation was substantial, so no single seed's outcome should be taken as causal.\",\"revision_summary\":\"Kept the donor polarity mechanism and replaced the mid-SMILES reward with a small-apolar interaction, which combines compactness with the donor-free reward. The counter-hypothesis now includes a rotatable/ring interaction penalty. Deployed the donor-plus-apolar-compactness skill because its mechanistic rationale is best grounded in aqueous solubility chemistry.\"}"
+        },
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 5045,
+      "completion_tokens": 838,
+      "total_tokens": 5883
+    },
+    "local_provenance": {
+      "backend": "local_qlora",
+      "base_model_path": "/work/zeyuwang/ms_cache/Qwen/Qwen2___5-32B-Instruct",
+      "base_config_sha256": "9c6772f138ef9e5b3d1c18f2c87e451bbc01f5f1a4eabb36f9bf4f53829b903e",
+      "adapter_path": "/work/zeyuwang/care-rsi/repo/experiments/care_replay/results/2026-09-15-rsi-qwen25-32b-full-sft-v4/best_adapter",
+      "weights_frozen_during_search": true,
+      "quantization": "4-bit NF4 double quantization",
+      "torch": "2.4.0+cu121",
+      "transformers": "4.51.3",
+      "gpu": "NVIDIA A800 80GB PCIe",
+      "adapter_sha256": "30cd27d9ee6250ced68434096a698770ebdd9e2bc420bf5dfd32be285d907ed3",
+      "generation_seed": 135353673,
+      "schema_validation": "Post-generation compiler, not constrained decoding"
+    }
+  },
+  "elapsed_seconds": 125.41342476708815,
+  "raw_model_content": "{\"skills\":[{\"skill_id\":\"polar_hbond_donors_plus_apolar_compactness\",\"rules\":[{\"rule_id\":\"donor_high_polarity\",\"conditions\":{\"hbond_donor_bin\":\"donor_high\"},\"weight\":0.6,\"rationale\":\"Hydrogen-bond donors (OH, NH) add polar surface area, raising aqueous solubility.\"},{\"rule_id\":\"donor_mid_polarity\",\"conditions\":{\"hbond_donor_bin\":\"donor_mid\"},\"weight\":0.4,\"rationale\":\"Moderate donor count still adds polar surface, though less than high-donor molecules.\"},{\"rule_id\":\"compact_small_apolar\",\"conditions\":{\"hbond_donor_bin\":\"donor_none\",\"smiles_length_bin\":\"smiles_short\"},\"weight\":0.5,\"rationale\":\"Small donor-free molecules are compact and apolar, a known solubility-raising combination.\"},{\"rule_id\":\"no_donor_penalty\",\"conditions\":{\"hbond_donor_bin\":\"donor_none\"},\"weight\":-0.4,\"rationale\":\"Lack of hydrogen bonding reduces aqueous solubility relative to polar donors.\"}],\"ridge\":1.0,\"prior_scale\":0.25,\"semantic_mass_start\":0.4,\"semantic_mass_end\":0.15,\"ucb_weight\":0.6,\"gp_beta_start\":2.0,\"gp_beta_end\":1.0,\"gp_xi\":0.01,\"confidence\":0.7,\"hypothesis\":\"Polar hydrogen-bond donors plus small apolar compactness raise solubility. Fails if donor-rich molecules are very large or if donor-free apolar molecules are large and flexible.\"},{\"skill_id\":\"hydrophobic_ring_rich_counter_hypothesis_reversed_with_rotatable_interaction\",\"rules\":[{\"rule_id\":\"ring_rich_hydrophobic\",\"conditions\":{\"ring_bin\":\"rings_high\"},\"weight\":0.3,\"rationale\":\"Ring-rich topology often means rigid, hydrophobic structure, but the rarest bin carries little information.\"},{\"rule_id\":\"rotatable_penalty\",\"conditions\":{\"rotatable_bond_bin\":\"rot_high\"},\"weight\":-0.2,\"rationale\":\"High rotatability usually indicates flexible, non-planar hydrophobic surface, reducing solubility.\"},{\"rule_id\":\"donor_none_reward\",\"conditions\":{\"hbond_donor_bin\":\"donor_none\"},\"weight\":0.4,\"rationale\":\"Counterintuitively, donor-free apolar molecules can be highly soluble if small and compact.\"},{\"rule_id\":\"rotatable_ring_interaction\",\"conditions\":{\"rotatable_bond_bin\":\"rot_high\",\"ring_bin\":\"rings_high\"},\"weight\":-0.5,\"rationale\":\"Rigid ring-rich topology plus high rotatability maximizes hydrophobic surface, the lowest-solubility combination.\"}],\"ridge\":1.5,\"prior_scale\":0.35,\"semantic_mass_start\":0.3,\"semantic_mass_end\":0.1,\"ucb_weight\":0.5,\"gp_beta_start\":2.2,\"gp_beta_end\":1.0,\"gp_xi\":0.02,\"confidence\":0.6,\"hypothesis\":\"Ring-rich prior is reversed, with a rotatable/ring interaction penalty. Fails if ring-rich molecules are small and polar or if the interaction is too rare to inform the surrogate.\"}],\"selected_skill_id\":\"polar_hbond_donors_plus_apolar_compactness\",\"lesson\":\"Across eight development seeds, the donor-rich skill led the counter-hypothesis on mean AUC (92.4 vs 88.6), though final-best scores were similar. Seed variation was substantial, so no single seed's outcome should be taken as causal.\",\"revision_summary\":\"Kept the donor polarity mechanism and replaced the mid-SMILES reward with a small-apolar interaction, which combines compactness with the donor-free reward. The counter-hypothesis now includes a rotatable/ring interaction penalty. Deployed the donor-plus-apolar-compactness skill because its mechanistic rationale is best grounded in aqueous solubility chemistry.\"}",
+  "normalized": {
+    "skills": [
+      {
+        "skill_id": "polar_hbond_donors_plus_apolar_compactness",
+        "rules": [
+          {
+            "rule_id": "donor_high_polarity",
+            "conditions": [
+              [
+                "hbond_donor_bin",
+                "donor_high"
+              ]
+            ],
+            "weight": 0.6,
+            "rationale": "Hydrogen-bond donors (OH, NH) add polar surface area, raising aqueous solubility."
+          },
+          {
+            "rule_id": "donor_mid_polarity",
+            "conditions": [
+              [
+                "hbond_donor_bin",
+                "donor_mid"
+              ]
+            ],
+            "weight": 0.4,
+            "rationale": "Moderate donor count still adds polar surface, though less than high-donor molecules."
+          },
+          {
+            "rule_id": "compact_small_apolar",
+            "conditions": [
+              [
+                "hbond_donor_bin",
+                "donor_none"
+              ],
+              [
+                "smiles_length_bin",
+                "smiles_short"
+              ]
+            ],
+            "weight": 0.5,
+            "rationale": "Small donor-free molecules are compact and apolar, a known solubility-raising combination."
+          },
+          {
+            "rule_id": "no_donor_penalty",
+            "conditions": [
+              [
+                "hbond_donor_bin",
+                "donor_none"
+              ]
+            ],
+            "weight": -0.4,
+            "rationale": "Lack of hydrogen bonding reduces aqueous solubility relative to polar donors."
+          }
+        ],
+        "ridge": 1.0,
+        "prior_scale": 0.25,
+        "semantic_mass_start": 0.4,
+        "semantic_mass_end": 0.15,
+        "ucb_weight": 0.6,
+        "gp_beta_start": 2.0,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.01,
+        "confidence": 0.7,
+        "hypothesis": "Polar hydrogen-bond donors plus small apolar compactness raise solubility. Fails if donor-rich molecules are very large or if donor-free apolar molecules are large and flexible."
+      },
+      {
+        "skill_id": "hydrophobic_ring_rich_counter_hypothesis_reversed_with_rotatable",
+        "rules": [
+          {
+            "rule_id": "ring_rich_hydrophobic",
+            "conditions": [
+              [
+                "ring_bin",
+                "rings_high"
+              ]
+            ],
+            "weight": 0.3,
+            "rationale": "Ring-rich topology often means rigid, hydrophobic structure, but the rarest bin carries little information."
+          },
+          {
+            "rule_id": "rotatable_penalty",
+            "conditions": [
+              [
+                "rotatable_bond_bin",
+                "rot_high"
+              ]
+            ],
+            "weight": -0.2,
+            "rationale": "High rotatability usually indicates flexible, non-planar hydrophobic surface, reducing solubility."
+          },
+          {
+            "rule_id": "donor_none_reward",
+            "conditions": [
+              [
+                "hbond_donor_bin",
+                "donor_none"
+              ]
+            ],
+            "weight": 0.4,
+            "rationale": "Counterintuitively, donor-free apolar molecules can be highly soluble if small and compact."
+          },
+          {
+            "rule_id": "rotatable_ring_interaction",
+            "conditions": [
+              [
+                "ring_bin",
+                "rings_high"
+              ],
+              [
+                "rotatable_bond_bin",
+                "rot_high"
+              ]
+            ],
+            "weight": -0.5,
+            "rationale": "Rigid ring-rich topology plus high rotatability maximizes hydrophobic surface, the lowest-solubility combination."
+          }
+        ],
+        "ridge": 1.5,
+        "prior_scale": 0.35,
+        "semantic_mass_start": 0.3,
+        "semantic_mass_end": 0.1,
+        "ucb_weight": 0.5,
+        "gp_beta_start": 2.2,
+        "gp_beta_end": 1.0,
+        "gp_xi": 0.02,
+        "confidence": 0.6,
+        "hypothesis": "Ring-rich prior is reversed, with a rotatable/ring interaction penalty. Fails if ring-rich molecules are small and polar or if the interaction is too rare to inform the surrogate."
+      }
+    ],
+    "selected_skill_id": "polar_hbond_donors_plus_apolar_compactness",
+    "lesson": "Across eight development seeds, the donor-rich skill led the counter-hypothesis on mean AUC (92.4 vs 88.6), though final-best scores were similar. Seed variation was substantial, so no single seed's outcome should be taken as causal.",
+    "revision_summary": "Kept the donor polarity mechanism and replaced the mid-SMILES reward with a small-apolar interaction, which combines compactness with the donor-free reward. The counter-hypothesis now includes a rotatable/ring interaction penalty. Deployed the donor-plus-apolar-compactness skill because its mechanistic rationale is best grounded in aqueous solubility chemistry."
+  },
+  "status": "valid"
+}
