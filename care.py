@@ -26,6 +26,9 @@ COMMANDS = {
 
 def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
+    if args and args[0] == "benchmark":
+        from care_harness.cli import main as benchmark_main
+        return benchmark_main(args[1:])
     if args and args[0] == "eve":
         from care_harness.eve.__main__ import main as eve_main
         return eve_main(args[1:])
@@ -38,6 +41,7 @@ def main(argv: list[str] | None = None) -> int:
         print("  artifacts   List, verify or restore archived evidence")
         print("  pack        Archive a completed run without deleting it")
         print("  check       Check repository hygiene and canonical inputs")
+        print("  benchmark   Shared CARE / Codex / EvE replay and metrics")
         print("  eve         Prepare, launch and export official EvE searches")
         print("\nEach command accepts --help. See docs/PROJECT_MAINLINE.md.")
         return 0
