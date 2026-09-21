@@ -8,6 +8,7 @@ import json
 import math
 import os
 import random
+from collections.abc import Generator
 from dataclasses import asdict
 from itertools import combinations
 from pathlib import Path
@@ -1159,7 +1160,7 @@ def router_gate_decision(
     return True, "online_evidence_authorized_transfer"
 
 
-def run_router_policy(
+def router_decisions(
     source_adapter: replay.DatasetAdapter,
     target_adapter: replay.DatasetAdapter,
     task: replay.TaskSpec,
@@ -1189,9 +1190,13 @@ def run_router_policy(
     router_min_quality: float = 0.20,
     router_max_transfer_mass: float = 0.45,
     source_initial_strategy: str = "matched",
-) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+) -> Generator[dict[str, Any], Any, None]:
+    """Yield a public initial design, then decisions; receive revealed candidates.
+
+    Selection uses candidate descriptors and supplied observations only. The caller
+    owns the oracle, budget and evaluation metrics.
+    """
     pool = target_adapter.candidates
-    by_id = {candidate.candidate_id: candidate for candidate in pool}
     features_by_id = {
         candidate.candidate_id: surrogate.candidate_features(target_adapter, candidate)
         for candidate in pool
@@ -1244,6 +1249,10 @@ def run_router_policy(
         task.initial_observations,
         source_initial_strategy,
     )
+    observed = yield {
+        "initial_candidate_ids": [candidate.candidate_id for candidate in observed],
+        "initial_design_diagnostics": initial_design_diagnostics,
+    }
     source_probe_ids = set(initial_design_diagnostics.get("source_probe_ids", ()))
     initial_design_diagnostics["revealed_initial_observations"] = [
         {
@@ -1255,11 +1264,6 @@ def run_router_policy(
         for candidate in observed
     ]
     observed_ids = {candidate.candidate_id for candidate in observed}
-    top10 = {candidate.candidate_id for candidate in sorted(pool, key=lambda item: item.objective_value, reverse=True)[:10]}
-    selected_top10 = any(candidate.candidate_id in top10 for candidate in observed)
-
-    best_trace: list[float] = []
-    audit: list[dict[str, Any]] = []
     for round_index in range(task.reveal_budget):
         if target_anchor_scorer is None:
             anchors, anchor_diagnostics = target_anchor_scores(
@@ -1507,51 +1511,95 @@ def run_router_policy(
             min_quality=router_min_quality,
         )
         selected_id = router_selected_id if router_authorized else anchor_selected_id
-        selected = by_id[selected_id]
+        selected = yield {
+            "dataset_id": target_adapter.dataset_id,
+            "source_dataset_id": source_adapter.dataset_id,
+            "seed": seed,
+            "round_index": round_index,
+            "mode": "llm_transfer_router",
+            "public_observed_count": len(observed),
+            "selected_candidate": selected_id,
+            "selected_score": round(combined_scores[selected_id], 6),
+            "hypothesis_snapshot": {
+                "target_anchor": target_anchor_label,
+                "source_initial_design": initial_design_diagnostics,
+                "transfer_mass": round(transfer_mass, 6),
+                "router_gate": {
+                    "anchor_candidate": anchor_selected_id,
+                    "router_candidate": router_selected_id,
+                    "selected_candidate": selected_id,
+                    "authorized": router_authorized,
+                    "reason": router_reason,
+                    "anchor_acquisition_loss": round(anchor_loss, 6),
+                    "risk_budget": round(router_risk_budget, 6),
+                    "max_quality": round(max_quality, 6),
+                    "min_observations": router_min_observations,
+                    "min_quality": router_min_quality,
+                    "max_transfer_mass": router_max_transfer_mass,
+                },
+                "expert_weights": expert_weights,
+                "route_diagnostics": route_diagnostics,
+                "anchor_diagnostics": anchor_diagnostics,
+                "evidence_boundary": (
+                    "The LLM patches are frozen before replay. Routing and source-prior calibration "
+                    "use source observations plus target outcomes revealed before this selection only."
+                ),
+            },
+        }
         observed.append(selected)
         observed_ids.add(selected_id)
-        selected_top10 = selected_top10 or selected_id in top10
+
+
+def run_router_policy(
+    source_adapter: replay.DatasetAdapter,
+    target_adapter: replay.DatasetAdapter,
+    task: replay.TaskSpec,
+    seed: int,
+    card: transfer.TransferCard,
+    source_observed: list[replay.Candidate],
+    patches: tuple[evolution.KernelSkillPatch, ...],
+    normalize: bool,
+    gp_beta: float,
+    gp_xi: float,
+    numeric_length_scale: float,
+    categorical_length_scale: float,
+    gp_noise: float,
+    initial_observed: list[replay.Candidate] | None = None,
+    target_anchor_scorer: Callable[..., Any] | None = None,
+    target_anchor_label: str = "equal_rank_gp_ucb_gp_ei",
+    router_min_observations: int = 5,
+    router_min_quality: float = 0.20,
+    router_max_transfer_mass: float = 0.45,
+    source_initial_strategy: str = "matched",
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """Legacy replay entry point backed by the same incremental policy."""
+    policy = router_decisions(
+        source_adapter, target_adapter, task, seed, card, source_observed,
+        patches, normalize, gp_beta, gp_xi, numeric_length_scale,
+        categorical_length_scale, gp_noise, initial_observed,
+        target_anchor_scorer, target_anchor_label, router_min_observations,
+        router_min_quality, router_max_transfer_mass, source_initial_strategy,
+    )
+    by_id = {candidate.candidate_id: candidate for candidate in target_adapter.candidates}
+    initial_design = next(policy)
+    observed = [by_id[candidate_id] for candidate_id in initial_design["initial_candidate_ids"]]
+    top10 = {candidate.candidate_id for candidate in sorted(
+        target_adapter.candidates, key=lambda item: item.objective_value, reverse=True
+    )[:10]}
+    selected_top10 = any(candidate.candidate_id in top10 for candidate in observed)
+    audit: list[dict[str, Any]] = []
+    best_trace: list[float] = []
+    response: Any = list(observed)
+    for _ in range(task.reveal_budget):
+        event = policy.send(response)
+        selected = by_id[event["selected_candidate"]]
+        observed.append(selected)
+        selected_top10 = selected_top10 or selected.candidate_id in top10
         best_so_far = max(candidate.objective_value for candidate in observed)
         best_trace.append(best_so_far)
-        audit.append(
-            {
-                "dataset_id": target_adapter.dataset_id,
-                "source_dataset_id": source_adapter.dataset_id,
-                "seed": seed,
-                "round_index": round_index,
-                "mode": "llm_transfer_router",
-                "public_observed_count": len(observed) - 1,
-                "selected_candidate": selected_id,
-                "selected_score": round(combined_scores[selected_id], 6),
-                "revealed_value": selected.objective_value,
-                "best_so_far": best_so_far,
-                "hypothesis_snapshot": {
-                    "target_anchor": target_anchor_label,
-                    "source_initial_design": initial_design_diagnostics,
-                    "transfer_mass": round(transfer_mass, 6),
-                    "router_gate": {
-                        "anchor_candidate": anchor_selected_id,
-                        "router_candidate": router_selected_id,
-                        "selected_candidate": selected_id,
-                        "authorized": router_authorized,
-                        "reason": router_reason,
-                        "anchor_acquisition_loss": round(anchor_loss, 6),
-                        "risk_budget": round(router_risk_budget, 6),
-                        "max_quality": round(max_quality, 6),
-                        "min_observations": router_min_observations,
-                        "min_quality": router_min_quality,
-                        "max_transfer_mass": router_max_transfer_mass,
-                    },
-                    "expert_weights": expert_weights,
-                    "route_diagnostics": route_diagnostics,
-                    "anchor_diagnostics": anchor_diagnostics,
-                    "evidence_boundary": (
-                        "The LLM patches are frozen before replay. Routing and source-prior calibration "
-                        "use source observations plus target outcomes revealed before this selection only."
-                    ),
-                },
-            }
-        )
+        audit.append({**event, "revealed_value": selected.objective_value, "best_so_far": best_so_far})
+        response = selected
+    policy.close()
 
     final_best = max(candidate.objective_value for candidate in observed)
     return {
