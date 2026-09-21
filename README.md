@@ -6,6 +6,7 @@
 
 ## 先看这里
 
+- [CARE / Codex / EvE baseline 框架](docs/BASELINES.md)：共用重放环境、方法适配器、无 key 验证与正式实验入口。
 - [环境与依赖](docs/ENVIRONMENT.md)：uv 安装、可选功能和统一运行方式。
 - [项目主线与全部分支关系](docs/PROJECT_MAINLINE.md)：研究问题、算法链路、证据层级和扩展实验。
 - [主方法定义](experiments/care_replay/CARE2_METHOD.md)：冻结 source-outcome transfer 的执行契约。

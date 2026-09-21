@@ -2,12 +2,14 @@
 
 整个仓库使用根目录的 `pyproject.toml` 和唯一的 `uv.lock`。AstaBench 是同一 uv workspace 中的成员；所有功能共用锁定的依赖版本和根目录 `.venv/`。
 
+本 baseline 开发分支支持 uv 0.11+。日常使用 `uv sync` 即可；校内网络可用 `UV_DEFAULT_INDEX=https://mirrors.osa.moe/pypi/web/simple/ uv sync`，允许据此更新锁文件。下文的 `--locked` 命令保留为精确复现原环境的可选用法，不是每次实验的前置要求。新框架入口见 [BASELINES.md](BASELINES.md)。
+
 ## 第一次部署（WSL / Linux）
 
 本地工作目录为 `/home/tangchao/projects/care2.0`，分支为 `tangchao/repository-reorganization`。同事在分支发布后可执行：
 
 ```bash
-# 首次安装 uv；已有 uv >= 0.12.9 可跳过。
+# 首次安装 uv；已有 uv >= 0.11 可跳过。
 curl -LsSf https://astral.sh/uv/install.sh | sh
 export PATH="$HOME/.local/bin:$PATH"
 
