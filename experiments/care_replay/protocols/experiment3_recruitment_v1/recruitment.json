@@ -1,0 +1,88 @@
+{
+  "status": "stage1_recruitment_archive_before_external_search_not_execution_freeze",
+  "created_utc": "2026-10-20T13:06:39.884826+00:00",
+  "approved_by_user": {
+    "new_public_multimutant_data": true,
+    "old_data_development_only": true,
+    "fixed_additive_four_arm_source_only": true,
+    "delta_source_iqr": 0.02,
+    "preserve_near_zero_and_uncertain": true,
+    "model_api_calls_allowed": 0
+  },
+  "stages": [
+    "archive recruitment and analysis before new data",
+    "search metadata and obtain sealed raw files; export public sequence columns only",
+    "report concrete routes; validate implementation and stage2 freeze before unsealing outcomes"
+  ],
+  "recruitment": {
+    "target_routes_min": 20,
+    "independent_landscapes_target_min": 10,
+    "families_aspirational_min": 5,
+    "exclude_historical_datasets": [
+      "IRED",
+      "Hydro",
+      "Rhomax",
+      "Amylase",
+      "TrpB"
+    ],
+    "required": [
+      "experimental substitution landscape with multiple mutants",
+      "verified WT and mutation notation",
+      "traceable source version and license",
+      "deduplicated exact sequences",
+      "audit shared experiments homologous proteins and prior repository exposure"
+    ],
+    "source_fit_n": 1024,
+    "source_calibration_library_min": 256,
+    "target_pool_min": 200,
+    "no_effect_based_selection": true,
+    "all_pass_fail_candidates_retained": true
+  },
+  "route_generation_before_data": {
+    "supported": "Within one assay, hash-sort unique sequence IDs with fixed experiment3-v1 namespace; take every fifth row as target, remaining rows as source domain; first 1024 hash-ordered source rows fit, remaining source rows form calibration library. Need >=256 calibration and >=200 target; identify shared order/coverage support without outcomes. This is within-assay transfer and must not be called cross-protein transfer.",
+    "extrapolation": "For each integer mutation-order cutoff k, source order<=k and target order>k. Eligible k must have >=1280 unique source and >=200 unique target. Select smallest eligible k using counts only; fit first1024 source sequence hashes, remaining source calibration. Report every cutoff count. One extrapolation route per assay.",
+    "deduplication": "same source and target memberships do not become new routes through seed changes; dependency clusters follow shared proteins/experiments",
+    "selection": "Inventory all metadata candidates; stage2 panel selection must use prespecified structural eligibility and dependency grouping only. If 20 routes/10 landscapes infeasible, stop; do not weaken budgets or independence definitions."
+  },
+  "endpoint": {
+    "metric": "mean(best_trace) difference / frozen source fit IQR",
+    "primary_margin": 0.02,
+    "ci": 0.95,
+    "zero_source_iqr": "ineligible report before target outcomes",
+    "arms": [
+      "G0_original",
+      "G1_composition_matched",
+      "Always",
+      "Never"
+    ],
+    "matching_failure": "fallback Never, retained in all-route analysis"
+  },
+  "proposed_execution_parameters_not_yet_implemented": {
+    "initial_observations": 3,
+    "reveal_rounds": 12,
+    "calibration_paired_seeds": 100,
+    "heldout_paired_seeds": 200,
+    "calibration_pool_per_gate": 128,
+    "composition_tolerance": 0.1
+  },
+  "data_firewall": {
+    "do_not_print_outcome_cells_or_statistics": true,
+    "metadata_parser_whitelist": true,
+    "raw_archive_download_allowed_sealed": true,
+    "data_fields_numeric_parse_allowed": [
+      "mutation position",
+      "mutation order",
+      "sequence length"
+    ],
+    "target_effects_unseal_allowed": false,
+    "source_effects_unseal_this_stage": false,
+    "local_protection_boundary": "process/code isolation plus file permissions; same local user can technically read vault, not cryptographic independent custody"
+  },
+  "changes_require_user_decision": [
+    "source-only to target-calibrated",
+    "new model calls",
+    "change principal margin or arms",
+    "weaken recruitment budgets or inflate independent units",
+    "unsupported data reinterpretation"
+  ]
+}

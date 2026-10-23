@@ -379,9 +379,13 @@ policy deployed after the gate:
 
 This is the cleanest current statement of the complete-system limitation. The
 system has evidence for both useful skills and safe abstention, but its routing
-recall is not yet adequate. The next independent test is therefore not another
-TrpB threshold replay. It is an outcome-blind, coverage-aware rule frozen on the
-previously unused FLIP2 Alpha Amylase `one-to-many` split before data download.
+recall is not yet adequate. An outcome-blind, coverage-aware rule was subsequently
+frozen on the FLIP2 Alpha Amylase `one-to-many` split before download. That
+execution was invalidated because the downloaded split direction contradicted
+the frozen mutation-order contract. Its effects cannot be counted as independent
+confirmation; see `INVALIDATION.md` in the
+`replay-2026-08-25-flip2-amylase-coverage-gate-v1` archive. A valid independent
+coverage-aware confirmation remains missing.
 
 ## Frozen repeated-trajectory protocol
 
@@ -977,7 +981,9 @@ the coverage-aware prospective router plus a laboratory campaign, not a
 retroactive TrpB gate rewrite.
 
 Implementation for the Alpha Amylase public-sequence adapter and the
-coverage-conditioned decision rule is now test-covered. The official Amylase
-file remains absent. The confirmatory run must wait until an outcome-blind LLM
-hypothesis record and the final config hash are committed; until then this is an
-implementation milestone, not evidence.
+coverage-conditioned decision rule is test-covered. Status corrected during the
+2026-10-20 archive audit: the later Amylase execution is archived with an explicit
+`INVALIDATION.md`, because its downloaded labels implement the reverse of the
+frozen mutation-order split. This is an invalid execution audit, not efficacy or
+confirmatory evidence. The split must not be repaired after inspecting those
+outcomes and presented as the original prospective test.

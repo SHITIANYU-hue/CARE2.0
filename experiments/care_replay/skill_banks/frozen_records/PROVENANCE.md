@@ -19,3 +19,18 @@ Original paths below are relative to the repository root.
 | [molecular_esol_to_lipophilicity_target_only.json](molecular_esol_to_lipophilicity_target_only.json) | `experiments/care_replay/results/2026-07-23-source-evidence-extension/model_calls/molecular_esol_to_lipophilicity_target_only.json` | `969903d2dc7a3e13bd3789bf2074be4f91da319e2d6c15b540838f2090b5daf0` | 54708 |
 | [molecular_lipophilicity_to_freesolv_target_only.json](molecular_lipophilicity_to_freesolv_target_only.json) | `experiments/care_replay/results/2026-07-23-source-evidence-extension/model_calls/molecular_lipophilicity_to_freesolv_target_only.json` | `25902f1b40d89942ec5e5f8b30fe6017408237f6d9312a707d5a462621ebb065` | 51002 |
 | [reaction_chemlex_to_buchwald_hartwig_target_only.json](reaction_chemlex_to_buchwald_hartwig_target_only.json) | `experiments/care_replay/results/2026-07-23-source-evidence-extension/model_calls/reaction_chemlex_to_buchwald_hartwig_target_only.json` | `82f5e6867e0606d083abcdcab5837953d977a7e65a412a8582a7acf0a602349c` | 53183 |
+
+## BH random-rule pilot input
+
+`bh_semantic_headline_20260721.json` is a separate historical input for the R1/R2
+pilot, not an additional target-only control in the seven-route benchmark.
+It was extracted byte-for-byte on 2026-10-18 from
+`artifacts/replay-results/replay-2026-07-21-cross-domain-semantic-skills.tar.gz`,
+member
+`experiments/care_replay/results/2026-07-21-cross-domain-semantic-skills/model_calls/suzuki_to_bh_semantic_record.json`.
+
+- Archive SHA-256: `31f28aa490cbb7ffd1a9b73c01b19113e84dd3817500e00624019afafdabea3a`.
+- Extracted file SHA-256: `a3b4c29d4a55ec24c9b4305f8309ed401e9248ef66c92a4268b5a4a6d049fbdc`.
+- Contains five original frozen strategies, including `high_mw_ligand_effect`.
+- Historical model identity/usage are preserved as recorded; extraction and the
+  new pilot make zero additional model calls.

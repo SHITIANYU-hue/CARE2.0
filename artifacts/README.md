@@ -2,7 +2,7 @@
 
 归档包含结果 JSON/JSONL、日志、汇总、图表、协议副本、代码快照与演示文件。原始代码和有效配置仍在源码树中。
 
-共 **138 个 tar.gz**，**24,992 个原始文件**，压缩后 **549.09 MiB**。其中 17 个文件来自 `llm-traces` 独有提交。
+共 **173 个 tar.gz**，**28,652 个原始文件**，压缩后 **721.23 MiB**。其中 17 个文件来自 `llm-traces` 独有提交。
 
 命令从仓库根目录运行；先按 [环境与依赖](../docs/ENVIRONMENT.md) 安装 uv 环境。
 
@@ -181,3 +181,45 @@ uv run --locked python care.py artifacts restore llm-traces-2026-07-16
 | [replay-random-rule-null-esol-40seed](replay-results/replay-random-rule-null-esol-40seed.tar.gz) | 2 | 0.00 | [查看](https://github.com/SHITIANYU-hue/CARE2.0/blob/4c6f19f8cf62b25558f966604ce0b7644578f889/experiments/care_replay/results/random-rule-null-esol-40seed/README.md) |
 | [replay-random-rule-null-esol-warmstart-40seed](replay-results/replay-random-rule-null-esol-warmstart-40seed.tar.gz) | 2 | 0.01 | [查看](https://github.com/SHITIANYU-hue/CARE2.0/blob/4c6f19f8cf62b25558f966604ce0b7644578f889/experiments/care_replay/results/random-rule-null-esol-warmstart-40seed/README.md) |
 | [replay-random-rule-null-phonons-40seed](replay-results/replay-random-rule-null-phonons-40seed.tar.gz) | 2 | 0.00 | [查看](https://github.com/SHITIANYU-hue/CARE2.0/blob/4c6f19f8cf62b25558f966604ce0b7644578f889/experiments/care_replay/results/random-rule-null-phonons-40seed/README.md) |
+
+## 2026-10 投稿补充实验
+
+本批结果和恢复方法见 [投稿结果索引](../experiments/care_replay/SUBMISSION_COMPLETED_RESULTS_20261023.md)。包含中断、无效与负结果；未完成的跨模型工作不计入完成声明。
+
+| 归档 ID / 下载 | 文件数 | MiB |
+| --- | ---: | ---: |
+| [auc-reanalysis-v1-complete](new-runs/auc-reanalysis-v1-complete.tar.gz) | 57 | 6.32 |
+| [auc-reanalysis-v1-inventory](new-runs/auc-reanalysis-v1-inventory.tar.gz) | 12 | 0.30 |
+| [auc-reanalysis-v1-preparation](new-runs/auc-reanalysis-v1-preparation.tar.gz) | 123 | 10.00 |
+| [bh-anonymization-design-v1-preparation](replay-results/bh-anonymization-design-v1-preparation.tar.gz) | 12 | 0.02 |
+| [bh-coverage-matched-rule-controls-v1-complete](replay-results/bh-coverage-matched-rule-controls-v1-complete.tar.gz) | 159 | 4.58 |
+| [bh-random-rule-controls-pilot-v1-aborted](replay-results/bh-random-rule-controls-pilot-v1-aborted.tar.gz) | 4 | 0.01 |
+| [bh-random-rule-controls-pilot-v1-complete](replay-results/bh-random-rule-controls-pilot-v1-complete.tar.gz) | 15 | 0.19 |
+| [bh-random-rule-controls-scale-v1-complete](replay-results/bh-random-rule-controls-scale-v1-complete.tar.gz) | 141 | 6.22 |
+| [bh-semantic-anonymization-v1-generation-stopped](new-runs/bh-semantic-anonymization-v1-generation-stopped.tar.gz) | 159 | 0.52 |
+| [bh-semantic-anonymization-v1-protocol-frozen](new-runs/bh-semantic-anonymization-v1-protocol-frozen.tar.gz) | 155 | 2.92 |
+| [bh-semantic-anonymization-v1-runtime-amendment-invalid-stopped](new-runs/bh-semantic-anonymization-v1-runtime-amendment-invalid-stopped.tar.gz) | 198 | 0.55 |
+| [bh-semantic-anonymization-v1-runtime-amendment-proposal](new-runs/bh-semantic-anonymization-v1-runtime-amendment-proposal.tar.gz) | 8 | 0.02 |
+| [bh-semantic-anonymization-v1-runtime-amendment-provenance](new-runs/bh-semantic-anonymization-v1-runtime-amendment-provenance.tar.gz) | 10 | 0.02 |
+| [bh-semantic-anonymization-v2-design-proposal](new-runs/bh-semantic-anonymization-v2-design-proposal.tar.gz) | 39 | 0.09 |
+| [bh-semantic-anonymization-v2-evaluation-complete](new-runs/bh-semantic-anonymization-v2-evaluation-complete.tar.gz) | 412 | 7.31 |
+| [bh-semantic-anonymization-v2-evaluation-interrupted](new-runs/bh-semantic-anonymization-v2-evaluation-interrupted.tar.gz) | 401 | 6.40 |
+| [bh-semantic-anonymization-v2-execution-audit-complete](new-runs/bh-semantic-anonymization-v2-execution-audit-complete.tar.gz) | 19 | 0.04 |
+| [bh-semantic-anonymization-v2-generation-complete](new-runs/bh-semantic-anonymization-v2-generation-complete.tar.gz) | 264 | 3.01 |
+| [bh-semantic-anonymization-v2-heldout-recovery-runtime](new-runs/bh-semantic-anonymization-v2-heldout-recovery-runtime.tar.gz) | 4 | 0.01 |
+| [bh-semantic-anonymization-v2-protocol-frozen](new-runs/bh-semantic-anonymization-v2-protocol-frozen.tar.gz) | 164 | 2.96 |
+| [bh-semantic-anonymization-v2-report-complete](new-runs/bh-semantic-anonymization-v2-report-complete.tar.gz) | 25 | 0.30 |
+| [experiment3-executor-preflight-v1](new-runs/experiment3-executor-preflight-v1.tar.gz) | 5 | 0.00 |
+| [experiment3-gate-preparation-v1](new-runs/experiment3-gate-preparation-v1.tar.gz) | 10 | 0.02 |
+| [experiment3-gate-validation-v1-complete](new-runs/experiment3-gate-validation-v1-complete.tar.gz) | 2 | 79.92 |
+| [offline-action-cost-budget-audit-v1-complete](new-runs/offline-action-cost-budget-audit-v1-complete.tar.gz) | 34 | 0.67 |
+| [submission-nonrsi-offline-preparation-v1](replay-results/submission-nonrsi-offline-preparation-v1.tar.gz) | 14 | 0.07 |
+| [submission-nonrsi-roadmap-20261021-sources](new-runs/submission-nonrsi-roadmap-20261021-sources.tar.gz) | 2 | 0.00 |
+| [submission-nonrsi-roadmap-after-auc-20261021-sources](new-runs/submission-nonrsi-roadmap-after-auc-20261021-sources.tar.gz) | 1 | 0.00 |
+| [suzuki-continuation-amendment2-evaluation-complete](new-runs/suzuki-continuation-amendment2-evaluation-complete.tar.gz) | 306 | 2.58 |
+| [suzuki-continuation-amendment2-execution-audit](new-runs/suzuki-continuation-amendment2-execution-audit.tar.gz) | 22 | 23.37 |
+| [suzuki-continuation-amendment2-generation-complete](new-runs/suzuki-continuation-amendment2-generation-complete.tar.gz) | 478 | 6.87 |
+| [suzuki-continuation-amendment2-protocol-frozen](new-runs/suzuki-continuation-amendment2-protocol-frozen.tar.gz) | 12 | 0.02 |
+| [suzuki-second-dataset-v1-generation-interrupted](new-runs/suzuki-second-dataset-v1-generation-interrupted.tar.gz) | 213 | 3.42 |
+| [suzuki-second-dataset-v1-protocol-frozen](new-runs/suzuki-second-dataset-v1-protocol-frozen.tar.gz) | 169 | 3.41 |
+| [completed-results-publication-20261023](new-runs/completed-results-publication-20261023.tar.gz) | 11 | 0.01 |

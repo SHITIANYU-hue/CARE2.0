@@ -1,0 +1,85 @@
+{
+  "protocol_id": "bh_random_rule_controls_scale_v1",
+  "evidence_class": "retrospective_offline_random_library_stability",
+  "target_dataset": "real_buchwald_hartwig",
+  "expected_candidate_count": 3955,
+  "llm_record": "experiments/care_replay/skill_banks/frozen_records/bh_semantic_headline_20260721.json",
+  "llm_record_sha256": "a3b4c29d4a55ec24c9b4305f8309ed401e9248ef66c92a4268b5a4a6d049fbdc",
+  "expected_skill_ids": [
+    "high_mw_ligand_effect",
+    "aryl_halide_bromide_impact",
+    "low_tpsa_base_risk",
+    "source_evidence_ligand",
+    "high_tpsa_additive_effect"
+  ],
+  "data_files": [
+    "experiments/care_replay/data/raw/dreher_doyle_buchwald_hartwig.xlsx",
+    "experiments/care_replay/data/descriptors/reaction_component_descriptors.csv"
+  ],
+  "field_types": {
+    "ligand_mw_bin": "numeric_bin_2",
+    "base_reagent_base_family": "categorical_3",
+    "base_functional_class": "categorical_3",
+    "base_mw_bin": "numeric_bin_2",
+    "base_tpsa_bin": "numeric_bin_2",
+    "aryl_halide_halide_type": "categorical_3",
+    "aryl_halide_has_heteroaromatic": "boolean_2",
+    "aryl_halide_mw_bin": "numeric_bin_3",
+    "additive_tpsa_bin": "numeric_bin_2"
+  },
+  "calibration_seed_start": 202610183000,
+  "calibration_seed_count": 50,
+  "heldout_seed_start": 202610184000,
+  "heldout_seed_count": 100,
+  "initial_observations": 5,
+  "reveal_rounds": 10,
+  "null_replicates": 100,
+  "random_seed": 2026101802,
+  "gp_beta": 1.5,
+  "gp_xi": 0.01,
+  "numeric_length_scale": 0.35,
+  "categorical_length_scale": 3.0,
+  "gp_noise": 0.05,
+  "min_risk_adjusted_gain": 0.25,
+  "min_positive_fold_rate": 0.8,
+  "skill_variant_policy": "record_only_no_expansion",
+  "selection_policy": "canonical_select_skill_per_equal_size_library",
+  "primary_reporting": "llm_raw_calibration_winner_minus_each_random_library_raw_winner_heldout_auc",
+  "missing_cell_policy": "fail_without_partial_effect_estimate",
+  "null_definition": {
+    "r1": "Keep fields and executor; uniformly randomize legal values and coefficient signs.",
+    "r2": "Additionally randomize a skill-wide injective field map within type/cardinality groups; allow identity maps.",
+    "shared": "Preserve rule count, condition arity, field reuse, absolute weights and all execution parameters. No target labels enter generation. Do not select across replicate libraries."
+  },
+  "exact_execution_reuse": true,
+  "require_protocol_lock": true,
+  "stability_analysis": {
+    "bootstrap_seed": 2026101803,
+    "bootstrap_replicates": 10000,
+    "resampling": "independent_library_and_shared_heldout_seed_axes",
+    "primary_metric": "best_so_far_auc",
+    "primary_policy": "ungated_calibration_winner",
+    "primary_family_interval_level": 0.975,
+    "familywise_error_control": "Bonferroni for two primary family comparisons; approximate percentile bootstrap",
+    "heldout_blocks": 5,
+    "positive_block_requirement": "all five consecutive equal-size blocks in both families",
+    "stable_advantage": "both primary family adjusted interval lower bounds strictly positive AND all five block means strictly positive in both families",
+    "secondary_policy": "selected_mode",
+    "secondary_intervals": "exploratory unadjusted 95 percent crossed bootstrap",
+    "scope": "Conditional on frozen calibration selections, historical LLM library and known BH pool; not new tasks or new LLM proposals."
+  },
+  "excluded_prior_seed_ranges": [
+    [
+      202610180000,
+      202610180001
+    ],
+    [
+      202610181000,
+      202610181009
+    ],
+    [
+      202610182000,
+      202610182019
+    ]
+  ]
+}

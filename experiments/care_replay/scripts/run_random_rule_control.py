@@ -26,17 +26,105 @@ import run_synthetic_suzuki as replay
 import run_transfer_weighted_kernel as weighted
 
 
+def _validate_random_rule_inputs(
+    skill: semantic.SemanticSkill,
+    catalog: dict[str, dict[str, int]],
+    null_type: str,
+    field_types: dict[str, str] | None,
+) -> None:
+    """Reject incomplete metadata before consuming any random draws."""
+    import math
+
+    if null_type not in {"r1", "r2"}:
+        raise ValueError("null_type must be 'r1' or 'r2'")
+    if not isinstance(catalog, dict) or not catalog:
+        raise ValueError("catalog must be a nonempty field-to-value-count dictionary")
+    for field, values in catalog.items():
+        if not isinstance(field, str) or not field.strip():
+            raise ValueError("catalog field names must be nonempty strings")
+        if not isinstance(values, dict) or not values:
+            raise ValueError(f"catalog field {field!r} must have at least one legal value")
+        for value, count in values.items():
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(f"catalog values for {field!r} must be nonempty strings")
+            if isinstance(count, bool) or not isinstance(count, int) or count <= 0:
+                raise ValueError(f"catalog counts for {field!r} must be positive integers")
+
+    if null_type == "r2" and field_types is None:
+        raise ValueError("R2 requires explicit field_types for every catalog field")
+    if field_types is not None:
+        if not isinstance(field_types, dict) or set(field_types) != set(catalog):
+            raise ValueError("field_types must cover exactly the catalog fields")
+        if any(not isinstance(kind, str) or not kind.strip() for kind in field_types.values()):
+            raise ValueError("field_types entries must be nonempty strings")
+
+    if not skill.rules:
+        raise ValueError("the source skill must have at least one rule")
+    for rule in skill.rules:
+        if not rule.conditions:
+            raise ValueError(f"rule {rule.rule_id!r} must have at least one condition")
+        seen: set[str] = set()
+        for field, value in rule.conditions:
+            if field not in catalog or value not in catalog[field]:
+                raise ValueError(f"rule {rule.rule_id!r} has a condition outside the catalog")
+            if field in seen:
+                raise ValueError(f"rule {rule.rule_id!r} repeats condition field {field!r}")
+            seen.add(field)
+        try:
+            finite_weight = math.isfinite(float(rule.weight))
+        except (TypeError, ValueError):
+            finite_weight = False
+        if not finite_weight:
+            raise ValueError(f"rule {rule.rule_id!r} must have a finite weight")
+
+
 def matched_random_skill(
     skill: semantic.SemanticSkill,
     catalog: dict[str, dict[str, int]],
     rng: random.Random,
     skill_id: str,
+    *,
+    null_type: str = "r1",
+    field_types: dict[str, str] | None = None,
 ) -> semantic.SemanticSkill:
-    """Randomize rule values/signs while preserving the LLM rule structure."""
+    """Draw a structural null using public metadata only.
+
+    R1 preserves the source fields and the legacy value/sign draw sequence.
+    R2 first draws a uniform injection from the distinct source fields into
+    catalog fields of the same explicitly declared type. The single mapping
+    applies to every rule, preserving field reuse and avoiding duplicate fields
+    within a rule. Identity mappings are allowed. R2 sorts metadata before
+    drawing so dictionary insertion order cannot change the result.
+
+    Both nulls sample legal values uniformly (not by their observed counts),
+    sample independent signs, and preserve rule arity, absolute weights, and
+    every execution hyperparameter. No objective values are accepted or read.
+    """
+    _validate_random_rule_inputs(skill, catalog, null_type, field_types)
+    field_map = {
+        field: field for rule in skill.rules for field, _value in rule.conditions
+    }
+    if null_type == "r2":
+        assert field_types is not None  # Validated before any random draw.
+        for kind in sorted({field_types[field] for field in field_map}):
+            source_fields = sorted(field for field in field_map if field_types[field] == kind)
+            eligible_fields = sorted(field for field in catalog if field_types[field] == kind)
+            # Every source field is eligible for its own type, so this sample
+            # always has enough entries and includes self-maps when drawn.
+            targets = rng.sample(eligible_fields, len(source_fields))
+            field_map.update(zip(source_fields, targets))
+
     rules: list[semantic.SemanticRule] = []
     for rule_index, rule in enumerate(skill.rules):
         conditions = tuple(
-            (field, rng.choice(tuple(catalog[field])))
+            (
+                field_map[field],
+                rng.choice(
+                    tuple(catalog[field_map[field]])
+                    if null_type == "r1"
+                    else tuple(sorted(catalog[field_map[field]]))
+                ),
+            )
             for field, _value in rule.conditions
         )
         magnitude = abs(float(rule.weight))
@@ -48,6 +136,9 @@ def matched_random_skill(
             rationale=(
                 "Matched random null: original fields and rule arity preserved; "
                 "condition values and sign randomized."
+                if null_type == "r1"
+                else "Matched R2 random null: type-matched injective field mapping; "
+                "rule arity, field reuse, and magnitude preserved; values and sign randomized."
             ),
         ))
     return replace(
@@ -57,6 +148,9 @@ def matched_random_skill(
         hypothesis=(
             "Matched random-rule null preserving the frozen LLM skill's public "
             "feature structure, rule count, and execution schedule."
+            if null_type == "r1"
+            else "Matched R2 random-rule null preserving field types and reuse, "
+            "rule count and arity, absolute weights, and execution schedule."
         ),
     )
 

@@ -1,0 +1,295 @@
+{
+  "initial_observations": 5,
+  "reveal_rounds": 10,
+  "gp_beta": 1.5,
+  "gp_xi": 0.01,
+  "numeric_length_scale": 0.35,
+  "categorical_length_scale": 3.0,
+  "gp_noise": 0.05,
+  "min_risk_adjusted_gain": 0.25,
+  "min_positive_fold_rate": 0.8,
+  "exact_execution_reuse": true,
+  "model": {
+    "id": "openai/gpt-4o-mini",
+    "temperature": 0.45,
+    "max_tokens": 5000,
+    "response_format": "json_object",
+    "sampling_seed": null,
+    "historical_immutable_snapshot_known": false,
+    "provider_comparison_boundary": "Same historical model alias and generation parameters; OpenRouter OpenAI route is newly fixed for both arms. No immutable historical backend equivalence claim."
+  },
+  "api": {
+    "base_url": "https://openrouter.ai/api/v1",
+    "max_cost_usd": 1.0,
+    "reservation_per_attempt_usd": 0.045,
+    "context_token_bound": 128000,
+    "timeout_seconds": 120,
+    "provider": {
+      "only": [
+        "openai"
+      ],
+      "order": [
+        "openai"
+      ],
+      "allow_fallbacks": false,
+      "require_parameters": true,
+      "max_price": {
+        "prompt": 0.15,
+        "completion": 0.6,
+        "request": 0
+      }
+    },
+    "transport_retries": 0,
+    "invalid_output_policy": "For an accounted model completion, deterministically invalid whole libraries consume the scheduled slot and map to the same calibration-selected target-only anchor. Preserve the entire response and reasons; continue to the next scheduled slot. Never repair, retain partial strategies, substitute, regenerate, or transfer saved budget.",
+    "unknown_cost_policy": "Stop with unresolved attempt reservation. Prefer finite nonnegative inline cost plus explicit is_byok=false; otherwise bounded GET-only reconciliation. No POST retry.",
+    "byok_policy": "Explicit non-BYOK evidence required; true or unknown stops for billing review.",
+    "cumulative_prior_spend_usd": "0"
+  },
+  "selection": {
+    "strategies_per_library": 5,
+    "expand_variants": false,
+    "across_library_selection": false,
+    "method": "Existing canonical five-fold selector; each library separately selects one of its five strategies.",
+    "folds": "Sorted calibration seeds assigned index::5; same folds across libraries.",
+    "gate_inherited_conditions": {
+      "mean_delta_final_min": 0.0,
+      "mean_delta_auc_min": 0.0,
+      "final_nonloss_rate_min": 0.55,
+      "positive_fold_rate_min": 0.8,
+      "risk_adjusted_composite_gain_min": 0.25,
+      "risk_adjustment": "mean(delta_final+delta_auc) - 0.5*SE"
+    },
+    "tie_break": "Prespecified pair/arm/slot IDs; same slot ordering in each library.",
+    "lock_selection_before_any_heldout": true,
+    "invalid_library_policy": "No candidate strategies are extracted or evaluated. Use the shared target-only anchor selected once from calibration data; retain the invalid library as its original assigned arm/pair.",
+    "target_anchor": {
+      "modes": [
+        "gp_ucb",
+        "mixed_kernel_gp_ei",
+        "target_acquisition_portfolio"
+      ],
+      "criterion": "max existing mode_means composite (mean final_best + mean best_so_far_auc), preserving existing six-decimal rounding and lexical mode tie-break",
+      "source": "run_calibrated_llm_semantic_selector.select_skill / run_calibrated_frozen_llm_selector.mode_means",
+      "calibration_only": true,
+      "same_for_every_pair_and_arm": true,
+      "lock_before_heldout": true
+    }
+  },
+  "generation_completion_contract": {
+    "required_slots": 20,
+    "allowed_terminal_states": [
+      "VALID",
+      "INVALID_ANCHOR_FALLBACK"
+    ],
+    "valid_library_file_only_when_valid": true,
+    "failure_records_required_for_invalid": true,
+    "mixed_valid_invalid_run_is_complete": true,
+    "all_invalid_run_is_complete_for_policy_comparison": true,
+    "halt_never_counts_as_invalid": true,
+    "same_policy_for_both_arms": true
+  },
+  "response_classification": {
+    "before_content_classification": [
+      "settled cost and explicit non-BYOK",
+      "verified provider/model and HTTP response provenance",
+      "exact scheduled request and source/input hashes",
+      "pair material equals pinned deterministic build",
+      "one structurally valid completion choice"
+    ],
+    "invalid_cases": [
+      "finish_reason length",
+      "finish_reason content_filter",
+      "nonempty explicit message refusal",
+      "returned tool_calls or function_call",
+      "empty or absent model content with an otherwise valid completion envelope",
+      "strict JSON/whole-library contract violation including source-only field, illegal field/value, count, key, numeric bounds, IDs or text length"
+    ],
+    "halt_cases": [
+      "HTTP or transport errors including provider-level safety errors without a normal accounted completion envelope",
+      "unknown or malformed finish_reason",
+      "malformed completion envelope or unexpected number of choices",
+      "unknown cost, BYOK, budget or rate limit issues",
+      "provenance/material/hash mismatch",
+      "validator internal exception"
+    ],
+    "manual_subjective_validity_labels": false
+  },
+  "protocol_id": "suzuki_second_dataset_v1",
+  "amendment": 1,
+  "target_dataset": "real_suzuki_miyaura",
+  "expected_candidate_count": 5760,
+  "pair_count": 10,
+  "calibration_seed_start": 202610211000,
+  "calibration_seed_count": 50,
+  "heldout_seed_start": 202610212000,
+  "heldout_seed_count": 100,
+  "bootstrap_seed": 202610217000,
+  "bootstrap_replicates": 10000,
+  "heldout_blocks": 5,
+  "source": {
+    "dataset": "real_buchwald_hartwig",
+    "observations": 512,
+    "seed": 202610213000,
+    "discount": 0.65,
+    "min_support": 3
+  },
+  "random_controls": {
+    "replicates_per_valid_parent": 10,
+    "seed": 202610216000,
+    "coverage_tolerance": 0.005,
+    "max_configurations": 1000000
+  },
+  "data_files": [
+    "experiments/care_replay/data/raw/perera_suzuki_miyaura.xlsx",
+    "experiments/care_replay/data/raw/dreher_doyle_buchwald_hartwig.xlsx",
+    "experiments/care_replay/data/descriptors/reaction_component_descriptors.csv"
+  ],
+  "generation_output_directory": "experiments/care_replay/results/2026-10-20-suzuki-second-dataset-v1-generation",
+  "evaluation_output_directory": "experiments/care_replay/results/2026-10-20-suzuki-second-dataset-v1-evaluation",
+  "paired_design": {
+    "alias_seed_by_pair": {
+      "pair_00": 202610214000,
+      "pair_01": 202610214001,
+      "pair_02": 202610214002,
+      "pair_03": 202610214003,
+      "pair_04": 202610214004,
+      "pair_05": 202610214005,
+      "pair_06": 202610214006,
+      "pair_07": 202610214007,
+      "pair_08": 202610214008,
+      "pair_09": 202610214009
+    },
+    "order_seed": 202610215000,
+    "ordered_rule_counts": [
+      2,
+      1,
+      1,
+      1,
+      1
+    ]
+  },
+  "analysis": {
+    "primary_metric": "best_so_far_auc",
+    "primary_policy": "ungated_calibration_winner_if_valid_else_shared_target_anchor",
+    "contrasts": [
+      "labeled_minus_r1_valid_parents",
+      "labeled_minus_r2_valid_parents",
+      "labeled_minus_anonymous_all_pairs"
+    ],
+    "confidence_level": 0.9833333333333333,
+    "primary_hypotheses": 3,
+    "scope": "Retrospective Suzuki finite pool; random comparisons conditional on valid labeled parents; label comparison includes all scheduled pairs; conditional on frozen calibration; no pure chemical knowledge or prospective claim."
+  },
+  "implementation_boundary": {
+    "workers": 4,
+    "blas_threads_per_worker": 1,
+    "network_disabled_evaluation": true,
+    "seed_atomic_resume": true
+  },
+  "generation_order": [
+    {
+      "pair_index": 0,
+      "arm": "anonymous"
+    },
+    {
+      "pair_index": 0,
+      "arm": "labeled"
+    },
+    {
+      "pair_index": 1,
+      "arm": "anonymous"
+    },
+    {
+      "pair_index": 1,
+      "arm": "labeled"
+    },
+    {
+      "pair_index": 2,
+      "arm": "labeled"
+    },
+    {
+      "pair_index": 2,
+      "arm": "anonymous"
+    },
+    {
+      "pair_index": 3,
+      "arm": "anonymous"
+    },
+    {
+      "pair_index": 3,
+      "arm": "labeled"
+    },
+    {
+      "pair_index": 4,
+      "arm": "labeled"
+    },
+    {
+      "pair_index": 4,
+      "arm": "anonymous"
+    },
+    {
+      "pair_index": 5,
+      "arm": "labeled"
+    },
+    {
+      "pair_index": 5,
+      "arm": "anonymous"
+    },
+    {
+      "pair_index": 6,
+      "arm": "labeled"
+    },
+    {
+      "pair_index": 6,
+      "arm": "anonymous"
+    },
+    {
+      "pair_index": 7,
+      "arm": "anonymous"
+    },
+    {
+      "pair_index": 7,
+      "arm": "labeled"
+    },
+    {
+      "pair_index": 8,
+      "arm": "labeled"
+    },
+    {
+      "pair_index": 8,
+      "arm": "anonymous"
+    },
+    {
+      "pair_index": 9,
+      "arm": "anonymous"
+    },
+    {
+      "pair_index": 9,
+      "arm": "labeled"
+    }
+  ],
+  "resource_authorization": {
+    "generation_enabled": true,
+    "new_model_calls_approved": true,
+    "new_invalid_output_policy_approved": true,
+    "approved_new_logical_requests": 20,
+    "approved_logical_requests": 20,
+    "approved_pair_count": 10,
+    "approved_max_cost_usd": 1.0,
+    "maximum_new_post_attempts": 20,
+    "proposed_new_logical_requests": 20,
+    "prior_experiment_actual_post_attempts": 0,
+    "prior_known_cost_usd": "0",
+    "proposed_cumulative_max_cost_usd": "1",
+    "per_attempt_reservation_usd": "0.045",
+    "authorization_reference": "User approved BH-to-Suzuki, 10 pairs plus R1/R2, 20 POST attempts and separate USD1 cap; subsequently explicitly approved correcting AmPhos/CataCXium A/XPhos with original bins and narrower R2. Offline validation and freeze required before execution; stop for scientific amendments."
+  },
+  "input_files": [
+    "uv.lock",
+    "pyproject.toml",
+    "experiments/care_replay/skill_banks/frozen_records/bh_semantic_headline_20260721.json",
+    "experiments/care_replay/protocols/suzuki_second_dataset_v1/structure_references.json",
+    "experiments/care_replay/SUZUKI_SECOND_DATASET_VALIDATION_PLAN.md",
+    "experiments/care_replay/SUZUKI_PREFLIGHT_AMENDMENT_1.md"
+  ]
+}

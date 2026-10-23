@@ -203,6 +203,11 @@ def _cached_feature_arrays(
         [features_by_id[candidate_id][1] for candidate_id in candidate_ids],
         dtype=str,
     )
+    # Entries strongly own complete feature dictionaries. Long replay studies
+    # build a new dictionary per policy, so keep only a small working set.
+    # Eviction changes allocation only; arrays are recomputed from exact inputs.
+    if len(_FEATURE_ARRAY_CACHE) >= 4:
+        _FEATURE_ARRAY_CACHE.clear()
     _FEATURE_ARRAY_CACHE[key] = (
         features_by_id,
         candidate_ids,
