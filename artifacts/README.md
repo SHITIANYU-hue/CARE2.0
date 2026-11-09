@@ -2,7 +2,7 @@
 
 归档包含结果 JSON/JSONL、日志、汇总、图表、协议副本、代码快照与演示文件。原始代码和有效配置仍在源码树中。
 
-共 **187 个 tar.gz**，**62,329 个原始文件**，压缩后 **851.57 MiB**。其中 17 个文件来自 `llm-traces` 独有提交。
+共 **188 个 tar.gz**，**62,361 个原始文件**，压缩后 **853.09 MiB**。其中 17 个文件来自 `llm-traces` 独有提交。
 
 命令从仓库根目录运行；先按 [环境与依赖](../docs/ENVIRONMENT.md) 安装 uv 环境。
 
@@ -248,6 +248,9 @@ uv run --locked python care.py artifacts restore llm-traces-2026-07-16
 | [nonrsi-publication-20261109-fence-suzuki-calibration](new-runs/nonrsi-publication-20261109-fence-suzuki-calibration.tar.gz) | 100 | 66.925 | 14.064 |
 | [nonrsi-publication-20261109-fence-suzuki-heldout](new-runs/nonrsi-publication-20261109-fence-suzuki-heldout.tar.gz) | 202 | 54.600 | 6.926 |
 | [nonrsi-publication-20261109-dependencies](new-runs/nonrsi-publication-20261109-dependencies.tar.gz) | 236 | 11.678 | 8.021 |
+| [nonrsi-publication-20261109-verification](new-runs/nonrsi-publication-20261109-verification.tar.gz) | 32 | 9.149 | 1.515 |
+
+最后一个小包是发布核验快照，与上面 14 个科学证据包分开。它包含严格/补充完成性、干净检出与独立冻结环境核验、旧在线工作线未完成审计、269 个离线用例的初跑与命名空间复核记录。初跑中的一个收集命名失败保留，规范命名重跑通过；没有修改冻结研究代码或把失败日志改为全绿。
 
 恢复到仓库之外的干净目录，可一次选择全部发布包；已有不同内容会拒绝覆盖。以下命令也会包含随后登记的本次复核小包：
 
@@ -261,4 +264,4 @@ print(f"Restored {written} files; skipped {skipped} identical files")
 PY
 ```
 
-在干净 clone 中恢复到仓库原路径时，省略 `restore_archives` 的第三参数；已有且 SHA-256 相同的源码/数据自动跳过。复核脚本和运行命令见投稿交接。完整发布计划、逐文件原始 SHA-256、源内容不变检查、逐包验证与干净恢复复核记录位于 `outputs/submission_handoff_20261109/` 的后续复核归档。
+在干净 clone 中恢复到仓库原路径时，省略 `restore_archives` 的第三参数；已有且 SHA-256 相同的源码/数据自动跳过。完整冻结核验另需交接说明中的独立精确版本环境。完整发布计划、逐文件原始 SHA-256、源内容不变检查、逐包验证、测试及干净恢复复核记录可由最后一个小包恢复至 `outputs/submission_handoff_20261109/release_verification/`。

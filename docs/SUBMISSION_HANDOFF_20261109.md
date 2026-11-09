@@ -59,6 +59,8 @@ uv run --no-project --python 3.12.3 python care.py artifacts restore \
 uv run --no-project --python 3.12.3 python care.py artifacts restore nonrsi-publication-20261109-verification
 ```
 
+该小包恢复到 `outputs/submission_handoff_20261109/release_verification/`。其中包含完成性、逐包及干净检出核验、原始测试日志和复核结果。相关 269 个离线测试首次为 268 通过、1 个默认 pytest 包名断言失败；该单项使用生产的 `protocols.*` 命名空间复核通过。复核使用 importlib、`consider_namespace_packages=true` 和以 care_replay 为 rootdir 的收集方式。首次失败、原始启动脚本和完整复核参数均保留，冻结源码未改。
+
 可在干净目录中用 `--destination /tmp/care2-handoff-evidence` 检查归档恢复；要执行完整核验，需把证据恢复到含本分支源码的仓库中。10 月实验按其索引另行恢复。实验三有原始内层归档，需要按索引展开；原始 ProteinGym ZIP 不在仓库，从源数据重跑另需取得协议指定版本并核对哈希。
 
 ## 源码与复核
