@@ -2,7 +2,7 @@
 
 **从源实验的证据编译可执行迁移技能，在目标任务中校准、门控，并留下可审计的决策记录。**
 
-原始整理基线为 **2026-09-01 的 `4c6f19f8`**，保留目录整理、归档工具及更早的独有分支证据。后续投稿补充实验的结果、归档和复核入口见 [2026-10 已完成结果](experiments/care_replay/SUBMISSION_COMPLETED_RESULTS_20261023.md)。全部 7 个早期远程分支的历史关系见主线报告。
+原始整理基线为 **2026-09-01 的 `4c6f19f8`**，保留目录整理、归档工具及更早的独有分支证据。交接从 [投稿实验交接说明](docs/SUBMISSION_HANDOFF_20261109.md) 开始；最新跨模型严格主结果和事后格式补充见 [2026-11 已完成结果](experiments/care_replay/SUBMISSION_COMPLETED_RESULTS_20261109.md)，此前 BH、Suzuki、蛋白 gate、AUC 和成本审计见 [2026-10 已完成结果](experiments/care_replay/SUBMISSION_COMPLETED_RESULTS_20261023.md)。全部 7 个早期远程分支的历史关系见主线报告。
 
 ## 先看这里
 
@@ -10,7 +10,7 @@
 - [环境与依赖](docs/ENVIRONMENT.md)：uv 安装、可选功能和统一运行方式。
 - [项目主线与全部分支关系](docs/PROJECT_MAINLINE.md)：研究问题、算法链路、证据层级和扩展实验。
 - [主方法定义](experiments/care_replay/CARE2_METHOD.md)：冻结 source-outcome transfer 的执行契约。
-- [实验与产物目录](artifacts/README.md)：138 个按实验组织的 tar.gz、校验与恢复命令。
+- [实验与产物目录](artifacts/README.md)：按实验组织的 tar.gz、校验与恢复命令。
 - [整理记录与复现步骤](docs/REORGANIZATION.md)：目录变化、保留范围、测试和历史恢复。
 - [开发与归档约定](CONTRIBUTING.md)：新增代码、配置和实验产物放在哪里。
 
@@ -81,4 +81,4 @@ uv run --locked python care.py pack experiments/care_replay/results/my-run --id 
 
 恢复保留原始仓库相对路径；已有同内容文件跳过，不同内容拒绝覆盖。大实验有 `part01` 等分包，完整恢复需选择全部分包。现有内层 tar.gz 保持原样；逐文件校验清单封装在每个归档内，`artifacts/catalog.json` 仅作为可查询的目录索引。
 
-日志和结果目录默认被 Git 忽略；配置、技能及知识库卡片继续按 JSON 跟踪。原始研究分支与 Git 历史保留；本分支只纳入截止点以内的研究内容，未执行新的付费模型调用。
+日志和结果目录默认被 Git 忽略；配置、技能及知识库卡片继续按 JSON 跟踪。原始研究分支与 Git 历史保留；本分支在整理基线上发布已完成的非 RSI 投稿补充实验。每批实验的实际调用、费用、失败、冻结版本和适用范围见对应结果索引。

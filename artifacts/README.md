@@ -2,7 +2,7 @@
 
 归档包含结果 JSON/JSONL、日志、汇总、图表、协议副本、代码快照与演示文件。原始代码和有效配置仍在源码树中。
 
-共 **173 个 tar.gz**，**28,652 个原始文件**，压缩后 **721.23 MiB**。其中 17 个文件来自 `llm-traces` 独有提交。
+共 **187 个 tar.gz**，**62,329 个原始文件**，压缩后 **851.57 MiB**。其中 17 个文件来自 `llm-traces` 独有提交。
 
 命令从仓库根目录运行；先按 [环境与依赖](../docs/ENVIRONMENT.md) 安装 uv 环境。
 
@@ -223,3 +223,42 @@ uv run --locked python care.py artifacts restore llm-traces-2026-07-16
 | [suzuki-second-dataset-v1-generation-interrupted](new-runs/suzuki-second-dataset-v1-generation-interrupted.tar.gz) | 213 | 3.42 |
 | [suzuki-second-dataset-v1-protocol-frozen](new-runs/suzuki-second-dataset-v1-protocol-frozen.tar.gz) | 169 | 3.41 |
 | [completed-results-publication-20261023](new-runs/completed-results-publication-20261023.tar.gz) | 11 | 0.01 |
+
+## 2026-11 跨模型完整结果与格式敏感性补充
+
+本批发布覆盖全部 17 个 `nonrsi_*` 原输出目录，并保留设计、初冻、原始请求/响应/费用账本、v1–v10 中断及修订链、全部校准/留出指标与轨迹、负结果和无效回退。另附初冻引用的完整输入/代码依赖、修订协议源码与环境文件。没有新增模型请求，没有改写冻结内容。
+
+严格 JSON 原分析与事后去除完整外层代码块的敏感性分析分别归档。后者复用原响应和已见留出种子，不能作为新的独立验证。论文含义和证据边界见 [最新结果索引](../experiments/care_replay/SUBMISSION_COMPLETED_RESULTS_20261109.md) 与 [投稿交接](../docs/SUBMISSION_HANDOFF_20261109.md)。
+
+下列 14 包一起恢复时原路径互不重复；每包源内容均不超过 90 MiB，归档均小于 100 MiB。共保留 33,677 文件，源内容 821.554 MiB。相同内容位于不同历史路径的副本仍逐个保留。归档的 `source_commit` 为发布源码快照 `a13ac49b4cdc73fbafb9a096ca03d50adf86df42`；原研究的执行身份以归档中的冻结配置、代码与输入 SHA-256 为准，不能把发布提交当作原执行提交。
+
+| 归档 ID / 下载 | 文件数 | 源 MiB | 归档 MiB |
+| --- | ---: | ---: | ---: |
+| [nonrsi-publication-20261109-history-part01](new-runs/nonrsi-publication-20261109-history-part01.tar.gz) | 2,311 | 32.223 | 4.002 |
+| [nonrsi-publication-20261109-history-part02](new-runs/nonrsi-publication-20261109-history-part02.tar.gz) | 9,097 | 63.475 | 8.087 |
+| [nonrsi-publication-20261109-history-part03](new-runs/nonrsi-publication-20261109-history-part03.tar.gz) | 12,949 | 87.431 | 11.266 |
+| [nonrsi-publication-20261109-strict-control](new-runs/nonrsi-publication-20261109-strict-control.tar.gz) | 5,216 | 52.373 | 5.233 |
+| [nonrsi-publication-20261109-strict-molecular-materials](new-runs/nonrsi-publication-20261109-strict-molecular-materials.tar.gz) | 1,208 | 55.481 | 10.052 |
+| [nonrsi-publication-20261109-strict-bh](new-runs/nonrsi-publication-20261109-strict-bh.tar.gz) | 302 | 78.992 | 11.920 |
+| [nonrsi-publication-20261109-strict-suzuki](new-runs/nonrsi-publication-20261109-strict-suzuki.tar.gz) | 302 | 79.800 | 14.374 |
+| [nonrsi-publication-20261109-fence-control](new-runs/nonrsi-publication-20261109-fence-control.tar.gz) | 244 | 35.488 | 2.856 |
+| [nonrsi-publication-20261109-fence-molecular-materials](new-runs/nonrsi-publication-20261109-fence-molecular-materials.tar.gz) | 1,208 | 85.037 | 15.411 |
+| [nonrsi-publication-20261109-fence-bh-calibration](new-runs/nonrsi-publication-20261109-fence-bh-calibration.tar.gz) | 100 | 66.234 | 12.784 |
+| [nonrsi-publication-20261109-fence-bh-heldout](new-runs/nonrsi-publication-20261109-fence-bh-heldout.tar.gz) | 202 | 51.819 | 5.344 |
+| [nonrsi-publication-20261109-fence-suzuki-calibration](new-runs/nonrsi-publication-20261109-fence-suzuki-calibration.tar.gz) | 100 | 66.925 | 14.064 |
+| [nonrsi-publication-20261109-fence-suzuki-heldout](new-runs/nonrsi-publication-20261109-fence-suzuki-heldout.tar.gz) | 202 | 54.600 | 6.926 |
+| [nonrsi-publication-20261109-dependencies](new-runs/nonrsi-publication-20261109-dependencies.tar.gz) | 236 | 11.678 | 8.021 |
+
+恢复到仓库之外的干净目录，可一次选择全部发布包；已有不同内容会拒绝覆盖。以下命令也会包含随后登记的本次复核小包：
+
+```bash
+uv run --locked python - <<'PY'
+from tools.artifacts import load_catalog, restore_archives
+root, entries = load_catalog("artifacts/catalog.json")
+selected = [e for e in entries if e["id"].startswith("nonrsi-publication-20261109-")]
+written, skipped = restore_archives(root, selected, "/tmp/care2-handoff-20261109")
+print(f"Restored {written} files; skipped {skipped} identical files")
+PY
+```
+
+在干净 clone 中恢复到仓库原路径时，省略 `restore_archives` 的第三参数；已有且 SHA-256 相同的源码/数据自动跳过。复核脚本和运行命令见投稿交接。完整发布计划、逐文件原始 SHA-256、源内容不变检查、逐包验证与干净恢复复核记录位于 `outputs/submission_handoff_20261109/` 的后续复核归档。
